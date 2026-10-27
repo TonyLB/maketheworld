@@ -352,7 +352,7 @@ describe('phrase coverage payoff (integration)', () => {
         expect(delivered(publish)).toEqual([expect.stringMatching(/ picks up man in the moon$/)])
     })
 
-    it('"look at the cup on the table" on the LLM route looks at the table\'s cup, not the floor\'s, without asking', async () => {
+    it('"look at the cup on the table" on the fast path looks at the table\'s cup, not the floor\'s, without asking', async () => {
         seed({
             graphs: {
                 [ROOM_ID]: roomGraph([[TABLE_ID, 'PRESENCE#table-in-room'], [FLOOR_CUP_ID, 'PRESENCE#floor-cup']]),
@@ -370,7 +370,8 @@ describe('phrase coverage payoff (integration)', () => {
             '{"tokens":[{"type":"text","text":"look"},{"type":"text","text":"at"},{"type":"objectSpan","span":"cup"},{"type":"text","text":"on"},{"type":"objectSpan","span":"table"}]}'
         )
 
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalledTimes(1)
+        // The look is one of Plan's templates, so the fast path reads it before classify and Parse.
+        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))
         // The dispatch describes the object `lookedAtObjectIdOf` names; the rendered describe is the perception stack's.
         expect(parseResult.type === 'CommandAttempt' ? lookedAtObjectIdOf(parseResult.attempt) : undefined).toBe(CUP_ID)

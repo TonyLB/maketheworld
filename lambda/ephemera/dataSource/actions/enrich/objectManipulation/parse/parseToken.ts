@@ -7,6 +7,8 @@
 // span's `qualifier` is added in a reading of Plan's templates (an object phrase's fill), never by Parse.
 //
 
+import type { SpanCatalog } from '../../../deterministicTemplate/deterministicTemplate'
+
 export type TextToken = {
     type: 'text'
     text: string
@@ -31,6 +33,8 @@ export type ParseTokenDraft = ObjectSpanTokenDraft | TextToken
  */
 export type ObjectSpanToken = ObjectSpanTokenDraft & {
     stableRefKey: string
+    /** What the span grounds against, as its template's slot declares (`SpanCatalog`); absent, the objects. */
+    catalog?: SpanCatalog
     /** Where the thing is said to be ("the cup on the table"): set in a reading of Plan's templates, read by lowering (`plan/lowerQualifiers.ts`). */
     qualifier?: SpanQualifier
 }

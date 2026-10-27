@@ -22,12 +22,14 @@ const span = (value: string): ParseTokenDraft => ({ type: 'objectSpan', span: va
 
 /**
  * Plan's fills for a command, as parseCommand hands them to the producer, checked to be exactly
- * the segmentations listed (in any order).
+ * the segmentations listed (in any order) and the bare exit reading every command has (the whole
+ * command as one exit span, which no exit here names).
  */
 const fillsOf = (command: string, drafts: ParseTokenDraft[][]): SkeletonFill[] => {
     const fills = planTokens(tokenize(COMMAND_GRANULES, command), command)
-    expect(fills).toHaveLength(drafts.length)
+    expect(fills).toHaveLength(drafts.length + 1)
     expect(drafts.every((draft) => fills.some(({ skeleton }) => sameSegmentation(skeleton, draft)))).toBe(true)
+    expect(fills.some(({ skeleton }) => skeleton.length === 1 && skeleton[0].type === 'objectSpan' && skeleton[0].catalog === 'exits')).toBe(true)
     return fills
 }
 
@@ -117,7 +119,7 @@ describe('compileAttemptsFromSkeleton (several fills)', () => {
             expect(result.type).toBe('Consult')
             if (result.type === 'Consult') {
                 expect(result.alternatives.map(({ label }) => label).sort()).toEqual(['take man in moon', 'take man in the moon'])
-                expect(result.root?.fills).toHaveLength(2)
+                expect(result.root?.fills).toHaveLength(3) // both cuts, and the bare exit reading: the root holds every fill
             }
         })
 

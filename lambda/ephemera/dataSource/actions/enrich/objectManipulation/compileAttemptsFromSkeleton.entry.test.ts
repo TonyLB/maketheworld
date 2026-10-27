@@ -10,6 +10,8 @@ import {
 } from './embeddingMatch/testing/mockVectors'
 import { planFillOf } from './plan/attemptTemplateFixture'
 import { peerRelationFixture } from './peerRelationFixture'
+import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
+import { tokenize } from '../../deterministicTemplate/granuleTokens'
 
 const relationalSkeleton = (
     verb: string,
@@ -360,6 +362,21 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
                 fills: [{ skeleton: takeSkeleton, attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 roomObjectCatalog: relationalCatalog,
+            },
+            0.9
+        )
+
+        expect(result).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noMembershipHost })
+    })
+
+    it('answers an attempt\'s own Error refusal over a pool that only abstains: the take with no room, beside its bare exit reading', async () => {
+        const command = 'take broom'
+        const result = await compileAttemptsFromSkeleton(
+            {
+                command,
+                fills: planTokens(tokenize(COMMAND_GRANULES, command), command),
+                characterId,
+                roomObjectCatalog: catalog,
             },
             0.9
         )

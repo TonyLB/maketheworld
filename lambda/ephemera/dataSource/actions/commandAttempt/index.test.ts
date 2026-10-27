@@ -42,6 +42,29 @@ const narrateAction = (referents: Referent[], challenges: ChallengeData[], descr
     ...(description !== undefined ? { description } : {}),
 })
 
+describe('a navigation attempt', () => {
+    it('round-trips its navigate action, whose one referent is the exit, and derives its referent from it', () => {
+        const northRoom = 'ROOM#North' as EphemeraRoomId
+        const data: CommandAttemptData = {
+            kind: 'navigation',
+            words: 'go north',
+            referents: [],
+            actions: [{
+                kind: 'navigate',
+                id: 'action-1',
+                destination: { referentType: 'objectSpan', span: 'north', stableRefKey: 'northExitRef', groundedId: northRoom, shortName: 'north' },
+                challenges: [],
+            }],
+            narrationUnits: [],
+        }
+        const attempt = CommandAttempt.fromJSON(data)
+
+        expect(attempt.toJSON()).toEqual({ ...data, referents: [{ refKey: 'northExitRef', id: northRoom, shortName: 'north' }] })
+        expect(attempt.actions()[0]!.describe()).toBe('Go north')
+        expect(attempt.result).toEqual({ status: 'succeeded', outcome: 'Go north' })
+    })
+})
+
 describe('CommandAttempt', () => {
     describe('row 2 --- get gigantic boulder', () => {
         const data: CommandAttemptData = {

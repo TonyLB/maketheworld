@@ -106,11 +106,11 @@ This sharpens where LLM cost is actually spent, compared to treating "fast path 
 
 ## `DeterministicTemplate`
 
-**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific. One pattern language serves the intent rows (`look`, `help`, `home`, `predict`, `wait`, none of which are object manipulation), the object templates, and the fast path, which reads both over the command's tokens.
+**Scope note:** unlike the rest of this file, this vocabulary is not object-manipulation-specific. One pattern language serves the intent rows (`look`, `help`, `home`, `predict`, `wait`, none of which are object manipulation), Plan's templates (the object templates, and navigation), and the fast path, which reads both over the command's tokens.
 
-A **pattern** is a `PatternElement[]`: `templateText` a fixed word over its own typed lexicon, `objectSpan` a referent slot, `capturedText` a free-text slot, `objectPhrase` a span optionally qualified, through a closed-set preposition, by another object phrase. Every deterministic template's fixed words together are the one divider set that cuts a command into tokens. Two kinds of template read a pattern:
+A **pattern** is a `PatternElement[]`: `templateText` a fixed word over its own typed lexicon, `objectSpan` a referent slot, grounded against the **catalog** it declares (the objects in the room and in hand, or the room's exits: an **exit span**), `capturedText` a free-text slot, `objectPhrase` a span optionally qualified, through a closed-set preposition, by another object phrase. Every deterministic template's fixed words together are the one divider set that cuts a command into tokens. Two kinds of template read a pattern:
 - An **`IntentTemplate`** (intent row) is a pattern of fixed words only and the constant result it answers, at zero Bedrock cost. It answers as a result, not an attempt: its words are no other template's and it has no referent to pool with other readings.
-- An **`AttemptTemplate`** (object template) is a pattern plus a builder that turns one fill's captures into a `CommandAttempt`, so one pattern yields one attempt per way it fits; a builder reads its captures by element name, and the template's name is the attempt's kind.
+- An **`AttemptTemplate`** (Plan template: an object template, or a navigation one) is a pattern plus a builder that turns one fill's captures into a `CommandAttempt`, so one pattern yields one attempt per way it fits; a builder reads its captures by element name, and the template's name is the attempt's kind. A **navigation** is such an attempt: one navigate action whose referent is an exit span, pooled with every other reading. The **bare exit reading** (an exit span alone) fits every command.
 
 ---
 

@@ -9,14 +9,26 @@ import { lowerQualifiers } from './lowerQualifiers'
 import { containmentTemplate } from './matchContainmentTemplate'
 import { lookAtTemplate, lookTemplate } from './matchLookTemplate'
 import { membershipTemplate } from './matchMembershipTemplate'
+import { bareNavigationTemplate, navigationTemplate } from './matchNavigationTemplate'
 import { exceedsQualifierCap } from './qualifierPrepositions'
 import { spreadTemplate } from './matchSpreadTemplate'
 
-/** The object templates, in order: the first attempt is the primary one. */
-const PLAN_TEMPLATES: readonly AttemptTemplate[] = [containmentTemplate, spreadTemplate, lookTemplate, lookAtTemplate, membershipTemplate]
+/**
+ * Plan's templates, in order: the first attempt is the primary one, so the navigation templates
+ * come last, after every object template.
+ */
+export const PLAN_TEMPLATES: readonly AttemptTemplate[] = [
+    containmentTemplate,
+    spreadTemplate,
+    lookTemplate,
+    lookAtTemplate,
+    membershipTemplate,
+    navigationTemplate,
+    bareNavigationTemplate,
+]
 
 /**
- * The granules of every deterministic template's fixed words, the object templates' and the intent
+ * The granules of every deterministic template's fixed words, Plan's templates' and the intent
  * rows' (`deterministicTemplate/intentTemplates.ts`): the one divider set, how both routes cut a
  * command into tokens.
  */

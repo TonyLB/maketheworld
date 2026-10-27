@@ -12,22 +12,19 @@ import { isObjectManipulationParseTestSlashCommand } from './objectManipulationP
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
-import { normalizeCommandToken, resolveExitLabelToTargetId } from './exitResolution'
 import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
 import { matchIntentTemplate } from '../deterministicTemplate/intentTemplates'
 import { matchPattern } from '../deterministicTemplate/patternTemplate'
-import { containmentTemplate } from '../enrich/objectManipulation/plan/matchContainmentTemplate'
-import { membershipTemplate } from '../enrich/objectManipulation/plan/matchMembershipTemplate'
-import { COMMAND_GRANULES } from '../enrich/objectManipulation/plan/planSkeleton'
+import { COMMAND_GRANULES, PLAN_TEMPLATES } from '../enrich/objectManipulation/plan/planSkeleton'
 import { exceedsQualifierCap } from '../enrich/objectManipulation/plan/qualifierPrepositions'
 
 /**
- * The zero-Bedrock object fast path: the command's tokens (`COMMAND_GRANULES`, as Plan cuts it),
- * claimed when the membership or the containment template's pattern fits it, with no gate: what
- * the world must make true is Identify's and the dry run's to judge, and a fast-path Abstain
- * climbs to the LLM route. A claim hands the tokens up, and Plan reads every template over them
- * (`actions/AGENT.contract.md` "Qualifier"). A command over the guard cap (`exceedsQualifierCap`)
- * is never claimed.
+ * The zero-Bedrock fast path for Plan's templates: the command's tokens (`COMMAND_GRANULES`, as Plan
+ * cuts it), claimed when any of Plan's templates fits it, with no gate: what the world must make
+ * true is Identify's and the dry run's to judge, and a fast-path Abstain climbs to the LLM route.
+ * The bare exit template fits every command, so every command no intent row reads is claimed. A
+ * claim hands the tokens up, and Plan reads every template over them (`actions/AGENT.contract.md`
+ * "Qualifier"). A command over the guard cap (`exceedsQualifierCap`) is never claimed.
  */
 function maybeDeterministicManipulationIntent(
     tokens: GranuleToken[]
@@ -35,30 +32,8 @@ function maybeDeterministicManipulationIntent(
     if (exceedsQualifierCap(tokens)) {
         return null
     }
-    const claimed = [membershipTemplate, containmentTemplate].some(({ pattern }) => matchPattern(pattern, tokens).length > 0)
+    const claimed = PLAN_TEMPLATES.some(({ pattern }) => matchPattern(pattern, tokens).length > 0)
     return claimed ? { type: 'ObjectManipulationIntent', tokens, confidence: 1 } : null
-}
-
-function maybeDeterministicNavigationResult(input: ParseCommandInput): ParseCommandResult | null {
-    const trimmed = input.command.trim()
-    if (!trimmed) {
-        return null
-    }
-    const goMatch = /^go\s+(.+)$/i.exec(trimmed)
-    const rawCandidate = goMatch ? goMatch[1] : trimmed
-    if (!normalizeCommandToken(rawCandidate)) {
-        return null
-    }
-    const resolved = resolveExitLabelToTargetId(input, rawCandidate)
-    if (resolved.type !== 'Resolved') {
-        return null
-    }
-    return {
-        type: 'Navigation',
-        targetId: resolved.targetId,
-        exitName: resolved.exitName,
-        confidence: 1,
-    }
 }
 
 export function deterministicIntentChecks(input: ParseCommandInput): ParseCommandResult | null {
@@ -99,18 +74,13 @@ export function deterministicIntentChecks(input: ParseCommandInput): ParseComman
         }
     }
 
-    // The intent rows first: no object template reads a command of fixed words alone, so the order
-    // decides nothing between readings; it puts `go home` ahead of the Navigation regex, as bare `home` was.
+    // The intent rows first: they answer as results, not readings, so they run ahead of Plan's
+    // templates; that puts `go home` ahead of a "home" exit, as bare `home` was.
     const tokens = tokenize(COMMAND_GRANULES, input.command)
     const intent = matchIntentTemplate(tokens)
     if (intent) {
         return intent
     }
 
-    const manipulationIntent = maybeDeterministicManipulationIntent(tokens)
-    if (manipulationIntent) {
-        return manipulationIntent
-    }
-
-    return maybeDeterministicNavigationResult(input)
+    return maybeDeterministicManipulationIntent(tokens)
 }

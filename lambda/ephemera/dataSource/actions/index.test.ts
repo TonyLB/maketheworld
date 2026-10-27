@@ -162,37 +162,6 @@ describe('ephemeraActionsDataSource', () => {
         })
     })
 
-    it('maps NavigationIntent no-exit-context parse error to room guidance copy', async () => {
-        mockedParseCommand.mockResolvedValue({
-            type: 'Error',
-            errorMessage: navigationIntentErrorMessages.noExitContext,
-        })
-
-        await ephemeraActionsDataSource.receiveEvents!({
-            events: [{
-                header: {
-                    dataSourceKey: 'api.ephemera',
-                    streamKey: 'CHARACTER#123',
-                    timestamp: Date.now(),
-                    type: 'Parse Requested',
-                },
-                getContent: async () => ({
-                    characterId: 'CHARACTER#123',
-                    command: 'head north',
-                }),
-            }],
-            streamEvent: jest.fn(async () => {}),
-            streamEnvelope: jest.fn(async () => {}),
-        })
-
-        expect(mockMessageBus.publish).toHaveBeenCalledWith({
-            type: 'PublishMessage',
-            targets: ['CHARACTER#123'],
-            displayProtocol: 'WorldOOCMessage',
-            message: ['You are not in a room, so you cannot go anywhere.'],
-        })
-    })
-
     it('maps NavigationIntent no-match parse error to missing-exit copy', async () => {
         mockedParseCommand.mockResolvedValue({
             type: 'Error',
@@ -2691,6 +2660,88 @@ describe('ephemeraActionsDataSource', () => {
                     attempt,
                     confidence: 0.9,
                 },
+            })
+        })
+    })
+
+    describe('ParseCommandCommandAttemptResult (a navigation)', () => {
+        const dest = 'ROOM#dest' as EphemeraRoomId
+        const from = 'ROOM#from' as EphemeraRoomId
+        const navigationAttempt = {
+            kind: 'navigation' as const,
+            words: 'walk north',
+            referents: [{ refKey: 'northExitRef', id: dest, shortName: 'north' }],
+            actions: [{
+                kind: 'navigate' as const,
+                id: 'action-1',
+                destination: { referentType: 'objectSpan' as const, span: 'north', stableRefKey: 'northExitRef', groundedId: dest, shortName: 'north' },
+                challenges: [],
+            }],
+            narrationUnits: [],
+        }
+        const parseRequested = async (streamEvent: jest.Mock) => {
+            await ephemeraActionsDataSource.receiveEvents!({
+                events: [{
+                    header: {
+                        dataSourceKey: 'api.ephemera',
+                        streamKey: 'CHARACTER#123',
+                        timestamp: Date.now(),
+                        type: 'Parse Requested',
+                    },
+                    getContent: async () => ({
+                        characterId: 'CHARACTER#123',
+                        command: 'walk north',
+                    }),
+                }],
+                streamEvent,
+                streamEnvelope: jest.fn(async () => {}),
+            })
+        }
+
+        it('streams Character Navigate to the room the exit leads to, not a ludic network change', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CommandAttempt', attempt: navigationAttempt, confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: [dest],
+                exits: [{ normalizedName: 'north', toRoomId: dest }],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await parseRequested(streamEvent)
+
+            expect(streamEvent).toHaveBeenCalledWith({
+                streamKey: 'CHARACTER#123',
+                header: { type: 'Character Navigate' },
+                update: {
+                    type: 'Character Navigate',
+                    characterId: 'CHARACTER#123',
+                    fromRoomId: from,
+                    toRoomId: dest,
+                    exitName: 'north',
+                },
+            })
+            expect(streamEvent).not.toHaveBeenCalledWith(expect.objectContaining({
+                header: { type: 'Ludic Network Change Requested' },
+            }))
+        })
+
+        it('rechecks the exit against the exits read with the command, as the UI\'s exit click is', async () => {
+            mockedParseCommand.mockResolvedValue({ type: 'CommandAttempt', attempt: navigationAttempt, confidence: 1 })
+            mockedGetRoomExitTargetsForCharacter.mockResolvedValue({
+                fromRoomId: from,
+                toRoomIds: ['ROOM#other' as EphemeraRoomId],
+                exits: [{ normalizedName: 'south', toRoomId: 'ROOM#other' as EphemeraRoomId }],
+            })
+            const streamEvent = jest.fn(async () => {})
+
+            await parseRequested(streamEvent)
+
+            expect(streamEvent).not.toHaveBeenCalled()
+            expect(mockMessageBus.publish).toHaveBeenCalledWith({
+                type: 'PublishMessage',
+                targets: ['CHARACTER#123'],
+                displayProtocol: 'WorldOOCMessage',
+                message: ['There is no exit to that place from here.'],
             })
         })
     })

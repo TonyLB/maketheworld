@@ -2,6 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../positions/ludicGraph/testFixtures'
 import { CommandAttempt, type CommandAttemptData } from './commandAttempt'
+import { navigationTargetOf } from './commandAttempt/navigationTarget'
 import { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -30,6 +31,7 @@ import {
 import { isCoyoteAffinitiesTestSlashCommand } from './discriminateIntent/coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './discriminateIntent/coyoteEngineTestSlashCommand'
 import {
+    navigationIntentErrorMessages,
     objectManipulationErrorMessages,
     parseCommand,
 } from './parseCommand'
@@ -757,36 +759,55 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
     })
 
-    it('returns deterministic Navigation for exact exit name without Bedrock', async () => {
+    /** Where a navigation attempt goes: its navigate action's exit, grounded to a room, and the exit's name. */
+    const navigationOf = (result: { type: string; attempt?: CommandAttemptData }) => (
+        result.type === 'CommandAttempt' && result.attempt ? navigationTargetOf(result.attempt) : undefined
+    )
+
+    it('answers a bare exit name with a navigation attempt, without Bedrock', async () => {
         const invokeBedrockParseCommandImpl = jest.fn()
         const invokeBedrockAcmeOrderEnrichImpl = jest.fn()
 
         const result = await parseCommand(
             {
                 command: 'north',
+                hostRoomId: 'ROOM#here' as EphemeraRoomId,
                 roomExits: [{ normalizedName: 'north', targetId: northRoom }],
             },
             { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockAcmeOrderEnrichImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
+        expect(result).toMatchObject({ type: 'CommandAttempt', confidence: 1, attempt: { kind: 'navigation' } })
+        expect(navigationOf(result)).toEqual({ targetId: northRoom, exitName: 'north' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         expect(invokeBedrockAcmeOrderEnrichImpl).not.toHaveBeenCalled()
     })
 
-    it('returns deterministic Navigation for go <exit> with casing and whitespace variants', async () => {
+    it.each(['  GO   NORTH  ', 'head north', 'walk north', 'enter north'])('answers "%s" (a movement verb and an exit) with a navigation attempt, without Bedrock', async (command) => {
         const invokeBedrockParseCommandImpl = jest.fn()
 
         const result = await parseCommand(
             {
-                command: '  GO   NORTH  ',
+                command,
+                hostRoomId: 'ROOM#here' as EphemeraRoomId,
                 roomExits: [{ normalizedName: 'north', targetId: northRoom }],
             },
             { invokeBedrockParseCommandImpl }
         )
 
-        expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
+        expect(navigationOf(result)).toEqual({ targetId: northRoom, exitName: 'north' })
         expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+    })
+
+    it('answers an exit name two exits share with the ambiguity, on every form: asking which is shelved', async () => {
+        const exits = [{ normalizedName: 'north', targetId: northRoom }, { normalizedName: 'north', targetId: 'ROOM#attic' as EphemeraRoomId }]
+        for (const command of ['north', 'go north', 'walk north']) {
+            const result = await parseCommand(
+                { command, hostRoomId: 'ROOM#here' as EphemeraRoomId, roomExits: exits },
+                { invokeBedrockParseCommandImpl: jest.fn() }
+            )
+            expect(result).toEqual({ type: 'Error', errorMessage: navigationIntentErrorMessages.ambiguousMatch })
+        }
     })
 
     it('falls through to Bedrock when deterministic navigation does not match an exit', async () => {
@@ -806,16 +827,17 @@ describe('parseCommand LLM path', () => {
         expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
     })
 
-    it('does not treat look at or long as bare look; still invokes Bedrock', async () => {
+    it('does not treat look at or long as bare look: "long" climbs to Bedrock, "look at door" is the look template\'s', async () => {
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
             body: '{"type":"Unknown","confidence":0.3}',
         })
 
-        await parseCommand({ command: 'look at door' }, { invokeBedrockParseCommandImpl })
-        await parseCommand({ command: 'long' }, { invokeBedrockParseCommandImpl })
-
-        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(2)
+        expect(await parseCommand({ command: 'long' }, { invokeBedrockParseCommandImpl })).toEqual({ type: 'Unknown', confidence: 0.3 })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
+        // With no acting character, the look is refused, and that Error is the answer.
+        expect(await parseCommand({ command: 'look at door' }, { invokeBedrockParseCommandImpl })).toEqual({ type: 'Error', errorMessage: objectManipulationErrorMessages.noActingCharacter })
+        expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
     })
 
     it('returns interpreted body when Bedrock succeeds', async () => {
@@ -957,20 +979,23 @@ describe('parseCommand LLM path', () => {
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
         })
 
-        it('resolves a Navigation paraphrase (movement verb beyond bare "go") without running Parse', async () => {
+        it('climbs past a movement verb whose exit is not here: nothing grounds, so it is not understood', async () => {
             const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
                 success: true,
                 body: '{"type":"Command","confidence":0.9}',
             })
-            const invokeBedrockObjectManipulationParseImpl = jest.fn()
+            const invokeBedrockObjectManipulationParseImpl = jest.fn().mockResolvedValue({
+                success: true,
+                body: '{"tokens":[{"type":"text","text":"walk"},{"type":"objectSpan","span":"xyzzy"}]}',
+            })
 
             const result = await parseCommand(
-                { command: 'head north', roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
-                { invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
+                { command: 'walk xyzzy', hostRoomId: 'ROOM#here' as EphemeraRoomId, roomExits: [{ normalizedName: 'north', targetId: northRoom }] },
+                { ...depsCoyoteUnderCap, invokeBedrockParseCommandImpl, invokeBedrockObjectManipulationParseImpl }
             )
 
-            expect(result).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
-            expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
+            expect(result).toMatchObject({ type: 'Abstain' })
+            expect(invokeBedrockParseCommandImpl).toHaveBeenCalledTimes(1)
         })
 
         it('resolves an AcmeOrder paraphrase after Parse, once planSkeleton rules out membership/relational', async () => {
@@ -1361,7 +1386,7 @@ describe('parseCommand LLM path', () => {
         expect(result).toEqual({ type: 'Unimplemented', confidence: 0.9 })
     })
 
-    it('returns LookComponent for object-directed look via the native skeleton pipeline (Phase 4)', async () => {
+    it('returns LookComponent for object-directed look via the native skeleton pipeline, on the fast path (Phase 4)', async () => {
         const rocketSkatesId = 'OBJECT#RocketSkates'
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({
             success: true,
@@ -1387,13 +1412,15 @@ describe('parseCommand LLM path', () => {
             }
         )
 
+        // A look is one of Plan's templates, so the fast path reads it: no classify, no Parse.
         expect(result).toEqual({
             type: 'CommandAttempt',
-            confidence: 0.9,
+            confidence: 1,
             attempt: expect.anything(),
         })
         expect(lookedAtId(result)).toBe(rocketSkatesId)
-        expect(invokeBedrockObjectManipulationParseImpl).toHaveBeenCalled()
+        expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
+        expect(invokeBedrockObjectManipulationParseImpl).not.toHaveBeenCalled()
     })
 
 

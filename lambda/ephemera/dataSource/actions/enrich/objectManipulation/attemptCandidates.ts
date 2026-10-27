@@ -1,11 +1,13 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import internalCache from '../../../../internalCache'
+import type { RoomExit } from '../../baseClasses'
+import { navigationIntentErrorMessages, normalizeCommandToken } from '../../discriminateIntent/exitResolution'
 import type { EphemeraLudicGraph } from '../../../positions/ludicGraph'
 import { objectSpansIn } from '../../commandAttempt/referent'
-import { NarrateAttemptAction, PositionAttemptAction, type AttemptAction } from '../../commandAttempt/action'
+import { NarrateAttemptAction, NavigateAttemptAction, PositionAttemptAction, type AttemptAction } from '../../commandAttempt/action'
 import { CommandAttempt } from '../../commandAttempt'
 import { adjudicateAttempt } from '../../commandAttempt/adjudicate'
 import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryChallenges'
@@ -271,6 +273,14 @@ const describeGroundedAction = (action: AttemptAction, attemptSteps: readonly Pl
             alternative: { objectId: groundedObjectIdOf(referent), label, proposedCommand: `look at the ${label}` },
         }
     }
+    if (action instanceof NavigateAttemptAction) {
+        // An exit is never a Consult answer (same-named exits are the dry run's to refuse), so the wording carries no object.
+        const exit = labelOf(action.destination)
+        return {
+            action: new NavigateAttemptAction(action.id, action.challenges(), action.destination),
+            alternative: { label: exit, proposedCommand: `go ${exit}` },
+        }
+    }
     if (!(action instanceof PositionAttemptAction) || action.desiredResult === undefined) {
         throw new Error('attemptCandidates: a position action has no desired result')
     }
@@ -340,31 +350,46 @@ const describeGroundedAction = (action: AttemptAction, attemptSteps: readonly Pl
  * `noAssignmentReason` when no joint assignment is well-typed.
  */
 export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): ProposeAttemptCandidatesResult => {
-    const pools = new Map<string, readonly ObjectSpanCandidate[]>()
+    const allPools = new Map<string, readonly ObjectSpanCandidate[]>()
     for (const span of distinctSpanReferents(input.attempts)) {
         const key = span.stableRefKey!
         const pool = input.spanPools.get(key)
         if (!pool) {
             return { ok: false, reason: `No resolution supplied for stableRefKey "${key}"` }
         }
-        // identityFromSpanCandidate (via enumerateIdentityAssignments) throws on a non-Object id.
-        const candidates = (pool.shortlist ?? pool.candidates).filter((candidate) => isEphemeraObjectId(candidate.id))
-        if (candidates.length === 0) {
-            return { ok: false, reason: `No candidates found for span "${pool.span}"` }
-        }
+        // identityFromSpanCandidate (via enumerateIdentityAssignments) throws on anything but an
+        // Object, or the Room an exit span's pool names.
+        allPools.set(key, (pool.shortlist ?? pool.candidates).filter((candidate) => isEphemeraObjectId(candidate.id) || isEphemeraRoomId(candidate.id)))
+    }
+    // A span nothing grounds drops the attempts that read it, and only those: one attempt's
+    // refusal never decides another's (a bare exit reading of `take cup` grounds to no exit, and
+    // the take still stands). With no attempt left, the first such span is the reason.
+    const emptyKeys = [...allPools].filter(([, candidates]) => candidates.length === 0).map(([key]) => key)
+    // A resumed answer names a span the player chose for: if nothing grounds there now, the answer is stale.
+    const staleKey = emptyKeys.find((key) => input.referentAnswers?.[key] !== undefined)
+    if (staleKey !== undefined) {
+        return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(input.spanPools.get(staleKey)!.span), stale: true }
+    }
+    const attempts = input.attempts.filter((attempt) => !attemptSpanKeys([attempt]).some((key) => emptyKeys.includes(key)))
+    if (attempts.length === 0) {
+        return { ok: false, reason: `No candidates found for span "${input.spanPools.get(emptyKeys[0]!)?.span}"` }
+    }
+    const pools = new Map<string, readonly ObjectSpanCandidate[]>()
+    for (const key of attemptSpanKeys(attempts)) {
+        const candidates = allPools.get(key)!
         const answered = input.referentAnswers?.[key]
         if (answered !== undefined) {
             // A chosen object no longer in the fresh pool is a stale answer: refuse rather than act on its id.
             const chosen = candidates.filter((candidate) => candidate.id === answered)
             if (chosen.length === 0) {
-                return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(pool.span), stale: true }
+                return { ok: false, reason: resumeErrorMessages.staleReferentAnswer(input.spanPools.get(key)!.span), stale: true }
             }
             pools.set(key, chosen)
             continue
         }
         pools.set(key, candidates)
     }
-    for (const action of input.attempts.flatMap((attempt) => attempt.actions())) {
+    for (const action of attempts.flatMap((attempt) => attempt.actions())) {
         for (const referent of action.referents().flatMap(objectSpansIn)) {
             if (referent.stableRefKey === undefined) {
                 return { ok: false, reason: `objectSpan referent for span "${referent.span}" has no stableRefKey to ground against` }
@@ -379,12 +404,12 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
     // table") must not sink another reading of the same command that needs one.
     const bindsDistinct = (attempt: CommandAttempt, identities: ReadonlyMap<string, IdentityPlanIdentity>): boolean => (
         attempt.actions().every((action) => {
-            const objectIds = actionSpanKeys(action).map((key) => identities.get(key)?.objectId)
-            return new Set(objectIds).size === objectIds.length
+            const ids = actionSpanKeys(action).map((key) => identities.get(key)?.id)
+            return new Set(ids).size === ids.length
         })
     )
     const assignments = enumerateIdentityAssignments(pools).filter(({ identities }) => (
-        input.attempts.some((attempt) => bindsDistinct(attempt, identities))
+        attempts.some((attempt) => bindsDistinct(attempt, identities))
     ))
     if (assignments.length === 0) {
         return { ok: false, reason: input.noAssignmentReason }
@@ -392,11 +417,11 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
 
     // An object seen in several positions is one candidate per way it can be meant (the actor's own position
     // picks one, else each position and the whole), and a resumed command's answer keeps only the one chosen.
-    const destinationKeys = destinationSpanKeys(input.attempts)
+    const destinationKeys = destinationSpanKeys(attempts)
     const actor: ActorPosition | undefined = input.actorRoom === undefined ? undefined : { room: input.actorRoom, character: input.actorCharacter }
     const viewed = assignments.flatMap(({ identities, confidence }) => {
         const perKey = [...identities].map(([key, identity]) => {
-            const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.objectId)
+            const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.id)
             const answered = input.viewAnswers?.[key]
             const choices = viewChoicesFor(entry, actor, input.catalog, destinationKeys.has(key))
             return { key, identity, entry, choices: answered === undefined ? choices : choices.filter((choice) => choice.answer !== undefined && answerMatches(choice, answered)) }
@@ -415,7 +440,7 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
     // from its own attempt's actions only, and its confidence is the min over its own keys. The joint
     // assignment spans every attempt's keys (one Enumerate for the pool), so a key another attempt
     // reads neither lowers this one's confidence nor repeats it.
-    const ownKeysOf = new Map(input.attempts.map((attempt) => [attempt, attemptSpanKeys([attempt])]))
+    const ownKeysOf = new Map(attempts.map((attempt) => [attempt, attemptSpanKeys([attempt])]))
     const seen = new Set<string>()
     const candidates = viewed.flatMap(({ identities, chosen }) => {
         const names = new Map<string, SpanName>()
@@ -423,11 +448,12 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
         const viewLabels: Record<string, string> = {}
         const placeNames: Record<string, string> = {}
         for (const [key, identity] of identities) {
-            const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.objectId)
+            const entry = input.catalog.find((catalogEntry) => catalogEntry.objectId === identity.id)
             const choice = chosen.get(key) ?? {}
-            const shortName = entry?.normalizedShortName ?? identity.objectId
+            // A room (an exit's destination) has no catalog entry: it is named by the exit.
+            const shortName = entry?.normalizedShortName ?? identity.label
             names.set(key, {
-                id: identity.objectId,
+                id: identity.id,
                 shortName,
                 gloss: entry?.gloss,
                 presence: entry?.presence,
@@ -440,9 +466,9 @@ export const proposeAttemptCandidates = (input: ProposeAttemptCandidatesInput): 
             }
         }
         const asked = Object.keys(viewAnswers).length > 0
-        return input.attempts.filter((attempt) => bindsDistinct(attempt, identities)).flatMap((attempt): GroundedAttemptCandidate[] => {
+        return attempts.filter((attempt) => bindsDistinct(attempt, identities)).flatMap((attempt): GroundedAttemptCandidate[] => {
             const ownKeys = ownKeysOf.get(attempt)!
-            const grounding = `${input.attempts.indexOf(attempt)}|${ownKeys.map((key) => `${identities.get(key)?.objectId}:${JSON.stringify(chosen.get(key)?.answer ?? null)}`).join('|')}`
+            const grounding = `${attempts.indexOf(attempt)}|${ownKeys.map((key) => `${identities.get(key)?.id}:${JSON.stringify(chosen.get(key)?.answer ?? null)}`).join('|')}`
             if (seen.has(grounding)) {
                 return []
             }
@@ -541,10 +567,29 @@ export const buildAttemptEnvironment = async (
     }
 }
 
-/** The acting character and room the dry run's derived referents resolve against (`actingCharacter`, `currentHost(actingCharacter)`). */
+/**
+ * The acting character and room the dry run's derived referents resolve against (`actingCharacter`,
+ * `currentHost(actingCharacter)`), and the room's exits, which a navigation is judged by.
+ */
 export type DryRunFrame = {
     roomId?: EphemeraRoomId
     actorCharacterId?: EphemeraCharacterId
+    exits?: readonly RoomExit[]
+}
+
+/**
+ * "X is an exit here": the exit the navigate action names leads, from this room, to the room it
+ * grounded to, and to no other. A name leading to two rooms is refused rather than asked about
+ * (asking which is shelved): every reading of it is illegal, so the answer is the ambiguity.
+ */
+const navigationFailure = (action: NavigateAttemptAction, exits: readonly RoomExit[]): string | undefined => {
+    const [destination] = objectSpansIn(action.destination)
+    const name = normalizeCommandToken(destination?.shortName ?? destination?.span ?? '')
+    const targets = new Set(exits.filter(({ normalizedName }) => normalizedName === name).map(({ targetId }) => targetId))
+    if (destination?.groundedId === undefined || !targets.has(destination.groundedId as EphemeraRoomId)) {
+        return navigationIntentErrorMessages.noMatch
+    }
+    return targets.size > 1 ? navigationIntentErrorMessages.ambiguousMatch : undefined
 }
 
 /**
@@ -561,8 +606,15 @@ export type DryRunFrame = {
  *
  * An assertion (a qualifier's `containedBy`) is judged in step order and never seeded: one that fails
  * makes the candidate illegal with its reason, so the selection loop drops the candidates it rules out.
+ * A navigation has no step: it is judged against the frame's exits (`navigationFailure`).
  */
 export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: ExpansionEnvironment | undefined, frame: DryRunFrame = {}): DryRunOutcome => {
+    for (const action of candidate.attempt.actions()) {
+        const failure = action instanceof NavigateAttemptAction ? navigationFailure(action, frame.exits ?? []) : undefined
+        if (failure !== undefined) {
+            return { verdict: 'illegal', decidable: true, reason: failure }
+        }
+    }
     const steps = candidate.attempt.actions().flatMap((action) => action.desiredResult ? [action.desiredResult] : [])
     if (steps.length === 0) {
         return { verdict: 'legal', decidable: true }

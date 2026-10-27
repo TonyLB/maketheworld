@@ -38,7 +38,7 @@ export interface AttemptActionMember {
 }
 
 /**
- * One of two members today. Plan's `PlanStep` already discriminates four
+ * One of three members today. Plan's `PlanStep` already discriminates four
  * primitive shapes (`transferMembership` / `establishRelation` / `dissolveRelation` /
  * `containedBy`), but all four are one *outcome class* --- position --- so they share
  * this one action member rather than four. `desiredResult` is the structural intent,
@@ -177,6 +177,60 @@ export class NarrateAttemptAction implements AttemptActionMember {
     }
 }
 
+/**
+ * Going through an exit: the move is the character's, not the world's, so it has no `PlanStep` and
+ * `desiredResult` is always `undefined`, as narration's is. Its one referent is the exit span, which
+ * grounds to the room the exit leads to (`stableRefKey` of an exit-catalog span). The dry run judges
+ * that the exit is here; dispatch streams `Character Navigate` (`navigationTargetOf`). No
+ * navigation-time challenge is detectable yet, so every instance today carries zero challenges.
+ */
+export class NavigateAttemptAction implements AttemptActionMember {
+    readonly id: string
+    readonly desiredResult = undefined
+    private readonly _challenges: Challenge[]
+    readonly destination: Referent
+
+    constructor(id: string, challenges: Challenge[], destination: Referent) {
+        this.id = id
+        this._challenges = challenges
+        this.destination = destination
+    }
+
+    static fromJSON(data: Extract<AttemptActionData, { kind: 'navigate' }>): NavigateAttemptAction {
+        return new NavigateAttemptAction(data.id, data.challenges.map(challengeFromJSON), data.destination)
+    }
+
+    toJSON(): AttemptActionData {
+        return {
+            kind: 'navigate',
+            id: this.id,
+            destination: this.destination,
+            challenges: this._challenges.map(challengeToJSON),
+        }
+    }
+
+    referents(): Referent[] {
+        return [this.destination]
+    }
+
+    describe(): string | undefined {
+        const name = this.destination.referentType === 'objectSpan' ? this.destination.shortName ?? this.destination.span : undefined
+        return name === undefined ? undefined : `Go ${name}`
+    }
+
+    challenges(): Challenge[] {
+        return this._challenges
+    }
+
+    withChallenges(challenges: Challenge[]): NavigateAttemptAction {
+        return new NavigateAttemptAction(this.id, challenges, this.destination)
+    }
+
+    grounded(names: ReadonlyMap<string, SpanName>): NavigateAttemptAction {
+        return new NavigateAttemptAction(this.id, this._challenges, stampReferent(this.destination, names))
+    }
+}
+
 export type AttemptActionData =
     | {
         kind: 'position'
@@ -192,6 +246,12 @@ export type AttemptActionData =
         referents: Referent[]
         challenges: ChallengeData[]
     }
+    | {
+        kind: 'navigate'
+        id: string
+        destination: Referent
+        challenges: ChallengeData[]
+    }
 
 export type AttemptAction = AttemptActionMember
 
@@ -204,6 +264,8 @@ export const attemptActionFromJSON = (data: AttemptActionData): AttemptAction =>
             return PositionAttemptAction.fromJSON(data)
         case 'narrate':
             return NarrateAttemptAction.fromJSON(data)
+        case 'navigate':
+            return NavigateAttemptAction.fromJSON(data)
     }
 }
 

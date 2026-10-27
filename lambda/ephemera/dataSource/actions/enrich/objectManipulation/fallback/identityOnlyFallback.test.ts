@@ -68,7 +68,7 @@ describe('identityOnlyFallback', () => {
                 candidates: [
                     {
                         identity: {
-                            objectId: bagId,
+                            id: bagId,
                             label: 'bag',
                             locus: { kind: 'room' },
                             jointRelevance: 0.9,
@@ -79,7 +79,7 @@ describe('identityOnlyFallback', () => {
                     },
                     {
                         identity: {
-                            objectId: satchelId,
+                            id: satchelId,
                             label: 'satchel',
                             locus: { kind: 'heldByActor' },
                             jointRelevance: 0.4,

@@ -1,10 +1,18 @@
+import type { RoomExit } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import { exitSpanPool } from './exitSpanPool'
 import { runIdentityStage, type IdentityStageDeps } from './identityStage'
 import type { ObjectSpanToken, ParseSkeleton } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'
 
 function isObjectSpanToken(token: ParseSkeleton[number]): token is ObjectSpanToken {
     return token.type === 'objectSpan'
+}
+
+/** What spans ground against, by catalog (`SpanCatalog`): the objects in the room and in hand, and the room's exits. */
+export type SpanCatalogs = {
+    objects: readonly ObjectManipulationCatalogEntry[]
+    exits: readonly RoomExit[]
 }
 
 export type SkeletonIdentityStageResult =
@@ -15,20 +23,25 @@ export type SkeletonIdentityStageResult =
  * Step 2b, step 4: keys Identify's candidate pools by stableRefKey instead of
  * runIdentityStage's positional array, so relational role-assignment (step 3's
  * matcher) can look a referent's pool up directly rather than by array index.
- * A pool depends only on the span's text, so each distinct text is identified once, in order of
- * first appearance, and every key holding that text (two occurrences, `benchRef1` and `benchRef2`)
- * shares its pool.
+ * Each span grounds against its own catalog (`ObjectSpanToken.catalog`). An object span's pool
+ * depends only on its text, so each distinct text is identified once, in order of first appearance,
+ * and every key holding that text (two occurrences, `benchRef1` and `benchRef2`) shares its pool;
+ * Identify runs, and can fail for want of a catalog, only when there is an object span to ground.
+ * An exit span's pool is the exits' exact match (`exitSpanPool`).
  */
 export async function runIdentityStageOverSkeleton(
     command: string,
     skeleton: ParseSkeleton,
-    catalog: readonly ObjectManipulationCatalogEntry[],
+    catalogs: SpanCatalogs,
     deps: IdentityStageDeps = {}
 ): Promise<SkeletonIdentityStageResult> {
-    const objectSpanTokens = skeleton.filter(isObjectSpanToken)
+    const spanTokens = skeleton.filter(isObjectSpanToken)
+    const objectSpanTokens = spanTokens.filter((token) => token.catalog === undefined)
     const texts = [...new Set(objectSpanTokens.map((token) => token.span))]
 
-    const identityResult = await runIdentityStage(command, texts, catalog, deps)
+    const identityResult = texts.length > 0
+        ? await runIdentityStage(command, texts, catalogs.objects, deps)
+        : { type: 'success' as const, spanPools: [] }
     if (identityResult.type === 'error') {
         return identityResult
     }
@@ -36,7 +49,10 @@ export async function runIdentityStageOverSkeleton(
     const poolOf = new Map(texts.map((text, index) => [text, identityResult.spanPools[index]]))
     return {
         type: 'success',
-        spanPools: new Map(objectSpanTokens.map((token) => [token.stableRefKey, poolOf.get(token.span)!])),
+        spanPools: new Map(spanTokens.map((token) => [
+            token.stableRefKey,
+            token.catalog === 'exits' ? exitSpanPool(token.span, catalogs.exits) : poolOf.get(token.span)!,
+        ])),
     }
 }
 
@@ -50,7 +66,7 @@ export async function runIdentityStageOverReferenceKeys(
     command: string,
     skeleton: ParseSkeleton,
     referenceKeys: readonly string[],
-    catalog: readonly ObjectManipulationCatalogEntry[],
+    catalogs: SpanCatalogs,
     deps: IdentityStageDeps = {}
 ): Promise<SkeletonIdentityStageResult> {
     const keys = new Set(referenceKeys)
@@ -61,5 +77,5 @@ export async function runIdentityStageOverReferenceKeys(
         }
     }
     const referenced: ParseSkeleton = skeleton.filter((token) => !isObjectSpanToken(token) || keys.has(token.stableRefKey))
-    return runIdentityStageOverSkeleton(command, referenced, catalog, deps)
+    return runIdentityStageOverSkeleton(command, referenced, catalogs, deps)
 }

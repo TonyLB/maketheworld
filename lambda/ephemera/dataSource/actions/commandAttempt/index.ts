@@ -1,11 +1,11 @@
-import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
+import type { SpanCandidateId } from '../enrich/objectManipulation/spanResolution'
 import type { AttemptAction, AttemptActionData } from './action'
 import { attemptActionFromJSON, attemptActionToJSON } from './action'
 import { buildCommandAttemptReferent, objectSpansIn } from './referent'
 import type { NarrationUnit } from './narrationUnit'
 import type { Verdict } from './verdict'
 
-export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction } from './action'
+export type { AttemptAction, AttemptActionData, AttemptActionMember, PositionAttemptAction, NarrateAttemptAction, NavigateAttemptAction } from './action'
 export type { Challenge, ChallengeData } from './challenge'
 export { CustomEdgeChallenge, ExitEdgeChallenge, WorldKnowledgeChallenge } from './challenge'
 export type { NarrationAudience, NarrationUnit, NarrationWitnessVariant } from './narrationUnit'
@@ -14,14 +14,14 @@ export { MetVerdict, ImpossibleVerdict } from './verdict'
 
 /**
  * Prose data for one phrase the player used (section 2 of CA-1's format): the phrase's
- * `refKey`, the id it grounded to, and how to describe that thing. Never stored: it is
+ * `refKey`, the id it grounded to (a thing, or the room an exit leads to), and how to describe it. Never stored: it is
  * derived from the actions' referents (`CommandAttempt.referents()`), so a name and id live
  * only on the referents that carry them. Referents are not a member family (1.6): every kind
  * answers the same questions as data, so this stays a plain type.
  */
 export type CommandAttemptReferent = {
     refKey: string
-    id: EphemeraThingId
+    id: SpanCandidateId
     shortName: string
     gloss?: string
 }
@@ -43,13 +43,13 @@ export type RoomContextSection = {
 }
 
 /**
- * What an attempt is, set by its author: an object template's name (`plan/match*Template.ts`), or
+ * What an attempt is, set by its author: a Plan template's name (`plan/match*Template.ts`), or
  * `relation` for a peer relation (no template builds one yet). Read wherever the kind is what is
  * being asked, never inferred from the actions.
  */
-export type AttemptKind = 'look' | 'membership' | 'containment' | 'spread' | 'relation'
+export type AttemptKind = 'look' | 'membership' | 'containment' | 'spread' | 'navigation' | 'relation'
 
-export const ATTEMPT_KINDS: readonly AttemptKind[] = ['look', 'membership', 'containment', 'spread', 'relation']
+export const ATTEMPT_KINDS: readonly AttemptKind[] = ['look', 'membership', 'containment', 'spread', 'navigation', 'relation']
 
 export type CommandAttemptData = {
     kind: AttemptKind
@@ -76,7 +76,7 @@ const referentsFromActions = (actions: readonly AttemptAction[]): CommandAttempt
                 }
                 seen.set(span.stableRefKey, buildCommandAttemptReferent(
                     span.stableRefKey,
-                    span.groundedId as EphemeraThingId,
+                    span.groundedId as SpanCandidateId,
                     span.shortName,
                     span.gloss
                 ))

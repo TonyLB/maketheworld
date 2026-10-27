@@ -23,10 +23,14 @@ Object {
     "fastPath": Array [
       "drop [cup]",
       "  position: change transferMembership(from=actingCharacter, object=[cup], to=currentHost(actingCharacter))",
+      "[drop cup]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "drop [cup]",
       "  position: change transferMembership(from=actingCharacter, object=[cup], to=currentHost(actingCharacter))",
+      "[drop cup]",
+      "  navigate",
     ],
   },
 }
@@ -59,6 +63,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[the box], relation=In, subject=[the cup]); position: change transferMembership(from=actingCharacter, object=[the cup], to=currentHost(actingCharacter))",
       "drop [the cup in the box]",
       "  position: change transferMembership(from=actingCharacter, object=[the cup in the box], to=currentHost(actingCharacter))",
+      "[drop the cup in the box]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "drop [the cup] in [the box]",
@@ -66,6 +72,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[the box], relation=In, subject=[the cup]); position: change transferMembership(from=actingCharacter, object=[the cup], to=currentHost(actingCharacter))",
       "drop [the cup in the box]",
       "  position: change transferMembership(from=actingCharacter, object=[the cup in the box], to=currentHost(actingCharacter))",
+      "[drop the cup in the box]",
+      "  navigate",
     ],
   },
 }
@@ -75,20 +83,31 @@ exports[`skeletonMatcher characterization corpus (Slice 0) enter box 1`] = `
 Object {
   "outcome": Object {
     "result": Object {
-      "errorMessage": "NavigationIntent resolution failed: no such exit",
-      "type": "Error",
+      "confidence": 0.9,
+      "reason": "No candidates found for span \\"box\\"",
+      "type": "Abstain",
     },
     "stubCalls": Object {
       "acme": 0,
       "classify": 1,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 0,
+      "parse": 1,
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
-    "llmRoute": Array [],
+    "fastPath": Array [
+      "enter [box]",
+      "  navigate",
+      "[enter box]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "enter [box]",
+      "  navigate",
+      "[enter box]",
+      "  navigate",
+    ],
   },
 }
 `;
@@ -116,10 +135,14 @@ Object {
     "fastPath": Array [
       "get [cup]",
       "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "[get cup]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "get [cup]",
       "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "[get cup]",
+      "  navigate",
     ],
   },
 }
@@ -145,10 +168,14 @@ Object {
     "fastPath": Array [
       "get [cup under table]",
       "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
+      "[get cup under table]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "get [cup under table]",
       "  position: change transferMembership(from=currentHost([cup under table]), object=[cup under table], to=actingCharacter)",
+      "[get cup under table]",
+      "  navigate",
     ],
   },
 }
@@ -177,10 +204,14 @@ Object {
     "fastPath": Array [
       "get [the cup]",
       "  position: change transferMembership(from=currentHost([the cup]), object=[the cup], to=actingCharacter)",
+      "[get the cup]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "get [the cup]",
       "  position: change transferMembership(from=currentHost([the cup]), object=[the cup], to=actingCharacter)",
+      "[get the cup]",
+      "  navigate",
     ],
   },
 }
@@ -209,10 +240,14 @@ Object {
     "fastPath": Array [
       "get [up]",
       "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
+      "[get up]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "get [up]",
       "  position: change transferMembership(from=currentHost([up]), object=[up], to=actingCharacter)",
+      "[get up]",
+      "  navigate",
     ],
   },
 }
@@ -260,14 +295,12 @@ Object {
 }
 `;
 
-exports[`skeletonMatcher characterization corpus (Slice 0) go north 1`] = `
+exports[`skeletonMatcher characterization corpus (Slice 0) go north (two north exits) 1`] = `
 Object {
   "outcome": Object {
     "result": Object {
-      "confidence": 1,
-      "exitName": "north",
-      "targetId": "ROOM#North",
-      "type": "Navigation",
+      "errorMessage": "NavigationIntent resolution failed: ambiguous exit",
+      "type": "Error",
     },
     "stubCalls": Object {
       "acme": 0,
@@ -278,8 +311,54 @@ Object {
     },
   },
   "readings": Object {
-    "fastPath": "Navigation",
-    "llmRoute": Array [],
+    "fastPath": Array [
+      "go [north]",
+      "  navigate",
+      "[go north]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "go [north]",
+      "  navigate",
+      "[go north]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) go north 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "navigate",
+      "confidence": 1,
+      "referents": Array [
+        "northExitRef=ROOM#North",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+      "parse": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "go [north]",
+      "  navigate",
+      "[go north]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "go [north]",
+      "  navigate",
+      "[go north]",
+      "  navigate",
+    ],
   },
 }
 `;
@@ -377,14 +456,25 @@ Object {
     },
     "stubCalls": Object {
       "acme": 0,
-      "classify": 1,
+      "classify": 0,
       "embedSpan": 3,
       "enrich": 0,
-      "parse": 1,
+      "parse": 0,
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
+    "fastPath": Array [
+      "look [at the cup] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[at the cup]); narrate",
+      "look [at the cup on the table]",
+      "  narrate",
+      "look at [the cup] on [the table]",
+      "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the cup]); narrate",
+      "look at [the cup on the table]",
+      "  narrate",
+      "[look at the cup on the table]",
+      "  navigate",
+    ],
     "llmRoute": Array [
       "look [at the cup] on [the table]",
       "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[at the cup]); narrate",
@@ -394,6 +484,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[the table], relation=On, subject=[the cup]); narrate",
       "look at [the cup on the table]",
       "  narrate",
+      "[look at the cup on the table]",
+      "  navigate",
     ],
   },
 }
@@ -403,10 +495,12 @@ exports[`skeletonMatcher characterization corpus (Slice 0) north 1`] = `
 Object {
   "outcome": Object {
     "result": Object {
+      "attempt": "navigate",
       "confidence": 1,
-      "exitName": "north",
-      "targetId": "ROOM#North",
-      "type": "Navigation",
+      "referents": Array [
+        "northExitRef=ROOM#North",
+      ],
+      "type": "CommandAttempt",
     },
     "stubCalls": Object {
       "acme": 0,
@@ -417,8 +511,14 @@ Object {
     },
   },
   "readings": Object {
-    "fastPath": "Navigation",
-    "llmRoute": Array [],
+    "fastPath": Array [
+      "[north]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "[north]",
+      "  navigate",
+    ],
   },
 }
 `;
@@ -449,8 +549,14 @@ Object {
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
-    "llmRoute": Array [],
+    "fastPath": Array [
+      "[order anvil , rocket]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "[order anvil , rocket]",
+      "  navigate",
+    ],
   },
 }
 `;
@@ -481,8 +587,14 @@ Object {
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
-    "llmRoute": Array [],
+    "fastPath": Array [
+      "[order rocket skates]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "[order rocket skates]",
+      "  navigate",
+    ],
   },
 }
 `;
@@ -528,10 +640,14 @@ Object {
     "fastPath": Array [
       "put [coin hurriedly] into [box]",
       "  position: change transferMembership(containment=In, from=currentHost([coin hurriedly]), object=[coin hurriedly], to=[box])",
+      "[put coin hurriedly into box]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "put [coin hurriedly] into [box]",
       "  position: change transferMembership(containment=In, from=currentHost([coin hurriedly]), object=[coin hurriedly], to=[box])",
+      "[put coin hurriedly into box]",
+      "  navigate",
     ],
   },
 }
@@ -561,6 +677,8 @@ Object {
       "  position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer on table])",
       "put [cup on saucer] on [table]",
       "  position: change transferMembership(containment=On, from=currentHost([cup on saucer]), object=[cup on saucer], to=[table])",
+      "[put cup on saucer on table]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "put [cup] on [saucer] on [table]",
@@ -570,6 +688,8 @@ Object {
       "  position: change transferMembership(containment=On, from=currentHost([cup]), object=[cup], to=[saucer on table])",
       "put [cup on saucer] on [table]",
       "  position: change transferMembership(containment=On, from=currentHost([cup on saucer]), object=[cup on saucer], to=[table])",
+      "[put cup on saucer on table]",
+      "  navigate",
     ],
   },
 }
@@ -611,6 +731,8 @@ Object {
       "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the plate on the table])",
       "put [pig in a blanket on the plate] on [the table]",
       "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket on the plate]), object=[pig in a blanket on the plate], to=[the table])",
+      "[put pig in a blanket on the plate on the table]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "put [pig] in [a blanket] on [the plate] on [the table]",
@@ -632,6 +754,8 @@ Object {
       "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket]), object=[pig in a blanket], to=[the plate on the table])",
       "put [pig in a blanket on the plate] on [the table]",
       "  position: change transferMembership(containment=On, from=currentHost([pig in a blanket on the plate]), object=[pig in a blanket on the plate], to=[the table])",
+      "[put pig in a blanket on the plate on the table]",
+      "  navigate",
     ],
   },
 }
@@ -642,7 +766,7 @@ Object {
   "outcome": Object {
     "result": Object {
       "attempt": "position: change extend(object=[cloth]=OBJECT#Cloth, presenceUuid=<minted id 1>); position: change transferMembership(containment=On, from=currentHost([cloth]=OBJECT#Cloth), object=[cloth]=OBJECT#Cloth{"view":["PRESENCE#<minted id 1>"]}, to=[table]=OBJECT#Table)",
-      "confidence": 0.9,
+      "confidence": 1,
       "referents": Array [
         "clothRef=OBJECT#Cloth",
         "tableRef=OBJECT#Table",
@@ -651,17 +775,24 @@ Object {
     },
     "stubCalls": Object {
       "acme": 0,
-      "classify": 1,
+      "classify": 0,
       "embedSpan": 0,
       "enrich": 0,
-      "parse": 1,
+      "parse": 0,
     },
   },
   "readings": Object {
-    "fastPath": "no deterministic answer",
-    "llmRoute": Array [
+    "fastPath": Array [
       "spread [cloth] over [table]",
       "  position: change extend(object=[cloth], presenceUuid=<minted id 2>); position: change transferMembership(containment=On, from=currentHost([cloth]), object=[cloth]{"view":["PRESENCE#<minted id 2>"]}, to=[table])",
+      "[spread cloth over table]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "spread [cloth] over [table]",
+      "  position: change extend(object=[cloth], presenceUuid=<minted id 3>); position: change transferMembership(containment=On, from=currentHost([cloth]), object=[cloth]{"view":["PRESENCE#<minted id 3>"]}, to=[table])",
+      "[spread cloth over table]",
+      "  navigate",
     ],
   },
 }
@@ -710,12 +841,16 @@ Object {
       "  position: assertion containedBy(negate=false, object=[box], relation=In, subject=[coin]); position: change transferMembership(from=currentHost([coin]), object=[coin], to=actingCharacter)",
       "take [coin out box]",
       "  position: change transferMembership(from=currentHost([coin out box]), object=[coin out box], to=actingCharacter)",
+      "[take coin out box]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [coin] out [box]",
       "  position: assertion containedBy(negate=false, object=[box], relation=In, subject=[coin]); position: change transferMembership(from=currentHost([coin]), object=[coin], to=actingCharacter)",
       "take [coin out box]",
       "  position: change transferMembership(from=currentHost([coin out box]), object=[coin out box], to=actingCharacter)",
+      "[take coin out box]",
+      "  navigate",
     ],
   },
 }
@@ -742,12 +877,16 @@ Object {
       "  position: assertion containedBy(negate=false, object=[table], subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
       "take [cup from table]",
       "  position: change transferMembership(from=currentHost([cup from table]), object=[cup from table], to=actingCharacter)",
+      "[take cup from table]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [cup] from [table]",
       "  position: assertion containedBy(negate=false, object=[table], subject=[cup]); position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
       "take [cup from table]",
       "  position: change transferMembership(from=currentHost([cup from table]), object=[cup from table], to=actingCharacter)",
+      "[take cup from table]",
+      "  navigate",
     ],
   },
 }
@@ -778,6 +917,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[cup on saucer]); position: change transferMembership(from=currentHost([cup on saucer]), object=[cup on saucer], to=actingCharacter)",
       "take [cup on saucer on table]",
       "  position: change transferMembership(from=currentHost([cup on saucer on table]), object=[cup on saucer on table], to=actingCharacter)",
+      "[take cup on saucer on table]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [cup] on [saucer] on [table]",
@@ -788,6 +929,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[table], relation=On, subject=[cup on saucer]); position: change transferMembership(from=currentHost([cup on saucer]), object=[cup on saucer], to=actingCharacter)",
       "take [cup on saucer on table]",
       "  position: change transferMembership(from=currentHost([cup on saucer on table]), object=[cup on saucer on table], to=actingCharacter)",
+      "[take cup on saucer on table]",
+      "  navigate",
     ],
   },
 }
@@ -813,10 +956,14 @@ Object {
     "fastPath": Array [
       "take [cup , then look]",
       "  position: change transferMembership(from=currentHost([cup , then look]), object=[cup , then look], to=actingCharacter)",
+      "[take cup , then look]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [cup , then look]",
       "  position: change transferMembership(from=currentHost([cup , then look]), object=[cup , then look], to=actingCharacter)",
+      "[take cup , then look]",
+      "  navigate",
     ],
   },
 }
@@ -845,10 +992,14 @@ Object {
     "fastPath": Array [
       "take [cup .]",
       "  position: change transferMembership(from=currentHost([cup .]), object=[cup .], to=actingCharacter)",
+      "[take cup .]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [cup]",
       "  position: change transferMembership(from=currentHost([cup]), object=[cup], to=actingCharacter)",
+      "[take cup]",
+      "  navigate",
     ],
   },
 }
@@ -874,10 +1025,14 @@ Object {
     "fastPath": Array [
       "take [hold of the cup]",
       "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",
+      "[take hold of the cup]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [hold of the cup]",
       "  position: change transferMembership(from=currentHost([hold of the cup]), object=[hold of the cup], to=actingCharacter)",
+      "[take hold of the cup]",
+      "  navigate",
     ],
   },
 }
@@ -908,6 +1063,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[table], subject=[man in the moon]); position: change transferMembership(from=currentHost([man in the moon]), object=[man in the moon], to=actingCharacter)",
       "take [man in the moon from table]",
       "  position: change transferMembership(from=currentHost([man in the moon from table]), object=[man in the moon from table], to=actingCharacter)",
+      "[take man in the moon from table]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [man] in [the moon] from [table]",
@@ -918,6 +1075,8 @@ Object {
       "  position: assertion containedBy(negate=false, object=[table], subject=[man in the moon]); position: change transferMembership(from=currentHost([man in the moon]), object=[man in the moon], to=actingCharacter)",
       "take [man in the moon from table]",
       "  position: change transferMembership(from=currentHost([man in the moon from table]), object=[man in the moon from table], to=actingCharacter)",
+      "[take man in the moon from table]",
+      "  navigate",
     ],
   },
 }
@@ -946,10 +1105,14 @@ Object {
     "fastPath": Array [
       "take [unicorn]",
       "  position: change transferMembership(from=currentHost([unicorn]), object=[unicorn], to=actingCharacter)",
+      "[take unicorn]",
+      "  navigate",
     ],
     "llmRoute": Array [
       "take [unicorn]",
       "  position: change transferMembership(from=currentHost([unicorn]), object=[unicorn], to=actingCharacter)",
+      "[take unicorn]",
+      "  navigate",
     ],
   },
 }
@@ -972,6 +1135,75 @@ Object {
   },
   "readings": Object {
     "fastPath": "AwaitRoadRunner",
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) walk north 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "attempt": "navigate",
+      "confidence": 1,
+      "referents": Array [
+        "northExitRef=ROOM#North",
+      ],
+      "type": "CommandAttempt",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 0,
+      "embedSpan": 0,
+      "enrich": 0,
+      "parse": 0,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "walk [north]",
+      "  navigate",
+      "[walk north]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "walk [north]",
+      "  navigate",
+      "[walk north]",
+      "  navigate",
+    ],
+  },
+}
+`;
+
+exports[`skeletonMatcher characterization corpus (Slice 0) walk xyzzy 1`] = `
+Object {
+  "outcome": Object {
+    "result": Object {
+      "confidence": 0.9,
+      "reason": "No candidates found for span \\"xyzzy\\"",
+      "type": "Abstain",
+    },
+    "stubCalls": Object {
+      "acme": 0,
+      "classify": 1,
+      "embedSpan": 0,
+      "enrich": 0,
+      "parse": 1,
+    },
+  },
+  "readings": Object {
+    "fastPath": Array [
+      "walk [xyzzy]",
+      "  navigate",
+      "[walk xyzzy]",
+      "  navigate",
+    ],
+    "llmRoute": Array [
+      "walk [xyzzy]",
+      "  navigate",
+      "[walk xyzzy]",
+      "  navigate",
+    ],
   },
 }
 `;

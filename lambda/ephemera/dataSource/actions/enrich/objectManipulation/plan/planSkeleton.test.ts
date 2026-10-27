@@ -3,6 +3,7 @@ import type { ParseSkeleton } from '../parse/parseToken'
 import type { CommandAttempt } from '../../../commandAttempt'
 import { tokenize } from '../../../deterministicTemplate/granuleTokens'
 import { planFillOf } from './attemptTemplateFixture'
+import { isBareExitFill } from './matchNavigationTemplate'
 import { COMMAND_GRANULES, planSkeleton, planTokens } from './planSkeleton'
 
 const COMMAND = 'test command'
@@ -20,6 +21,11 @@ const attemptsOf = (skeleton: ParseSkeleton) => planFillOf(skeleton, COMMAND).at
 /** Every attempt Plan reads from the skeleton's words, whatever the segmentation. */
 const allAttemptsOf = (skeleton: ParseSkeleton) => planSkeleton(skeleton, COMMAND).fills.flatMap(({ attempts }) => attempts)
 
+/** The kinds of every reading but the bare exit one, which fits every command (`isBareExitFill`). */
+const templateKindsOf = (skeleton: ParseSkeleton) => planSkeleton(skeleton, COMMAND).fills
+    .filter((fill) => !isBareExitFill(fill))
+    .flatMap(({ attempts }) => attempts.map(({ kind }) => kind))
+
 /** Plan's fills for a command, each as its segmentation on one line. */
 const segmentationsOf = (command: string) => planTokens(tokenize(COMMAND_GRANULES, command), command)
     .map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))
@@ -29,10 +35,12 @@ const actionKinds = (attempt: CommandAttempt) => attempt.actions().map((action) 
 describe('planSkeleton', () => {
     it('gives each attempt its template\'s kind, qualifiers lowered or not', () => {
         const kindsOf = (command: string) => [...new Set(planTokens(tokenize(COMMAND_GRANULES, command), command).flatMap(({ attempts }) => attempts.map(({ kind }) => kind)))].sort()
-        expect(kindsOf('take cup on table')).toEqual(['membership'])
-        expect(kindsOf('drop cup in box')).toEqual(['containment', 'membership'])
-        expect(kindsOf('spread cloth over table')).toEqual(['spread'])
-        expect(kindsOf('look at cup on table')).toEqual(['look'])
+        // Every command also reads as a bare exit name: a navigation.
+        expect(kindsOf('take cup on table')).toEqual(['membership', 'navigation'])
+        expect(kindsOf('drop cup in box')).toEqual(['containment', 'membership', 'navigation'])
+        expect(kindsOf('spread cloth over table')).toEqual(['navigation', 'spread'])
+        expect(kindsOf('look at cup on table')).toEqual(['look', 'navigation'])
+        expect(kindsOf('go north')).toEqual(['navigation'])
     })
 
     it('plans "take the coin in the box" as membership takes, not a containment move: the qualified reading checks the coin, then takes it', () => {
@@ -165,8 +173,9 @@ describe('planSkeleton', () => {
         })
     })
 
-    it('plans nothing for "tie the rope in the box": no template claims it, so the zero-attempt branch answers', () => {
-        expect(allAttemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
+    it('plans only the bare exit reading for "tie the rope in the box": no other template claims it', () => {
+        expect(templateKindsOf(relationalSkeleton('tie', 'rope', 'in', 'box'))).toEqual([])
+        expect(allAttemptsOf(relationalSkeleton('tie', 'rope', 'in', 'box')).map(({ kind }) => kind)).toEqual(['navigation'])
     })
 
     it('plans a leading take as membership acquire, a leading drop as release', () => {
@@ -235,8 +244,8 @@ describe('planSkeleton', () => {
         ['tie the rope to the pole', relationalSkeleton('tie', 'rope', 'to', 'pole')],
         ['lean the lamp against the wall', relationalSkeleton('lean', 'lamp', 'against', 'wall')],
         ['put the lamp under the table', relationalSkeleton('put', 'lamp', 'under', 'table')],
-    ])('plans nothing for peer relation "%s": the zero-attempt branch answers Unimplemented', (_command, skeleton) => {
-        expect(allAttemptsOf(skeleton)).toEqual([])
+    ])('plans only the bare exit reading for peer relation "%s": the LLM route answers Unimplemented', (_command, skeleton) => {
+        expect(templateKindsOf(skeleton)).toEqual([])
     })
 
     it('plans a look as one narration whose action names the referent', () => {
@@ -251,14 +260,15 @@ describe('planSkeleton', () => {
         ])
     })
 
-    it('returns no attempts for a skeleton no template claims', () => {
-        expect(allAttemptsOf([{ type: 'text', text: 'balance' }, { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' }])).toEqual([])
+    it('returns no attempts but the bare exit reading for a skeleton no other template claims', () => {
+        expect(templateKindsOf([{ type: 'text', text: 'balance' }, { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' }])).toEqual([])
     })
 })
 
 describe('planTokens', () => {
     it('reads every segmentation of the command: each closed-set preposition is a link or inside a span', () => {
         expect(segmentationsOf('take cup on saucer on table').sort()).toEqual([
+            '[take cup on saucer on table]',
             'take [cup on saucer on table]',
             'take [cup on saucer] on [table]',
             'take [cup] on [saucer on table]',
@@ -271,6 +281,7 @@ describe('planTokens', () => {
         expect(fills.map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))).toEqual([
             'look [at cup]',
             'look at [cup]',
+            '[look at cup]',
         ])
     })
 

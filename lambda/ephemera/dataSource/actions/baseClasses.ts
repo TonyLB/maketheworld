@@ -698,16 +698,19 @@ export function isParseCommandCommandAttemptResult(
     return isParseConfidence(result.confidence)
 }
 
+/** One exit from the actor's room: its normalized name and the room it leads to. */
+export type RoomExit = {
+    normalizedName: string
+    targetId: EphemeraRoomId
+}
+
 export type ParseCommandInput = {
     command: string
     /** Parse-request character; required for drop complexity pre-gates (actor host match). */
     characterId?: EphemeraCharacterId
     /** Actor's current room ludicGraph host (BD-6 relational compiler). */
     hostRoomId?: EphemeraRoomId
-    roomExits?: {
-        normalizedName: string
-        targetId: EphemeraRoomId
-    }[]
+    roomExits?: readonly RoomExit[]
     /** In-room object catalog for enrich and deterministic resolve (D6). */
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     /** Character-held inventory catalog for object-manipulation identity stage (O5). */

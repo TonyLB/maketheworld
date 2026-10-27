@@ -13,8 +13,14 @@ export type FixedWordElement<Name extends string = string, Value = unknown> = {
     lexicon: Readonly<Record<string, Value>>
 }
 
-/** A referent slot: a span Identify grounds. */
-export type ObjectSpanElement<Name extends string = string> = { type: 'objectSpan'; name: Name }
+/**
+ * What a span slot grounds against: the room's exits, or (absent) the objects in the room and in
+ * hand. Identify builds the span's pool from that catalog alone.
+ */
+export type SpanCatalog = 'exits'
+
+/** A referent slot: a span Identify grounds, against its `catalog`. */
+export type ObjectSpanElement<Name extends string = string> = { type: 'objectSpan'; name: Name; catalog?: SpanCatalog }
 
 /**
  * A free-text slot: a span with no referent or Identify semantics (for open-ended values, e.g. a
@@ -50,6 +56,9 @@ export const fixedWord = <Name extends string, Value>(name: Name, lexicon: Reado
 export const words = (...options: string[]): FixedWordElement<never, string> => (
     { type: 'templateText', lexicon: Object.fromEntries(options.map((option) => [option, option])) }
 )
+
+/** A named span slot grounded against the room's exits. */
+export const exitSpan = <Name extends string>(name: Name): ObjectSpanElement<Name> => ({ type: 'objectSpan', name, catalog: 'exits' })
 
 /** A named object phrase linked at `prepositions`. */
 export const objectPhrase = <Name extends string>(name: Name, prepositions: Readonly<Record<string, QualifierPreposition>>): ObjectPhraseElement<Name> => (
@@ -87,7 +96,7 @@ type RepeatedName<Pattern extends readonly unknown[], Seen extends string = neve
     : never
 
 /**
- * An object template: a pattern plus the function that builds
+ * A Plan template (an object template, or a navigation one): a pattern plus the function that builds
  * the template's attempt from one fill's captures, by name. The template file holds its shape, its
  * words and its narration unit together. Plan matches every template over the command's tokens
  * (`plan/planSkeleton.ts` `planTokens`), one attempt per fill, and pools them all rather than
@@ -100,7 +109,7 @@ export type AttemptTemplate<Pattern extends readonly PatternElement[] = readonly
 }
 
 /**
- * An object template, its captures typed from its pattern; a pattern using one name twice is
+ * A Plan template, its captures typed from its pattern; a pattern using one name twice is
  * rejected. (`readonly []` in the constraint makes the pattern infer as a tuple.)
  */
 export const defineAttemptTemplate = <Pattern extends readonly [] | readonly PatternElement[]>(

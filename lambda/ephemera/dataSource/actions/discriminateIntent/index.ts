@@ -10,8 +10,10 @@ export type DiscriminateIntentResult = ParseCommandResult
  * Iteration 7, Sub-iteration 1: classify decides only realness/shape
  * (`MultipleCommands` / `PromptInjectionAttempt` / `Unknown`) and, for a legitimate
  * single in-world engagement, command-vs-question (`Command` / `WorldQuestion`).
- * Deterministic pre-checks (bare words, take/get/drop, exact exit names) still run
- * first and bypass classify entirely --- see `deterministicChecks.ts`.
+ * Deterministic pre-checks (the intent rows, then every command one of Plan's templates fits,
+ * which the bare exit template makes every command) run first and bypass classify --- see
+ * `deterministicChecks.ts`; classify is reached through `classifyIntent`, when the fast path
+ * abstains (`parseCommand.ts`), or for an empty command.
  */
 export async function discriminateIntent(
     input: ParseCommandInput,

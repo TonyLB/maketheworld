@@ -1215,15 +1215,15 @@ Object {
       ],
       "words": "look rocket skates",
     },
-    "confidence": 0.9,
+    "confidence": 1,
     "type": "CommandAttempt",
   },
   "stubCalls": Object {
     "acme": 0,
-    "classify": 1,
+    "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
-    "parse": 1,
+    "parse": 0,
   },
 }
 `;
@@ -1374,6 +1374,36 @@ Object {
             Object {
               "span": "the broom",
               "stableRefKey": "theBroomRef",
+              "type": "objectSpan",
+            },
+          ],
+        },
+        Object {
+          "attempts": Array [
+            Object {
+              "actions": Array [
+                Object {
+                  "challenges": Array [],
+                  "destination": Object {
+                    "referentType": "objectSpan",
+                    "span": "take the broom",
+                    "stableRefKey": "takeTheBroomExitRef",
+                  },
+                  "id": "<minted id 2>",
+                  "kind": "navigate",
+                },
+              ],
+              "kind": "navigation",
+              "narrationUnits": Array [],
+              "referents": Array [],
+              "words": "take the broom",
+            },
+          ],
+          "skeleton": Array [
+            Object {
+              "catalog": "exits",
+              "span": "take the broom",
+              "stableRefKey": "takeTheBroomExitRef",
               "type": "objectSpan",
             },
           ],

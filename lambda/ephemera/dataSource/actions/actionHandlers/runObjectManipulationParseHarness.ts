@@ -7,11 +7,12 @@ import type {
     ObjectManipulationParseHarnessInvocation,
 } from '../baseClasses'
 import { deterministicIntentChecks } from '../discriminateIntent/deterministicChecks'
+import { isBareExitFill } from '../enrich/objectManipulation/plan/matchNavigationTemplate'
 import { tokenize, type GranuleToken } from '../deterministicTemplate/granuleTokens'
 import { skeletonText } from '../deterministicTemplate/patternTemplate'
 import type { ParseSkeleton } from '../enrich/objectManipulation/parse/parseToken'
 import { runParseStage } from '../enrich/objectManipulation/parse/runParseStage'
-import { COMMAND_GRANULES, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
+import { COMMAND_GRANULES, planTokens, readPlanTemplates, type PlanTemplateRead } from '../enrich/objectManipulation/plan/planSkeleton'
 import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulationParseHarnessFixtures'
 
 export type RunObjectManipulationParseHarnessDeps = {
@@ -58,10 +59,11 @@ export function formatTokens(tokens: readonly GranuleToken[]): string {
 /**
  * Runs each selected command down the route production takes to its tokens, then Plan, and
  * publishes **one** OOC message with the results for manual review: the route, the tokens, and each
- * segmentation Plan's readings make with every attempt read from it. A command the
- * take/get/drop/put/place fast path claims (`deterministicIntentChecks`) is read from its own
- * tokens with no Bedrock call; any other runs the live Parse stage, whose skeleton is shown and
- * whose words are re-tokenized. No world is read; candidates and the dry run are out of its reach.
+ * segmentation Plan's readings make with every attempt read from it. A command one of Plan's
+ * templates reads on the fast path (`deterministicIntentChecks`) is read from its own tokens with no
+ * Bedrock call; one only the bare exit reading reads (it fits every command, and abstains unless the
+ * command names an exit, which no world here says) runs the live Parse stage, whose skeleton is shown
+ * and whose words are re-tokenized. No world is read; candidates and the dry run are out of its reach.
  */
 export async function runObjectManipulationParseHarness(deps: RunObjectManipulationParseHarnessDeps): Promise<void> {
     const runParse = deps.runParseStageImpl ?? runParseStage
@@ -76,7 +78,7 @@ export async function runObjectManipulationParseHarness(deps: RunObjectManipulat
         tree.push(`--- ${index + 1}/${cases.length} ${label}: ${command} ---`, COYOTE_RENDER_LINE_BREAK)
         const fastPath = deterministicIntentChecks({ command })
         let tokens: GranuleToken[]
-        if (fastPath?.type === 'ObjectManipulationIntent') {
+        if (fastPath?.type === 'ObjectManipulationIntent' && planTokens(fastPath.tokens, command).some((fill) => !isBareExitFill(fill))) {
             tokens = fastPath.tokens
             tree.push('Route: fast path', COYOTE_RENDER_LINE_BREAK)
         }

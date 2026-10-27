@@ -11,6 +11,9 @@ import type { NarrationUnit } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { actingCharacterRef, currentHostRef } from './plan/planStep'
+import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
+import { tokenize } from '../../deterministicTemplate/granuleTokens'
+import { navigationIntentErrorMessages } from '../../discriminateIntent/exitResolution'
 import type { ContainedByAssertion } from './plan/planStep'
 
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
@@ -681,5 +684,83 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
         expect(candidate.attempt.actions().map((action) => action.describe())).toEqual(['Check: cup on table', 'Take: cup'])
         expect(fromTable.attempt.actions()[0]!.describe()).toBe('Check: cup at table')
         expect(candidate.alternative).toEqual({ objectId: tableCupId, label: 'cup', proposedCommand: 'take the cup' })
+    })
+})
+
+describe('a navigation (an exit span, grounded to the room it leads to)', () => {
+    const northRoom = 'ROOM#North' as EphemeraRoomId
+    const atticRoom = 'ROOM#Attic' as EphemeraRoomId
+    const readingsOf = (command: string) => planTokens(tokenize(COMMAND_GRANULES, command), command).flatMap(({ attempts }) => attempts)
+    const exitPool = (span: string, ...ids: EphemeraRoomId[]): SpanCandidatePool => ({
+        span,
+        candidates: ids.map((id) => ({ id, label: span, jointRelevance: 1, sourceTags: ['exact'], locus: { kind: 'room' } })),
+    })
+    const propose = (command: string, spanPools: Map<string, SpanCandidatePool>, extra: Partial<Parameters<typeof proposeAttemptCandidates>[0]> = {}) => proposeAttemptCandidates({
+        command,
+        attempts: readingsOf(command),
+        spanPools,
+        catalog,
+        noAssignmentReason: 'no assignment',
+        ...extra,
+    })
+
+    it('grounds the exit to its room, named by the exit, and words it as going there', () => {
+        const result = propose('north', new Map([['northExitRef', exitPool('north', northRoom)]]))
+        if (!result.ok) {
+            throw new Error(result.reason)
+        }
+        expect(result.candidates).toHaveLength(1)
+        const [candidate] = result.candidates
+        expect(candidate.attempt.kind).toBe('navigation')
+        expect(candidate.attempt.referents()).toEqual([{ refKey: 'northExitRef', id: northRoom, shortName: 'north' }])
+        expect(candidate.attempt.actions()[0]!.describe()).toBe('Go north')
+        expect(candidate.alternative).toEqual({ label: 'north', proposedCommand: 'go north' })
+    })
+
+    it('drops only the reading whose exit grounds nothing: the take beside it stands', () => {
+        const result = propose('take cup', new Map([['cupRef', pool('cup', cupId)], ['takeCupExitRef', exitPool('take cup')]]))
+        if (!result.ok) {
+            throw new Error(result.reason)
+        }
+        expect(result.candidates.map(({ attempt }) => attempt.kind)).toEqual(['membership'])
+    })
+
+    it('abstains with the empty span\'s wording when every reading reads a span that grounds nothing', () => {
+        expect(propose('north', new Map([['northExitRef', exitPool('north')]]))).toEqual({ ok: false, reason: 'No candidates found for span "north"' })
+    })
+
+    it('refuses a resumed answer whose span grounds nothing now as stale, not as a dropped reading', () => {
+        const result = propose('take cup', new Map([['cupRef', pool('cup', cupId)], ['takeCupExitRef', exitPool('take cup')]]), {
+            referentAnswers: { takeCupExitRef: northRoom },
+        })
+        expect(result).toMatchObject({ ok: false, stale: true })
+    })
+
+    describe('the dry run judges that the exit is here, and leads to one room', () => {
+        const candidatesFor = (...ids: EphemeraRoomId[]) => {
+            const result = propose('north', new Map([['northExitRef', exitPool('north', ...ids)]]))
+            if (!result.ok) {
+                throw new Error(result.reason)
+            }
+            return result.candidates
+        }
+
+        it('is legal, with nothing to run, when the exit leads to the room it grounded to', () => {
+            const [candidate] = candidatesFor(northRoom)
+            expect(attemptDryRun(candidate!, undefined, { exits: [{ normalizedName: 'north', targetId: northRoom }] })).toEqual({ verdict: 'legal', decidable: true })
+        })
+
+        it('is illegal when no exit here leads there (the world changed since Identify, or no exits)', () => {
+            const [candidate] = candidatesFor(northRoom)
+            expect(attemptDryRun(candidate!, undefined, { exits: [] })).toEqual({ verdict: 'illegal', decidable: true, reason: navigationIntentErrorMessages.noMatch })
+        })
+
+        it('is illegal on every reading when the name leads to two rooms: the ambiguity is the answer', () => {
+            const exits = [{ normalizedName: 'north', targetId: northRoom }, { normalizedName: 'north', targetId: atticRoom }]
+            expect(candidatesFor(northRoom, atticRoom).map((candidate) => attemptDryRun(candidate, undefined, { exits }))).toEqual([
+                { verdict: 'illegal', decidable: true, reason: navigationIntentErrorMessages.ambiguousMatch },
+                { verdict: 'illegal', decidable: true, reason: navigationIntentErrorMessages.ambiguousMatch },
+            ])
+        })
     })
 })

@@ -1,20 +1,28 @@
 import type { EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { ParseCommandInput } from '../baseClasses'
+import type { SkeletonFill } from '../enrich/objectManipulation/compileAttemptsFromSkeleton'
 import { planTokens } from '../enrich/objectManipulation/plan/planSkeleton'
 import { deterministicIntentChecks } from './deterministicChecks'
 
+/** Whether a fill's spans ground against the room's exits: a navigation reading. */
+const readsAnExit = ({ skeleton }: SkeletonFill): boolean => skeleton.some((token) => token.type === 'objectSpan' && token.catalog === 'exits')
+
 /**
  * What a fast-path claim hands Plan, as flat skeletons: every segmentation Plan reads from the
- * claimed tokens, keys left out. Anything else the checks answer is returned as it is.
+ * claimed tokens, keys left out, the object templates' (`exits` false) or the navigation
+ * templates' (`exits` true). Anything else the checks answer is returned as it is.
  */
-const claimedSegmentations = (input: ParseCommandInput) => {
+const claimedSegmentations = (input: ParseCommandInput, { exits = false }: { exits?: boolean } = {}) => {
     const result = deterministicIntentChecks(input)
     return result?.type === 'ObjectManipulationIntent'
-        ? planTokens(result.tokens, input.command).map(({ skeleton }) => skeleton.map((token) => (
+        ? planTokens(result.tokens, input.command).filter((fill) => readsAnExit(fill) === exits).map(({ skeleton }) => skeleton.map((token) => (
             token.type === 'objectSpan' ? { type: 'objectSpan', span: token.span } : token
         )))
         : result
 }
+
+/** Not an intent row: the fast path claims it for Plan, as it claims every command (the bare exit template fits any). */
+const claimedForPlan = (command: string) => deterministicIntentChecks({ command })?.type === 'ObjectManipulationIntent'
 
 describe('deterministicIntentChecks', () => {
     const northRoom = 'ROOM#north' as EphemeraRoomId
@@ -166,22 +174,22 @@ describe('deterministicIntentChecks', () => {
     it('returns LookRoom only for bare look aliases', () => {
         expect(deterministicIntentChecks({ command: 'look' })).toEqual({ type: 'LookRoom', confidence: 1 })
         expect(deterministicIntentChecks({ command: '  L  ' })).toEqual({ type: 'LookRoom', confidence: 1 })
-        expect(deterministicIntentChecks({ command: 'look at door' })).toBeNull()
+        expect(claimedForPlan('look at door')).toBe(true)
     })
 
     it('returns PredictHypothesis only for bare predict', () => {
         expect(deterministicIntentChecks({ command: 'predict' })).toEqual({ type: 'PredictHypothesis', confidence: 1 })
         expect(deterministicIntentChecks({ command: '  PREDICT  ' })).toEqual({ type: 'PredictHypothesis', confidence: 1 })
-        expect(deterministicIntentChecks({ command: 'predict my plan' })).toBeNull()
-        expect(deterministicIntentChecks({ command: 'p' })).toBeNull()
-        expect(deterministicIntentChecks({ command: 'prediction' })).toBeNull()
+        expect(claimedForPlan('predict my plan')).toBe(true)
+        expect(claimedForPlan('p')).toBe(true)
+        expect(claimedForPlan('prediction')).toBe(true)
     })
 
     it('returns Help for help and its paraphrases', () => {
         expect(deterministicIntentChecks({ command: 'help' })).toEqual({ type: 'Help', confidence: 1 })
         expect(deterministicIntentChecks({ command: '  HELP  ' })).toEqual({ type: 'Help', confidence: 1 })
         expect(deterministicIntentChecks({ command: 'help me' })).toEqual({ type: 'Help', confidence: 1 })
-        expect(deterministicIntentChecks({ command: 'helper' })).toBeNull()
+        expect(claimedForPlan('helper')).toBe(true)
     })
 
     it('returns Home for home and its paraphrases, ahead of an exit named "home"', () => {
@@ -197,27 +205,19 @@ describe('deterministicIntentChecks', () => {
     it('returns AwaitRoadRunner for wait and its paraphrases', () => {
         expect(deterministicIntentChecks({ command: 'wait' })).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
         expect(deterministicIntentChecks({ command: 'wait for the bird' })).toEqual({ type: 'AwaitRoadRunner', confidence: 1 })
-        expect(deterministicIntentChecks({ command: 'wait for it' })).toBeNull()
+        expect(claimedForPlan('wait for it')).toBe(true)
     })
 
-    it('returns deterministic Navigation for exact and go-prefixed exit names', () => {
-        expect(deterministicIntentChecks({
-            command: 'north',
-            roomExits: [{ normalizedName: 'north', targetId: northRoom }],
-        })).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
-
-        expect(deterministicIntentChecks({
-            command: '  GO   NORTH  ',
-            roomExits: [{ normalizedName: 'north', targetId: northRoom }],
-        })).toEqual({ type: 'Navigation', targetId: northRoom, exitName: 'north', confidence: 1 })
+    it('claims a bare exit name and a movement verb with one for Plan, whatever the exits: grounding is Identify\'s', () => {
+        const text = (value: string) => ({ type: 'text', text: value })
+        const span = (value: string) => ({ type: 'objectSpan', span: value })
+        expect(claimedSegmentations({ command: 'north' }, { exits: true })).toEqual([[span('north')]])
+        expect(claimedSegmentations({ command: '  GO   NORTH  ' }, { exits: true })).toEqual(expect.arrayContaining([[text('GO'), span('NORTH')], [span('GO NORTH')]]))
+        expect(claimedSegmentations({ command: 'walk south', roomExits: [{ normalizedName: 'north', targetId: northRoom }] }, { exits: true })).toEqual(expect.arrayContaining([[text('walk'), span('south')]]))
     })
 
-    it('returns null when deterministic navigation does not resolve', () => {
-        expect(deterministicIntentChecks({
-            command: 'go south',
-            roomExits: [{ normalizedName: 'north', targetId: northRoom }],
-        })).toBeNull()
-        expect(deterministicIntentChecks({ command: 'go north' })).toBeNull()
+    it('claims nothing for an empty command, which climbs to classify', () => {
+        expect(deterministicIntentChecks({ command: '   ' })).toBeNull()
     })
 
     describe('manipulation fast paths', () => {
@@ -234,11 +234,11 @@ describe('deterministicIntentChecks', () => {
             expect(claimedSegmentations({ command: 'take hold of the crate' })).toEqual([[{ type: 'text', text: 'take' }, { type: 'objectSpan', span: 'hold of the crate' }]])
         })
 
-        it('returns null for paraphrases and verb-only commands', () => {
-            expect(deterministicIntentChecks({ command: 'pick up the broom' })).toBeNull()
-            expect(deterministicIntentChecks({ command: 'take' })).toBeNull()
-            expect(deterministicIntentChecks({ command: 'drop' })).toBeNull()
-            expect(deterministicIntentChecks({ command: 'get' })).toBeNull()
+        it('reads no object segmentation of paraphrases and verb-only commands', () => {
+            expect(claimedSegmentations({ command: 'pick up the broom' })).toEqual([])
+            expect(claimedSegmentations({ command: 'take' })).toEqual([])
+            expect(claimedSegmentations({ command: 'drop' })).toEqual([])
+            expect(claimedSegmentations({ command: 'get' })).toEqual([])
         })
 
         it('keeps articles on the span', () => {
@@ -373,10 +373,10 @@ describe('deterministicIntentChecks', () => {
                 ]))
             })
 
-            it('does not claim a put the pattern does not fit', () => {
-                expect(fillsOf('put down the broom')).toBeNull()
-                expect(fillsOf('put on hat')).toBeNull()
-                expect(fillsOf('put the broom under the table')).toBeNull()
+            it('reads no object segmentation of a put the pattern does not fit', () => {
+                expect(fillsOf('put down the broom')).toEqual([])
+                expect(fillsOf('put on hat')).toEqual([])
+                expect(fillsOf('put the broom under the table')).toEqual([])
             })
         })
     })

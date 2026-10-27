@@ -5,7 +5,7 @@ import type {
     ParseTokenDraft,
 } from '../enrich/objectManipulation/parse/parseToken'
 import { stableRefKeysByRange } from '../enrich/objectManipulation/parse/stampStableRefKeys'
-import type { PatternCapture, PatternElement } from './deterministicTemplate'
+import type { PatternCapture, PatternElement, SpanCatalog } from './deterministicTemplate'
 import { optionWords, type GranuleToken } from './granuleTokens'
 
 /** A run of tokens, from `start` up to (not including) `end`. */
@@ -16,7 +16,8 @@ type PhraseRanges = { head: TokenRange; link?: { preposition: TokenRange; option
 
 type ElementMatch =
     | { kind: 'templateText'; range: TokenRange; option: string }
-    | { kind: 'objectSpan' | 'capturedText'; range: TokenRange }
+    | { kind: 'objectSpan'; range: TokenRange; catalog?: SpanCatalog }
+    | { kind: 'capturedText'; range: TokenRange }
     | { kind: 'objectPhrase'; phrase: PhraseRanges }
 
 /** One way a pattern fits a command's tokens: each element's token ranges, parallel to the pattern. */
@@ -113,7 +114,12 @@ function fillsFrom(pattern: readonly PatternElement[], tokens: readonly GranuleT
     if (element.type === 'objectPhrase') {
         return phrasesFrom(tokens, index, Object.keys(element.prepositions)).flatMap(({ phrase, end }) => then({ kind: 'objectPhrase', phrase }, end))
     }
-    return spanEnds(tokens, index).flatMap((end) => then({ kind: element.type, range: { start: index, end } }, end))
+    return spanEnds(tokens, index).flatMap((end) => then(
+        element.type === 'objectSpan'
+            ? { kind: 'objectSpan', range: { start: index, end }, ...(element.catalog !== undefined ? { catalog: element.catalog } : {}) }
+            : { kind: 'capturedText', range: { start: index, end } },
+        end
+    ))
 }
 
 /**
@@ -128,24 +134,35 @@ export function matchPattern(pattern: readonly PatternElement[], tokens: readonl
     return fillsFrom(pattern, tokens, 0, 0)
 }
 
+/** A span's range and the catalog it grounds against (absent: the objects). */
+type SpanRange = TokenRange & { catalog?: SpanCatalog }
+
 /** The span ranges a fill holds: each object span, and each span of each object phrase. */
-function spanRangesOf(fill: TokenFill): TokenRange[] {
+function spanRangesOf(fill: TokenFill): SpanRange[] {
     const phraseRanges = (phrase: PhraseRanges): TokenRange[] => [phrase.head, ...(phrase.link ? phraseRanges(phrase.link.tail) : [])]
-    return fill.flatMap((match) => (
-        match.kind === 'objectSpan' ? [match.range] : match.kind === 'objectPhrase' ? phraseRanges(match.phrase) : []
+    return fill.flatMap((match): SpanRange[] => (
+        match.kind === 'objectSpan' ? [{ ...match.range, ...(match.catalog !== undefined ? { catalog: match.catalog } : {}) }] : match.kind === 'objectPhrase' ? phraseRanges(match.phrase) : []
     ))
 }
 
 /**
  * The fills read out, parallel to `matches`, with every span's key stamped across all of them: a
- * span's key names its token range, so one occurrence has one key in every fill
- * (`stableRefKeysByRange`). Fills of several patterns over one command are read together so their
- * keys agree.
+ * span's key names its token range and the catalog it grounds against, so one occurrence has one
+ * key in every fill (`stableRefKeysByRange`), and a range read against exits never shares a key, or
+ * a fill, with the same range read against objects. Fills of several patterns over one command are
+ * read together so their keys agree.
  */
 export function readFills(tokens: readonly GranuleToken[], matches: readonly { pattern: readonly PatternElement[]; fill: TokenFill }[]): PatternFill[] {
     const keyOf = stableRefKeysByRange(matches.flatMap(({ fill }) => spanRangesOf(fill)).map((range) => ({ ...range, span: tokenText(tokens, range) })))
-    const spanToken = ({ start, end }: TokenRange): ObjectSpanToken => ({ type: 'objectSpan', span: tokenText(tokens, { start, end }), stableRefKey: keyOf({ start, end }) })
+    const spanToken = (range: SpanRange): ObjectSpanToken => ({
+        type: 'objectSpan',
+        span: tokenText(tokens, range),
+        stableRefKey: keyOf(range),
+        ...(range.catalog !== undefined ? { catalog: range.catalog } : {}),
+    })
     const rangeKey = ({ start, end }: TokenRange, kind: string): string => `${kind}${start}-${end}`
+    // An exit span is its own kind of cut, so it never shares a fill with an object span on the same range.
+    const spanKind = ({ catalog }: SpanRange): string => (catalog === 'exits' ? 'x' : 's')
     return matches.map(({ pattern, fill }) => {
         const elements = fill.map((match, elementIndex) => {
             const element = pattern[elementIndex]
@@ -187,14 +204,15 @@ export function readFills(tokens: readonly GranuleToken[], matches: readonly { p
             if (element.type !== 'objectSpan' && element.type !== 'capturedText') {
                 throw new Error('readFills: a span match on a fixed-word element')
             }
-            const token: ParseToken = match.kind === 'objectSpan' ? spanToken(match.range) : { type: 'text', text: tokenText(tokens, match.range) }
+            const range: SpanRange = { ...match.range, ...(match.kind === 'objectSpan' && match.catalog !== undefined ? { catalog: match.catalog } : {}) }
+            const token: ParseToken = match.kind === 'objectSpan' ? spanToken(range) : { type: 'text', text: tokenText(tokens, match.range) }
             return {
                 captures: named(token.type === 'objectSpan'
                     ? { kind: 'objectSpan', text: token.span, stableRefKey: token.stableRefKey }
                     : { kind: 'capturedText', text: token.text }),
                 reading: [token],
                 segmentation: [token],
-                keys: [rangeKey(match.range, token.type === 'objectSpan' ? 's' : 't')],
+                keys: [rangeKey(match.range, match.kind === 'objectSpan' ? spanKind(range) : 't')],
             }
         })
         return {

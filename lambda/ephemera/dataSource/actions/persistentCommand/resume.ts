@@ -7,6 +7,7 @@ import type {
     CompileAttemptsFromSkeletonDeps,
     CompileAttemptsFromSkeletonResult,
 } from '../enrich/objectManipulation/compileAttemptsFromSkeleton'
+import type { RoomExit } from '../baseClasses'
 import type { PersistentCommandPayload } from './payload'
 
 /** The world inputs a resume reads fresh: a stored row deliberately holds none of them. */
@@ -15,6 +16,7 @@ export type PersistentCommandWorld = {
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    roomExits?: readonly RoomExit[]
 }
 
 /**

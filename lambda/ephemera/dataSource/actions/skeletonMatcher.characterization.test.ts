@@ -239,6 +239,9 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         { command: 'predict' },
         { command: 'go north', parseTokens: [text('go'), span('north')] },
         { command: 'north', parseTokens: [span('north')] },
+        { command: 'go north', variant: 'two north exits', parseTokens: [text('go'), span('north')], input: { roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }, { normalizedName: 'north', targetId: 'ROOM#Attic' as EphemeraRoomId }] } },
+        { command: 'walk north', parseTokens: [text('walk'), span('north')] },
+        { command: 'walk xyzzy', parseTokens: [text('walk'), span('xyzzy')] },
         { command: 'enter box', parseTokens: [text('enter'), span('box')] },
         { command: 'order rocket skates', parseTokens: [text('order'), span('rocket skates')] },
     ]

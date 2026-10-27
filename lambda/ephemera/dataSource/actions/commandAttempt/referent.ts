@@ -1,4 +1,4 @@
-import type { EphemeraThingId } from '../enrich/objectManipulation/thing'
+import type { SpanCandidateId } from '../enrich/objectManipulation/spanResolution'
 import type { Referent } from '../enrich/objectManipulation/plan/planStep'
 import type { CommandAttemptReferent } from './index'
 
@@ -15,7 +15,7 @@ import type { CommandAttemptReferent } from './index'
  */
 export const buildCommandAttemptReferent = (
     refKey: string,
-    id: EphemeraThingId,
+    id: SpanCandidateId,
     shortName: string,
     gloss?: string
 ): CommandAttemptReferent => ({

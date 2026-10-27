@@ -1,19 +1,29 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { CommandAttempt } from '../../commandAttempt'
 import type {
     ObjectSpanCandidate,
+    SpanCandidateId,
     SpanCandidateLocus,
     SpanRelevanceSourceTag,
 } from './spanResolution'
 
+/** What a span grounded to: an object, or (for an exit span) the room the exit leads to. */
 export type IdentityPlanIdentity = {
-    objectId: EphemeraObjectId
+    id: SpanCandidateId
     label: string
     locus: SpanCandidateLocus
     jointRelevance: number
     sourceTags: readonly SpanRelevanceSourceTag[]
+}
+
+/** An identity's Object id, for a consumer that acts on objects only (the BD-19 fallbacks' Consult wording). */
+export function objectIdOf(identity: IdentityPlanIdentity): EphemeraObjectId {
+    if (!isEphemeraObjectId(identity.id)) {
+        throw new Error(`objectIdOf: expected an Object identity, got "${identity.id}"`)
+    }
+    return identity.id
 }
 
 export type IdentityPlanCandidate = {
@@ -25,20 +35,19 @@ export type IdentityPlanCandidate = {
 }
 
 /**
- * `IdentityPlanIdentity.objectId` is membership/relational-plan-facing (Object-only
- * mutation machinery, deliberately not widened by CPG-5's Phase 2) even though
- * `ObjectSpanCandidate.id` now accepts `EphemeraThingId` --- assert-and-throw at this
- * seam, since nothing downstream of a plan-candidate identity can act on a
- * Character/Feature id yet.
+ * `IdentityPlanIdentity.id` is an Object (the mutation machinery's) or a Room (an exit's
+ * destination, what a navigate action acts on), even though `ObjectSpanCandidate.id` also accepts
+ * a Character or Feature (CPG-5's Phase 2) --- assert-and-throw at this seam, since nothing
+ * downstream of a plan-candidate identity can act on a Character/Feature id yet.
  */
 export function identityFromSpanCandidate(
     candidate: ObjectSpanCandidate
 ): IdentityPlanIdentity {
-    if (!isEphemeraObjectId(candidate.id)) {
-        throw new Error(`identityFromSpanCandidate: expected an Object candidate, got "${candidate.id}"`)
+    if (!isEphemeraObjectId(candidate.id) && !isEphemeraRoomId(candidate.id)) {
+        throw new Error(`identityFromSpanCandidate: expected an Object or Room candidate, got "${candidate.id}"`)
     }
     return {
-        objectId: candidate.id,
+        id: candidate.id,
         label: candidate.label,
         locus: candidate.locus,
         jointRelevance: candidate.jointRelevance,

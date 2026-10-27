@@ -70,6 +70,15 @@ describe('isCommandAttemptData', () => {
         })).toBe(true)
     })
 
+    it('accepts every action kind by its own fields (a frozen root holds looks and navigations too), and no other kind', () => {
+        const withAction = (action: object) => ({ kind: 'navigation', words: 'go north', referents: [], actions: [action], narrationUnits: [] })
+        expect(isCommandAttemptData(withAction({ kind: 'narrate', id: 'a', referents: [], challenges: [] }))).toBe(true)
+        expect(isCommandAttemptData(withAction({ kind: 'navigate', id: 'a', destination: { referentType: 'objectSpan', span: 'north' }, challenges: [] }))).toBe(true)
+        expect(isCommandAttemptData(withAction({ kind: 'navigate', id: 'a', challenges: [] }))).toBe(false)
+        expect(isCommandAttemptData(withAction({ kind: 'narrate', id: 'a', challenges: [] }))).toBe(false)
+        expect(isCommandAttemptData(withAction({ kind: 'teleport', id: 'a', challenges: [] }))).toBe(false)
+    })
+
     it('rejects a value missing required fields', () => {
         expect(isCommandAttemptData({ words: 'take the broom' })).toBe(false)
         expect(isCommandAttemptData(null)).toBe(false)

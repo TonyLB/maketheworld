@@ -32,7 +32,7 @@ describe('planOnlyFallback (stub)', () => {
 
     it('planOnlyFallbackCandidate combines identity and LLM plan confidence via arithmetic mean', () => {
         const identity: IdentityPlanIdentity = {
-            objectId: 'OBJECT#test' as EphemeraObjectId,
+            id: 'OBJECT#test' as EphemeraObjectId,
             label: 'test object',
             locus: { kind: 'room' },
             jointRelevance: 0.8,

@@ -2,6 +2,7 @@ import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type {
+    RoomExit,
     ParseCommandAbstainResult,
     ParseCommandConsultResult,
     ParseCommandErrorResult,
@@ -19,6 +20,7 @@ import type { ObjectManipulationPositionsReadDeps } from './membershipObservatio
 import type { ParseSkeleton } from './parse/parseToken'
 import type { TransferMembershipChange } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { navigationIntentErrorMessages } from '../../discriminateIntent/exitResolution'
 import { selectPlanTuple } from './selectPlanCandidate'
 import type { ConsultAlternative } from './spanResolution'
 import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type ResumeAnswers } from './resumeAnswers'
@@ -55,6 +57,8 @@ export type CompileAttemptsFromSkeletonInput = {
     hostRoomId?: EphemeraRoomId
     roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
     heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** The exits from the actor's room: what an exit span grounds against, and what the dry run judges a navigation by. */
+    roomExits?: readonly RoomExit[]
     /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */
     answers?: ResumeAnswers
 }
@@ -112,6 +116,11 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
         }
         return undefined
     }
+    if (kind === 'navigation') {
+        // Out of a room there are no exits, so nothing grounds and the reading abstains (it must not
+        // answer: the bare exit reading fits every command, and would end every one here).
+        return undefined
+    }
     if (kind === 'membership' || kind === 'containment' || kind === 'spread') {
         if (input.hostRoomId === undefined) {
             return kind === 'membership'
@@ -162,6 +171,7 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
         case 'relation': return 'No combination of two distinct grounded objects produced a well-typed establishRelation/dissolveRelation step'
         case 'containment':
         case 'spread': return 'No combination of two distinct grounded objects produced a well-typed containment move'
+        case 'navigation': return navigationIntentErrorMessages.noMatch
     }
 }
 
@@ -179,11 +189,25 @@ const noAssignmentReasonFor = (kind: AttemptKind): string => {
  * Identify, selection below the floor) is an Abstain, which hands the command to the next rung. A
  * refusal the world gives (the dry run's illegal, such as "The table has no cup.") is an Error with
  * its reason. A defer (a pending challenge) is an Abstain until the deferred adjudication tier judges it.
+ * An Error is an answer, so an attempt's own Error refusal wins over a pool that only abstains (a
+ * take with no room is refused, though the bare exit reading beside it survives its entry checks).
  */
 export async function compileAttemptsFromSkeleton(
     input: CompileAttemptsFromSkeletonInput,
     intentConfidence: number,
     deps: CompileAttemptsFromSkeletonDeps = {}
+): Promise<CompileAttemptsFromSkeletonResult> {
+    const refusals: CompileAttemptsFromSkeletonResult[] = []
+    const result = await compileReadings(input, intentConfidence, deps, refusals)
+    return result.type === 'Abstain' ? refusals.find((refused) => refused.type === 'Error') ?? result : result
+}
+
+/** The producer's work; `refusals` collects each attempt's own refusal as it is refused. */
+async function compileReadings(
+    input: CompileAttemptsFromSkeletonInput,
+    intentConfidence: number,
+    deps: CompileAttemptsFromSkeletonDeps,
+    refusals: CompileAttemptsFromSkeletonResult[]
 ): Promise<CompileAttemptsFromSkeletonResult> {
     if (input.fills.every(({ attempts }) => attempts.length === 0)) {
         throw new Error('compileAttemptsFromSkeleton: no attempts (the caller routes the no-object case)')
@@ -203,7 +227,6 @@ export async function compileAttemptsFromSkeleton(
     if (chosen.length === 0) {
         return { type: 'Error', errorMessage: resumeErrorMessages.staleSelectedAttempt }
     }
-    const refusals: CompileAttemptsFromSkeletonResult[] = []
 
     // Pre-Identify: each attempt's own refusal, then the survivors.
     let survivors: AttemptEntry[] = []
@@ -251,7 +274,7 @@ export async function compileAttemptsFromSkeleton(
         input.command,
         spans,
         attemptSpanKeys(survivors.map((entry) => entry.attempt)),
-        catalog,
+        { objects: catalog, exits: input.roomExits ?? [] },
         deps
     )
     if (identityResult.type === 'error') {
@@ -313,6 +336,7 @@ export async function compileAttemptsFromSkeleton(
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {
         roomId: hostRoomId,
         actorCharacterId: input.characterId,
+        exits: input.roomExits ?? [],
     })
     const namesOf = new Map<ConsultAlternative, { names: Record<string, string>; placeNames: Record<string, string>; skeleton: ParseSkeleton }>()
     const select = (pool: readonly GroundedAttemptCandidate[]) => selectPlanTuple({

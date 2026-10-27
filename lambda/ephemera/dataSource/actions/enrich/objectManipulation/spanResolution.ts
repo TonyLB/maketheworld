@@ -1,10 +1,12 @@
 import type {
     EphemeraCharacterId,
     EphemeraObjectId,
+    EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import {
     isEphemeraCharacterId,
     isEphemeraObjectId,
+    isEphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ViewAnswer } from '../../objectViews'
@@ -25,8 +27,11 @@ export type SpanCandidateLocus =
 
 export type SpanRelevanceSourceTag = 'exact' | 'lexical' | 'embedding' | 'llm'
 
+/** What a span candidate names: a thing, or (in an exit span's pool) the room the exit leads to. */
+export type SpanCandidateId = EphemeraThingId | EphemeraRoomId
+
 export type ObjectSpanCandidate = {
-    id: EphemeraThingId
+    id: SpanCandidateId
     label: string
     /** Absolute joint relevance in [0, 1] after FT-8 normalization (FT-1). */
     jointRelevance: number
@@ -112,7 +117,7 @@ export function isObjectSpanCandidate(value: unknown): value is ObjectSpanCandid
         return false
     }
     const record = value as Record<string, unknown>
-    if (typeof record.id !== 'string' || !isEphemeraThingId(record.id)) {
+    if (typeof record.id !== 'string' || !(isEphemeraThingId(record.id) || isEphemeraRoomId(record.id))) {
         return false
     }
     if (typeof record.label !== 'string' || record.label.trim().length === 0) {

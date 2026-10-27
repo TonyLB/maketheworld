@@ -449,7 +449,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
     it('reads a preposition outside the qualifier set as part of the span: no reading leaves a span unread', async () => {
         const command = 'get the cup under the table'
         const { fills } = planSkeleton(containmentSkeleton('get', 'cup', 'cupRef', 'under', 'table', 'tableRef'), command)
-        expect(fills.map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))).toEqual(['get [cup under table]'])
+        expect(fills.map(({ skeleton }) => skeleton.map((token) => (token.type === 'objectSpan' ? `[${token.span}]` : token.text)).join(' '))).toEqual(['get [cup under table]', '[get cup under table]'])
 
         const result = await compile('get', 'cup', 'under', 'table', twoCups, twoCupsHosts)
 
