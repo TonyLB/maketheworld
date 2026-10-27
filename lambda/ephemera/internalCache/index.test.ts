@@ -51,6 +51,17 @@ describe('InternalCache', () => {
         expect(internalCache.PerceptionThreads.list('ROOM#C', 'p')).toHaveLength(0)
     })
 
+    it('clear resets SpanEmbeddings', async () => {
+        const embedSpy = jest.spyOn(internalCache.SpanEmbeddings, '_embed').mockResolvedValue({ success: false })
+        await internalCache.SpanEmbeddings.get('cup')
+        await internalCache.SpanEmbeddings.get('the cup')
+        expect(embedSpy).toHaveBeenCalledTimes(1)
+        internalCache.clear()
+        await internalCache.SpanEmbeddings.get('cup')
+        expect(embedSpy).toHaveBeenCalledTimes(2)
+        embedSpy.mockRestore()
+    })
+
     it('getRoomCharacterList derives roster from the LudicCache::Characters row on each call', async () => {
         const expectedOutput = [
             {

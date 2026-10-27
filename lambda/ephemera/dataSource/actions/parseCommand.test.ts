@@ -39,6 +39,21 @@ import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
 
 /** The route's change step: the attempt's first action that changes the world (relation or transfer). */
+import internalCache from '../../internalCache'
+import { spanEmbeddingKey } from '../../internalCache/spanEmbeddings'
+
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+    mockGet.mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' })
+})
+
 const primaryStepOf = (result: unknown): any => {
     const actions = ((result as { attempt: unknown }).attempt as { actions: { desiredResult?: { kind: string } }[] }).actions
     return actions.map((action) => action.desiredResult).find((step) => step?.kind === 'change')
@@ -1054,7 +1069,7 @@ describe('parseCommand LLM path', () => {
             const spanEmbedding = makeEmbeddingFromAxis(0)
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const embedSpan = jest.fn().mockResolvedValue({
+            mockGet.mockResolvedValue({
                 success: true,
                 embedding: spanEmbedding,
             })
@@ -1081,7 +1096,6 @@ describe('parseCommand LLM path', () => {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
             )
@@ -1096,7 +1110,7 @@ describe('parseCommand LLM path', () => {
                 ],
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(embedSpan).toHaveBeenCalled()
+            expect(mockGet).toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         })
 
@@ -1105,7 +1119,6 @@ describe('parseCommand LLM path', () => {
             const mopId = 'OBJECT#Mop' as EphemeraObjectId
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const embedSpan = jest.fn()
 
             const result = await parseCommand(
                 {
@@ -1121,7 +1134,6 @@ describe('parseCommand LLM path', () => {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
             )
@@ -1136,7 +1148,7 @@ describe('parseCommand LLM path', () => {
                 ],
             })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
-            expect(embedSpan).not.toHaveBeenCalled()
+            expect(mockGet).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
         })
 
@@ -1419,7 +1431,6 @@ describe('parseCommand LLM path', () => {
             const broomId = 'OBJECT#Broom'
             const invokeBedrockParseCommandImpl = jest.fn()
             const invokeBedrockObjectManipulationEnrichImpl = jest.fn()
-            const embedSpan = jest.fn()
 
             const result = await parseCommand(
                 {
@@ -1432,7 +1443,6 @@ describe('parseCommand LLM path', () => {
                     ...depsCoyoteUnderCap,
                     invokeBedrockParseCommandImpl,
                     invokeBedrockObjectManipulationEnrichImpl,
-                    embedSpan,
                     objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                 }
             )
@@ -1445,7 +1455,7 @@ describe('parseCommand LLM path', () => {
             expect(primaryStepOf(result)).toMatchObject({ object: { groundedId: broomId }, to: { referentType: 'actingCharacter' } })
             expect(invokeBedrockParseCommandImpl).not.toHaveBeenCalled()
             expect(invokeBedrockObjectManipulationEnrichImpl).not.toHaveBeenCalled()
-            expect(embedSpan).not.toHaveBeenCalled()
+            expect(mockGet).not.toHaveBeenCalled()
         })
 
         describe('Abstain climbs the ladder (a fast-path Abstain falls through to classify)', () => {
@@ -1467,7 +1477,6 @@ describe('parseCommand LLM path', () => {
                         ...depsCoyoteUnderCap,
                         invokeBedrockParseCommandImpl: stubs.classify,
                         invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
-                        embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
                         objectManipulationPositionsReadDeps: objectManipulationPositionsReadDepsForTests(),
                     }
                 )
@@ -1732,7 +1741,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
             enrich: jest.fn(),
             acme: jest.fn(),
-            embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: "embedding stubbed as unavailable" }),
         }
         const result = await parseCommand(
             {
@@ -1745,7 +1753,6 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                 invokeBedrockParseCommandImpl: stubs.classify,
                 invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
                 invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
-                embedSpan: stubs.embedSpan,
                 objectManipulationPositionsReadDeps: {
                     getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
                         containers[id] ?? (id === CHARACTER ? [] : [ROOM])
@@ -1758,7 +1765,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         )
         return {
             result,
-            stubCalls: Object.fromEntries(Object.entries(stubs).map(([name, stub]) => [name, stub.mock.calls.length])),
+            stubCalls: {
+                ...Object.fromEntries(Object.entries(stubs).map(([name, stub]) => [name, stub.mock.calls.length])),
+                // Bedrock embeds: the handler makes one per distinct trimmed span.
+                embedSpan: new Set(mockGet.mock.calls.map(([span]: [string]) => spanEmbeddingKey(span))).size,
+            },
         }
     }
 

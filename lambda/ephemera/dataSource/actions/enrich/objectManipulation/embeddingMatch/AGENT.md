@@ -20,7 +20,7 @@
 | [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) | Conjunctive gates -> `Resolved` \| `Abstain` (calibration regression) |
 | [`simulateEmbeddingIdentity`](simulateEmbeddingIdentity.ts) | v1 legacy decision; [`simulateEmbeddingIdentityWithPool`](simulateEmbeddingIdentity.ts) for pool + metrics |
 | [`resolveObjectSpanByEmbedding`](resolveObjectSpanByEmbedding.ts) | Span embed + v1 decide (calibration only --- **not** production identity) |
-| [`spanEmbedCache`](spanEmbedCache.ts) | One Bedrock embed per distinct normalized span per invocation (shared by production pool path) |
+| [`internalCache.SpanEmbeddings`](../../../../../internalCache/spanEmbeddings/index.ts) | One Bedrock embed per distinct trimmed span per invocation; `resolveCatalogSpanToPool` and the calibration shim both read through it |
 | [`thresholds.ts`](thresholds.ts) | Locked constants: v1 shim (`T_ABS`...), FT-8 normalization, FT-1.2 pool merge, FT-5 `T_JOINT_*` (membership + relational tuple selectors) |
 
 ## FT-1.2 / FT-2.1 pool merge (production)

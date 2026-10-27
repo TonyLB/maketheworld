@@ -9,6 +9,20 @@ import { sameSegmentation } from './plan/attemptTemplateFixture'
 import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
 import type { ResumeAnswers } from './resumeAnswers'
 
+import internalCache from '../../../../internalCache'
+
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+    mockGet.mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' })
+})
+
 const actor = 'CHARACTER#Tess' as EphemeraCharacterId
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const manInTheMoonId = 'OBJECT#ManInTheMoon' as EphemeraObjectId
@@ -50,7 +64,6 @@ const compile = (
     },
     1,
     {
-        embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
         positionsReadDeps: {
             getMembershipContainers: jest.fn(async (id: string) => hostsOf[id] ?? []),
             getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),

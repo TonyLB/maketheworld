@@ -5,6 +5,19 @@ import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { ParseSkeleton } from './parse/parseToken'
 
+import internalCache from '../../../../internalCache'
+
+jest.mock('../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+})
+
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
 const duplicateBroomId = 'OBJECT#BroomDup' as EphemeraObjectId
@@ -16,7 +29,6 @@ const roomCatalog: ObjectManipulationCatalogEntry[] = [
 
 describe('runIdentityStageOverSkeleton', () => {
     it('keys a single objectSpan token by its stableRefKey', async () => {
-        const embedSpan = jest.fn()
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'pick up the' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
@@ -25,8 +37,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'pick up the broom',
             skeleton,
-            { objects: roomCatalog, exits: [] },
-            { embedSpan }
+            { objects: roomCatalog, exits: [] }
         )
 
         expect(result.type).toBe('success')
@@ -56,7 +67,6 @@ describe('runIdentityStageOverSkeleton', () => {
     })
 
     it('keys two distinct spans (subject/target shape) by their own stableRefKeys, not position', async () => {
-        const embedSpan = jest.fn()
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
@@ -67,8 +77,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'put broom on anvil',
             skeleton,
-            { objects: roomCatalog, exits: [] },
-            { embedSpan }
+            { objects: roomCatalog, exits: [] }
         )
 
         expect(result.type).toBe('success')
@@ -81,7 +90,6 @@ describe('runIdentityStageOverSkeleton', () => {
     })
 
     it('preserves a multi-candidate pool intact under its own key, alongside a distinct single-candidate pool', async () => {
-        const embedSpan = jest.fn()
         const ambiguousCatalog: ObjectManipulationCatalogEntry[] = [
             ...roomCatalog,
             { objectId: duplicateBroomId, normalizedShortName: 'broom', catalogScope: 'held' },
@@ -96,8 +104,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'put broom on anvil',
             skeleton,
-            { objects: ambiguousCatalog, exits: [] },
-            { embedSpan }
+            { objects: ambiguousCatalog, exits: [] }
         )
 
         expect(result.type).toBe('success')
@@ -114,7 +121,6 @@ describe('runIdentityStageOverSkeleton', () => {
     })
 
     it('resolves duplicate span text under distinct stableRefKeys independently ("put bench on bench")', async () => {
-        const embedSpan = jest.fn()
         const skeleton: ParseSkeleton = [
             { type: 'text', text: 'put' },
             { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef1' },
@@ -125,8 +131,7 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'put broom on broom',
             skeleton,
-            { objects: roomCatalog, exits: [] },
-            { embedSpan }
+            { objects: roomCatalog, exits: [] }
         )
 
         expect(result.type).toBe('success')
@@ -139,17 +144,16 @@ describe('runIdentityStageOverSkeleton', () => {
     })
 
     it('produces no map entries for a skeleton with only text tokens', async () => {
-        const embedSpan = jest.fn()
         const skeleton: ParseSkeleton = [{ type: 'text', text: 'look' }]
 
-        const result = await runIdentityStageOverSkeleton('look', skeleton, { objects: roomCatalog, exits: [] }, { embedSpan })
+        const result = await runIdentityStageOverSkeleton('look', skeleton, { objects: roomCatalog, exits: [] })
 
         expect(result.type).toBe('success')
         if (result.type !== 'success') {
             return
         }
         expect(result.spanPools.size).toBe(0)
-        expect(embedSpan).not.toHaveBeenCalled()
+        expect(mockGet).not.toHaveBeenCalled()
     })
 
     it('passes through runIdentityStage errors unchanged', async () => {
@@ -166,7 +170,7 @@ describe('runIdentityStageOverSkeleton', () => {
     })
 
     it('forwards deps to runIdentityStage unchanged', async () => {
-        const embedSpan = jest.fn().mockResolvedValue({ success: false })
+        mockGet.mockResolvedValue({ success: false })
         const catalog: ObjectManipulationCatalogEntry[] = [
             { objectId: broomId, normalizedShortName: 'broom', catalogScope: 'room' },
         ]
@@ -177,12 +181,11 @@ describe('runIdentityStageOverSkeleton', () => {
         const result = await runIdentityStageOverSkeleton(
             'pick up the sweeping tool',
             skeleton,
-            { objects: catalog, exits: [] },
-            { embedSpan }
+            { objects: catalog, exits: [] }
         )
 
         expect(result.type).toBe('success')
-        expect(embedSpan).toHaveBeenCalled()
+        expect(mockGet).toHaveBeenCalled()
     })
 })
 
@@ -195,8 +198,7 @@ describe('runIdentityStageOverReferenceKeys', () => {
     ]
 
     it('resolves exactly the referenced keys, in skeleton order', async () => {
-        const embedSpan = jest.fn()
-        const result = await runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['anvilRef', 'broomRef'], { objects: roomCatalog, exits: [] }, { embedSpan })
+        const result = await runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['anvilRef', 'broomRef'], { objects: roomCatalog, exits: [] })
 
         expect(result.type).toBe('success')
         if (result.type !== 'success') {
@@ -207,7 +209,7 @@ describe('runIdentityStageOverReferenceKeys', () => {
 
     it('throws when a referenced key is not an objectSpan token in the skeleton', async () => {
         await expect(
-            runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['missingRef'], { objects: roomCatalog, exits: [] }, { embedSpan: jest.fn() })
+            runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['missingRef'], { objects: roomCatalog, exits: [] })
         ).rejects.toThrow('"missingRef" is not an objectSpan token')
     })
 })

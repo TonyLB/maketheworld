@@ -6,7 +6,7 @@ import {
     SEMANTIC_EMBEDDING_V1_ENCODING,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
-import { normalizeExitName } from '../../actions/roomExitTargetsForCharacter'
+import { normalizeExitName } from '../../actions/normalizeExitName'
 import { BEDROCK_TITAN_EMBED_MODEL_ID } from '../../../llm/invokeBedrockTitanEmbed'
 
 export const normalizeShortNameForEmbedding = (shortName: string): string =>

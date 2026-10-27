@@ -8,6 +8,7 @@ import { ExitFacetList } from '@tonylb/mtw-wml/ts/standardize/keys/facets/exit'
 import internalCache from '../../internalCache'
 import { ensureAffordanceTopology } from '../affordanceCache/ensureAffordanceTopology'
 import { resolveCharacterRoomPerspectiveForRoom } from '../perception/kickRoomHeaderBroadcast'
+import { normalizeExitName } from './normalizeExitName'
 
 export type RoomExitTargetsForCharacter = {
     fromRoomId: EphemeraRoomId | null
@@ -20,12 +21,7 @@ export type RoomExitTargetsForCharacter = {
     }[]
 }
 
-export const normalizeExitName = (name: string): string => (
-    name
-        .trim()
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
-)
+export { normalizeExitName }
 
 const exitLabelFromFacetPayload = (payload: { toJSON: () => unknown; _payload?: { plain?: { toJSON: () => string } } }): string => {
     const json = payload.toJSON()

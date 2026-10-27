@@ -9,6 +9,21 @@ import type { ParseTokenDraft } from './enrich/objectManipulation/parse/parseTok
 import { planTokens } from './enrich/objectManipulation/plan/planSkeleton'
 import { parseCommand } from './parseCommand'
 
+import internalCache from '../../internalCache'
+import { spanEmbeddingKey } from '../../internalCache/spanEmbeddings'
+
+jest.mock('../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+    mockGet.mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' })
+})
+
 /**
  * Characterization corpus for the skeleton matcher (rung 15): each row pins,
  * as they are today, a command's readings and its `parseCommand` result.
@@ -168,13 +183,11 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
             classify: jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' }),
             enrich: jest.fn(),
             acme: jest.fn().mockResolvedValue({ success: false, errorMessage: 'acme stubbed as unavailable' }),
-            embedSpan: jest.fn().mockResolvedValue({ success: false, errorMessage: 'embedding stubbed as unavailable' }),
         }
         const result = await parseCommand(inputOf(row), {
             invokeBedrockParseCommandImpl: stubs.classify,
             invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
             invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
-            embedSpan: stubs.embedSpan,
             countCoyotePlacedObjectsAcrossRoomsDeps: { getGameRooms: async () => [] },
             objectManipulationPositionsReadDeps: {
                 getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
@@ -187,7 +200,11 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         })
         return {
             result: digestResult(result as Record<string, any>),
-            stubCalls: Object.fromEntries(Object.entries(stubs).map(([name, stub]) => [name, stub.mock.calls.length])),
+            stubCalls: {
+                ...Object.fromEntries(Object.entries(stubs).map(([name, stub]) => [name, stub.mock.calls.length])),
+                // Bedrock embeds: the handler makes one per distinct trimmed span.
+                embedSpan: new Set(mockGet.mock.calls.map(([span]: [string]) => spanEmbeddingKey(span))).size,
+            },
         }
     }
 

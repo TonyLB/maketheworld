@@ -1,12 +1,24 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { resolveObjectSpanByEmbedding } from './resolveObjectSpanByEmbedding'
-import { createSpanEmbedCache } from './spanEmbedCache'
 import { T_ABS, T_MARGIN } from './thresholds'
 import {
     buildCandidatesFromIdentityCase,
     makeEmbeddingFromAxis,
 } from './testing/mockVectors'
+
+import internalCache from '../../../../../internalCache'
+
+jest.mock('../../../../../internalCache', () => ({
+    __esModule: true,
+    default: { SpanEmbeddings: { get: jest.fn() } },
+}))
+
+const mockGet = internalCache.SpanEmbeddings.get as jest.Mock
+
+beforeEach(() => {
+    mockGet.mockReset()
+})
 
 const broomId = 'OBJECT#Broom' as EphemeraObjectId
 const anvilId = 'OBJECT#Anvil' as EphemeraObjectId
@@ -28,15 +40,14 @@ describe('resolveObjectSpanByEmbedding', () => {
             }
         )
 
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
         })
 
         const decision = await resolveObjectSpanByEmbedding(
             'sweeping tool',
-            candidates,
-            { embedSpan }
+            candidates
         )
 
         expect(decision).toEqual({
@@ -44,11 +55,11 @@ describe('resolveObjectSpanByEmbedding', () => {
             objectId: candidates[0]!.objectId,
             catalogScope: 'room',
         })
-        expect(embedSpan).toHaveBeenCalledTimes(1)
+        expect(mockGet).toHaveBeenCalledTimes(1)
     })
 
     it('abstains with embed_invoke_failed when embed fails', async () => {
-        const embedSpan = jest.fn().mockResolvedValue({ success: false })
+        mockGet.mockResolvedValue({ success: false })
         const candidates = [{
             objectId: broomId,
             normalizedShortName: 'broom',
@@ -58,30 +69,10 @@ describe('resolveObjectSpanByEmbedding', () => {
 
         const decision = await resolveObjectSpanByEmbedding(
             'sweeping tool',
-            candidates,
-            { embedSpan }
+            candidates
         )
 
         expect(decision).toEqual({ type: 'Abstain', reason: 'embed_invoke_failed' })
-    })
-
-    it('dedupes embed per normalized span across calls (EM-D7)', async () => {
-        const embedSpan = jest.fn().mockResolvedValue({
-            success: true,
-            embedding: makeEmbeddingFromAxis(0),
-        })
-        const cache = createSpanEmbedCache()
-        const candidates = [{
-            objectId: broomId,
-            normalizedShortName: 'broom',
-            catalogScope: 'room' as const,
-            embedding: makeEmbeddingFromAxis(1),
-        }]
-
-        await resolveObjectSpanByEmbedding('Sweeping Tool', candidates, { embedSpan, spanEmbedCache: cache })
-        await resolveObjectSpanByEmbedding('sweeping tool', candidates, { embedSpan, spanEmbedCache: cache })
-
-        expect(embedSpan).toHaveBeenCalledTimes(1)
     })
 
     it('abstains below_floor when vectors do not clear gates', async () => {
@@ -98,12 +89,12 @@ describe('resolveObjectSpanByEmbedding', () => {
             }
         )
 
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
         })
 
-        const decision = await resolveObjectSpanByEmbedding('sword', candidates, { embedSpan })
+        const decision = await resolveObjectSpanByEmbedding('sword', candidates)
 
         expect(decision).toEqual({ type: 'Abstain', reason: 'below_floor' })
     })
@@ -124,18 +115,18 @@ describe('resolveObjectSpanByEmbedding', () => {
             }
         )
 
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: spanEmbedding,
         })
 
-        const decision = await resolveObjectSpanByEmbedding('sword', candidates, { embedSpan })
+        const decision = await resolveObjectSpanByEmbedding('sword', candidates)
 
         expect(decision).toEqual({ type: 'Abstain', reason: 'ambiguous_margin' })
     })
 
     it('abstains no_eligible_embeddings when catalog has no vectors', async () => {
-        const embedSpan = jest.fn().mockResolvedValue({
+        mockGet.mockResolvedValue({
             success: true,
             embedding: makeEmbeddingFromAxis(0),
         })
@@ -146,8 +137,7 @@ describe('resolveObjectSpanByEmbedding', () => {
                 objectId: anvilId,
                 normalizedShortName: 'anvil',
                 catalogScope: 'room',
-            }],
-            { embedSpan }
+            }]
         )
 
         expect(decision).toEqual({ type: 'Abstain', reason: 'no_eligible_embeddings' })

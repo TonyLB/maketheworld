@@ -1,12 +1,6 @@
-import type { EmbedObjectSpanResult } from '../../../../objects/embedding/embedObjectSpan'
-import { createSpanEmbedCache, getOrEmbedSpan } from './spanEmbedCache'
+import internalCache from '../../../../../internalCache'
 import { simulateEmbeddingIdentity } from './simulateEmbeddingIdentity'
 import type { EmbeddingMatchCandidate, EmbeddingMatchDecision } from './types'
-
-export type ResolveObjectSpanByEmbeddingDeps = {
-    embedSpan?: (rawObjectSpan: string) => Promise<EmbedObjectSpanResult>
-    spanEmbedCache?: ReturnType<typeof createSpanEmbedCache>
-}
 
 /**
  * v1 calibration shim: embed span -> rank -> decideEmbeddingMatch.
@@ -14,11 +8,9 @@ export type ResolveObjectSpanByEmbeddingDeps = {
  */
 export async function resolveObjectSpanByEmbedding(
     rawObjectSpan: string,
-    candidates: readonly EmbeddingMatchCandidate[],
-    deps: ResolveObjectSpanByEmbeddingDeps = {}
+    candidates: readonly EmbeddingMatchCandidate[]
 ): Promise<EmbeddingMatchDecision> {
-    const cache = deps.spanEmbedCache ?? createSpanEmbedCache()
-    const embedResult = await getOrEmbedSpan(rawObjectSpan, cache, deps)
+    const embedResult = await internalCache.SpanEmbeddings.get(rawObjectSpan)
 
     if (!embedResult.success) {
         return { type: 'Abstain', reason: 'embed_invoke_failed' }
