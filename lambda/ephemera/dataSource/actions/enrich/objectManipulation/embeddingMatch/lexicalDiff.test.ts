@@ -1,8 +1,6 @@
-import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../calibration/objectMatch/corpus'
-
 import { flankLengthMetricsOf, lexicalDiff, type LexicalDiff } from './lexicalDiff'
 import { computeLexicalMatchMetrics } from './lexicalMatchMetrics'
-import { SHORT_SPAN_LEXICAL_CASES } from './testing/shortSpanCalibrationCases'
+import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
 
 const diffOf = (span: string, shortName: string): LexicalDiff => {
     const diff = lexicalDiff(span, shortName)
@@ -81,31 +79,7 @@ describe('lexicalDiff', () => {
 })
 
 describe('flankLengthMetricsOf', () => {
-    const lexicalTestPairs: [string, string][] = [
-        ['broom', 'broom'],
-        ['broom', 'the broom'],
-        ['the broom', 'broom'],
-        ['broom', 'the extraordinarily detailed antique wooden broom'],
-        ['sord', 'sword'],
-        ['hyper-maceratr', 'hyper-macerator'],
-        ['ax', 'rusty ax'],
-        ['ax', 'rusty old ax'],
-        ['ax', 'axle'],
-        ['ax', 'sword'],
-        ['ax', 'axolotl'],
-        ['ax', 'coaxial'],
-        ['sweeping tool', 'broom'],
-        ['sword', 'anvil'],
-        ['swrod', 'incredibly ornate jewel-encrusted sword'],
-        ['cup on saucer on table', 'cup'],
-        ['cup on saucer on kitchen table', 'kitchen table'],
-        ['gem', 'gemstones'],
-        ['don', 'wimbledon'],
-    ]
-    const corpusPairs = [...EMBEDDING_CALIBRATION_IDENTITY_CASES, ...SHORT_SPAN_LEXICAL_CASES]
-        .flatMap(({ span, catalog }) => catalog.map((shortName): [string, string] => [span, shortName]))
-
-    it.each([...lexicalTestPairs, ...corpusPairs])('agrees with the flank split lexical relevance scores: %s against %s', (span, shortName) => {
+    it.each(LEXICAL_PARITY_PAIRS)('agrees with the flank split lexical relevance scores: %s against %s', (span, shortName) => {
         const diff = diffOf(span, shortName)
         const { editDistance, matchSpan, ...flankLengths } = computeLexicalMatchMetrics(diff.pattern, diff.text)
         expect(flankLengthMetricsOf(diff)).toEqual(flankLengths)

@@ -3,7 +3,6 @@ import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/im
 import {
     sellersApproximateSubstringMatch,
     type SellersApproximateSubstringMatch,
-    type SellersMatchSpan,
 } from './sellersApproximateSubstringMatch'
 import {
     computeLexicalMatchMetrics,
@@ -23,7 +22,6 @@ import {
 export {
     sellersApproximateSubstringMatch,
     type SellersApproximateSubstringMatch,
-    type SellersMatchSpan,
     computeLexicalMatchMetrics,
     lexicalRelevanceFromMetrics,
     type LexicalMatchMetrics,

@@ -1,4 +1,5 @@
-import { sellersApproximateSubstringMatch, type AlignmentOp } from './sellersApproximateSubstringMatch'
+import type { AlignmentOp } from './osaStep'
+import { sellersApproximateSubstringMatch } from './sellersApproximateSubstringMatch'
 
 describe('sellersApproximateSubstringMatch', () => {
     it('returns zero distance for exact substring token in candidate text', () => {

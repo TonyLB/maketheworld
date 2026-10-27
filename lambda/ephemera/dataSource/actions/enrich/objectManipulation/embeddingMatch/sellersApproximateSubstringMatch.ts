@@ -1,84 +1,47 @@
 /**
- * Sellers-style approximate substring matching (step 1 of lexical relevance pipeline).
+ * Sellers' approximate substring search (step 1 of the lexical relevance pipeline): the region of
+ * T that pattern P aligns to most cheaply, under OSA distance (`osaStep.ts`), with the region
+ * recovered by traceback. Gaps in T before and after the region are free; P is aligned whole.
  *
- * Locates the best approximate embedding of pattern P in candidate text T using OSA
- * (restricted Damerau-Levenshtein). Downstream, lexicalMatchMetrics decomposes the
- * match span and flanks into per-factor relevance scores that lexicalRelevance multiplies.
- *
- * P = pattern span; T = catalog shortName (character-level, no tokenization).
+ * P is the shorter normalized string and T the longer, whichever side each came from:
+ * `lexicalRelevance` and `lexicalDiff` swap the span and the catalog shortName by length.
+ * Character-level, no tokenization.
  */
 
-export type SellersMatchSpan = {
-    /** Inclusive start index in T. */
-    start: number
-    /** Exclusive end index in T. */
-    end: number
-}
-
-/**
- * One step of the alignment, left to right: `match` and `substitute` pair a character of P with
- * one of T, `insert` is a character of T only, `delete` a character of P only, and `transpose`
- * pairs two characters of each, swapped.
- */
-export type AlignmentOp = 'match' | 'substitute' | 'insert' | 'delete' | 'transpose'
+import { osaStep, type AlignmentOp, type OsaStep } from './osaStep'
+import type { TextRange } from './types'
 
 export type SellersApproximateSubstringMatch = {
     distance: number
-    matchSpan: SellersMatchSpan
+    matchSpan: TextRange
     leftFlank: string
     rightFlank: string
     /** The alignment of P against T's match span; its edits sum to `distance`. */
     ops: AlignmentOp[]
 }
 
-type OsaBackOp = 'match' | 'insert_t' | 'delete_p' | 'transpose'
-
-type OsaBackpointer = {
-    pi: number
-    pj: number
-    op: OsaBackOp
-}
-
 const INFINITY = Number.POSITIVE_INFINITY
 
-const substitutionCost = (patternChar: string, textChar: string): number => (
-    patternChar === textChar ? 0 : 1
-)
-
-const alignmentOp = (step: OsaBackpointer, P: string, T: string): AlignmentOp => {
-    switch (step.op) {
-        case 'match':
-            return P[step.pi] === T[step.pj] ? 'match' : 'substitute'
-        case 'insert_t':
-            return 'insert'
-        case 'delete_p':
-            return 'delete'
-        case 'transpose':
-            return 'transpose'
-    }
-}
-
 const traceback = (
-    back: Array<Array<OsaBackpointer | undefined>>,
-    P: string,
-    T: string,
+    back: Array<Array<OsaStep | undefined>>,
+    patternLength: number,
     endIndex: number
 ): { start: number; ops: AlignmentOp[] } => {
-    let i = P.length
+    let i = patternLength
     let j = endIndex
     const ops: AlignmentOp[] = []
     while (i > 0 && back[i][j] !== undefined) {
         const step = back[i][j]!
-        ops.push(alignmentOp(step, P, T))
-        i = step.pi
-        j = step.pj
+        ops.push(step.op)
+        i = step.from.i
+        j = step.from.j
     }
     return { start: j, ops: ops.reverse() }
 }
 
 /**
  * Sellers substring search with OSA distance and full span recovery via traceback.
- * Tie-break: minimum distance, then longest match span in T.
+ * Tie-break: minimum distance, then longest match span in T, then the latest end.
  */
 export function sellersApproximateSubstringMatch(
     pattern: string,
@@ -110,56 +73,26 @@ export function sellersApproximateSubstringMatch(
     }
 
     const dp: number[][] = Array.from({ length: m + 1 }, () => Array<number>(n + 1).fill(INFINITY))
-    const back: Array<Array<OsaBackpointer | undefined>> = Array.from(
+    const back: Array<Array<OsaStep | undefined>> = Array.from(
         { length: m + 1 },
-        () => Array<OsaBackpointer | undefined>(n + 1).fill(undefined)
+        () => Array<OsaStep | undefined>(n + 1).fill(undefined)
     )
 
+    // Boundary rows: T's characters before the region are free; P's characters are each a delete.
     for (let j = 0; j <= n; j += 1) {
         dp[0][j] = 0
     }
     for (let i = 1; i <= m; i += 1) {
         dp[i][0] = i
-        if (i === 1) {
-            back[i][0] = { pi: i - 1, pj: 0, op: 'delete_p' }
-        } else if (dp[i - 1][0] + 1 === dp[i][0]) {
-            back[i][0] = { pi: i - 1, pj: 0, op: 'delete_p' }
-        }
+        back[i][0] = { cost: i, op: 'delete', from: { i: i - 1, j: 0 } }
     }
 
+    const costAt = (i: number, j: number): number => dp[i][j]
     for (let i = 1; i <= m; i += 1) {
         for (let j = 1; j <= n; j += 1) {
-            const subCost = substitutionCost(P[i - 1], T[j - 1])
-            const diagCost = dp[i - 1][j - 1] + subCost
-            if (diagCost < dp[i][j]) {
-                dp[i][j] = diagCost
-                back[i][j] = { pi: i - 1, pj: j - 1, op: 'match' }
-            }
-
-            const deleteCost = dp[i - 1][j] + 1
-            if (deleteCost < dp[i][j]) {
-                dp[i][j] = deleteCost
-                back[i][j] = { pi: i - 1, pj: j, op: 'delete_p' }
-            }
-
-            const insertCost = dp[i][j - 1] + 1
-            if (insertCost < dp[i][j]) {
-                dp[i][j] = insertCost
-                back[i][j] = { pi: i, pj: j - 1, op: 'insert_t' }
-            }
-
-            if (
-                i >= 2
-                && j >= 2
-                && P[i - 1] === T[j - 2]
-                && P[i - 2] === T[j - 1]
-            ) {
-                const transposeCost = dp[i - 2][j - 2] + 1
-                if (transposeCost < dp[i][j]) {
-                    dp[i][j] = transposeCost
-                    back[i][j] = { pi: i - 2, pj: j - 2, op: 'transpose' }
-                }
-            }
+            const step = osaStep(costAt, P, T, i, j)
+            dp[i][j] = step.cost
+            back[i][j] = step
         }
     }
 
@@ -177,7 +110,7 @@ export function sellersApproximateSubstringMatch(
         if (dp[m][j] !== bestDistance) {
             continue
         }
-        const { start } = traceback(back, P, T, j)
+        const { start } = traceback(back, m, j)
         const spanLength = j - start
         if (
             spanLength > bestSpanLength
@@ -188,7 +121,7 @@ export function sellersApproximateSubstringMatch(
         }
     }
 
-    const { start, ops } = traceback(back, P, T, bestEnd)
+    const { start, ops } = traceback(back, m, bestEnd)
 
     return {
         distance: bestDistance,

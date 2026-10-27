@@ -34,3 +34,9 @@ export type EmbeddingMatchDecision =
           type: 'Abstain'
           reason: EmbeddingMatchAbstainReason
       }
+
+/** A range of a string: `start` inclusive, `end` exclusive. */
+export type TextRange = {
+    start: number
+    end: number
+}

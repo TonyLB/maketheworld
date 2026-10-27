@@ -8,13 +8,11 @@
  * 4. lexicalRelevanceFromMetrics combines edit gate * tanhCenteredFlankScore (FT-1.1.5).
  */
 
-import {
-    sellersApproximateSubstringMatch,
-    type SellersMatchSpan,
-} from './sellersApproximateSubstringMatch'
+import { sellersApproximateSubstringMatch } from './sellersApproximateSubstringMatch'
 import { clampUnitInterval } from './evidenceNumerics'
 import { tanhCenteredFlankScore } from './relevanceCombine'
 import type { RelevanceNormalizationParams } from './thresholds'
+import type { TextRange } from './types'
 
 const isAlpha = (char: string | undefined): boolean => (
     char !== undefined && /[a-z0-9]/i.test(char)
@@ -43,10 +41,10 @@ export type FlankLengthMetrics = {
 
 export type LexicalMatchMetrics = FlankLengthMetrics & {
     editDistance: number
-    matchSpan: SellersMatchSpan
+    matchSpan: TextRange
 }
 
-export const matchSpanLength = (matchSpan: SellersMatchSpan): number => (
+export const matchSpanLength = (matchSpan: TextRange): number => (
     matchSpan.end - matchSpan.start
 )
 
@@ -56,7 +54,7 @@ export const matchSpanLength = (matchSpan: SellersMatchSpan): number => (
  */
 export function deriveFlankLengthMetrics(
     candidateText: string,
-    matchSpan: SellersMatchSpan
+    matchSpan: TextRange
 ): FlankLengthMetrics {
     const { start, end } = matchSpan
     const adjoinedLeftLength = adjoinedLeftLengthAt(candidateText, start)

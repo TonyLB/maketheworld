@@ -15,11 +15,9 @@ import { normalizeShortNameForEmbedding } from '../../../../objects/embedding/im
 import { lexemesOf } from '../../../deterministicTemplate/granuleTokens'
 
 import type { FlankLengthMetrics } from './lexicalMatchMetrics'
-import {
-    sellersApproximateSubstringMatch,
-    type AlignmentOp,
-    type SellersMatchSpan,
-} from './sellersApproximateSubstringMatch'
+import type { AlignmentOp } from './osaStep'
+import { sellersApproximateSubstringMatch } from './sellersApproximateSubstringMatch'
+import type { TextRange } from './types'
 
 /** Which string a piece of text came from: the player's span or the catalog shortName. */
 export type LexicalSide = 'span' | 'name'
@@ -27,11 +25,11 @@ export type LexicalSide = 'span' | 'name'
 /** The surplus on one side of the match, as ranges in T. */
 export type FlankDiff = {
     /** The part, outside the match, of the word the match edge cuts into. */
-    partialWord?: SellersMatchSpan
+    partialWord?: TextRange
     /** Words wholly outside the match. */
-    words: SellersMatchSpan[]
+    words: TextRange[]
     /** Punctuation marks outside the match. */
-    marks: SellersMatchSpan[]
+    marks: TextRange[]
 }
 
 export type LexicalDiff = {
@@ -41,14 +39,14 @@ export type LexicalDiff = {
     text: string
     /** The side T came from, and so the side of every surplus word (P's surplus is edits). */
     surplusSide: LexicalSide
-    match: SellersMatchSpan & { distance: number; ops: AlignmentOp[] }
+    match: TextRange & { distance: number; ops: AlignmentOp[] }
     left: FlankDiff
     right: FlankDiff
 }
 
-const rangeLength = ({ start, end }: SellersMatchSpan): number => end - start
+const rangeLength = ({ start, end }: TextRange): number => end - start
 
-const flankDiffs = (text: string, { start, end }: SellersMatchSpan): { left: FlankDiff; right: FlankDiff } => (
+const flankDiffs = (text: string, { start, end }: TextRange): { left: FlankDiff; right: FlankDiff } => (
     lexemesOf(text).reduce<{ left: FlankDiff; right: FlankDiff }>(({ left, right }, lexeme) => {
         const range = { start: lexeme.start, end: lexeme.start + lexeme.text.length }
         const piece = lexeme.kind === 'word' ? 'words' : 'marks'
@@ -92,7 +90,7 @@ export function lexicalDiff(span: string, shortName: string): LexicalDiff | unde
  * `deriveFlankLengthMetrics` except where a match edge falls inside a word holding `'`, `-` or a
  * non-ASCII letter, which that function's ASCII test cuts and a lexeme does not.
  */
-export function flankLengthMetricsOf({ text, match, left, right }: LexicalDiff): FlankLengthMetrics {
+export function flankLengthMetricsOf({ text, match, left, right }: Pick<LexicalDiff, 'text' | 'left' | 'right'> & { match: TextRange }): FlankLengthMetrics {
     const adjoinedLeftLength = left.partialWord ? rangeLength(left.partialWord) : 0
     const adjoinedRightLength = right.partialWord ? rangeLength(right.partialWord) : 0
     return {

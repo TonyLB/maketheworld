@@ -60,8 +60,10 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSp
 | [`embedRelevance`](embedRelevance.ts) | FT-8 two-point log map: raw cosine -> `[0,1]` |
 | [`evidenceNumerics`](evidenceNumerics.ts) | Domain-agnostic `sigmoid`, `tanh`, `clampUnitInterval` |
 | [`relevanceCombine`](relevanceCombine.ts) | Flank + joint combiner patterns: `tanhCenteredFlankScore` (production), `multiplicativeFlankScoreV1` (simulator A/B), `weightedRmsJointRelevance` (FT-1.2) |
-| [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | OSA Sellers alignment of span in catalog `shortName`, with its alignment ops |
+| [`osaStep`](osaStep.ts) | The OSA kernel: the cheapest step (match, substitute, insert, delete, transpose) into one alignment cell, and `AlignmentOp` |
+| [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | Sellers' approximate substring search of the shorter normalized string in the longer (whichever side each is), on the OSA kernel, with its alignment ops |
 | [`lexicalDiff`](lexicalDiff.ts) | The alignment read back in words: the side of the longer string (the only surplus Sellers reports as words; the shorter string's surplus is edits inside the match), the match with its ops, and each flank's partial word, whole words and punctuation marks (words per `granuleTokens.ts` `lexemesOf`); `flankLengthMetricsOf` projects it to the adjoined/remote lengths. No production caller yet |
+| [`lexicalWeights`](lexicalWeights.ts) | The cost table over a `lexicalDiff`: an edits row (the edit gate) and one row per side pricing its partial and whole words (both today's tanh flank combine); `priceLexicalDiff` equals `lexicalRelevance`. No production caller yet |
 | [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + `editDistanceRelevance` + `lexicalRelevanceFromMetrics` |
 | [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then edit gate * tanh flank combine |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
