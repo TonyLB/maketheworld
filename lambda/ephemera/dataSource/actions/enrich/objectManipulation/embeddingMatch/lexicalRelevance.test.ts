@@ -70,7 +70,7 @@ describe('lexicalRelevance', () => {
     })
 })
 
-describe('lexicalRelevance on a span\'s surplus (SM-4)', () => {
+describe('lexicalRelevance on a span\'s surplus', () => {
     it('scores a span with extra words well below its name alone', () => {
         expect(lexicalRelevance('cup on saucer on table', 'cup')).toBeLessThan(lexicalRelevance('cup', 'cup') / 2)
         expect(lexicalRelevance('cup from table', 'cup')).toBeLessThan(lexicalRelevance('cup', 'cup') / 2)

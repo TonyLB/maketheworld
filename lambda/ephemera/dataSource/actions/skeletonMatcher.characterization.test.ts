@@ -10,8 +10,7 @@ import { planTokens } from './enrich/objectManipulation/plan/planSkeleton'
 import { parseCommand } from './parseCommand'
 
 /**
- * Characterization corpus (skeletonMatcher Slice 0,
- * `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.skeletonMatcher.planning.md`): each row pins,
+ * Characterization corpus for the skeleton matcher (rung 15): each row pins,
  * as they are today, a command's readings and its `parseCommand` result.
  *
  * - `readings`: the attempts Plan makes for each segmentation, before the producer's filters
@@ -216,7 +215,7 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         { command: 'put coin hurriedly into box' },
         { command: 'spread cloth over table' },
         { command: 'look at the cup on the table' },
-        // A manner word no template reads, which Parse dropped until Slice 5 (SM-11)
+        // A manner word no template reads, which a Parse LLM once dropped
         { command: 'carefully get the cup' },
         // Punctuation (Slice 2: a span slot merges across a mark)
         { command: 'take cup.' },
@@ -224,7 +223,7 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         { command: 'order anvil, rocket' },
         // The guard cap (Slice 2): more than six closed-set prepositions get no deterministic reading, so the command climbs
         { command: 'take a on b on c on d on e on f on g on h' },
-        // The fixed-word intent rows, Navigation and AcmeOrder (SM-9, SM-12)
+        // The fixed-word intent rows, Navigation and AcmeOrder
         { command: 'look' },
         { command: 'help' },
         { command: 'help me' },

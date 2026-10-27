@@ -3,7 +3,7 @@
  * under OSA distance (`osaStep.ts`), with the region recovered by traceback. Gaps in T before and
  * after the region are free; P is aligned whole. Character-level, no tokenization.
  *
- * No longer in production (`AGENT.skeletonMatcher.planning.md` 4d): kept as the test oracle for
+ * No longer in production (see `embeddingMatch/AGENT.md`): kept as the test oracle for
  * `tokenAwareAlignment`, which generalizes it, and agrees with it on a span of one word no longer
  * than the name (P the span, T the name).
  */

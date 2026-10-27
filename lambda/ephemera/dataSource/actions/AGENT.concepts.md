@@ -6,15 +6,15 @@ This file records **mental models and vocabulary** for how a player command beco
 
 ---
 
-## Parse (upstream stage)
+## Command skeleton (Plan's input)
 
-**Parse** turns raw player language into a **command skeleton** --- an ordered sequence of exactly two token kinds, `{ type: 'objectSpan', span: string, stableRefKey: string } | { type: 'text', text: string }`. It is the tokenizer that feeds the three jobs below; it does **not** resolve ids (Identify's job) or decide which attempt applies (Plan's job) --- it only segments referents out from surrounding text.
+The **command skeleton** is an ordered sequence of exactly two token kinds, `{ type: 'objectSpan', span: string, stableRefKey: string } | { type: 'text', text: string }`. Deterministic code makes it: the tokenizer cuts the command at every dividing word, and Plan's templates re-join runs into spans. It feeds the three jobs below; it does **not** resolve ids (Identify's job) or decide which attempt applies (Plan's job) --- it only segments referents out from surrounding text. No LLM segments a command.
 
-**`stableRefKey`** is a per-occurrence key stamped onto each `objectSpan` token by deterministic code, **never by the LLM**. It exists so two identical-text spans at different positions ("put bench on bench," two different benches) stay distinguishable by occurrence rather than collapsing on span text --- downstream Grounding keys resolved candidates on it, not on text (see [Synthesize's three sub-roles](#synthesizes-three-sub-roles-grounding-expansion-and-validation)). Keys are derived from the span (camelCased, `Ref`-suffixed: `"big bag"` -> `bigBagRef`; duplicates numbered, `benchRef1`/`benchRef2`), which aids debugging while the field *name* keeps the "occurrence, not object" signal.
+**`stableRefKey`** is a per-occurrence key stamped onto each `objectSpan` token by deterministic code. It exists so two identical-text spans at different positions ("put bench on bench," two different benches) stay distinguishable by occurrence rather than collapsing on span text --- downstream Grounding keys resolved candidates on it, not on text (see [Synthesize's three sub-roles](#synthesizes-three-sub-roles-grounding-expansion-and-validation)). Keys name a span's token range, so a span occurrence has the same key in every reading.
 
 ## Three conceptual jobs
 
-Every object-manipulation command, once **Parse** has produced the command skeleton (`objectSpan` data), decomposes into three independent jobs:
+Every object-manipulation command, once the command skeleton (`objectSpan` data) is made, decomposes into three independent jobs:
 
 | Job | Question it answers | Needs KR (graph/catalog) state? |
 | --- | --- | --- |
@@ -155,7 +155,7 @@ Present tense, current model only: no dates, no slice or iteration provenance, n
 
 - Rules: [`AGENT.contract.md`](./AGENT.contract.md); commit-side rules (positions honors verdicts): [`../positions/AGENT.contract.md`](../positions/AGENT.contract.md)
 - Code map, per-route wiring, selection stage, `DeterministicTemplate` module: [`AGENT.implementation.md`](./AGENT.implementation.md)
-- Parse / Identify / producers / relation-under-transfer table and where it is read: [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md)
+- Plan / Identify / producers / relation-under-transfer table and where it is read: [`enrich/objectManipulation/AGENT.md`](enrich/objectManipulation/AGENT.md)
 - Synthesize executor (Grounding, worklist, placement): [`enrich/objectManipulation/synthesize/AGENT.implementation.md`](enrich/objectManipulation/synthesize/AGENT.implementation.md)
 - Kernel commit wiring: [`../positions/manipulation/AGENT.implementation.md`](../positions/manipulation/AGENT.implementation.md)
 - `gloss` authoring and storage: [`packages/mtw-wml/.../components/AGENT.md`](../../../../packages/mtw-wml/ts/standardize/components/AGENT.md) ("Literal-field factory: `ShortName` and `Gloss`")

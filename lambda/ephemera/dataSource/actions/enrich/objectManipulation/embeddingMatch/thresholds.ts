@@ -89,7 +89,7 @@ export const LEX_ADJOINED_POS_DAMP_SCALE = 3
 export const LEX_ADJOINED_FLANK_MIDPOINT_RATIO = 0.5
 
 // -----------------------------------------------------------------------------
-// Token-aware alignment and span-side surplus (AGENT.skeletonMatcher.planning.md 4d, 2026-10-27).
+// Token-aware alignment and span-side surplus (embeddingMatch/AGENT.md, 2026-10-27).
 // Placeholders, not locked: rung 14 (match tuning) calibrates them. Costs are in edits (an edit costs 1).
 
 /** A span character left out of a pair, or in a span token outside or skipped inside the match: the price of a delete, so the span is aligned whole unless its words are surplus. */
@@ -110,7 +110,7 @@ export const LEX_ALIGN_PAIR_MAX_RELATIVE_EDITS = 1 / 3
 /** Span-side surplus factor exp(-rate * surplus characters / match scale): uncapped, 1 at zero surplus. */
 export const LEX_SPAN_SURPLUS_RATE = 0.5
 
-// Structural malus (AGENT.skeletonMatcher.planning.md 4e). Placeholders; rung 14 calibrates them.
+// Structural malus (embeddingMatch/AGENT.md). Placeholders; rung 14 calibrates them.
 
 /** A boundary of a merged span group at a cut another complete reading makes: at least the malus it would avoid, so a name is not smeared across a cut. */
 export const LEX_ALIGN_CUT_BOUNDARY_COST = 2

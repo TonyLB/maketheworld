@@ -242,7 +242,7 @@ describe('qualified take payoff (integration)', () => {
     })
 
     // No span names the table exactly, so exact-fill precedence prunes nothing and every merged
-    // reading competes: a span's own extra words must cost it (skeletonMatcher 4d).
+    // reading competes: a span's own extra words must cost it (the span's own extra words cost it).
     it('"take cup on saucer on table" with a "kitchen table" takes the cup on the table\'s saucer without asking', async () => {
         seedTwoStacks('kitchen table')
 

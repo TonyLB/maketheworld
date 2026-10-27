@@ -14,7 +14,7 @@ This came out of scoping iteration 2's failing corpus (2026-09-23). Iteration 2'
 
 ## Target shape
 
-Parse -> Identify || Plan (**ungrounded attempts**) -> ground (attempts × identity candidates) -> expand (**facilitating actions** answering **challenges**) -> **Adjudicate** (only if any challenge) -> Synthesize (lower the attempt to kernel ops) -> Validation / dry-run veto -> select -> kernel -> present.
+Tokenize -> Identify || Plan (**ungrounded attempts**) -> ground (attempts × identity candidates) -> expand (**facilitating actions** answering **challenges**) -> **Adjudicate** (only if any challenge) -> Synthesize (lower the attempt to kernel ops) -> Validation / dry-run veto -> select -> kernel -> present.
 
 - **An attempt is a list of actions, and each action holds a desired result plus the challenges that make it non-trivial** (RPG framing, 2026-09-24). Most actions have no challenge, and an attempt with none is simply done ("okay, you do the thing"), with no adjudication.
 - **Plan emits attempts, ungrounded** (2026-09-30). An action's desired result is Plan's `PlanStep`, whose referents gain a `groundedId` at grounding while keeping their `stableRefKey`, so Plan's output is an attempt with no ids and no challenges yet: graph challenges need grounded edges. The pipeline's set of plans is a set of attempts. Grounding produces one grounded attempt per identity candidate, and each grounded attempt is expanded, adjudicated, lowered and validated on its own before Selection compares them.
@@ -27,7 +27,7 @@ Parse -> Identify || Plan (**ungrounded attempts**) -> ground (attempts × ident
   - each action's optional *desired result* (Plan's ungrounded primitive);
   - each action's *challenges*, since "are there any?" is what lets the fast path skip Adjudicate;
   - the adjudicated *outcome*, in the existing `PositionKernelOp` + peer-edge language.
-- **Actions are added from three places.** Expansion adds the facilitating actions the graph requires (above). A backtrack exchange adds one the same way, in response to another action's challenge; only the source differs. Parse can add actions the player's words name. A backtrack exchange (iteration 4) can add actions the player agrees to: "take the entire coil of rope" intends both an untie and a get (corpus row 6), and the untie's challenge is what the exchange surfaces.
+- **Actions are added from three places.** Expansion adds the facilitating actions the graph requires (above). A backtrack exchange adds one the same way, in response to another action's challenge; only the source differs. The command's templates can add actions the player's words name. A backtrack exchange (iteration 4) can add actions the player agrees to: "take the entire coil of rope" intends both an untie and a get (corpus row 6), and the untie's challenge is what the exchange surfaces.
 - **The attempt carries a result.** It starts as undetermined, and adjudication records a verdict per challenge (met / impossible, and later failed, which proceeds) through a deterministic update (CA-2).
 - **Adjudicate runs before Synthesize, but after expansion.** *Which* relations must break is an input: it is where graph challenges come from. *What* happens once the attempt succeeds (the final step list and edge set) is still a consequence, and stays in Synthesize. Synthesize no longer classifies boundary edges: the expanded, adjudicated attempt already holds the dissolves as facilitating actions, and Synthesize lowers them to kernel ops. **Validation stays after Adjudicate,** so an adjudicated outcome still has to be legal. The dry-run veto remains the final refusal. **Adjudicate is a position in this order, not a place in the deployment** (2026-09-30): the actions -> positions bus decides only what gets serialized, not where a phase sits.
 
@@ -183,7 +183,7 @@ Mark pending work `[ ]` and completed work `[X]`, including nested lines, as eac
 ## Getting started
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md).
-2. Read [`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md) (Parse / Identify / Plan / Synthesize) and [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (tier discipline; Narration and presentation). Also read [`AGENT.architecture.codeOrganization.md`](../../../../../AGENT.architecture.codeOrganization.md) (classes as family members and containers; which axis grows): slices 1.5-1.7 and slice 2's convention re-test apply it.
+2. Read [`actions/AGENT.concepts.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.concepts.md) (Plan / Identify / Synthesize) and [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md) (tier discipline; Narration and presentation). Also read [`AGENT.architecture.codeOrganization.md`](../../../../../AGENT.architecture.codeOrganization.md) (classes as family members and containers; which axis grows): slices 1.5-1.7 and slice 2's convention re-test apply it.
 3. Testing authority: [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). If commands conflict, follow that file. Integration tests (`*.integration.test.ts`) sit outside `tsconfig`, so run the suite, not just `tsc`.
 4. Baseline, which should pass before any edit (from `lambda/ephemera`):
 

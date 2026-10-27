@@ -26,8 +26,8 @@ export type ObjectSpanTokenDraft = {
 export type ParseTokenDraft = ObjectSpanTokenDraft | TextToken
 
 /**
- * What a span's tokens say about how else the command reads (`AGENT.skeletonMatcher.planning.md`
- * SM-4): its own tokens, each as text, and the proper sub-runs of them that another complete
+ * What a span's tokens say about how else the command reads (`AGENT.contract.md` "Surplus another
+ * reading could explain"): its own tokens, each as text, and the proper sub-runs of them that another complete
  * reading of the command reads as a span of its own, as token ranges (start inclusive, end
  * exclusive) relative to the span's first token. Identify derives character ranges itself.
  */

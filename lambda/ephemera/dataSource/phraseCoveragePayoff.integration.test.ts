@@ -388,7 +388,7 @@ describe('phrase coverage payoff (integration)', () => {
 
     // No fill's spans all match exactly ("man in moon" lacks "the"), so every reading competes. The
     // merged span pairs word for word with "man in the moon", the name's "the" an interior word skipped
-    // free (skeletonMatcher 4d), so it outscores every cut reading, which once left the player asked.
+    // free (the span's own extra words cost it), so it outscores every cut reading, which once left the player asked.
     it('"take man in moon from table", no fill matching exactly, takes the man in the moon', async () => {
         seedManInTheMoonOnTable()
 
@@ -398,7 +398,7 @@ describe('phrase coverage payoff (integration)', () => {
         expect(JSON.stringify(parseResult)).toContain('"groundedId":"OBJECT#ManInTheMoon","shortName":"man in the moon"')
     })
 
-    // The payoff of the skeleton matcher (`AGENT.skeletonMatcher.planning.md`): the command cuts at every
+    // The payoff of the skeleton matcher (`AGENT.contract.md` "Qualifier"): the command cuts at every
     // `in` and `on`, each cut a reading, and each world commits the one it allows.
     it('"put pig in a blanket on the plate on the table", with a pig-in-a-blanket on the floor and a plate on the table, puts the meal on the plate', async () => {
         seed({

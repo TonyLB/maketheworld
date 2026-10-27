@@ -10,7 +10,7 @@ describe('simulateLexicalIdentityCorpus', () => {
     const results = simulateLexicalIdentityCorpus()
 
     // No word of `sweeping tool` pairs with a catalog name (`tool` against "room" holds an edit per
-    // two letters), so the paraphrase is the embedding's to carry (skeletonMatcher 4d).
+    // two letters), so the paraphrase is the embedding's to carry (the token-aware aligner refuses a pair beyond its edit ratio).
     it('scores the token-free sweeping tool paraphrase 0 lexically', () => {
         const paraphrase = results.find((entry) => entry.caseId === 'identity-003-broom-paraphrase')
         expect(paraphrase?.topLexicalScore).toBe(0)

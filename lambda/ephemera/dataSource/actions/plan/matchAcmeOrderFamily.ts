@@ -17,7 +17,7 @@ const ORDER_VERBS = ['order', 'buy', 'purchase']
  *
  * Matches the command's first word against the order-verb lexicon, requires at least one word after
  * it, and hands `enrichAcmeOrder` the command with no `intentRawOrders`, so its LLM call splits the
- * orders itself (skeletonMatcher SM-12 (b)).
+ * orders itself (Acme splits its own orders).
  */
 export async function matchAcmeOrderFamily(
     input: ParseCommandInput,

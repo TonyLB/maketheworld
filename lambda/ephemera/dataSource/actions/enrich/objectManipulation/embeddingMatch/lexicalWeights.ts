@@ -10,10 +10,10 @@
  *   forgiveness ("ax" finds "rusty old ax"): its partial words and whole words are read together,
  *   inside one sigmoid with a bias and a damping that are tuning of that combine, not classes of
  *   their own. It is applied to every diff, and its value at zero surplus is the base of every score.
- * - The span side's row is its own cost (`AGENT.skeletonMatcher.planning.md` SM-4): it grows with
+ * - The span side's row is its own cost (`AGENT.contract.md` "Surplus another reading could explain"): it grows with
  *   the span's surplus relative to the match, uncapped, and is exactly 1 at zero surplus, so a span
  *   with no extra words scores as the name row and the edits say.
- * - The structural row (SM-4, 4e) is a heavier class of the span's surplus, on top of the span
+ * - The structural row (`AGENT.contract.md`) is a heavier class of the span's surplus, on top of the span
  *   side's: the surplus outside the smallest sub-run (a run another complete reading reads as a
  *   span of its own) that holds the whole match, since a cut there would explain it. It is 1 when
  *   nothing is structured, and when no sub-run holds the match (the match crosses a cut, word for
