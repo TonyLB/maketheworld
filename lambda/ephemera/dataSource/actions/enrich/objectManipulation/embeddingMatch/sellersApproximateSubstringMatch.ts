@@ -4,7 +4,7 @@
  * recovered by traceback. Gaps in T before and after the region are free; P is aligned whole.
  *
  * P is the shorter normalized string and T the longer, whichever side each came from:
- * `lexicalRelevance` and `lexicalDiff` swap the span and the catalog shortName by length.
+ * `lexicalDiff` swaps the span and the catalog shortName by length.
  * Character-level, no tokenization.
  */
 

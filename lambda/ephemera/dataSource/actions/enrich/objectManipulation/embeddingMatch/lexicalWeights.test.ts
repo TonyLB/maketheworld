@@ -1,6 +1,6 @@
 import { lexicalDiff, type LexicalDiff } from './lexicalDiff'
-import { lexicalRelevance } from './lexicalRelevance'
 import { LEXICAL_WEIGHTS, priceLexicalDiff, type LexicalWeights, type SurplusWeight } from './lexicalWeights'
+import { legacyLexicalRelevance } from './testing/legacyLexicalRelevance'
 import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
 import type { RelevanceNormalizationParams } from './thresholds'
 
@@ -19,9 +19,9 @@ const unreachable: SurplusWeight = () => {
 describe('priceLexicalDiff', () => {
     const tuned: RelevanceNormalizationParams = { lexRemoteFlankWeight: 1.2, lexAdjoinedFlankWeight: 0.7, lexFlankCombineBias: 2 }
 
-    it.each(LEXICAL_PARITY_PAIRS)('equals lexicalRelevance: %s against %s', (span, shortName) => {
-        expect(priceLexicalDiff(diffOf(span, shortName))).toBe(lexicalRelevance(span, shortName))
-        expect(priceLexicalDiff(diffOf(span, shortName), tuned)).toBe(lexicalRelevance(span, shortName, tuned))
+    it.each(LEXICAL_PARITY_PAIRS)('equals the pre-4c lexical relevance: %s against %s', (span, shortName) => {
+        expect(priceLexicalDiff(diffOf(span, shortName))).toBe(legacyLexicalRelevance(span, shortName))
+        expect(priceLexicalDiff(diffOf(span, shortName), tuned)).toBe(legacyLexicalRelevance(span, shortName, tuned))
     })
 
     it('reaches the rows with the params (the tuned params move a score)', () => {
@@ -36,6 +36,6 @@ describe('priceLexicalDiff', () => {
             ...LEXICAL_WEIGHTS,
             surplus: { name: unreachable, span: unreachable, [side]: LEXICAL_WEIGHTS.surplus[side] },
         }
-        expect(priceLexicalDiff(diffOf(span, shortName), {}, weights)).toBe(lexicalRelevance(span, shortName))
+        expect(priceLexicalDiff(diffOf(span, shortName), {}, weights)).toBe(legacyLexicalRelevance(span, shortName))
     })
 })

@@ -1,11 +1,6 @@
 import { simulateLexicalIdentityCorpus } from './simulateLexicalIdentityCorpus'
+import { flankLengthMetricsOf, lexicalDiff } from '../lexicalDiff'
 import { lexicalRelevance } from '../lexicalRelevance'
-import {
-    computeLexicalMatchMetrics,
-    editDistanceRelevance,
-    lexicalRelevanceFromMetrics,
-    matchSpanLength,
-} from '../lexicalMatchMetrics'
 import {
     multiplicativeFlankScoreV1,
     tanhCenteredFlankScore,
@@ -41,30 +36,15 @@ describe('simulateLexicalIdentityCorpus', () => {
 
 describe('lexical combine A/B on identity corpus metrics', () => {
     it('tanh flank scores spread more middle-band mass than multiplicative v1 on wrapper cases', () => {
-        const wrapperMetrics = computeLexicalMatchMetrics('broom', 'the extraordinarily detailed antique wooden broom')
+        const wrapperDiff = lexicalDiff('broom', 'the extraordinarily detailed antique wooden broom')
+        if (wrapperDiff === undefined) {
+            throw new Error('no diff of the wrapper case')
+        }
+        const wrapperMetrics = flankLengthMetricsOf(wrapperDiff)
         const spanScale = 5
         const tanhFlank = tanhCenteredFlankScore(wrapperMetrics, spanScale)
         const multiplicativeFlank = multiplicativeFlankScoreV1(wrapperMetrics, spanScale)
         expect(tanhFlank).toBeGreaterThan(multiplicativeFlank)
         expect(tanhFlank).toBeGreaterThan(0.4)
-    })
-
-    it('production lexical path matches edit gate times tanh flank score', () => {
-        const candidateText = 'the broom'
-        const metrics = computeLexicalMatchMetrics('broom', candidateText)
-        const patternLength = 5
-        const spanScale = Math.max(matchSpanLength(metrics.matchSpan), patternLength, 1)
-        const productionScore = lexicalRelevanceFromMetrics(metrics, patternLength, candidateText.length)
-        const editFactor = editDistanceRelevance(
-            metrics.editDistance,
-            matchSpanLength(metrics.matchSpan),
-            patternLength
-        )
-        const expected = editFactor * tanhCenteredFlankScore(metrics, spanScale, {}, {
-            patternLength,
-            candidateTextLength: candidateText.length,
-        })
-        expect(productionScore).toBeCloseTo(expected)
-        expect(lexicalRelevance('broom', candidateText)).toBeCloseTo(productionScore)
     })
 })

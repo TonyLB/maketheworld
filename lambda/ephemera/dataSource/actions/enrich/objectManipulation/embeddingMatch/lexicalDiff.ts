@@ -3,8 +3,7 @@
  * back as the matched region (with the edits inside it) and the surplus on either side of it, each
  * flank cut into the part of a word the match edge cuts into, whole words, and punctuation marks.
  *
- * The shorter normalized string is the pattern P, embedded in the longer T, as `lexicalRelevance`
- * does. Sellers' free gaps lie only in T, so the only surplus it reports as words lies on T's side,
+ * The shorter normalized string is the pattern P, embedded in the longer T. Sellers' free gaps lie only in T, so the only surplus it reports as words lies on T's side,
  * and the diff labels it with that side (span or catalog name). P is aligned whole: its own extra
  * characters show only as edits inside the match (`delete`, and `substitute` where they are paired
  * with nearby letters of T), never as words. A word is what `granuleTokens.ts` calls one (`lexemesOf`), so the surplus counts words
@@ -85,10 +84,11 @@ export function lexicalDiff(span: string, shortName: string): LexicalDiff | unde
 }
 
 /**
- * The diff's flank lengths as `deriveFlankLengthMetrics` counts them: the partial word is the
- * adjoined flank, and the rest of the flank (words, marks and spaces) the remote. It agrees with
- * `deriveFlankLengthMetrics` except where a match edge falls inside a word holding `'`, `-` or a
- * non-ASCII letter, which that function's ASCII test cuts and a lexeme does not.
+ * The diff's flank lengths, as the tanh flank combine reads them: the partial word is the adjoined
+ * flank, and the rest of the flank (words, marks and spaces) the remote. It agrees with the
+ * pre-4c split (`testing/legacyLexicalRelevance.ts` `deriveFlankLengthMetrics`) except where a
+ * match edge falls inside a word holding `'`, `-` or a non-ASCII letter, which that split's ASCII
+ * test cuts and a lexeme does not.
  */
 export function flankLengthMetricsOf({ text, match, left, right }: Pick<LexicalDiff, 'text' | 'left' | 'right'> & { match: TextRange }): FlankLengthMetrics {
     const adjoinedLeftLength = left.partialWord ? rangeLength(left.partialWord) : 0

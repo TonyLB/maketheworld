@@ -1,10 +1,7 @@
 import { EMBEDDING_CALIBRATION_IDENTITY_CASES } from '../../../../../../calibration/objectMatch/corpus'
-import { normalizeShortNameForEmbedding } from '../../../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 
-import {
-    computeLexicalMatchMetrics,
-    matchSpanLength,
-} from '../lexicalMatchMetrics'
+import { flankLengthMetricsOf, lexicalDiff } from '../lexicalDiff'
+import { matchSpanLength } from '../lexicalMatchMetrics'
 import { lexicalRelevance } from '../lexicalRelevance'
 import {
     multiplicativeFlankScoreV1,
@@ -26,16 +23,14 @@ export type LexicalIdentityCorpusResult = {
     topLexicalScore: number
 }
 
-const lexicalMetricsForPair = (span: string, shortName: string) => {
-    const normalizedSpan = normalizeShortNameForEmbedding(span)
-    const normalizedShortName = normalizeShortNameForEmbedding(shortName)
-    const [pattern, candidateText] = normalizedSpan.length <= normalizedShortName.length
-        ? [normalizedSpan, normalizedShortName]
-        : [normalizedShortName, normalizedSpan]
-
+const flankMetricsForPair = (span: string, shortName: string) => {
+    const diff = lexicalDiff(span, shortName)
+    if (diff === undefined) {
+        throw new Error(`no diff of "${span}" against "${shortName}"`)
+    }
     return {
-        metrics: computeLexicalMatchMetrics(pattern, candidateText),
-        patternLength: pattern.length,
+        metrics: flankLengthMetricsOf(diff),
+        spanScale: Math.max(matchSpanLength(diff.match), diff.pattern.length, 1),
     }
 }
 
@@ -45,8 +40,7 @@ const rankCatalogByLexicalRelevance = (
 ): LexicalRankedCatalogEntry[] => {
     const ranked = catalog.map((shortName) => {
         const lexicalScore = lexicalRelevance(span, shortName)
-        const { metrics, patternLength } = lexicalMetricsForPair(span, shortName)
-        const spanScale = Math.max(matchSpanLength(metrics.matchSpan), patternLength, 1)
+        const { metrics, spanScale } = flankMetricsForPair(span, shortName)
         return {
             shortName,
             lexicalScore,

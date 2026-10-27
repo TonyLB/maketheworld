@@ -1,4 +1,6 @@
 import { lexicalRelevance } from './lexicalRelevance'
+import { legacyLexicalRelevance } from './testing/legacyLexicalRelevance'
+import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
 
 describe('lexicalRelevance', () => {
     it('scores exact match near 1.0', () => {
@@ -56,5 +58,26 @@ describe('lexicalRelevance', () => {
 
     it('scores unary catalog exact match near 1.0', () => {
         expect(lexicalRelevance('sword', 'sword')).toBeGreaterThan(0.97)
+    })
+
+    it('scores 0 when either string normalizes to empty', () => {
+        expect(lexicalRelevance('  ', 'cup')).toBe(0)
+        expect(lexicalRelevance('cup', '')).toBe(0)
+    })
+})
+
+describe('lexicalRelevance against the pre-4c scoring', () => {
+    it.each(LEXICAL_PARITY_PAIRS)('reproduces it: %s against %s', (span, shortName) => {
+        expect(lexicalRelevance(span, shortName)).toBe(legacyLexicalRelevance(span, shortName))
+    })
+
+    // A match edge inside a word held together by `-` or `'`, or holding a non-ASCII letter: the
+    // rest of that word is now a partial word, where the ASCII test read it as remote.
+    it.each([
+        ['encrusted', 'jewel-encrusted'],
+        ['don', "don't"],
+        ['caf', 'café'],
+    ])('departs from it by the word rule: %s against %s', (span, shortName) => {
+        expect(lexicalRelevance(span, shortName)).not.toBe(legacyLexicalRelevance(span, shortName))
     })
 })

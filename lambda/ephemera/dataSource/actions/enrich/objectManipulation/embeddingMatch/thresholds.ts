@@ -32,20 +32,8 @@ export const C_MIN = 0.05
 /** Upper anchor for embedRelevance (exact normalized-shortName match). */
 export const C_MAX = 1
 
-/** Lexical proportional floor so ultra-short catalog names are not brittle. */
-export const L_MIN = 5
-
 /** Legacy harness constant for short-span admissibility baseline only (FT-1.3.1 retired production gate). */
 export const S_MIN = 3
-
-/** Flank edit cost when separated from match by non-alpha / token boundary. */
-export const LEX_FLANK_STRONG_COST = 0.25
-
-/** Flank edit cost when alpha-adjacent to match within same token. */
-export const LEX_FLANK_MODERATE_COST = 0.5
-
-/** In-window substitution / insertion unit cost (typo tolerance). */
-export const LEX_MATCH_SUBSTITUTION_COST = 1
 
 /** Max multiplicative discount for alpha-adjoined flank material (simulator A/B only). */
 export const LEX_ADJOINED_FLANK_MAX_DAMAGE = 0.5
@@ -134,11 +122,7 @@ export const T_JOINT_ABS_UNARY = 0.48
 export type RelevanceNormalizationParams = {
     cMin?: number
     cMax?: number
-    lMin?: number
     sMin?: number
-    lexFlankStrongCost?: number
-    lexFlankModerateCost?: number
-    lexMatchSubstitutionCost?: number
     lexAdjoinedFlankMaxDamage?: number
     lexRemoteFlankMaxDamage?: number
     lexFlankRelevanceK?: number

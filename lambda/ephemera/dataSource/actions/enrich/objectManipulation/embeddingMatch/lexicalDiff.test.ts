@@ -1,5 +1,5 @@
 import { flankLengthMetricsOf, lexicalDiff, type LexicalDiff } from './lexicalDiff'
-import { computeLexicalMatchMetrics } from './lexicalMatchMetrics'
+import { computeLexicalMatchMetrics } from './testing/legacyLexicalRelevance'
 import { LEXICAL_PARITY_PAIRS } from './testing/lexicalParityPairs'
 
 const diffOf = (span: string, shortName: string): LexicalDiff => {

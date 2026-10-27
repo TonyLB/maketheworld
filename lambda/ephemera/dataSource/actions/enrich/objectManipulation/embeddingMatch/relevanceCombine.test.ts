@@ -1,7 +1,5 @@
-import {
-    computeLexicalMatchMetrics,
-    flankLengthRelevance,
-} from './lexicalMatchMetrics'
+import { flankLengthMetricsOf, lexicalDiff } from './lexicalDiff'
+import { flankLengthRelevance } from './lexicalMatchMetrics'
 import {
     centeredTanhEvidence,
     multiplicativeFlankScoreV1,
@@ -13,6 +11,14 @@ import {
     LEX_FLANK_RELEVANCE_K,
     LEX_REMOTE_FLANK_MAX_DAMAGE,
 } from './thresholds'
+
+const flankMetricsOf = (span: string, shortName: string) => {
+    const diff = lexicalDiff(span, shortName)
+    if (diff === undefined) {
+        throw new Error(`no diff of "${span}" against "${shortName}"`)
+    }
+    return flankLengthMetricsOf(diff)
+}
 
 describe('centeredTanhEvidence', () => {
     const midpoint = 2
@@ -38,14 +44,14 @@ describe('centeredTanhEvidence', () => {
 
 describe('tanhCenteredFlankScore', () => {
     it('scores zero flanks highly', () => {
-        const metrics = computeLexicalMatchMetrics('broom', 'broom')
+        const metrics = flankMetricsOf('broom', 'broom')
         const score = tanhCenteredFlankScore(metrics, 5)
         expect(score).toBeGreaterThan(0.9)
     })
 
     it('penalizes long remote wrapper but stays in middle band', () => {
-        const metrics = computeLexicalMatchMetrics('broom', 'the extraordinarily detailed antique wooden broom')
-        const cleanMetrics = computeLexicalMatchMetrics('broom', 'broom')
+        const metrics = flankMetricsOf('broom', 'the extraordinarily detailed antique wooden broom')
+        const cleanMetrics = flankMetricsOf('broom', 'broom')
         const wrappedScore = tanhCenteredFlankScore(metrics, 5)
         const cleanScore = tanhCenteredFlankScore(cleanMetrics, 5)
         expect(wrappedScore).toBeLessThan(cleanScore)
@@ -97,7 +103,7 @@ describe('weightedRmsJointRelevance', () => {
 
 describe('multiplicativeFlankScoreV1', () => {
     it('matches product of flankLengthRelevance factors', () => {
-        const metrics = computeLexicalMatchMetrics('ax', 'axle')
+        const metrics = flankMetricsOf('ax', 'axle')
         const spanScale = 2
         const v1Score = multiplicativeFlankScoreV1(metrics, spanScale)
         const expected = (

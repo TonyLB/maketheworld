@@ -63,13 +63,14 @@ Pure helpers for the fault-tolerant candidate pool (FT-1). Wired into **`buildSp
 | [`osaStep`](osaStep.ts) | The OSA kernel: the cheapest step (match, substitute, insert, delete, transpose) into one alignment cell, and `AlignmentOp` |
 | [`sellersApproximateSubstringMatch`](sellersApproximateSubstringMatch.ts) | Sellers' approximate substring search of the shorter normalized string in the longer (whichever side each is), on the OSA kernel, with its alignment ops |
 | [`lexicalDiff`](lexicalDiff.ts) | The alignment read back in words: the side of the longer string (the only surplus Sellers reports as words; the shorter string's surplus is edits inside the match), the match with its ops, and each flank's partial word, whole words and punctuation marks (words per `granuleTokens.ts` `lexemesOf`); `flankLengthMetricsOf` projects it to the adjoined/remote lengths. No production caller yet |
-| [`lexicalWeights`](lexicalWeights.ts) | The cost table over a `lexicalDiff`: an edits row (the edit gate) and one row per side pricing its partial and whole words (both today's tanh flank combine); `priceLexicalDiff` equals `lexicalRelevance`. No production caller yet |
-| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | Flank geometry + `editDistanceRelevance` + `lexicalRelevanceFromMetrics` |
-| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: shorter-in-longer Sellers match, then edit gate * tanh flank combine |
+| [`lexicalWeights`](lexicalWeights.ts) | The cost table over a `lexicalDiff`: an edits row (the edit gate) and one row per side pricing its partial and whole words (both the tanh flank combine, `catalogSideFlankWeight`); `priceLexicalDiff` prices a diff. Called by `lexicalRelevance` |
+| [`lexicalMatchMetrics`](lexicalMatchMetrics.ts) | The shared lexical factors: `FlankLengthMetrics`, `editDistanceRelevance` (the edit gate), `flankLengthRelevance` (simulator A/B) |
+| [`lexicalRelevance`](lexicalRelevance.ts) | Entry point: `lexicalDiff`, priced by `priceLexicalDiff`; 0 when either string normalizes to empty |
+| [`testing/legacyLexicalRelevance`](testing/legacyLexicalRelevance.ts) | The pre-diff composition (Sellers metrics, ASCII flank split, `lexicalRelevanceFromMetrics`), kept as the parity oracle until the token-aware aligner replaces Sellers |
 | [`testing/tokenOverlapRelevance`](testing/tokenOverlapRelevance.ts) | Simulator-only A/B baseline (not production) |
 | [`testing/simulateLexicalIdentityCorpus`](testing/simulateLexicalIdentityCorpus.ts) | Lexical-only identity corpus rank + tanh vs v1 A/B harness |
 
-**Lexical relevance pipeline (FT-1.1.5, 2026-07-09):** embed shorter normalized string in longer -> Sellers match -> combine:
+**Lexical relevance pipeline (FT-1.1.5, 2026-07-09):** embed shorter normalized string in longer -> Sellers match -> `lexicalDiff` -> cost table (`lexicalWeights`):
 
 1. **Edit distance** (hard gate, can hit `0`): `1 - min(1, editDistance / max(|span in T|, |P|))`
 2. **Flank geometry** via centered tanh evidence + outer sigmoid (not a product of per-factor asymptotics):
@@ -89,7 +90,7 @@ flankScore = sigmoid(biasEff + e_L + e_R + e_Rm)
 lexRelevance = editDistanceRelevance * flankScore
 ```
 
-Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`lexicalRelevanceFromMetrics`](lexicalMatchMetrics.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
+Per-channel scales/weights in [`thresholds.ts`](thresholds.ts). Production adjoined and remote channels are **ratio-invariant** (FT-1.3.3/4) when [`catalogSideFlankWeight`](lexicalWeights.ts) passes `FlankCombineContext`; legacy absolute channels when context omitted (simulator A/B).
 
 Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**, **FT-1.3 calibration**) + locked constants in [`thresholds.ts`](thresholds.ts).
 
@@ -102,7 +103,7 @@ Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**,
 | Constant group | Scale | Consumer | Pool admission? |
 | --- | --- | --- | --- |
 | `T_ABS`, `T_ABS_UNARY`, `T_MARGIN` | raw cosine | v1 [`decideEmbeddingMatch`](decideEmbeddingMatch.ts) (calibration shim only) | **No** --- open-loop calibration |
-| `C_MIN`, `L_MIN`, flank combine, `S_MIN` | per-signal `[0,1]` | `embedRelevance`, `lexicalRelevance` | **No** --- relevance normalization |
+| `C_MIN`, flank combine, `S_MIN` | per-signal `[0,1]` | `embedRelevance`, `lexicalRelevance` | **No** --- relevance normalization |
 | `JOINT_RELEVANCE_W_*`, gap-trim | joint `[0,1]` | [`buildSpanCandidatePool`](buildSpanCandidatePool.ts) | **No** --- rank-all, no floor |
 | `T_JOINT_ABS`, `T_JOINT_MARGIN`, `T_JOINT_ABS_UNARY` | joint `[0,1]` | FT-5 selector (**wired** on membership + relational) | **No** --- auto-resolve gate |
 
@@ -112,7 +113,7 @@ Formulas and admissibility rules: this file (**FT-1.1 relevance normalization**,
 
 **Canonical snapshot:** [`embedding-identity-pool-v1-2026-07-09-bias-sweep.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09-bias-sweep.json) (mock Bedrock harness; FT-1.3.2-6 locked constants). Rolling default: [`embedding-identity-pool-v1-2026-07-09.json`](../../../../../calibration/objectMatch/snapshots/embedding-identity-pool-v1-2026-07-09.json). Confirm on dev stack live run.
 
-**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance block): `C_MIN=0.05`, `L_MIN=5`, `S_MIN=3`, flank combine + edit costs, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`, plus FT-1.3.2-6 lexical combine (`LEX_FLANK_COMBINE_BIAS=1.5`, `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`, coverage bias + ratio-invariant midpoints).
+**Locked constants** (see [`thresholds.ts`](thresholds.ts) provenance block): `C_MIN=0.05`, `S_MIN=3`, flank combine, `JOINT_RELEVANCE_W_L/E=1.0`, `POOL_SHORTLIST_TOP_N=5`, `POOL_GAP_TRIM_RELATIVE_DROP=0.15`, plus FT-1.3.2-6 lexical combine (`LEX_FLANK_COMBINE_BIAS=1.5`, `LEX_ADJOINED_FLANK_WEIGHT=3.0`, `LEX_REMOTE_FLANK_WEIGHT=0.4`, coverage bias + ratio-invariant midpoints).
 
 **FT-5 floors (wired on membership + relational selectors):** `T_JOINT_ABS=0.42`, `T_JOINT_MARGIN=0.08`, `T_JOINT_ABS_UNARY=0.48` --- fit from mocked identity corpus pool metrics; absent/unary heads stay below `T_JOINT_ABS`, paraphrase clears with margin when catalog is unary / high-margin.
 
