@@ -1,6 +1,6 @@
 # Pure-name path (Identify without embeddings)
 
-**Status:** Slice 1 shipped (utilities and the full-pass orchestrator extracted, no behavior change). Next: Slice 2 (name-subsequence predicate and the pure resolver).
+**Status:** Slices 1-2 shipped (utilities and full-pass orchestrator extracted; name-subsequence predicate and pure resolver, not yet called in production). Next: Slice 3 (pure-pass and cross-pass orchestrators).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and the Recommended order checkbox conventions.
 
@@ -56,7 +56,7 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 | Slice | State |
 | --- | --- |
 | 1. Utilities + full-pass orchestrator extracted (no behavior change) | Shipped (full suite green) |
-| 2. Name-subsequence predicate + pure resolver | |
+| 2. Name-subsequence predicate + pure resolver | Shipped (full suite green) |
 | 3. Pure-pass and cross-pass orchestrators, recorded pass, payoff test | |
 | 4. Durable docs; plan deleted | |
 
@@ -69,10 +69,10 @@ Mark pending items `[ ]` and completed items `[X]`; mark each nested line `[X]` 
     - [X] `runIdentityStage` / `runIdentityStageOverSkeleton` / `runIdentityStageOverReferenceKeys` take the resolver as an optional trailing parameter (default: the full resolver) and return ineligible beside the pools (always empty under the full resolver): `runIdentityStage` the span **texts**, the skeleton-keyed functions the **stableRefKeys** (the pure pass drops fills by key), with ineligible keys absent from the `spanPools` map.
     - [X] In `compileAttemptsFromSkeleton.ts`, extract the shared steps after Identify (exact-fill precedence, post-Identify refusals, and propose -> environment -> dry run -> select -> result) as utilities, and the **full-pass orchestrator** over them with its own refusals list (PP-4). `compileReadings` keeps the once-only steps and calls the full pass.
     - [X] Tests: one existing `identityStage.test.ts` expectation gained `ineligible: []`; two new tests cover a custom resolver declining a span. The rest of the suite passes unchanged.
-- [ ] **Slice 2 --- the pure resolver.**
-    - [ ] Word-subsequence predicate (PP-1), with unit tests: `cup` / `red cup` / `big cup` vs "big red cup" match; `cup red` vs "red cup", `cup` vs "cupboard" / "teacup", `up` vs "cup up" (under 3 characters) do not; `the cup` matches "red cup" (article peeled).
-    - [ ] **Pure resolver**: the catalog/exact piece as today, else the PP-2 pool, else `ineligible`. Its module does not import `internalCache`.
-    - [ ] Unit tests through Identify with the pure resolver: an exact span, a subsequence span (lexical-only pool over the matching candidates only), and an ineligible span.
+- [X] **Slice 2 --- the pure resolver.**
+    - [X] Word-subsequence predicate (PP-1), `spanIsNameSubsequence` in `spanMatchForms.ts`, with unit tests: `cup` / `red cup` / `big cup` vs "big red cup" match; `cup red` vs "red cup", `cup` vs "cupboard" / "teacup", `up` vs "cup up" (under 3 characters) do not; `the cup` matches "red cup" (article peeled). A bare article (`the`, `some`) never matches, even against a name that contains it.
+    - [X] **Pure resolver** (`resolvePureSpanToPool.ts`): the catalog/exact piece as today, else the PP-2 pool, else `ineligible`. To make "never imports `internalCache`" structural, `resolveExactSpan`, `SpanResolver` and the result type moved to `resolveExactSpan.ts` (re-exported from `resolveCatalogSpanToPool.ts`, so importers are unchanged); the pure test module-mocks `internalCache` to throw on import.
+    - [X] Unit tests through Identify with the pure resolver: an exact span, a subsequence span (lexical-only pool over the matching candidates only), and an ineligible span.
 - [ ] **Slice 3 --- pure-pass and cross-pass orchestrators.**
     - [ ] **Pure-pass orchestrator**: Identify with the pure resolver; drop every survivor whose fill holds an ineligible key; with none left, report failure without running the shared steps; else run them with its own refusals list and report success on `CommandAttempt` or `Consult` (PP-3).
     - [ ] **Cross-pass orchestrator** (`compileReadings`): after the once-only steps, run the pure pass unless the starting pass is `full` (PP-6); on success return its result; otherwise run the full pass on **all** survivors. Only the returned pass's refusals reach `compileAttemptsFromSkeleton` (PP-4).

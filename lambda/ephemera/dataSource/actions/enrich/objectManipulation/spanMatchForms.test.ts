@@ -1,4 +1,4 @@
-import { peelLeadingArticleWhenTail, spanMatchForms } from './spanMatchForms'
+import { peelLeadingArticleWhenTail, spanIsNameSubsequence, spanMatchForms } from './spanMatchForms'
 
 describe('spanMatchForms', () => {
     it.each([
@@ -38,5 +38,33 @@ describe('peelLeadingArticleWhenTail', () => {
         ['lord of the rings', 'lord of the rings'],
     ])('leaves span unchanged when peel would be empty or no article (%j)', (input, expected) => {
         expect(peelLeadingArticleWhenTail(input)).toBe(expected)
+    })
+})
+
+describe('spanIsNameSubsequence', () => {
+    it.each([
+        ['cup', 'big red cup'],
+        ['red cup', 'big red cup'],
+        ['big cup', 'big red cup'],
+        ['big red cup', 'big red cup'],
+        ['the cup', 'red cup'],
+        ['  Red   CUP ', 'red cup'],
+    ])('matches %j against %j', (span, name) => {
+        expect(spanIsNameSubsequence(span, name)).toBe(true)
+    })
+
+    it.each([
+        ['cup red', 'red cup'],
+        ['cup', 'cupboard'],
+        ['cup', 'teacup'],
+        ['up', 'cup up'],
+        ['cup cup', 'cup'],
+        ['mug', 'red cup'],
+        ['', 'red cup'],
+        ['the', 'the cup'],
+        ['some', 'some coins'],
+        ['an', 'an axe'],
+    ])('does not match %j against %j', (span, name) => {
+        expect(spanIsNameSubsequence(span, name)).toBe(false)
     })
 })
