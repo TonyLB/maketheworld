@@ -1,5 +1,5 @@
 /**
- * Payoff test for the pure pass (`taskPlanning/.../AGENT.pureNamePath.planning.md`): a span that is
+ * Payoff test for the pure pass (`actions/AGENT.contract.md` "Qualifier", "The pure pass"): a span that is
  * an ordered word subsequence of a name grounds by the lexical channel alone, so `SpanEmbeddings.get`
  * (the Bedrock call) is never made. It terminates at the observable: the result and the embed calls.
  */

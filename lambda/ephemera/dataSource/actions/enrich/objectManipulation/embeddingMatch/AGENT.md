@@ -4,6 +4,8 @@
 
 **Output trust:** **v1** open-loop terminal `Resolved` (retired from production) vs **v2** closed-loop pool -> FT-5 selector (auto-resolve | Consult | Abstain). Canonical vocabulary: [`../../../../../llm/AGENT.concepts.md`](../../../../../llm/AGENT.concepts.md) (**Output trust models**, **How the axes compose**). Seam (referential grounding job) is unchanged across trust modes.
 
+**Pure-pass pools are lexical-only:** the pure pass ([`../resolvePureSpanToPool.ts`](../resolvePureSpanToPool.ts)) calls `buildSpanCandidatePool` with no `spanEmbedding`, over only the candidates whose names contain the span as an ordered word subsequence, so every pure fill is on one scale and nothing embeds. Rules: [`actions/AGENT.contract.md`](../../../AGENT.contract.md#qualifier) "The pure pass".
+
 **Pipeline context:** [`../AGENT.md`](../AGENT.md) step 4 (identity).
 
 **Calibration tooling:** [`../../../../../calibration/AGENT.md`](../../../../../calibration/AGENT.md) --- Bedrock-backed operator runs, Lambda console handlers, and committed snapshot JSON under `calibration/objectMatch/snapshots/`.
