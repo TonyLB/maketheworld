@@ -420,7 +420,12 @@ const presenceCacheNodesFromFold = (
         }
         // A room's binding into an Area is stored as a carve-out with no members (the room rule,
         // PR-21(f)), so it expands to nothing here and a member's bucket is the room's own remainder.
-        const members = presenceNode.cover.members.filter((entry) => entry.host !== root)
+        const members = presenceNode.cover.members
+            .filter((entry) => entry.host !== root)
+            .map((entry) => {
+                const hostingKind = graph.hostingKindOf(entry.host)
+                return hostingKind === undefined ? entry : { ...entry, hostingKind }
+            })
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,

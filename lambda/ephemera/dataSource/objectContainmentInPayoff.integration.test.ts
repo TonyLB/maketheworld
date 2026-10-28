@@ -275,6 +275,9 @@ describe('object containment In payoff (integration)', () => {
         // through synchronously. If this were false, the render step below would see an empty box.
         const boxGraphAfterCommit = await internalCache.Positions.getLudicGraph(BOX_ID)
         expect(boxGraphAfterCommit.nodeIds.has(BALL_ID)).toBe(true)
+        // hostingKindOnNode: the membership's kind is on the ball's node in the box's graph, not an edge.
+        expect(boxGraphAfterCommit.hostingKindOf(BALL_ID)).toBe('In')
+        expect(boxGraphAfterCommit.relationalEdges).toEqual([])
 
         // Step C: real render of "look box", via the real global messageBus (same convention as
         // guestCharacterLookPayoff.integration.test.ts).

@@ -1,5 +1,6 @@
 import { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import type {
+    EphemeraHostingKind,
     EphemeraLudicGraphComponentNodeBase,
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
@@ -7,6 +8,7 @@ import type {
     EphemeraPresenceCoverEntry,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
+    isEphemeraHostingKind,
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicRelationalEdgeData,
     isPresenceTaggedPortId,
@@ -53,7 +55,7 @@ import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
  * Built from the node arms that never had `hostingKind`, not `Omit<..., 'hostingKind'>`: `Omit` over a
  * union is not distributive and would collapse the discriminated tag. A member's kind is
  * per-host (HK-2), so on a node that combines several hosts the field would be ambiguous (in
- * which host?); the cache carries reconstructed edges instead (HK-4).
+ * which host?); the cache carries it on the cover entry instead (`EphemeraLudicCacheCoverEntry.hostingKind`).
  */
 export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNodeBase & {
     /** `undefined` means unresolved --- no equality-with-id inference (see `catalogHandles.ts`). */
@@ -86,9 +88,16 @@ export type EphemeraLudicCachePresenceNode = Omit<EphemeraLudicGraphStructureNod
  * the member's own graph for a graph-side complement, and that lookup could come back empty --- e.g. a thing placed without a move,
  * which never had a binding minted --- and the member was still covered, so the entry stays
  * with `presence` absent. Entries copied from a graph-side explicit entry always carry it.
+ *
+ * `hostingKind` is the covered member's kind in the cover's owning host (HK-2: per member node,
+ * so every entry for one member in one host agrees). The cache combines several hosts, so the
+ * kind cannot sit on the cache node (in which host?); the entry already names both the host
+ * (through its binding's owner) and the member. Optional only because a hand-built entry may
+ * omit it; the fold always sets it.
  */
 export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'presence'> & {
     presence?: EphemeraPresenceNodeId;
+    hostingKind?: EphemeraHostingKind;
 }
 
 /**
@@ -109,8 +118,9 @@ const isEphemeraLudicCacheCoverEntry = (value: unknown): value is EphemeraLudicC
     if (!value || typeof value !== 'object') {
         return false
     }
-    const entry = value as { host?: unknown; presence?: unknown }
+    const entry = value as { host?: unknown; presence?: unknown; hostingKind?: unknown }
     return typeof entry.host === 'string' && isEphemeraMembershipHostId(entry.host)
+        && (entry.hostingKind === undefined || isEphemeraHostingKind(entry.hostingKind))
         && (entry.presence === undefined || (typeof entry.presence === 'string' && isEphemeraPresenceNodeId(entry.presence)))
 }
 
