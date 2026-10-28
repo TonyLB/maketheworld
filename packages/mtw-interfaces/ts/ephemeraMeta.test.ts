@@ -16,6 +16,10 @@ import {
     ephemeraLudicTerminalOwner,
     ephemeraLudicTerminalsEqual,
     ephemeraLudicTerminalRefersTo,
+    HOSTING_KINDS,
+    hostingFamily,
+    isEphemeraHostingKind,
+    isHostingKindLegalOnHost,
 } from './ephemeraMeta'
 
 const baseRow = {
@@ -163,7 +167,7 @@ describe('isEphemeraMetaObject', () => {
                     ports: [],
                     nodes: [
                         { tag: 'Object', universalKey: 'OBJECT#helmet' },
-                        { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                        { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
                     ],
                 },
             })
@@ -586,7 +590,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
-                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet', hostingKind: 'Held' },
             ],
         })).toBe(true)
     })
@@ -597,14 +601,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#broom' },
-                { tag: 'Object', universalKey: 'OBJECT#table' },
+                { tag: 'Object', universalKey: 'OBJECT#broom', hostingKind: 'In' },
+                { tag: 'Object', universalKey: 'OBJECT#table', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
                 from: 'OBJECT#broom',
                 to: 'OBJECT#table',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(true)
     })
@@ -614,8 +618,8 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             rootId: 'ROOM#Kitchen',
             ports: [],
             nodes: [
-                { tag: 'Object', universalKey: 'OBJECT#rope' },
-                { tag: 'Object', universalKey: 'OBJECT#crate' },
+                { tag: 'Object', universalKey: 'OBJECT#rope', hostingKind: 'In' },
+                { tag: 'Object', universalKey: 'OBJECT#crate', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
@@ -643,7 +647,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 ports: [],
-                nodes: [{ tag: 'Object', universalKey: 'OBJECT#broom' }],
+                nodes: [{ tag: 'Object', universalKey: 'OBJECT#broom', hostingKind: 'In' }],
             })).toBe(false)
         })
 
@@ -653,7 +657,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 ports: [],
                 nodes: [
                     { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                    { tag: 'Object', universalKey: 'OBJECT#broom' },
+                    { tag: 'Object', universalKey: 'OBJECT#broom', hostingKind: 'In' },
                 ],
             })).toBe(true)
         })
@@ -691,13 +695,13 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
                 from: 'ROOM#Kitchen',
                 to: 'CHARACTER#Alpha',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(true)
     })
@@ -711,27 +715,20 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 tag: 'Relational',
                 from: 'ASSET#bogus',
                 to: 'OBJECT#table',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(false)
     })
 
-    // HostRelationalEdgeKind was widened to admit containment ('In'/'PartOf'), and the
-    // guard's runtime Set (HOST_RELATIONAL_EDGE_KINDS) had to be widened by hand in lockstep,
-    // since a Set literal has no exhaustiveness requirement against the type union -- a stale
-    // Set would silently drop every containment edge from the stored payload rather than fail
-    // to compile. Accepting each kind here is the agreement check for that Set.
-    // Direction corrected 2026-08-20: relation kinds are predicates on the SUBJECT --
-    // 'glass -On-> tray' reads "glass is on tray" -- so a containment edge runs member -> root:
-    // 'crystalBall -In-> kitchen'. AB-4's "root to part" was a claim about INCIDENCE (every
-    // containment edge touches the root, hence the star topology) written down as direction.
-    it.each(['In', 'PartOf'] as const)('accepts a %s containment edge, member to root', (kind) => {
+    // A hosting kind is a field of the member's node, so a stored edge
+    // or port carrying one is refused rather than read as a membership.
+    it.each(['On', 'In', 'PartOf'] as const)('rejects a %s hosting edge, member to root', (kind) => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ROOM#Kitchen',
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
@@ -739,24 +736,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 to: 'ROOM#Kitchen',
                 kind,
             }],
-        })).toBe(true)
-    })
-
-    // Both kinds are non-exclusive -- a member can be simultaneously In and PartOf
-    // the same host, so this must not be modeled as a mutually-exclusive switch anywhere.
-    it('accepts both In and PartOf edges between the same pair, coexisting', () => {
-        expect(isEphemeraLudicGraphFieldPayload({
-            rootId: 'ROOM#Kitchen',
-            ports: [],
-            nodes: [
-                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
-            ],
-            edges: [
-                { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'In' },
-                { tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'PartOf' },
-            ],
-        })).toBe(true)
+        })).toBe(false)
     })
 
     // `ConnectedTo` is a label-free kind (topology within one whole): the Set must admit it, and a
@@ -781,7 +761,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
@@ -795,7 +775,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
     // `relationLabel` belongs structurally to `Custom`: it is the free-text name that kind
     // exists to make a place for, and the other six carry none. The rule used to run one way
     // only -- `Custom` required a label, but nothing rejected a label on any other kind -- so
-    // `{ kind: 'On', relationLabel: 'balanced across' }` was a legal stored edge. It is now
+    // `{ kind: 'ConnectedTo', relationLabel: 'balanced across' }` was a legal stored edge. It is now
     // unrepresentable in `EphemeraLudicRelationalEdgeData`, and a guard that accepted it would
     // be lying about the value it narrows. These four cases pin both directions of the rule.
     it.each(['On', 'In', 'PartOf', 'Present'] as const)(
@@ -806,7 +786,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 ports: [],
                 nodes: [
                     { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                    { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                    { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
                 ],
                 edges: [{
                     tag: 'Relational',
@@ -825,7 +805,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
@@ -843,7 +823,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
@@ -867,15 +847,15 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [edge],
         })
         expect(isEphemeraLudicGraphFieldPayload(payload({
-            tag: 'Relational', edgeId: 'edge-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+            tag: 'Relational', edgeId: 'edge-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'ConnectedTo',
         }))).toBe(true)
         expect(isEphemeraLudicGraphFieldPayload(payload({
-            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'ConnectedTo',
         }))).toBe(true)
     })
 
@@ -885,14 +865,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
                 edgeId,
                 from: 'OBJECT#crystalBall',
                 to: 'ROOM#Kitchen',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(false)
     })
@@ -906,19 +886,19 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [edge],
         })
         expect(isEphemeraLudicGraphFieldPayload(payload({
-            tag: 'Relational', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+            tag: 'Relational', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'ConnectedTo',
         }))).toBe(true)
         // Both identity fields at once, since they are independent facts about a leg.
         expect(isEphemeraLudicGraphFieldPayload(payload({
-            tag: 'Relational', edgeId: 'edge-1', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+            tag: 'Relational', edgeId: 'edge-1', chainId: 'chain-1', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'ConnectedTo',
         }))).toBe(true)
         expect(isEphemeraLudicGraphFieldPayload(payload({
-            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'On',
+            tag: 'Relational', from: 'OBJECT#crystalBall', to: 'ROOM#Kitchen', kind: 'ConnectedTo',
         }))).toBe(true)
     })
 
@@ -928,14 +908,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Object', universalKey: 'OBJECT#crystalBall' },
+                { tag: 'Object', universalKey: 'OBJECT#crystalBall', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
                 chainId,
                 from: 'OBJECT#crystalBall',
                 to: 'ROOM#Kitchen',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(false)
     })
@@ -952,14 +932,14 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             tag: 'Relational',
             from: { owner: 'OBJECT#broom', port: 'ab6129d' },
             to: 'OBJECT#table',
-            kind: 'On',
+            kind: 'ConnectedTo',
         }]
         expect(() => isEphemeraLudicGraphFieldPayload({
             rootId: 'OBJECT#broom',
             ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
-                { tag: 'Object', universalKey: 'OBJECT#table' },
+                { tag: 'Object', universalKey: 'OBJECT#table', hostingKind: 'In' },
             ],
             edges,
         })).not.toThrow()
@@ -968,7 +948,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
-                { tag: 'Object', universalKey: 'OBJECT#table' },
+                { tag: 'Object', universalKey: 'OBJECT#table', hostingKind: 'In' },
             ],
             edges,
         })).toBe(true)
@@ -980,13 +960,13 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#broom' },
-                { tag: 'Object', universalKey: 'OBJECT#table' },
+                { tag: 'Object', universalKey: 'OBJECT#table', hostingKind: 'In' },
             ],
             edges: [{
                 tag: 'Relational',
                 from: { owner: 'OBJECT#broom', port: 'ab6129d' },
                 to: { owner: 'OBJECT#table', port: 'cf0192a' },
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(true)
     })
@@ -1000,7 +980,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
                 tag: 'Relational',
                 from: { owner: 'BOGUS#X', port: 'ab6129d' },
                 to: 'OBJECT#broom',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })).toBe(false)
     })
@@ -1017,7 +997,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'ASSET#bogus',
             ports: [],
-            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+            nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' }],
         })).toBe(false)
     })
 
@@ -1054,7 +1034,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' }],
             })).toBe(false)
         })
 
@@ -1062,7 +1042,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'ROOM#Kitchen',
                 nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen' }],
-                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'On' }],
+                ports: [{ portId: 123, fromHostId: 'OBJECT#box', kind: 'ConnectedTo' }],
             })).toBe(false)
         })
 
@@ -1070,7 +1050,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
             expect(isEphemeraLudicGraphFieldPayload({
                 rootId: 'OBJECT#box',
                 nodes: [{ tag: 'Object', universalKey: 'OBJECT#box' }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'ConnectedTo' }],
             })).toBe(true)
         })
     })
@@ -1078,15 +1058,15 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
 
 describe('isEphemeraLudicGraphPort', () => {
     it('accepts a well-formed port entry', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On' })).toBe(true)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'ConnectedTo' })).toBe(true)
     })
 
     it('rejects a malformed fromHostId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' })).toBe(false)
     })
 
     it('rejects a non-string portId', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'On' })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 123, fromHostId: 'ROOM#Kitchen', kind: 'ConnectedTo' })).toBe(false)
     })
 
     it('rejects a non-object value', () => {
@@ -1104,12 +1084,14 @@ describe('isEphemeraLudicGraphPort', () => {
         expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'Beside' })).toBe(false)
     })
 
-    // The union is taken unrestricted (PR-11) --- including the three values no corpus case can
-    // yet construct. Narrowing it would mint the second partition the reuse exists to avoid.
-    // `'Present'` dropped from this list at presenceNodes Slice 7a: it is no longer in the domain
+    // The port's kind domain is the stored edge kinds (PR-11). `'Present'` dropped from this list at presenceNodes Slice 7a: it is no longer in the domain
     // this guard accepts at all, see the rejection test below.
-    it.each(['On', 'In', 'PartOf'])('accepts a %s port with no label', (kind) => {
+    it.each(['ConnectedTo'])('accepts a %s port with no label', (kind) => {
         expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(true)
+    })
+
+    it.each(['On', 'In', 'PartOf'])('rejects a %s port: a hosting kind is a field of the member node', (kind) => {
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind })).toBe(false)
     })
 
     // presenceNodes Slice 7a (PN-14/PN-23): a presence binding is a node now, never a port, so
@@ -1133,7 +1115,7 @@ describe('isEphemeraLudicGraphPort', () => {
     })
 
     it('rejects a non-string exterior label on a non-Custom port', () => {
-        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'On', exteriorRelationLabel: 12 })).toBe(false)
+        expect(isEphemeraLudicGraphPort({ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen', kind: 'ConnectedTo', exteriorRelationLabel: 12 })).toBe(false)
     })
 
     // `'rejects a Present port carrying any exterior label ... (PR-15: presence ports have no such
@@ -1149,7 +1131,7 @@ describe('isEphemeraLudicGraphData', () => {
             ports: [],
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Test' },
-                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
             ],
         })).toBe(true)
     })
@@ -1161,7 +1143,7 @@ describe('isEphemeraLudicGraphData', () => {
             ports: [],
             nodes: [
                 { tag: 'Character', universalKey: 'CHARACTER#Beta' },
-                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet', hostingKind: 'Held' },
             ],
         })).toBe(true)
     })
@@ -1173,7 +1155,7 @@ describe('isEphemeraLudicGraphData', () => {
             ports: [],
             nodes: [
                 { tag: 'Object', universalKey: 'OBJECT#Box' },
-                { tag: 'Object', universalKey: 'OBJECT#Spring' },
+                { tag: 'Object', universalKey: 'OBJECT#Spring', hostingKind: 'In' },
             ],
         })).toBe(true)
     })
@@ -1185,7 +1167,7 @@ describe('isEphemeraLudicGraphData', () => {
             ports: [],
             nodes: [
                 { tag: 'Feature', universalKey: 'FEATURE#Wall' },
-                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet', hostingKind: 'In' },
             ],
         })).toBe(true)
     })
@@ -1197,7 +1179,7 @@ describe('isEphemeraLudicGraphData', () => {
             ports: [],
             nodes: [
                 { tag: 'Feature', universalKey: 'FEATURE#Wall' },
-                { tag: 'Feature', universalKey: 'FEATURE#Niche' },
+                { tag: 'Feature', universalKey: 'FEATURE#Niche', hostingKind: 'In' },
             ],
         })).toBe(true)
     })
@@ -1209,7 +1191,7 @@ describe('isEphemeraLudicGraphData', () => {
             ports: [],
             nodes: [
                 { tag: 'Area', universalKey: 'AREA#Downtown' },
-                { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                { tag: 'Object', universalKey: 'OBJECT#helmet', hostingKind: 'In' },
             ],
         })).toBe(true)
     })
@@ -1258,7 +1240,7 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
                 ports: [],
                 nodes: [
                     { tag: 'Room', universalKey: 'ROOM#Test' },
-                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
                 ],
             },
         })).toBe(true)
@@ -1271,7 +1253,7 @@ describe('isEphemeraMetaRoom ludicGraph', () => {
             ludicGraph: {
                 rootId: 'ROOM#Test',
                 ports: [],
-                nodes: [{ tag: 'Feature', universalKey: 'OBJECT#Other' }],
+                nodes: [{ tag: 'Feature', universalKey: 'OBJECT#Other', hostingKind: 'In' }],
             },
         })).toBe(false)
     })
@@ -1299,7 +1281,7 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
                 ports: [],
                 nodes: [
                     { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
-                    { tag: 'Object', universalKey: 'OBJECT#helmet' },
+                    { tag: 'Object', universalKey: 'OBJECT#helmet', hostingKind: 'Held' },
                 ],
             },
         })).toBe(true)
@@ -1319,7 +1301,7 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
             ludicGraph: {
                 rootId: 'CHARACTER#Alpha',
                 ports: [],
-                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Beta' }],
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Beta', hostingKind: 'In' }],
             },
         })).toBe(false)
     })
@@ -1328,6 +1310,70 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
         expect(isEphemeraMetaCharacter({
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Room',
+        })).toBe(false)
+    })
+})
+
+describe('hosting kind on the member node', () => {
+    const hosts = [
+        { tag: 'Character', id: 'CHARACTER#Alpha' },
+        { tag: 'Object', id: 'OBJECT#tray' },
+        { tag: 'Room', id: 'ROOM#Kitchen' },
+        { tag: 'Feature', id: 'FEATURE#sign' },
+        { tag: 'Area', id: 'AREA#Overworld' },
+    ] as const
+    const payload = (host: typeof hosts[number], member: Record<string, unknown>) => ({
+        rootId: host.id,
+        ports: [],
+        nodes: [{ tag: host.tag, universalKey: host.id }, member],
+    })
+
+    it('isEphemeraHostingKind accepts exactly the five kinds', () => {
+        expect([...HOSTING_KINDS]).toEqual(['On', 'In', 'Held', 'PartOf', 'SectionOf'])
+        HOSTING_KINDS.forEach((kind) => expect(isEphemeraHostingKind(kind)).toBe(true))
+        expect(isEphemeraHostingKind('Bogus')).toBe(false)
+        expect(isEphemeraHostingKind('Custom')).toBe(false)
+        expect(isEphemeraHostingKind(undefined)).toBe(false)
+    })
+
+    it('hostingFamily is total over HOSTING_KINDS', () => {
+        HOSTING_KINDS.forEach((kind) => expect(['placement', 'composition']).toContain(hostingFamily(kind)))
+        expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'placement')).toEqual(['On', 'In', 'Held'])
+        expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'composition')).toEqual(['PartOf', 'SectionOf'])
+    })
+
+    it('the component guard accepts each kind and rejects an unknown one', () => {
+        HOSTING_KINDS.forEach((kind) => expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: kind })).toBe(true))
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: 'Bogus' })).toBe(false)
+    })
+
+    it('the structure guard rejects a presence node carrying hostingKind', () => {
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresences: [], cover: { members: [] }, hostingKind: 'On' })).toBe(false)
+    })
+
+    it('legality table: Held only on characters; In/PartOf/SectionOf never on characters; On anywhere', () => {
+        hosts.forEach((host) => {
+            HOSTING_KINDS.forEach((kind) => {
+                const expected = host.tag === 'Character' ? (kind === 'On' || kind === 'Held') : kind !== 'Held'
+                expect(isHostingKindLegalOnHost(kind, host.tag)).toBe(expected)
+                expect(isEphemeraLudicGraphFieldPayload(payload(host, { tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: kind }))).toBe(expected)
+            })
+        })
+    })
+
+    it('requires a hostingKind on every non-root member (no kind is no longer read as In)', () => {
+        hosts.forEach((host) => expect(isEphemeraLudicGraphFieldPayload(payload(host, { tag: 'Object', universalKey: 'OBJECT#cup' }))).toBe(false))
+    })
+
+    it('a payload holding only its root needs no kind', () => {
+        hosts.forEach((host) => expect(isEphemeraLudicGraphFieldPayload({ rootId: host.id, ports: [], nodes: [{ tag: host.tag, universalKey: host.id }] })).toBe(true))
+    })
+
+    it('rejects a hostingKind on the root node', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen', hostingKind: 'In' }],
         })).toBe(false)
     })
 })

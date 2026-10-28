@@ -22,8 +22,8 @@ const envFrom = (
 describe('findRelationalChain', () => {
     it('is the degenerate zero-hop case: a single portless edge in the subject\'s own current host', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(CUP_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(CUP_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
 
         const env = envFrom({ [ROOM_ID]: roomGraph }, { [STRING_ID]: ROOM_ID })
@@ -44,11 +44,11 @@ describe('findRelationalChain', () => {
     it("finds the string-in-room / cup-on-table crossing chain: one crossing port on the table (interior) side", () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(TABLE_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(TABLE_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
-            .addObject(CUP_ID)
+            .addObject(CUP_ID, 'In')
             .addPort(port)
             .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
 
@@ -81,8 +81,8 @@ describe('findRelationalChain', () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomLeg = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const tableLeg = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(roomLeg)
-        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(tableLeg)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(roomLeg)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(tableLeg)
 
         // Only the cup (the target) has a known host: the string is a far end no phrase named.
         const env = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, { [CUP_ID]: TABLE_ID })
@@ -104,8 +104,8 @@ describe('findRelationalChain', () => {
 
     it('declines (notFound) when neither end\'s host is known', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(CUP_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(CUP_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
 
         expect(findRelationalChain(
@@ -115,7 +115,7 @@ describe('findRelationalChain', () => {
     })
 
     it('declines (notFound) when no edge touching the subject matches the relation at all', () => {
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(CUP_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(CUP_ID, 'In')
         const env = envFrom({ [ROOM_ID]: roomGraph }, { [STRING_ID]: ROOM_ID })
 
         const result = findRelationalChain(
@@ -128,8 +128,8 @@ describe('findRelationalChain', () => {
 
     it('declines (notFound) when an edge touches the subject but its kind/label does not match', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(CUP_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(CUP_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'under' })
 
         const env = envFrom({ [ROOM_ID]: roomGraph }, { [STRING_ID]: ROOM_ID })
@@ -144,8 +144,8 @@ describe('findRelationalChain', () => {
 
     it('finds the one matching chain and ignores a non-matching edge between the same two endpoints', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(CUP_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(CUP_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'under' })
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
 
@@ -166,8 +166,8 @@ describe('findRelationalChain', () => {
 
     it('declines (ambiguous) when two structurally distinct edges both satisfy the same kind/label between subject and target', () => {
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(CUP_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(CUP_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
             .addRelationalEdge({ from: CUP_ID, to: STRING_ID, kind: 'Custom', relationLabel: 'to' })
 
@@ -196,7 +196,7 @@ describe('findRelationalChain', () => {
 describe('findRelationalChainFromLeg', () => {
     it('resolves a degenerate portless edge to its own two (already primitive) endpoints', () => {
         const edge = { from: STRING_ID, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(CUP_ID).addRelationalEdge(edge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(CUP_ID, 'In').addRelationalEdge(edge)
 
         const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge }, { getGraph: envFrom({ [ROOM_ID]: roomGraph }, {}).getGraph })
 
@@ -211,8 +211,8 @@ describe('findRelationalChainFromLeg', () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(exteriorEdge)
-        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(interiorEdge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(exteriorEdge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(interiorEdge)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 
         const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge: exteriorEdge }, { getGraph })
@@ -232,8 +232,8 @@ describe('findRelationalChainFromLeg', () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(exteriorEdge)
-        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(interiorEdge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(exteriorEdge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(interiorEdge)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 
         // Seeded from the *interior* edge this time --- the old walk would have recursed
@@ -258,8 +258,8 @@ describe('findRelationalChainFromLeg', () => {
 
     it('declines when a port address has no backing crossing-port record', () => {
         const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'missing-port' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
-        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In')
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 
         const result = findRelationalChainFromLeg({ hostId: ROOM_ID, edge }, { getGraph })
@@ -282,7 +282,7 @@ describe('findRelationalChainFromLeg', () => {
             cover: { members: [] },
         }
         const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addPresenceNode(presenceNode)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 
@@ -301,7 +301,7 @@ describe('findRelationalChainFromLeg', () => {
     // Asserting the reasons, not just the verdict, is what holds that distinction open.
     it('declines a tagged presence address whose binding is absent from this graph --- not pulled, not dangling', () => {
         const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 
@@ -315,7 +315,7 @@ describe('findRelationalChainFromLeg', () => {
 
     it('declines a bare crossing-port address with no backing port record, as a dangling reference', () => {
         const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'crossing-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addRelationalEdge(edge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
 

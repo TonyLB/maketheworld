@@ -48,9 +48,9 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     },
                 ],
                 edges: [
-                    { tag: 'Relational', kind: 'In', from: boxId, to: tableId },
-                    { tag: 'Relational', kind: 'On', from: featureId, to: tableId },
-                    { tag: 'Relational', kind: 'PartOf', from: featureId, to: areaId, edgeId: 'route1', chainId: 'chain1' },
+                    { tag: 'Relational', kind: 'ConnectedTo', from: boxId, to: tableId },
+                    { tag: 'Relational', kind: 'ConnectedTo', from: featureId, to: tableId },
+                    { tag: 'Relational', kind: 'ConnectedTo', from: featureId, to: areaId, edgeId: 'route1', chainId: 'chain1' },
                     { tag: 'Relational', kind: 'Custom', relationLabel: 'under', from: charId, to: areaId },
                     { tag: 'Relational', kind: 'Custom', relationLabel: 'against', from: roomId, to: featureId },
                     { tag: 'Relational', kind: 'Custom', from: boxId, to: charId, relationLabel: 'Beside' },
@@ -58,13 +58,13 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     // Port-qualified terminal (LG-11): an interior edge landing on this graph's
                     // own boundary port -- `owner: tableId` is `graph.hostId` itself, exactly the
                     // running example's `{owner: OBJECT#Box, port: 8f3a} -TiedTo-> OBJECT#Cup` shape.
-                    { tag: 'Relational', kind: 'On', from: { owner: tableId, port: 'crossport1' }, to: boxId },
+                    { tag: 'Relational', kind: 'ConnectedTo', from: { owner: tableId, port: 'crossport1' }, to: boxId },
                     // Bare presence-node terminal (LG-11, PR-15/PN-6 clause (c)): an edge landing
                     // directly on this graph's own binding1 presence node.
-                    { tag: 'Relational', kind: 'On', from: boxId, to: bindingId },
+                    { tag: 'Relational', kind: 'ConnectedTo', from: boxId, to: bindingId },
                 ],
                 ports: [
-                    { portId: 'crossport1', fromHostId: roomId, kind: 'On' },
+                    { portId: 'crossport1', fromHostId: roomId, kind: 'ConnectedTo' },
                 ],
             })
 
@@ -121,8 +121,8 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                 { tag: 'Presence', universalKey: bindingBId, fromHostPresences: [{ host: hallId, presence: parentRemainderKey(hallId) }], cover: enumeratedCover(endBId, 'PRESENCE#endB-binding') },
             ],
             edges: [
-                { tag: 'Relational', kind: 'PartOf', from: endAId, to: ropeId },
-                { tag: 'Relational', kind: 'PartOf', from: endBId, to: ropeId },
+                { tag: 'Relational', kind: 'ConnectedTo', from: endAId, to: ropeId },
+                { tag: 'Relational', kind: 'ConnectedTo', from: endBId, to: ropeId },
                 { tag: 'Relational', kind: 'Custom', from: endAId, to: endBId, relationLabel: 'spliced to' },
             ],
         })

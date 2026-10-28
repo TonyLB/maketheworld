@@ -1,5 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -14,6 +15,23 @@ type Graphs = ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 export const bindingPointsAt = (moverId: EphemeraMembershipHostId, hostId: EphemeraMembershipHostId, graphs: Graphs): boolean => (
     (graphs.get(moverId)?.presenceNodes ?? []).some((node) => bindingHasParentOn(node, hostId))
 )
+
+/**
+ * The hosting kind a node carries on arrival at a host, before any explicit
+ * `establishRelation` refines it (`put X on Y` sets `On`). An object in a character's graph is
+ * `Held`; an object anywhere else is `In`; a Room, Feature or Area nests `PartOf` (fixed
+ * nesting, not mobile placement). This is what gives take and drop a kind, since they write no
+ * establish step.
+ */
+export const defaultHostingKind = (moverId: EphemeraMembershipHostId, hostId: EphemeraMembershipHostId): EphemeraHostingKind => {
+    if (isEphemeraObjectId(moverId)) {
+        return isEphemeraCharacterId(hostId) ? 'Held' : 'In'
+    }
+    if (isEphemeraRoomId(moverId) || isEphemeraFeatureId(moverId) || isEphemeraAreaId(moverId)) {
+        return 'PartOf'
+    }
+    return 'In'
+}
 
 export type SettleMembershipOutcome =
     | { verdict: 'legal'; graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph> }
@@ -30,7 +48,7 @@ export type SettleMembershipOutcome =
  *   (`hostNotInFootprint`) and still hold the node (`staleTransferCandidate`), and the node leaves
  *   through `applyDeparture`, which runs the boundary-edge legality check (`repairable`, aimed at
  *   `left`). A Room or Feature never relocates, so one departing is a caller bug and throws.
- * - **Arrival at `arrived`**: adds the node only if it is not already there, so arriving where the
+ * - **Arrival at `arrived`**: adds the node, with its `defaultHostingKind`, only if it is not already there, so arriving where the
  *   mover already holds a binding adds nothing, and a replayed population step is harmless.
  *
  * **A bystander** (`isBystanderMove`: a character at a Room) is not a node of the room's graph: neither
@@ -83,7 +101,7 @@ export const settleMembership = (
             throw new Error(`settleMembership: ${moverId} arrives at ${arrived} --- structural invariant violated (an Area is never contained)`)
         }
         if (!destGraph.nodeIds.has(moverId)) {
-            next.set(arrived, destGraph.addNode(moverId))
+            next.set(arrived, destGraph.addNode(moverId, defaultHostingKind(moverId, arrived)))
         }
     }
 

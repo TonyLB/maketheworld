@@ -262,9 +262,8 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
                 jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph(OBJECT_ID, {
                     nodes: [
                         { tag: 'Object', universalKey: OBJECT_ID },
-                        { tag: 'Object', universalKey: CUP_ID },
+                        { tag: 'Object', universalKey: CUP_ID, hostingKind: kind },
                     ],
-                    edges: [{ tag: 'Relational', from: CUP_ID, to: OBJECT_ID, kind }],
                 }))
 
                 const publishSpy = spyPublish()
@@ -305,9 +304,8 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
             jest.spyOn(internalCache.Positions, 'getLudicGraph').mockResolvedValue(testLudicGraph(OBJECT_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: OBJECT_ID },
-                    { tag: 'Object', universalKey: UNNAMED_ID },
+                    { tag: 'Object', universalKey: UNNAMED_ID, hostingKind: 'In' },
                 ],
-                edges: [{ tag: 'Relational', from: UNNAMED_ID, to: OBJECT_ID, kind: 'On' }],
             }))
 
             const publishSpy = spyPublish()
@@ -347,7 +345,7 @@ describe('orchestrateRoomDescriptionStreams object fan-in', () => {
                     { tag: 'Object', universalKey: OBJECT_ID },
                     { tag: 'Feature', universalKey: FEATURE_ID },
                 ],
-                edges: [{ tag: 'Relational', from: FEATURE_ID, to: OBJECT_ID, kind: 'PartOf' }],
+                edges: [{ tag: 'Relational', from: FEATURE_ID, to: OBJECT_ID, kind: 'ConnectedTo' }],
             }))
 
             const publishSpy = spyPublish()

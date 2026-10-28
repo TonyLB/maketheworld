@@ -22,12 +22,10 @@
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
-import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from '../ludicGraph'
+import { EphemeraLudicGraph, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import type { EphemeraLudicCacheCoverEntry, EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode } from './types'
 
@@ -353,14 +351,15 @@ export const mergeSameHostBucket = (
     // Presence nodes aren't reconstructible from `nodeIds` alone (`fromHostPresences`/`cover` have no
     // derivation from the id), and both sides carry the same ones anyway -- every presence node
     // is present in every cut of its own host (PN-6), so `accumulated` and `bucket` are unioning
-    // identical copies here, not merging distinct facts. Component ids stay on the
-    // nodeIds-then-nodeFromId path (presenceNodes Slice 3).
-    const componentNodeIds = [...new Set([...accumulated.nodeIds, ...bucket.nodeIds])]
-        .filter((id) => !isEphemeraPresenceNodeId(id))
+    // identical copies here, not merging distinct facts. Component nodes are taken as records, not
+    // rebuilt with `nodeFromId`, so each keeps its `hostingKind` (the two sides agree on it: both
+    // are cuts of one host's graph).
+    const componentNodes = [...accumulated.componentNodes, ...bucket.componentNodes]
+        .filter((node, index, all) => all.findIndex((other) => other.universalKey === node.universalKey) === index)
     const presenceNodesById = new Map(
         [...accumulated.presenceNodes, ...bucket.presenceNodes].map((node) => [node.universalKey, node])
     )
-    const nodes = [...componentNodeIds.map(nodeFromId), ...presenceNodesById.values()]
+    const nodes = [...componentNodes, ...presenceNodesById.values()]
     const ports = [...accumulated.ports, ...bucket.ports].filter(
         (port, index, all) => !matchedPortIds.has(port.portId) && all.findIndex((p) => p.portId === port.portId) === index
     )
@@ -421,7 +420,12 @@ const presenceCacheNodesFromFold = (
         }
         // A room's binding into an Area is stored as a carve-out with no members (the room rule,
         // PR-21(f)), so it expands to nothing here and a member's bucket is the room's own remainder.
-        const members = presenceNode.cover.members.filter((entry) => entry.host !== root)
+        const members = presenceNode.cover.members
+            .filter((entry) => entry.host !== root)
+            .map((entry) => {
+                const hostingKind = graph.hostingKindOf(entry.host)
+                return hostingKind === undefined ? entry : { ...entry, hostingKind }
+            })
         return [...acc, {
             tag: 'Presence' as const,
             universalKey,

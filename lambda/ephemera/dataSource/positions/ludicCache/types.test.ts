@@ -37,6 +37,15 @@ describe('isEphemeraLudicCacheNode', () => {
         })).toBe(true)
     })
 
+    it('rejects a node carrying hostingKind (per-host, so ambiguous on a cache node)', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Object',
+            universalKey: 'OBJECT#helmet',
+            hostingKind: 'On',
+            presenceNodes: [],
+        })).toBe(false)
+    })
+
     it('rejects a node whose base shape is invalid', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Bogus',
@@ -131,6 +140,24 @@ describe('isEphemeraLudicCachePresenceNode', () => {
         })).toBe(true)
     })
 
+    it.each(['On', 'In', 'Held', 'PartOf', 'SectionOf'])('accepts a cover entry carrying the %s hosting kind', (hostingKind) => {
+        expect(isEphemeraLudicCachePresenceNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
+            cover: { members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1', hostingKind }] },
+        })).toBe(true)
+    })
+
+    it('rejects a cover entry carrying an unknown hosting kind', () => {
+        expect(isEphemeraLudicCachePresenceNode({
+            tag: 'Presence',
+            universalKey: 'PRESENCE#abc123',
+            fromHostPresences: [{ host: 'ROOM#A', presence: parentRemainderKey('ROOM#A') }],
+            cover: { members: [{ host: 'OBJECT#cup', presence: 'PRESENCE#cup1', hostingKind: 'Beside' }] },
+        })).toBe(false)
+    })
+
     it("rejects a binding with a legacy 'Full' cover or a Remainder entry -- unrepresentable in the cache by construction (PN-19)", () => {
         expect(isEphemeraLudicCachePresenceNode({
             tag: 'Presence',
@@ -191,7 +218,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
-            kind: 'On',
+            kind: 'ConnectedTo',
         })).toBe(true)
     })
 
@@ -216,7 +243,7 @@ describe('isEphemeraLudicCacheData', () => {
         tag: 'Relational' as const,
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
-        kind: 'On' as const,
+        kind: 'ConnectedTo' as const,
     }
 
     it('accepts a well-formed cache', () => {

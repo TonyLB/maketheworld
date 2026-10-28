@@ -1,6 +1,6 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicGraphData, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import {
@@ -63,7 +63,7 @@ describe('EphemeraLudicGraph', () => {
             ], HOST_ID)
             expect(graph.toStored()).toEqual({
                 rootId: HOST_ID, ports: [],
-                nodes: [roomNode(HOST_ID), characterNode(CHARACTER_A), characterNode(CHARACTER_B)],
+                nodes: [roomNode(HOST_ID), { ...characterNode(CHARACTER_A), hostingKind: 'In' }, { ...characterNode(CHARACTER_B), hostingKind: 'In' }],
                 edges: [],
             })
         })
@@ -80,16 +80,16 @@ describe('EphemeraLudicGraph', () => {
     describe('membership nodes', () => {
         it('addCharacter appends new node', () => {
             const graph = seedFromActiveCharacters([{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }], HOST_ID)
-            expect(graph.addCharacter(CHARACTER_B).toStored().nodes).toEqual([
+            expect(graph.addCharacter(CHARACTER_B, 'In').toStored().nodes).toEqual([
                 roomNode(HOST_ID),
-                characterNode(CHARACTER_A),
-                characterNode(CHARACTER_B),
+                { ...characterNode(CHARACTER_A), hostingKind: 'In' },
+                { ...characterNode(CHARACTER_B), hostingKind: 'In' },
             ])
         })
 
         it('addCharacter is idempotent when character already present', () => {
             const graph = seedFromActiveCharacters([{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }], HOST_ID)
-            expect(graph.addCharacter(CHARACTER_A)).toBe(graph)
+            expect(graph.addCharacter(CHARACTER_A, 'In')).toBe(graph)
         })
 
         it('characterIds returns set of universal keys', () => {
@@ -102,16 +102,16 @@ describe('EphemeraLudicGraph', () => {
 
         it('addObject appends new node and preserves characters', () => {
             const graph = seedFromActiveCharacters([{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }], HOST_ID)
-            expect(graph.addObject(OBJECT_A).toStored().nodes).toEqual([
+            expect(graph.addObject(OBJECT_A, 'In').toStored().nodes).toEqual([
                 roomNode(HOST_ID),
-                characterNode(CHARACTER_A),
-                objectNode(OBJECT_A),
+                { ...characterNode(CHARACTER_A), hostingKind: 'In' },
+                { ...objectNode(OBJECT_A), hostingKind: 'In' },
             ])
         })
 
         it('addObject is idempotent when object already present', () => {
-            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [] })
-            expect(graph.addObject(OBJECT_A)).toBe(graph)
+            const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, { rootId: HOST_ID, ports: [], nodes: [{ ...objectNode(OBJECT_A), hostingKind: 'In' }], edges: [] })
+            expect(graph.addObject(OBJECT_A, 'In')).toBe(graph)
         })
 
         it('objectIds returns set of object universal keys', () => {
@@ -124,17 +124,17 @@ describe('EphemeraLudicGraph', () => {
 
         it('addRoom appends new node', () => {
             const graph = EphemeraLudicGraph.empty(AREA_HOST_ID)
-            expect(graph.addRoom(CHILD_ROOM_ID).toStored().nodes).toEqual([
+            expect(graph.addRoom(CHILD_ROOM_ID, 'In').toStored().nodes).toEqual([
                 areaNode(AREA_HOST_ID),
-                roomNode(CHILD_ROOM_ID),
+                { ...roomNode(CHILD_ROOM_ID), hostingKind: 'In' },
             ])
         })
 
         it('addRoom is idempotent when room already present', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(AREA_HOST_ID, {
-                rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID), roomNode(CHILD_ROOM_ID)], edges: [],
+                rootId: AREA_HOST_ID, ports: [], nodes: [areaNode(AREA_HOST_ID), { ...roomNode(CHILD_ROOM_ID), hostingKind: 'In' }], edges: [],
             })
-            expect(graph.addRoom(CHILD_ROOM_ID)).toBe(graph)
+            expect(graph.addRoom(CHILD_ROOM_ID, 'In')).toBe(graph)
         })
 
         it('roomIds returns set of room universal keys', () => {
@@ -146,17 +146,17 @@ describe('EphemeraLudicGraph', () => {
 
         it('addFeature appends new node', () => {
             const graph = EphemeraLudicGraph.empty(HOST_ID)
-            expect(graph.addFeature(CHILD_FEATURE_ID).toStored().nodes).toEqual([
+            expect(graph.addFeature(CHILD_FEATURE_ID, 'In').toStored().nodes).toEqual([
                 roomNode(HOST_ID),
-                featureNode(CHILD_FEATURE_ID),
+                { ...featureNode(CHILD_FEATURE_ID), hostingKind: 'In' },
             ])
         })
 
         it('addFeature is idempotent when feature already present', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
-                rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID), featureNode(CHILD_FEATURE_ID)], edges: [],
+                rootId: HOST_ID, ports: [], nodes: [roomNode(HOST_ID), { ...featureNode(CHILD_FEATURE_ID), hostingKind: 'In' }], edges: [],
             })
-            expect(graph.addFeature(CHILD_FEATURE_ID)).toBe(graph)
+            expect(graph.addFeature(CHILD_FEATURE_ID, 'In')).toBe(graph)
         })
 
         it('featureIds returns set of feature universal keys', () => {
@@ -170,7 +170,7 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(AREA_HOST_ID, {
                 rootId: AREA_HOST_ID, ports: [],
                 nodes: [areaNode(AREA_HOST_ID), roomNode(CHILD_ROOM_ID)],
-                edges: [{ tag: 'Relational', from: CHILD_ROOM_ID, to: AREA_HOST_ID, kind: 'PartOf' }],
+                edges: [{ tag: 'Relational', from: CHILD_ROOM_ID, to: AREA_HOST_ID, kind: 'ConnectedTo' }],
             })
             expect(() => graph.removeRoom(CHILD_ROOM_ID)).toThrow(RelationalEdgeStillReferencedError)
         })
@@ -179,7 +179,7 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [roomNode(HOST_ID), featureNode(CHILD_FEATURE_ID)],
-                edges: [{ tag: 'Relational', from: CHILD_FEATURE_ID, to: HOST_ID, kind: 'PartOf' }],
+                edges: [{ tag: 'Relational', from: CHILD_FEATURE_ID, to: HOST_ID, kind: 'ConnectedTo' }],
             })
             expect(() => graph.removeFeature(CHILD_FEATURE_ID)).toThrow(RelationalEdgeStillReferencedError)
         })
@@ -187,10 +187,10 @@ describe('EphemeraLudicGraph', () => {
         describe('addNode/removeNode (kind dispatch)', () => {
             it('addNode dispatches to addObject/addCharacter/addRoom/addFeature by kind', () => {
                 const graph = EphemeraLudicGraph.empty(HOST_ID)
-                expect(graph.addNode(OBJECT_A).objectIds).toEqual(new Set([OBJECT_A]))
-                expect(graph.addNode(CHARACTER_A).characterIds).toEqual(new Set([CHARACTER_A]))
-                expect(EphemeraLudicGraph.empty(AREA_HOST_ID).addNode(CHILD_ROOM_ID).roomIds).toEqual(new Set([CHILD_ROOM_ID]))
-                expect(graph.addNode(CHILD_FEATURE_ID).featureIds).toEqual(new Set([CHILD_FEATURE_ID]))
+                expect(graph.addNode(OBJECT_A, 'In').objectIds).toEqual(new Set([OBJECT_A]))
+                expect(graph.addNode(CHARACTER_A, 'In').characterIds).toEqual(new Set([CHARACTER_A]))
+                expect(EphemeraLudicGraph.empty(AREA_HOST_ID).addNode(CHILD_ROOM_ID, 'In').roomIds).toEqual(new Set([CHILD_ROOM_ID]))
+                expect(graph.addNode(CHILD_FEATURE_ID, 'In').featureIds).toEqual(new Set([CHILD_FEATURE_ID]))
             })
 
             it('removeNode dispatches to removeObject/removeCharacter/removeRoom/removeFeature by kind', () => {
@@ -206,12 +206,83 @@ describe('EphemeraLudicGraph', () => {
         })
     })
 
+    describe('hosting kind', () => {
+        const CHILD_ROOM = 'ROOM#Nested' as EphemeraRoomId
+        const CHILD_FEATURE = 'FEATURE#Nested' as EphemeraFeatureId
+
+        it('refuses a non-root member with no kind, and the root carries none', () => {
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A)).toThrow(/needs a hosting kind/)
+            const graph = EphemeraLudicGraph.empty(HOST_ID)
+            expect(graph.hostingKindOf(HOST_ID)).toBeUndefined()
+            expect('hostingKind' in graph.toStored().nodes[0]).toBe(false)
+        })
+
+        it('sets the kind as part of adding the member, for each add method and addNode', () => {
+            expect(EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On').hostingKindOf(OBJECT_A)).toBe('On')
+            expect(EphemeraLudicGraph.empty(HOST_ID).addCharacter(CHARACTER_A, 'On').hostingKindOf(CHARACTER_A)).toBe('On')
+            expect(EphemeraLudicGraph.empty(AREA_HOST_ID).addRoom(CHILD_ROOM, 'PartOf').hostingKindOf(CHILD_ROOM)).toBe('PartOf')
+            expect(EphemeraLudicGraph.empty(HOST_ID).addFeature(CHILD_FEATURE, 'PartOf').hostingKindOf(CHILD_FEATURE)).toBe('PartOf')
+            expect(EphemeraLudicGraph.empty(HOST_ID).addNode(OBJECT_A, 'In').hostingKindOf(OBJECT_A)).toBe('In')
+        })
+
+        it('throws on a kind that is illegal for the host, and on any kind for the root', () => {
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'Held')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'In')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'SectionOf')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addRoom(HOST_ID, 'In')).toThrow()
+            expect(EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'Held').hostingKindOf(OBJECT_A)).toBe('Held')
+        })
+
+        it('re-adding is a no-op with the same kind, and throws on a different kind or none', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
+            expect(graph.addObject(OBJECT_A, 'On')).toBe(graph)
+            expect(() => graph.addObject(OBJECT_A)).toThrow()
+            expect(() => graph.addObject(OBJECT_A, 'In')).toThrow()
+        })
+
+        it('SectionOf round trips through JSON and the guard (no writer exists for it yet)', () => {
+            const graph = EphemeraLudicGraph.empty(OBJECT_HOST_ID).addObject(OBJECT_A, 'SectionOf')
+            const json = JSON.parse(JSON.stringify(graph.toJSON()))
+            expect(isEphemeraLudicGraphData(json)).toBe(true)
+            expect(EphemeraLudicGraph.fromJSON(json).hostingKindOf(OBJECT_A)).toBe('SectionOf')
+        })
+
+        it('clone and fromFieldPayload preserve the field', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
+            expect(graph.clone().hostingKindOf(OBJECT_A)).toBe('On')
+            expect(EphemeraLudicGraph.fromFieldPayload(HOST_ID, graph.toStored()).hostingKindOf(OBJECT_A)).toBe('On')
+        })
+
+        it('setHostingKind changes the kind of a present node, and is idempotent', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')
+            const on = graph.setHostingKind(OBJECT_A, 'On')
+            expect(on.hostingKindOf(OBJECT_A)).toBe('On')
+            expect(on.setHostingKind(OBJECT_A, 'On')).toBe(on)
+            expect(on.setHostingKind(OBJECT_A, 'In').hostingKindOf(OBJECT_A)).toBe('In')
+            expect(graph.hostingKindOf(OBJECT_A)).toBe('In')
+        })
+
+        it('setHostingKind throws on an absent node, the root, and an illegal kind', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')
+            expect(() => graph.setHostingKind(OBJECT_B, 'On')).toThrow()
+            expect(() => graph.setHostingKind(HOST_ID, 'On')).toThrow()
+            expect(() => graph.setHostingKind(OBJECT_A, 'Held')).toThrow()
+        })
+
+        it('equals distinguishes kinds', () => {
+            const on = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
+            const inside = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')
+            expect(on.equals(inside)).toBe(false)
+            expect(on.equals(EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On'))).toBe(true)
+        })
+    })
+
     describe('removeObject (BD-33/BD-35 assert-and-throw)', () => {
         it('throws RelationalEdgeStillReferencedError when a relational edge still references the object', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
             expect(() => graph.removeObject(OBJECT_A)).toThrow(RelationalEdgeStillReferencedError)
             try {
@@ -229,7 +300,7 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [{ tag: 'Relational', from: OBJECT_B, to: OBJECT_A, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_B, to: OBJECT_A, kind: 'ConnectedTo' }],
             })
             expect(() => graph.removeObject(OBJECT_A)).toThrow(RelationalEdgeStillReferencedError)
         })
@@ -260,7 +331,7 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('preserves unrelated relational edges after a successful assert', () => {
-            const relational = { tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_C, kind: 'On' as const }
+            const relational = { tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_C, kind: 'ConnectedTo' as const }
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B), objectNode(OBJECT_C)],
@@ -275,7 +346,7 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
             expect(() => graph.removeCharacter(CHARACTER_A)).not.toThrow()
         })
@@ -285,7 +356,7 @@ describe('EphemeraLudicGraph', () => {
                 { EphemeraId: CHARACTER_A, DisplayName: 'Alpha' },
                 { EphemeraId: CHARACTER_B, DisplayName: 'Beta' },
             ], HOST_ID)
-            expect(graph.removeCharacter(CHARACTER_A).toStored().nodes).toEqual([roomNode(HOST_ID), characterNode(CHARACTER_B)])
+            expect(graph.removeCharacter(CHARACTER_A).toStored().nodes).toEqual([roomNode(HOST_ID), { ...characterNode(CHARACTER_B), hostingKind: 'In' }])
         })
     })
 
@@ -300,7 +371,7 @@ describe('EphemeraLudicGraph', () => {
             const payload = {
                 rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
-                edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }],
+                edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' as const }],
             }
             const fromJSON = EphemeraLudicGraph.fromJSON({ hostId: HOST_ID, ...payload })
             const fromField = EphemeraLudicGraph.fromFieldPayload(HOST_ID, payload)
@@ -310,7 +381,7 @@ describe('EphemeraLudicGraph', () => {
         it('survives Immer draft revocation --- fromFieldPayload must plain-copy nodes/edges, not retain the draft\'s own element references (regression: MultiKeyUpdate reducers in mtw-utilities/ts/dynamoDB/mixins/transact.ts build their draft via immer produce(), which revokes every draft proxy the instant the reducer returns; a graph built from that draft and retained past the reducer throws "Cannot perform \'get\' on a proxy that has been revoked" on first node/edge property read otherwise)', () => {
             const { produce } = require('immer')
             let escapedGraph: EphemeraLudicGraph | undefined
-            produce({ ludicGraph: { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }] } }, (draft: any) => {
+            produce({ ludicGraph: { rootId: HOST_ID, ports: [], nodes: [objectNode(OBJECT_A)], edges: [{ tag: 'Relational' as const, from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' as const }] } }, (draft: any) => {
                 escapedGraph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, draft.ludicGraph)
             })
             // The producer has returned; `draft` and everything reachable from it is now revoked.
@@ -318,7 +389,7 @@ describe('EphemeraLudicGraph', () => {
             expect(escapedGraph!.toStored()).toEqual({
                 rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
         })
 
@@ -351,14 +422,14 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [characterNode(CHARACTER_A), objectNode(OBJECT_A)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
             expect(graph.toPlayEnvelope()).toEqual({
                 nodes: [
                     { tag: 'Character', universalKey: CHARACTER_A },
                     { tag: 'Object', universalKey: OBJECT_A },
                 ],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
         })
 
@@ -391,7 +462,7 @@ describe('EphemeraLudicGraph', () => {
                 tag: 'Relational' as const,
                 from: { owner: OBJECT_A, port: 'ab6129d' },
                 to: OBJECT_B,
-                kind: 'On' as const,
+                kind: 'ConnectedTo' as const,
             }
             const a = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
@@ -409,7 +480,7 @@ describe('EphemeraLudicGraph', () => {
         // ports round-trips through fromFieldPayload/toStored/toJSON/fromJSON
         // exactly like nodes/edges --- the egress list is not a special case.
         it('ports round-trips through fromFieldPayload and toStored', () => {
-            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'On' as const }]
+            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'ConnectedTo' as const }]
             const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
                 rootId: OBJECT_HOST_ID,
                 nodes: [objectNode(OBJECT_HOST_ID)],
@@ -450,7 +521,7 @@ describe('EphemeraLudicGraph', () => {
             const graph = fromRoomMeta({
                 activeCharacters: [{ EphemeraId: CHARACTER_A, DisplayName: 'Alpha' }],
             }, HOST_ID)
-            expect(graph.toStored().nodes).toEqual([roomNode(HOST_ID), characterNode(CHARACTER_A)])
+            expect(graph.toStored().nodes).toEqual([roomNode(HOST_ID), { ...characterNode(CHARACTER_A), hostingKind: 'In' }])
             expect(graph.rootId).toBe(HOST_ID)
         })
 
@@ -520,27 +591,19 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' },
+                    { tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
                     { to: 'ROOM#Elsewhere', from: OBJECT_A, description: 'north' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+            expect(edges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
-        // extractRelationalEdgesFromStored's fallback branch has its own
-        // HOST_RELATIONAL_EDGE_KINDS Set literal (baseClasses.ts), separate from
-        // ephemeraMeta.ts's. A stale Set here fails silently -- the edge is simply never
-        // pushed -- so this must be checked directly, not inferred from the primary-path test.
-        // Direction corrected 2026-08-20: containment runs member -> root, matching the
-        // subject-predicate-object convention every other kind already follows.
-        it.each(['In', 'PartOf'] as const)('extractRelationalEdgesFromStored survives a %s containment edge', (kind) => {
-            const edges = extractRelationalEdgesFromStored({
-                nodes: [],
-                edges: [
-                    { tag: 'Relational', from: OBJECT_A, to: HOST_ID, kind },
-                ] as unknown as [],
-            })
-            expect(edges).toEqual([{ from: OBJECT_A, to: HOST_ID, kind }])
+        // A hosting kind is a field of the member's node, so a stored
+        // edge carrying one is dropped by the recovery path, not survived, and the guard refuses it.
+        it.each(['On', 'In', 'PartOf'] as const)('extractRelationalEdgesFromStored drops a %s hosting edge rather than recovering it', (kind) => {
+            const edge = { tag: 'Relational', from: OBJECT_A, to: HOST_ID, kind }
+            expect(extractRelationalEdgesFromStored({ nodes: [], edges: [edge] as unknown as [] })).toEqual([])
+            expect(isEphemeraLudicRelationalEdgeData(edge)).toBe(false)
         })
 
         // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
@@ -564,11 +627,11 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' },
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' },
                     { to: 'ROOM#Elsewhere', from: OBJECT_A, description: 'north' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' }])
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
         // Port-terminal regression, fallback path specifically. **The shape that reaches the fallback changed
@@ -583,10 +646,10 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On', relationLabel: 'balanced across' },
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo', relationLabel: 'balanced across' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'On' }])
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
         // The shape that used to reach the fallback, now dropped rather than recovered: there is
@@ -604,8 +667,8 @@ describe('EphemeraLudicGraph', () => {
 
         it('edgesMatch distinguishes Custom relationLabel', () => {
             expect(edgesMatch(
-                { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
-                { from: OBJECT_A, to: OBJECT_B, kind: 'On' }
+                { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }
             )).toBe(true)
             expect(edgesMatch(
                 { from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning' },
@@ -630,10 +693,6 @@ describe('EphemeraLudicGraph', () => {
                 { from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning' },
                 { from: OBJECT_B, to: OBJECT_A, kind: 'Custom', relationLabel: 'leaning' }
             )).toBe(false)
-            expect(edgesMatch(
-                { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
-                { from: OBJECT_B, to: OBJECT_A, kind: 'On' }
-            )).toBe(false)
         })
 
         it('a ConnectedTo edge between binding addresses round-trips through storage', () => {
@@ -651,11 +710,11 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('toStoredRelationalEdge includes relationLabel for Custom only', () => {
-            expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })).toEqual({
+            expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })).toEqual({
                 tag: 'Relational',
                 from: OBJECT_A,
                 to: OBJECT_B,
-                kind: 'On',
+                kind: 'ConnectedTo',
             })
             expect(toStoredRelationalEdge({
                 from: OBJECT_A,
@@ -678,7 +737,7 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('nodeHasRelationalEdge detects endpoint participation', () => {
-            const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
+            const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })
             expect(graph.nodeHasRelationalEdge(OBJECT_A)).toBe(true)
             expect(graph.nodeHasRelationalEdge(OBJECT_B)).toBe(true)
             expect(graph.nodeHasRelationalEdge('OBJECT#Missing' as EphemeraObjectId)).toBe(false)
@@ -698,7 +757,7 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('nodeHasRelationalEdge detects a Room terminal participating in an edge', () => {
-            const edges = [{ from: OBJECT_A, to: 'ROOM#Nested' as EphemeraRoomId, kind: 'On' as const }]
+            const edges = [{ from: OBJECT_A, to: 'ROOM#Nested' as EphemeraRoomId, kind: 'ConnectedTo' as const }]
             expect(nodeHasRelationalEdge('ROOM#Nested' as EphemeraRoomId, edges)).toBe(true)
             expect(nodeHasRelationalEdge('ROOM#Missing' as EphemeraRoomId, edges)).toBe(false)
         })
@@ -708,7 +767,7 @@ describe('EphemeraLudicGraph', () => {
         // construction path put the root in `nodes`, so this failed `bothObjectsOnGraph` even
         // though the edge is legal by every other rule -- the concrete bug this slice fixes.
         it("bothObjectsOnGraph validates a containment edge naming the graph's own root, now that the root is present in nodes", () => {
-            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A)
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')
             expect(graph.bothObjectsOnGraph(OBJECT_A, HOST_ID)).toBe(true)
         })
 
@@ -730,14 +789,14 @@ describe('EphemeraLudicGraph', () => {
             })
 
             it('nodeHasRelationalEdge finds a port-qualified edge (the original vacuous-pass hazard, at the level reachable today)', () => {
-                const edges = [{ from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'On' as const }]
+                const edges = [{ from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'ConnectedTo' as const }]
                 expect(nodeHasRelationalEdge(OBJECT_A, edges)).toBe(true)
                 expect(nodeHasRelationalEdge(OBJECT_C, edges)).toBe(false)
             })
 
             it('edgesMatch distinguishes a port-qualified terminal from its bare owner', () => {
-                const bare = { from: OBJECT_A, to: OBJECT_B, kind: 'On' as const }
-                const portQualified = { from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'On' as const }
+                const bare = { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' as const }
+                const portQualified = { from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'ConnectedTo' as const }
                 expect(edgesMatch(bare, portQualified)).toBe(false)
                 expect(edgesMatch(portQualified, portQualified)).toBe(true)
             })
@@ -746,7 +805,7 @@ describe('EphemeraLudicGraph', () => {
                 // Before the 2026-08-22 widening, isEphemeraLudicRelationalEdgeData rejected a
                 // port-address terminal outright (a non-string .from), so this returned false rather
                 // than throwing. The schema now admits it, so the correct behavior is to find the owner.
-                const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'ab6129d'), to: OBJECT_B, kind: 'On' }
+                const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'ab6129d'), to: OBJECT_B, kind: 'ConnectedTo' }
                 expect(() => edgeReferencesObjectId(rawEdge, OBJECT_A)).not.toThrow()
                 expect(edgeReferencesObjectId(rawEdge, OBJECT_A)).toBe(true)
                 expect(edgeReferencesObjectId(rawEdge, OBJECT_C)).toBe(false)
@@ -754,38 +813,38 @@ describe('EphemeraLudicGraph', () => {
         })
 
         it('addRelationalEdge appends stored edge', () => {
-            const next = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
+            const next = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })
             expect(next.toStored().edges).toEqual([{
                 tag: 'Relational',
                 from: OBJECT_A,
                 to: OBJECT_B,
-                kind: 'On',
+                kind: 'ConnectedTo',
             }])
         })
 
         it('addRelationalEdge is idempotent for exact edge', () => {
-            const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
-            expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })).toBe(graph)
+            const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })
+            expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })).toBe(graph)
         })
 
         it('removeRelationalEdge filters by match', () => {
-            const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
-            expect(graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' }).toStored().edges).toEqual([])
+            const graph = graphWithObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })
+            expect(graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }).toStored().edges).toEqual([])
         })
 
         describe('ports', () => {
             it('addPort appends the port', () => {
-                const next = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
-                expect(next.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' }])
+                const next = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
+                expect(next.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' }])
             })
 
             it('addPort is idempotent for an existing portId', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
-                expect(graph.addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })).toBe(graph)
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
+                expect(graph.addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })).toBe(graph)
             })
 
             it('removePort filters by portId', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
                 expect(graph.removePort('port-1').toStored().ports).toEqual([])
             })
 
@@ -795,9 +854,9 @@ describe('EphemeraLudicGraph', () => {
             })
 
             it('ports round-trip through fromJSON/toStored', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' })
+                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
                 const restored = EphemeraLudicGraph.fromJSON({ hostId: HOST_ID, ...graph.toStored() })
-                expect(restored.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'On' }])
+                expect(restored.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' }])
             })
         })
 
@@ -823,17 +882,17 @@ describe('EphemeraLudicGraph', () => {
             // label an edge may carry, and a chain is what a comparison consults.
             it('edgesMatch ignores edgeId entirely', () => {
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-2' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-2' }
                 )).toBe(true)
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }
                 )).toBe(true)
                 // And an agreeing id does not rescue disagreeing structure.
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' },
-                    { from: OBJECT_A, to: OBJECT_C, kind: 'On', edgeId: 'edge-1' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-1' },
+                    { from: OBJECT_A, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-1' }
                 )).toBe(false)
             })
 
@@ -843,8 +902,8 @@ describe('EphemeraLudicGraph', () => {
             // lifted, which is a separate change and not this one.
             it('addRelationalEdge still dedupes structurally, however the ids differ', () => {
                 const graph = graphWithThreeObjects()
-                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })
-                expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-2' })).toBe(graph)
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-1' })
+                expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-2' })).toBe(graph)
             })
 
             // The round trip that catches a half-done carry. removeRelationalEdge re-serialises
@@ -854,11 +913,11 @@ describe('EphemeraLudicGraph', () => {
             // That failure type-checks cleanly, so only a behavioral test finds it.
             it('removeRelationalEdge preserves surviving edges edgeIds', () => {
                 const graph = graphWithThreeObjects()
-                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-1' })
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning', edgeId: 'edge-2' })
                     .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under' })
 
-                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })
+                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })
 
                 expect(next.toStored().edges).toStrictEqual([
                     { tag: 'Relational', edgeId: 'edge-2', from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' },
@@ -867,8 +926,8 @@ describe('EphemeraLudicGraph', () => {
             })
 
             it('toStoredRelationalEdge carries edgeId on both arms and omits the key when absent', () => {
-                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', edgeId: 'edge-1' })).toStrictEqual({
-                    tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'On',
+                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-1' })).toStrictEqual({
+                    tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo',
                 })
                 expect(toStoredRelationalEdge({
                     from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning', edgeId: 'edge-1',
@@ -877,16 +936,16 @@ describe('EphemeraLudicGraph', () => {
                 })
                 // Absent stays absent rather than becoming an explicit `undefined` key, which is
                 // why toStrictEqual is used here: toEqual would not see the difference.
-                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })).toStrictEqual({
-                    tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On',
+                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })).toStrictEqual({
+                    tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo',
                 })
             })
 
             it('extractRelationalEdgesFromStored carries a valid edgeId and strips an unusable one', () => {
                 expect(extractRelationalEdgesFromStored({
                     nodes: [],
-                    edges: [{ tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' }] as unknown as [],
-                })).toStrictEqual([{ edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+                    edges: [{ tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }] as unknown as [],
+                })).toStrictEqual([{ edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
 
                 // An empty id fails the stored guard, so this row reaches the recovery branch ---
                 // which keeps the relation and drops the id, on the same reasoning that strips a
@@ -894,8 +953,8 @@ describe('EphemeraLudicGraph', () => {
                 // relation over an unusable id is the worse outcome.
                 expect(extractRelationalEdgesFromStored({
                     nodes: [],
-                    edges: [{ tag: 'Relational', edgeId: '', from: OBJECT_A, to: OBJECT_B, kind: 'On' }] as unknown as [],
-                })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+                    edges: [{ tag: 'Relational', edgeId: '', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }] as unknown as [],
+                })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
             })
         })
 
@@ -915,19 +974,19 @@ describe('EphemeraLudicGraph', () => {
             // field safe to introduce on a live graph.
             it('edgesMatch decides on structure when neither leg names a chain', () => {
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }
                 )).toBe(true)
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
-                    { from: OBJECT_A, to: OBJECT_C, kind: 'On' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                    { from: OBJECT_A, to: OBJECT_C, kind: 'ConnectedTo' }
                 )).toBe(false)
             })
 
             it('edgesMatch matches two legs of the same chain', () => {
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' }
                 )).toBe(true)
             })
 
@@ -935,8 +994,8 @@ describe('EphemeraLudicGraph', () => {
             // and one chain silently loses a leg.
             it('edgesMatch separates structurally identical legs of different chains', () => {
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-2' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-2' }
                 )).toBe(false)
             })
 
@@ -946,12 +1005,12 @@ describe('EphemeraLudicGraph', () => {
             // so remove-by-anonymous-shape must not reach a named leg, and vice versa.
             it('edgesMatch separates a named leg from an anonymous one', () => {
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }
                 )).toBe(false)
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On' },
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' }
                 )).toBe(false)
             })
 
@@ -960,8 +1019,8 @@ describe('EphemeraLudicGraph', () => {
             // they are different legs, told apart by their endpoints exactly as before.
             it('edgesMatch keeps two legs of one chain distinct', () => {
                 expect(edgesMatch(
-                    { from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' },
-                    { from: OBJECT_B, to: OBJECT_C, kind: 'On', chainId: 'chain-1' }
+                    { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' },
+                    { from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', chainId: 'chain-1' }
                 )).toBe(false)
             })
 
@@ -969,26 +1028,26 @@ describe('EphemeraLudicGraph', () => {
             // chainIds now make a second structurally identical leg representable.
             it('addRelationalEdge keeps both legs when the chains differ, and dedupes when they agree', () => {
                 const graph = graphWithThreeObjects()
-                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
-                const both = graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-2' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })
+                const both = graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-2' })
                 expect(both.relationalEdges).toStrictEqual([
-                    { chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' },
-                    { chainId: 'chain-2', from: OBJECT_A, to: OBJECT_B, kind: 'On' },
+                    { chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                    { chainId: 'chain-2', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
                 ])
-                expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })).toBe(graph)
+                expect(graph.addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })).toBe(graph)
             })
 
             // remove is aimed by chain too, so removing one chain's leg leaves the structurally
             // identical leg of the other chain standing.
             it('removeRelationalEdge removes only the named chain\'s leg', () => {
                 const graph = graphWithThreeObjects()
-                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
-                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-2' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-2' })
 
-                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
+                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })
 
                 expect(next.toStored().edges).toStrictEqual([
-                    { tag: 'Relational', chainId: 'chain-2', from: OBJECT_A, to: OBJECT_B, kind: 'On' },
+                    { tag: 'Relational', chainId: 'chain-2', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
                 ])
             })
 
@@ -1000,12 +1059,12 @@ describe('EphemeraLudicGraph', () => {
             // independently: either may be present without the other.
             it('removeRelationalEdge preserves surviving legs chainIds', () => {
                 const graph = graphWithThreeObjects()
-                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning', chainId: 'chain-2' })
                     .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under', edgeId: 'edge-1', chainId: 'chain-2' })
                     .addRelationalEdge({ from: OBJECT_C, to: OBJECT_A, kind: 'Custom', relationLabel: 'against', edgeId: 'edge-2' })
 
-                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })
+                const next = graph.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })
 
                 expect(next.toStored().edges).toStrictEqual([
                     { tag: 'Relational', chainId: 'chain-2', from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' },
@@ -1015,24 +1074,24 @@ describe('EphemeraLudicGraph', () => {
             })
 
             it('toStoredRelationalEdge carries chainId on both arms and omits the key when absent', () => {
-                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On', chainId: 'chain-1' })).toStrictEqual({
-                    tag: 'Relational', chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'On',
+                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })).toStrictEqual({
+                    tag: 'Relational', chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo',
                 })
                 expect(toStoredRelationalEdge({
                     from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning', chainId: 'chain-1',
                 })).toStrictEqual({
                     tag: 'Relational', chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'leaning',
                 })
-                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'On' })).toStrictEqual({
-                    tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On',
+                expect(toStoredRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })).toStrictEqual({
+                    tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo',
                 })
             })
 
             it('extractRelationalEdgesFromStored carries a valid chainId and strips an unusable one', () => {
                 expect(extractRelationalEdgesFromStored({
                     nodes: [],
-                    edges: [{ tag: 'Relational', chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' }] as unknown as [],
-                })).toStrictEqual([{ chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+                    edges: [{ tag: 'Relational', chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }] as unknown as [],
+                })).toStrictEqual([{ chainId: 'chain-1', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
 
                 // An empty chainId fails the stored guard, so this row reaches the recovery
                 // branch --- which keeps the relation and drops the chain, on the edgeId
@@ -1041,8 +1100,8 @@ describe('EphemeraLudicGraph', () => {
                 // chain's siblings. Losing a real relation is still the worse outcome.
                 expect(extractRelationalEdgesFromStored({
                     nodes: [],
-                    edges: [{ tag: 'Relational', chainId: '', from: OBJECT_A, to: OBJECT_B, kind: 'On' }] as unknown as [],
-                })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+                    edges: [{ tag: 'Relational', chainId: '', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }] as unknown as [],
+                })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
             })
         })
     })
@@ -1050,7 +1109,7 @@ describe('EphemeraLudicGraph', () => {
     describe('applyRelationalPatch', () => {
         const onTablePatch = {
             hostId: HOST_ID,
-            edge: { from: OBJECT_A, to: OBJECT_B, kind: 'On' as const },
+            edge: { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' as const },
             op: 'add' as const,
         }
 
@@ -1060,14 +1119,14 @@ describe('EphemeraLudicGraph', () => {
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
             })
             const next = graph.applyRelationalPatch(onTablePatch)
-            expect(next.relationalEdges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'On' }])
+            expect(next.relationalEdges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
         it('returns same instance on idempotent add', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
             expect(graph.applyRelationalPatch(onTablePatch)).toBe(graph)
         })
@@ -1076,7 +1135,7 @@ describe('EphemeraLudicGraph', () => {
             const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                 rootId: HOST_ID, ports: [],
                 nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
-                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }],
             })
             const next = graph.applyRelationalPatch({ ...onTablePatch, op: 'remove' })
             expect(next.relationalEdges).toEqual([])

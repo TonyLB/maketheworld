@@ -258,6 +258,70 @@ describe('buildLudicCache', () => {
         ])
     })
 
+    // the kind rides on the cover entry, per host, not on the node (which several
+    // hosts share) and not as an edge. A member listed by two bindings of one host repeats its kind.
+    it('carries each member\'s hosting kind on its cover entries, in the host that holds it', async () => {
+        const objB = 'OBJECT#B' as EphemeraObjectId
+        const objC = 'OBJECT#C' as EphemeraObjectId
+        const roomGraph = testLudicGraph(roomA, {
+            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: objX, hostingKind: 'In' }],
+        })
+        const xGraph = testLudicGraph(objX, {
+            nodes: [
+                { tag: 'Object', universalKey: objX },
+                { tag: 'Object', universalKey: objB, hostingKind: 'On' },
+                { tag: 'Object', universalKey: objC, hostingKind: 'SectionOf' },
+                presenceNode('p1', roomA, { members: [{ host: objB, presence: 'PRESENCE#b_in_p1' as EphemeraPresenceNodeId }] }),
+                presenceNode('p2', roomA, { members: [
+                    { host: objB, presence: 'PRESENCE#b_in_p2' as EphemeraPresenceNodeId },
+                    { host: objC, presence: 'PRESENCE#c_in_p2' as EphemeraPresenceNodeId },
+                ] }),
+            ],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [roomA, roomGraph], [objX, xGraph],
+            [objB, testLudicGraph(objB, { nodes: [{ tag: 'Object', universalKey: objB }, presenceNode('b_in_p1', objX, { members: [] }), presenceNode('b_in_p2', objX, { members: [] })] })],
+            [objC, testLudicGraph(objC, { nodes: [{ tag: 'Object', universalKey: objC }, presenceNode('c_in_p2', objX, { members: [] })] })],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) as EphemeraLudicGraph
+        const run = () => buildLudicCache(roomA, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
+
+        const { cache } = await run()
+        const bindings = (hostId: EphemeraMembershipHostId) => cache.nodes.find((node) => node.universalKey === hostId)?.presenceNodes ?? []
+        expect(bindings(objX).find((binding) => binding.universalKey === 'PRESENCE#p1')?.cover.members).toEqual([
+            { host: objB, presence: 'PRESENCE#b_in_p1', hostingKind: 'On' },
+        ])
+        expect(bindings(objX).find((binding) => binding.universalKey === 'PRESENCE#p2')?.cover.members).toEqual([
+            { host: objB, presence: 'PRESENCE#b_in_p2', hostingKind: 'On' },
+            { host: objC, presence: 'PRESENCE#c_in_p2', hostingKind: 'SectionOf' },
+        ])
+        expect(cache.edges).toEqual([])
+        expect(cache.nodes.every((node) => !('hostingKind' in node))).toBe(true)
+        expect(isEphemeraLudicCacheData(cache)).toBe(true)
+        expect((await run()).cache).toEqual(cache)
+    })
+
+    it('carries Held on the cover entry of an object in a character host', async () => {
+        const character = 'CHARACTER#Tess' as EphemeraCharacterId
+        const cup = 'OBJECT#Cup' as EphemeraObjectId
+        const charGraph = testLudicGraph(character, {
+            nodes: [
+                { tag: 'Character', universalKey: character },
+                { tag: 'Object', universalKey: cup, hostingKind: 'Held' },
+                presenceNode('held', roomA, { members: [{ host: cup, presence: 'PRESENCE#cup_held' as EphemeraPresenceNodeId }] }),
+            ],
+        })
+        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+            [character, charGraph],
+            [cup, testLudicGraph(cup, { nodes: [{ tag: 'Object', universalKey: cup }] })],
+        ])
+        const getLudicGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) as EphemeraLudicGraph
+        const { cache } = await buildLudicCache(character, [testAssetUUID], { getLudicGraph, ...noShortNameDeps() })
+        expect(cache.nodes.find((node) => node.universalKey === character)?.presenceNodes[0].cover.members).toEqual([
+            { host: cup, presence: 'PRESENCE#cup_held', hostingKind: 'Held' },
+        ])
+    })
+
     // The room rule (PR-21(f)), as population stores it: the room's hostless remainder holds its
     // contents and its Area binding is a carve-out with no members. The fold keeps both as stored.
     it('keeps a room\'s empty Area carve-out empty while its hostless root binding holds its contents', async () => {
@@ -373,7 +437,7 @@ describe('buildLudicCache', () => {
     it('collapses a crossing to one edge when a child is bound twice into the same host', async () => {
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boulder }, { tag: 'Object', universalKey: boxId }],
-            edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'port_1' }, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'port_1' }, kind: 'ConnectedTo' }],
         })
         const boxGraph = testLudicGraph(boxId, {
             nodes: [
@@ -382,8 +446,8 @@ describe('buildLudicCache', () => {
                 presenceNode('box_in_a_1', roomA, { members: [] }),
                 presenceNode('box_in_a_2', roomA, { members: [] }),
             ],
-            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'On' }],
-            ports: [{ portId: 'port_1', fromHostId: roomA, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'ConnectedTo' }],
+            ports: [{ portId: 'port_1', fromHostId: roomA, kind: 'ConnectedTo' }],
         })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, roomGraph], [boxId, boxGraph],
@@ -420,8 +484,8 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: pebble },
                 presenceNode('box_to_room', roomA, enumeratedCover()),
             ],
-            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'On' }],
-            ports: [{ portId: 'port_1', fromHostId: boxId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'ConnectedTo' }],
+            ports: [{ portId: 'port_1', fromHostId: boxId, kind: 'ConnectedTo' }],
         })
         const boulderGraph = testLudicGraph(boulder, { nodes: [{ tag: 'Object', universalKey: boulder }] })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([

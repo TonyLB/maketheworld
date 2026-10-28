@@ -82,12 +82,12 @@ describe('applyStepSequenceCore', () => {
         expect(nextDest.relationalEdges).toEqual([])
     })
 
-    it('a move before establishRelation lands the relation on the shared destination host', () => {
+    it('a move before setHostingKind sets the kind on the arrived node in the destination host', () => {
         const sourceGraph = hostHolding(roomId, object(trayId))
         const destGraph = testLudicGraph(characterId, { nodes: [{ tag: 'Object', universalKey: glassId }, presenceBindingNode(parentRemainderKey(characterId))] })
         const steps: MutationKernelStep[] = [
             moveStep(trayId, 'PRESENCE#Base', remainderOf(roomId), remainderOf(characterId)),
-            { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: characterId, relationKind: 'On' },
+            { kind: 'setHostingKind', hostId: characterId, memberId: trayId, hostingKind: 'On' },
         ]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [characterId, destGraph], [trayId, moverAt(trayId, roomId)]))
@@ -96,7 +96,81 @@ describe('applyStepSequenceCore', () => {
         if (outcome.verdict !== 'legal') return
         const nextDest = outcome.graphs.get(characterId)!
         expect(nextDest.objectIds.has(trayId)).toBe(true)
-        expect(nextDest.relationalEdges).toEqual([{ from: trayId, to: glassId, kind: 'On' }])
+        // a hosting kind lands on the arrived node, refining the `Held` its arrival gave it; no edge
+        expect(nextDest.hostingKindOf(trayId)).toBe('On')
+        expect(nextDest.relationalEdges).toEqual([])
+    })
+
+    it('a move alone gives the arriving object its default kind: Held in a character, In elsewhere (take and drop write no establish)', () => {
+        const roomGraph = hostHolding(roomId, object(trayId))
+        const taken = applyStepSequenceCore(
+            [moveStep(trayId, 'PRESENCE#Base', remainderOf(roomId), remainderOf(characterId))],
+            graphsMap([roomId, roomGraph], [characterId, hostHolding(characterId)], [trayId, moverAt(trayId, roomId)])
+        )
+        expect(taken.verdict).toBe('legal')
+        if (taken.verdict !== 'legal') return
+        expect(taken.graphs.get(characterId)!.hostingKindOf(trayId)).toBe('Held')
+
+        const dropped = applyStepSequenceCore(
+            [moveStep(trayId, 'PRESENCE#Base', remainderOf(characterId), remainderOf(roomId))],
+            graphsMap([roomId, hostHolding(roomId)], [characterId, hostHolding(characterId, object(trayId))], [trayId, moverAt(trayId, characterId)])
+        )
+        expect(dropped.verdict).toBe('legal')
+        if (dropped.verdict !== 'legal') return
+        expect(dropped.graphs.get(roomId)!.hostingKindOf(trayId)).toBe('In')
+    })
+
+    it('setHostingKind to the kind the node already holds is a no-op: the graph is returned unchanged', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId, hostingKind: 'On' },
+                presenceBindingNode(parentRemainderKey(roomId)),
+            ],
+        })
+        const steps: MutationKernelStep[] = [{ kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'On' }]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        expect(outcome.graphs.get(roomId)).toBe(graph)
+    })
+
+    it('setHostingKind accepts Held on a character host and SectionOf on a room host, and throws on a kind the host refuses', () => {
+        const held = applyStepSequenceCore(
+            [{ kind: 'setHostingKind', hostId: characterId, memberId: trayId, hostingKind: 'Held' }],
+            graphsMap([characterId, hostHolding(characterId, object(trayId))])
+        )
+        expect(held.verdict).toBe('legal')
+        if (held.verdict !== 'legal') return
+        expect(held.graphs.get(characterId)!.hostingKindOf(trayId)).toBe('Held')
+
+        const section = applyStepSequenceCore(
+            [{ kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'SectionOf' }],
+            graphsMap([roomId, hostHolding(roomId, object(trayId))])
+        )
+        expect(section.verdict).toBe('legal')
+        if (section.verdict !== 'legal') return
+        expect(section.graphs.get(roomId)!.hostingKindOf(trayId)).toBe('SectionOf')
+
+        // legality reads the host's own root node, so this graph names it
+        const roomWithRoot = testLudicGraph(roomId, { nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: trayId, hostingKind: 'In' }, presenceBindingNode(parentRemainderKey(roomId))] })
+        expect(() => applyStepSequenceCore(
+            [{ kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'Held' }],
+            graphsMap([roomId, roomWithRoot])
+        )).toThrow(/not legal on a Room host/)
+    })
+
+    it('setHostingKind throws on an absent member, and is stale (hostNotInFootprint) when the host is not in the footprint', () => {
+        expect(() => applyStepSequenceCore(
+            [{ kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'On' }],
+            graphsMap([roomId, hostHolding(roomId)])
+        )).toThrow(/not a member/)
+
+        expect(applyStepSequenceCore(
+            [{ kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'On' }],
+            graphsMap([characterId, hostHolding(characterId)])
+        )).toEqual({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
     })
 
     it('BD-28 alone: a bare dissolveRelation step actually removes the edge, no membership change', () => {
@@ -106,9 +180,9 @@ describe('applyStepSequenceCore', () => {
                 { tag: 'Object', universalKey: tableId },
                 presenceBindingNode(parentRemainderKey(roomId)),
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
-        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' }]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
 
@@ -126,14 +200,14 @@ describe('applyStepSequenceCore', () => {
         // glassId's, so `confirmCarriedHost` catches the mismatch and throws (Expansion computed
         // the wrong host, a structural bug, not a stale candidate --- both endpoints still exist
         // somewhere in the footprint).
-        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }]
 
         expect(() => applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph], [otherRoomId, otherGraph]))).toThrow(
             /do not share host/
         )
     })
 
-    it('establishRelation with a non-Object (Character) subject commits, hostGraph resolves via nodeIds', () => {
+    it('setHostingKind with a Character member sets its kind (worn: On a character in a room)', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Character', universalKey: characterId },
@@ -142,7 +216,7 @@ describe('applyStepSequenceCore', () => {
             ],
         })
         const steps: MutationKernelStep[] = [
-            { kind: 'establishRelation', subjectId: characterId, targetId: tableId, hostId: roomId, relationKind: 'On' },
+            { kind: 'setHostingKind', hostId: roomId, memberId: characterId, hostingKind: 'On' },
         ]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
@@ -150,10 +224,11 @@ describe('applyStepSequenceCore', () => {
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
         const nextGraph = outcome.graphs.get(roomId)!
-        expect(nextGraph.relationalEdges).toEqual([{ from: characterId, to: tableId, kind: 'On' }])
+        expect(nextGraph.hostingKindOf(characterId)).toBe('On')
+        expect(nextGraph.relationalEdges).toEqual([])
     })
 
-    it('AB-54 hosting kinds: establishRelation carries the correct host explicitly, not resolved by intersection (put cup on table)', () => {
+    it('AB-54 hosting kinds: setHostingKind names the destination host explicitly, not resolved by intersection (put cup on table)', () => {
         // `tableId` is simultaneously an ordinary member of the room's graph (it sits there) *and*
         // the self-referencing root of its own shard graph (a hosting kind puts the moved object
         // there, AB-54) --- both graphs are locked in the same footprint. Previously, an
@@ -166,7 +241,7 @@ describe('applyStepSequenceCore', () => {
         const tableGraph = testLudicGraph(tableId, { nodes: [{ tag: 'Object', universalKey: tableId }, presenceBindingNode('table-root')] })
         const steps: MutationKernelStep[] = [
             moveStep(trayId, 'PRESENCE#Base', remainderOf(roomId), { host: tableId, presence: 'PRESENCE#table-root' }),
-            { kind: 'establishRelation', subjectId: trayId, targetId: tableId, hostId: tableId, relationKind: 'On' },
+            { kind: 'setHostingKind', hostId: tableId, memberId: trayId, hostingKind: 'On' },
         ]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, roomGraph], [tableId, tableGraph], [trayId, moverAt(trayId, roomId)]))
@@ -178,7 +253,8 @@ describe('applyStepSequenceCore', () => {
         expect(nextRoom.objectIds.has(trayId)).toBe(false)
         expect(nextRoom.objectIds.has(tableId)).toBe(true)
         expect(nextTableShard.objectIds.has(trayId)).toBe(true)
-        expect(nextTableShard.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
+        expect(nextTableShard.hostingKindOf(trayId)).toBe('On')
+        expect(nextTableShard.relationalEdges).toEqual([])
     })
 
     it('stale (hostNotInFootprint): a move whose departure host is absent from the graphs map', () => {
@@ -203,7 +279,7 @@ describe('applyStepSequenceCore', () => {
 
     it('illegal (staleRelationalCandidate): a relational step endpoint unresolvable across the footprint graphs', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode(parentRemainderKey(roomId))] })
-        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }]
         expect(applyStepSequenceCore(steps, graphsMap([roomId, sourceGraph]))).toEqual({
             verdict: 'stale',
             reasonCode: 'staleRelationalCandidate',
@@ -385,10 +461,10 @@ describe('applyStepSequenceCore', () => {
                     { tag: 'Object', universalKey: tableId },
                     presenceBindingNode(parentRemainderKey(roomId)),
                 ],
-                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
             })
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' },
                 releaseStep(trayId, 'PRESENCE#Base', remainderOf(roomId)),
             ]
 
@@ -1292,11 +1368,7 @@ describe('applyStepSequenceCore', () => {
 
     describe('ConnectedTo legality', () => {
         const roomWithSiblings = () => testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, object(trayId), object(glassId), presenceBindingNode(parentRemainderKey(roomId))],
-            edges: [
-                { tag: 'Relational', from: trayId, to: roomId, kind: 'In' },
-                { tag: 'Relational', from: glassId, to: roomId, kind: 'In' },
-            ],
+            nodes: [{ tag: 'Room', universalKey: roomId }, { ...object(trayId), hostingKind: 'In' as const }, { ...object(glassId), hostingKind: 'In' as const }, presenceBindingNode(parentRemainderKey(roomId))],
         })
         const connect = (relationKind: 'ConnectedTo' | 'Custom'): MutationKernelStep => ({
             kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId,
@@ -1315,11 +1387,7 @@ describe('applyStepSequenceCore', () => {
 
         it('commits a ConnectedTo between two parts of one whole', () => {
             const whole = testLudicGraph(trayId, {
-                nodes: [object(trayId), object(glassId), object(tableId), presenceBindingNode(parentRemainderKey(trayId))],
-                edges: [
-                    { tag: 'Relational', from: glassId, to: trayId, kind: 'PartOf' },
-                    { tag: 'Relational', from: tableId, to: trayId, kind: 'PartOf' },
-                ],
+                nodes: [object(trayId), { ...object(glassId), hostingKind: 'PartOf' }, { ...object(tableId), hostingKind: 'PartOf' }, presenceBindingNode(parentRemainderKey(trayId))],
             })
             const outcome = applyStepSequenceCore(
                 [{ kind: 'establishRelation', subjectId: glassId, targetId: tableId, hostId: trayId, relationKind: 'ConnectedTo' }],

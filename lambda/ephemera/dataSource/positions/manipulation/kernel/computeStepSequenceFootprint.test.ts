@@ -15,14 +15,14 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 
 describe('computeStepSequenceFootprint', () => {
     it('a relational step derives both endpoints host via getCurrentHost', () => {
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }
         const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === trayId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
     it('unions hosts across a multi-step sequence with no duplicates', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' },
+            { kind: 'dissolveRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' },
             { kind: 'reparentPresenceBinding', hostId: trayId, presence: 'PRESENCE#t' as any, lose: [{ host: roomId, presence: parentRemainderKey(roomId) }], gain: [{ host: characterId, presence: 'PRESENCE#c' as any }] },
         ]
         const getCurrentHost = () => roomId
@@ -30,14 +30,19 @@ describe('computeStepSequenceFootprint', () => {
     })
 
     it('a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, hostId: roomId, relationKind: 'ConnectedTo' }
         const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === characterId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
     it('throws when getCurrentHost cannot resolve a relational step endpoint', () => {
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }
         expect(() => computeStepSequenceFootprint([step], () => undefined)).toThrow()
+    })
+
+    it('a setHostingKind step contributes its hostId and resolves no endpoint host', () => {
+        const step: MutationKernelStep = { kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'On' }
+        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
     })
 
     it('addCrossingPort/removeCrossingPort steps contribute their hostId directly', () => {

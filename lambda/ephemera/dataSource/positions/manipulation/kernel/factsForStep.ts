@@ -82,6 +82,12 @@ export const factsForStep = (
         return []
     }
 
+    // a hosting kind is a property of one membership, and `Object Relation Changed` has no consumer
+    // for it: the move's own fact already covers the arrival.
+    if (step.kind === 'setHostingKind') {
+        return []
+    }
+
     // a crossing leg names a port, not the edge's real pair, so it yields no fact; the edge's
     // one fact comes from `factForRelationalEdge`, when the caller supplies the edge.
     if (!isEphemeraLudicTerminalPrimitive(step.subjectId) || !isEphemeraLudicTerminalPrimitive(step.targetId)) {

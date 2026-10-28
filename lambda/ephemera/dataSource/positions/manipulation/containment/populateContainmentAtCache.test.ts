@@ -52,13 +52,12 @@ describe('populateContainmentAtCache', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps.filter((step: any) => step.kind === 'establishRelation').map((step: any) => step.relationKind)).toEqual(['PartOf', 'PartOf', 'In'])
+        expect(steps.filter((step: any) => step.kind === 'setHostingKind').map((step: any) => step.hostingKind)).toEqual(['PartOf', 'PartOf', 'In'])
     })
 
     it('does nothing when every named child is already fully populated', async () => {
         const parentGraph = testLudicGraph(AREA_ID, {
-            nodes: [{ tag: 'Room', universalKey: ROOM_A }, presenceBindingNode('Base')],
-            edges: [{ tag: 'Relational', from: ROOM_A, to: AREA_ID, kind: 'PartOf' }],
+            nodes: [{ tag: 'Room', universalKey: ROOM_A, hostingKind: 'PartOf' }, presenceBindingNode('Base')],
         })
         const childGraph = testLudicGraph(ROOM_A, {
             nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresences: [{ host: AREA_ID, presence: 'PRESENCE#Base' }], cover: { members: [] } }],
@@ -82,7 +81,7 @@ describe('populateContainmentAtCache', () => {
 
         expect(commitStepSequence).toHaveBeenCalledTimes(1)
         const [{ steps }, deps] = (commitStepSequence as jest.Mock).mock.calls[0]
-        expect(steps).toHaveLength(5) // the Area's root, then 2 steps (binding, edge) x 2 children
+        expect(steps).toHaveLength(5) // the Area's root, then 2 steps (binding, kind) x 2 children
         expect(steps[0]).toEqual({ kind: 'addPresenceBinding', hostId: AREA_ID, fromHostPresences: [], presenceUuid: expect.any(String) })
         expect(steps.filter((step: any) => step.kind === 'addPresenceBinding' && step.fromHostPresences.length)).toHaveLength(2)
         expect(deps.messageBus).toBe(messageBus)

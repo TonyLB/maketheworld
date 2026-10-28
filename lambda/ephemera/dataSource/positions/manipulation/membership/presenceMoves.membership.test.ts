@@ -260,9 +260,9 @@ describe('a move of one part leaves the mover a member of both hosts', () => {
         [rug]: testLudicGraph(rug, { nodes: [{ tag: 'Object', universalKey: rug }, presenceBindingNode('rug', roomA), presenceBindingNode('rug-far', roomA)] }),
     })
 
-    it('holds the rug in the room and on the table, one part in each, with its On edge on the table', async () => {
+    it('holds the rug in the room and on the table, one part in each, with its On kind on the table', async () => {
         const before = world()
-        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, moverBindings: [presence('rug-far')], containment: 'On', getGraph: worldOf(before) })
+        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, moverBindings: [presence('rug-far')], hostingKind: 'On', getGraph: worldOf(before) })
         if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }
         const steps = planned.plan.steps.filter(isKernelMutationStep)
         const prior = new Map(Object.entries(before) as [EphemeraMembershipHostId, EphemeraLudicGraph][])
@@ -271,7 +271,8 @@ describe('a move of one part leaves the mover a member of both hosts', () => {
         expect(after.get(roomA)!.nodeIds.has(rug)).toBe(true)
         expect(after.get(table)!.nodeIds.has(rug)).toBe(true)
         expect(after.get(rug)!.presenceNodes.map(({ universalKey }) => universalKey)).toEqual([presence('rug'), presence('rug-far')])
-        expect(after.get(table)!.relationalEdges).toEqual([expect.objectContaining({ from: rug, to: table, kind: 'On' })])
+        expect(after.get(table)!.hostingKindOf(rug)).toBe('On')
+        expect(after.get(table)!.relationalEdges).toEqual([])
 
         const changes = membershipChangesOf(steps, prior, after)
         expect(changes).toEqual([expect.objectContaining({ entityId: rug, left: [], arrived: [table] })])

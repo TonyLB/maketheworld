@@ -699,14 +699,11 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
     if (chain === undefined) {
         return { verdict: 'illegal', decidable: true, reason: 'No relational chain found for this candidate' }
     }
-    // Hosting kinds are rejected by the narrow relation vocabulary before a candidate exists, so
-    // this check guards the chain's first edge only (see the relational route's notes).
+    // A stored edge cannot carry a hosting kind (it is a field of the member's node), so the chain's
+    // edges need no hosting check; only that the chain has an edge at all.
     const firstEdge = chain.steps.find((step) => step.type === 'edge')
     if (firstEdge === undefined || firstEdge.type !== 'edge') {
         return { verdict: 'illegal', decidable: true, reason: 'No edge found in this candidate\'s chain' }
-    }
-    if (firstEdge.edge.kind === 'In' || firstEdge.edge.kind === 'PartOf' || firstEdge.edge.kind === 'On') {
-        return { verdict: 'illegal', decidable: true, reason: 'Hosting-kind relation is not supported on the ingress relational route' }
     }
     // A candidate whose Expansion found a chain is legal: the kernel rechecks every leg at commit.
     return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }

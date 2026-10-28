@@ -398,7 +398,7 @@ describe('commitAttempt', () => {
         expect(commitAndPresentStepSequenceMock).not.toHaveBeenCalled()
     })
 
-    it('dispatches a containment action through planObjectMoveTransfer with its containment flag', async () => {
+    it('dispatches a containment action through planObjectMoveTransfer with its hosting kind', async () => {
         mockLiveHosts(ROOM)
         const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: TABLE, presence: 'PRESENCE#dest-root' }] }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
@@ -409,7 +409,7 @@ describe('commitAttempt', () => {
             entityId: BROOM,
             fromHostId: ROOM,
             toHostId: TABLE,
-            containment: 'On',
+            hostingKind: 'On',
         }))
         expect(commitAndPresentStepSequenceMock).toHaveBeenCalledTimes(1)
     })
@@ -585,7 +585,7 @@ describe('commitAttempt', () => {
         })
     })
 
-    it('omits the containment field when planObjectMoveTransfer is called for an ordinary membership move', async () => {
+    it('omits the hostingKind field when planObjectMoveTransfer is called for an ordinary membership move', async () => {
         mockLiveHosts(ROOM)
         const plan = { steps: [{ kind: 'reparentPresenceBinding', hostId: BROOM, presence: 'PRESENCE#broom', lose: [{ host: ROOM, presence: 'PRESENCE#room-root' }], gain: [{ host: CHARACTER, presence: 'PRESENCE#dest-root' }] }] }
         planObjectMoveTransferMock.mockResolvedValue({ ok: true, plan: plan as any, fromHostId: ROOM })
@@ -593,7 +593,7 @@ describe('commitAttempt', () => {
         await commitAttempt({ attempt: membershipAttempt('takeHold'), characterId: CHARACTER, messageBus, streamEvent })
 
         const [callArgs] = planObjectMoveTransferMock.mock.calls[0]!
-        expect(callArgs).not.toHaveProperty('containment')
+        expect(callArgs).not.toHaveProperty('hostingKind')
     })
 
     describe('narration units', () => {

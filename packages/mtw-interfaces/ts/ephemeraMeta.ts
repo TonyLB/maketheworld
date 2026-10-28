@@ -369,7 +369,7 @@ export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId,
  * AGENT.concepts.md's premise-11 warning (the same guard already written on
  * EphemeraPositionAdjacencyContainedId).
  */
-export type EphemeraLudicGraphComponentNode =
+export type EphemeraLudicGraphComponentNodeBase =
     | {
         tag: 'Character';
         universalKey: EphemeraCharacterId;
@@ -390,6 +390,58 @@ export type EphemeraLudicGraphComponentNode =
         tag: 'Area';
         universalKey: EphemeraAreaId;
     }
+
+/**
+ * A member's hosting kind: how this node sits in the host whose
+ * graph holds it. *Placement* kinds (`On`, `In`, `Held`) say where a distinct thing sits relative
+ * to its host; *composition* kinds (`PartOf`, `SectionOf`) say a distinct part, or a fungible
+ * stretch, of the host read as an abstraction. It is a node field, set by the
+ * `setHostingKind` kernel step; no relation instruction or stored edge carries one.
+ */
+export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf'] as const
+export type EphemeraHostingKind = typeof HOSTING_KINDS[number]
+export const isEphemeraHostingKind = (value: unknown): value is EphemeraHostingKind =>
+    typeof value === 'string' && (HOSTING_KINDS as readonly string[]).includes(value)
+
+export type EphemeraHostingFamily = 'placement' | 'composition'
+
+/** Total over the five kinds: consumers that care about the distinction read the family, never a list of kinds. */
+export const hostingFamily = (kind: EphemeraHostingKind): EphemeraHostingFamily => {
+    switch (kind) {
+        case 'On':
+        case 'In':
+        case 'Held':
+            return 'placement'
+        case 'PartOf':
+        case 'SectionOf':
+            return 'composition'
+        default: {
+            const unmapped: never = kind
+            throw new Error(`hostingFamily: unmapped hosting kind ${String(unmapped)}`)
+        }
+    }
+}
+
+/**
+ * Per-host legality. A node cannot know its host, so this takes the host's tag: `Held` only
+ * on a character host; `In`, `PartOf` and `SectionOf` never on one (`On` on a character is worn,
+ * or a coating); `On` anywhere.
+ */
+export const isHostingKindLegalOnHost = (kind: EphemeraHostingKind, hostTag: EphemeraLudicGraphComponentNodeBase['tag']): boolean => {
+    if (hostTag === 'Character') {
+        return kind === 'On' || kind === 'Held'
+    }
+    return kind !== 'Held'
+}
+
+/**
+ * Every non-root component member node carries `hostingKind`. The type leaves it optional
+ * because it cannot name "non-root"; the payload guard and the container require it on members and
+ * refuse it on the root node and on presence nodes.
+ */
+export type EphemeraLudicGraphComponentNode = EphemeraLudicGraphComponentNodeBase & {
+    hostingKind?: EphemeraHostingKind;
+}
 
 /**
  * One covered binding: a `{ host, presence }` pair, not a bare component id (PN-20, decided
@@ -461,22 +513,16 @@ export type EphemeraLudicGraphStructureNode = {
 export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraLudicGraphStructureNode
 
 /**
- * AB-54's hosting kinds --- the subordinate node lives in its host's own shard, so these are
- * never given deterministic move/interaction behavior (the retired closed peer kinds had it): their
- * containment mechanism, not a lookup table, decides what happens (2026-09-06 conversation ---
- * "the hosting/containment relations can continue to be hard-coded"). This pairing exists only
- * so consumers that need to ask "is this kind hosting?" (narration dispatch, for one) share one
- * answer instead of re-spelling the trio.
+ * The kinds a **stored** relational edge or crossing port may carry:
+ * the peer and topology kinds only. A member's hosting kind is a field of its node
+ * (`EphemeraHostingKind`), never an edge, so none is representable here. One named union, so a
+ * later closed peer kind (`SecuredTo`) adds a member rather than reopening every site.
  */
-export const HOSTING_RELATION_KINDS = ['On', 'In', 'PartOf'] as const
-export type HostingRelationKind = typeof HOSTING_RELATION_KINDS[number]
-export const isHostingRelationKind = (value: string): value is HostingRelationKind =>
-    (HOSTING_RELATION_KINDS as readonly string[]).includes(value)
-
 export type HostRelationalEdgeKind =
-    | HostingRelationKind                       // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
-    | 'Custom'                                  // peer kind (AB-54): the only one; a label says which relation
-    | 'ConnectedTo'                             // topology within ONE whole (symmetric); not a hosting kind --- never decides shard placement
+    | 'Custom'                                  // peer kind (AB-54): a label says which relation
+    | 'ConnectedTo'                             // topology within ONE whole (symmetric); never decides shard placement
+export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
+
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
 // was ever constructed by any writer -- the migration moves bucket membership onto `cover`
@@ -532,11 +578,12 @@ export const relationKindAndLabelFrom = (source: RelationalKindAndLabel): Relati
 )
 
 /** The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. */
-export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => (
-    source.relationKind === 'Custom'
-        ? { kind: 'Custom', relationLabel: source.relationLabel }
-        : { kind: source.relationKind }
-)
+export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => {
+    if (source.relationKind === 'Custom') {
+        return { kind: 'Custom', relationLabel: source.relationLabel }
+    }
+    return { kind: source.relationKind }
+}
 
 /** Re-narrow an edge's own kind/label pair, for copying one edge shape onto another. */
 export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): RelationalEdgeKindAndLabel => (
@@ -586,8 +633,6 @@ export type EphemeraLudicRelationalEdgeData =
     | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf', 'ConnectedTo'])
-
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
@@ -602,7 +647,7 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     if (!isEphemeraLudicTerminalId(edge.from) || !isEphemeraLudicTerminalId(edge.to)) {
         return false
     }
-    if (typeof edge.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(edge.kind as HostRelationalEdgeKind)) {
+    if (typeof edge.kind !== 'string' || !STORED_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
         return false
     }
     // Absent is the common case and stays legal --- identity is optional per edge (EA-8). A
@@ -694,6 +739,9 @@ export const isEphemeraLudicGraphComponentNode = (value: unknown): value is Ephe
         return false
     }
     const entry = value as EphemeraLudicGraphComponentNode
+    if (entry.hostingKind !== undefined && !isEphemeraHostingKind(entry.hostingKind)) {
+        return false
+    }
     if (entry.tag === 'Character') {
         return isEphemeraCharacterId(entry.universalKey)
     }
@@ -748,6 +796,7 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     // `LudicGraphStaleStructureSweep` instead of silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
         isEphemeraPresenceParentPointerList(entry.fromHostPresences) &&
+        !('hostingKind' in entry) &&
         !('fromHostId' in entry) &&
         !('fromHostPresence' in entry) &&
         isEphemeraPresenceCover(entry.cover)
@@ -797,7 +846,7 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     // As of presenceNodes Slice 7a (PN-14/PN-23), `EphemeraLudicGraphPort` is `EphemeraCrossingPort`
     // alone --- the presence sense (`EphemeraPresencePortKind`) retired along with the port
     // record, so a port's `kind` domain is exactly the edge Set now.
-    if (typeof entry.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(entry.kind as HostRelationalEdgeKind)) {
+    if (typeof entry.kind !== 'string' || !STORED_RELATIONAL_EDGE_KINDS.has(entry.kind)) {
         return false
     }
     // Mirrors the edge guard's own conditional one-for-one: the scale change a port
@@ -832,6 +881,25 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     const rootOwner = ephemeraLudicTerminalOwner(graph.rootId)
     if (!graph.nodes.some((entry) => entry.universalKey === rootOwner)) {
         return false
+    }
+    // the root carries no hosting kind, and every member's kind must be legal for the host
+    // kind. A node cannot see its host, so the per-host rule lives here, where `rootId` is known.
+    const rootNode = graph.nodes.find((entry) => entry.universalKey === rootOwner)
+    const hostTag = rootNode && rootNode.tag !== 'Presence' ? rootNode.tag : undefined
+    for (const entry of graph.nodes) {
+        if (entry.tag === 'Presence') {
+            continue
+        }
+        if (entry.universalKey === rootOwner) {
+            if (entry.hostingKind !== undefined) {
+                return false
+            }
+            continue
+        }
+        // Required on every non-root component member (Slice 3): no kind is no longer read as `In`.
+        if (entry.hostingKind === undefined || !hostTag || !isHostingKindLegalOnHost(entry.hostingKind, hostTag)) {
+            return false
+        }
     }
     if ('edges' in graph) {
         const edges = graph.edges

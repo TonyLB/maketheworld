@@ -162,10 +162,10 @@ const buildMembershipFragment = async (
         toHostId,
         ...(toView?.length === 1 ? { toBinding: toView[0] } : {}),
         ...(moverView ? { moverBindings: moverView } : {}),
-        // Containment: `planObjectMoveTransfer`/`buildObjectMoveOp`/
-        // `compilePositionKernelOp` already thread this through to the establish step whose
-        // `hostId` is always `toHostId` by construction --- no ancestry walk needed.
-        ...(change.containment ? { containment: change.containment } : {}),
+        // The planner's parsed preposition (`put X on Y`) is the mover's hosting kind at the
+        // destination: `planObjectMoveTransfer`/`buildObjectMoveOp`/`compilePositionKernelOp` thread it
+        // to a `setHostingKind` step whose `hostId` is always `toHostId` by construction.
+        ...(change.containment ? { hostingKind: change.containment } : {}),
         getGraph,
     })
 

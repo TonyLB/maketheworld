@@ -341,6 +341,15 @@ export const applyStepSequenceCore = (
             continue
         }
 
+        if (step.kind === 'setHostingKind') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, graph.setHostingKind(step.memberId, step.hostingKind))
+            continue
+        }
+
         // establishRelation / dissolveRelation: confirm the carried hostId against live
         // graph state, throw on mismatch (BD-33 assert-and-throw, unchanged discipline), else apply
         // the patch there. See `confirmCarriedHost`'s doc comment for the stale-vs-throw split.

@@ -57,11 +57,10 @@ const binding = (universalKey: string, parent?: Entry, members: Entry[] = []) =>
     fromHostPresences: parent ? [parent] : [],
     cover: { members },
 })
-const partOf = (from: string, to: string) => ({ tag: 'Relational', kind: 'PartOf', from, to })
-const row = (EphemeraId: string, category: 'Area' | 'Room' | 'Feature' | 'Object', nodes: unknown[], edges: unknown[] = []): ScenarioRow => ({
+const row = (EphemeraId: string, category: 'Area' | 'Room' | 'Feature' | 'Object', nodes: unknown[]): ScenarioRow => ({
     EphemeraId,
     DataCategory: `Meta::${category}`,
-    ludicGraph: { nodes: [{ tag: category, universalKey: EphemeraId }, ...nodes], ...(edges.length ? { edges } : {}) },
+    ludicGraph: { nodes: [{ tag: category, universalKey: EphemeraId }, ...nodes] },
 })
 
 type WorldOptions = {
@@ -76,18 +75,18 @@ type WorldOptions = {
 /** The clean world: every nesting populated, every cover in agreement. */
 export const kitchenWorld = ({ carve = 'PRESENCE#kitchen-in-town', stoveBinding = BASE, cup = false }: WorldOptions = {}): ScenarioRow[] => [
     row(TOWN, 'Area', [
-        { tag: 'Room', universalKey: KITCHEN },
+        { tag: 'Room', universalKey: KITCHEN, hostingKind: 'PartOf' },
         binding(BASE, undefined, [{ host: KITCHEN, presence: carve }]),
-    ], [partOf(KITCHEN, TOWN)]),
+    ]),
     row(KITCHEN, 'Room', [
-        { tag: 'Feature', universalKey: STOVE },
-        ...(cup ? [{ tag: 'Object', universalKey: CUP }] : []),
+        { tag: 'Feature', universalKey: STOVE, hostingKind: 'PartOf' },
+        ...(cup ? [{ tag: 'Object', universalKey: CUP, hostingKind: 'In' }] : []),
         binding(BASE, undefined, [
             { host: STOVE, presence: stoveBinding },
             ...(cup ? [{ host: CUP, presence: BASE }] : []),
         ]),
         binding(carve, { host: TOWN, presence: BASE }),
-    ], [partOf(STOVE, KITCHEN)]),
+    ]),
     row(STOVE, 'Feature', [binding(stoveBinding, { host: KITCHEN, presence: BASE })]),
     ...(cup ? [row(CUP, 'Object', [binding(BASE, { host: KITCHEN, presence: BASE })])] : []),
 ]
@@ -160,7 +159,7 @@ export const containmentDriftScenarios: ContainmentDriftScenario[] = [
     },
     // ---- Fixed Containment sweep ----
     {
-        name: 'never populated: the authored Room and Feature were never nested (the old heal found no PartOf edge to follow)',
+        name: 'never populated: the authored Room and Feature were never nested (the old heal found no PartOf kind to follow)',
         drifted: [
             row(TOWN, 'Area', [binding(BASE)]),
             row(KITCHEN, 'Room', [binding(BASE)]),
@@ -172,8 +171,8 @@ export const containmentDriftScenarios: ContainmentDriftScenario[] = [
         healed: kitchenWorld({ carve: 'PRESENCE#minted-1' }),
     },
     {
-        name: 'missing PartOf edge: node, cover and bindings agree but the Area lacks the Room\'s edge',
-        drifted: withRow(clean, TOWN, (graph) => ({ nodes: graph.nodes })),
+        name: 'missing PartOf kind: node, cover and bindings agree but the Area\'s node for the Room carries no kind',
+        drifted: withRow(clean, TOWN, (graph) => ({ nodes: graph.nodes.map((node) => nodeKey(node) === KITCHEN ? { tag: 'Room', universalKey: KITCHEN } : node) })),
         authored: authoredAll,
         expected: { ...nothing, fixed: [TOWN] },
         healed: clean,
@@ -236,7 +235,7 @@ export const containmentDriftScenarios: ContainmentDriftScenario[] = [
 /**
  * Rows in a canonical order and form, with each freshly minted `PRESENCE#<uuid>` renamed
  * `PRESENCE#minted-N` in order of first appearance, so a heal's `addPresenceBinding` does not make a
- * golden brittle. Component nodes are reduced to `{ tag, universalKey }`; bindings, edges and cover
+ * golden brittle. Component nodes are reduced to `{ tag, universalKey, hostingKind? }`; bindings, edges and cover
  * members are sorted. A presence id is "minted" when it is neither `PRESENCE#Base` nor already a
  * readable name (anything with a letter outside a hex uuid).
  */
@@ -271,7 +270,7 @@ export const normalizeMintedIds = (rows: ScenarioRow[]): ScenarioRow[] => {
         DataCategory,
         ludicGraph: {
             nodes: ludicGraph.nodes.map((node) => {
-                const { tag, universalKey, fromHostPresences, cover } = node as { tag: string; universalKey: string; fromHostPresences?: Entry[]; cover?: { members: Entry[] } }
+                const { tag, universalKey, fromHostPresences, cover, hostingKind } = node as { tag: string; universalKey: string; fromHostPresences?: Entry[]; cover?: { members: Entry[] }; hostingKind?: string }
                 return tag === 'Presence'
                     ? {
                         tag,
@@ -279,7 +278,7 @@ export const normalizeMintedIds = (rows: ScenarioRow[]): ScenarioRow[] => {
                         fromHostPresences: (fromHostPresences ?? []).map((parent) => ({ host: parent.host, presence: rename(parent.presence) })),
                         cover: { members: [...(cover?.members ?? [])].map((entry) => ({ host: entry.host, presence: rename(entry.presence) })).sort(byKey) },
                     }
-                    : { tag, universalKey }
+                    : { tag, universalKey, ...(hostingKind ? { hostingKind } : {}) }
             }).sort(byKey),
             edges: (ludicGraph.edges ?? []).map((edge) => {
                 const { kind, from, to } = edge as { kind: string; from: string; to: string }

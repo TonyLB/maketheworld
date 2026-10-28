@@ -1,4 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -29,8 +31,8 @@ export type PlanObjectMoveTransferArgs = {
      * Absent, the mover's one binding under `fromHostId`.
      */
     moverBindings?: readonly EphemeraPresenceNodeId[]
-    /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
-    containment?: 'On' | 'In' | 'PartOf'
+    /** The kind the mover holds at the destination; see `PositionKernelMoveOp.hostingKind`'s doc comment. */
+    hostingKind?: EphemeraHostingKind
     /** injectable for test seams only. */
     getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 }
@@ -42,7 +44,7 @@ export type PlanObjectMoveTransferResult =
 /**
  * Take/drop/give's `plan*`-tier stage: refuses a containment cycle, then builds and compiles the
  * move's own plan --- the transfer, the mover's own containment-edge strip in each host it
- * leaves, and (with `containment`) the establish into the new host. Reads, never writes.
+ * leaves, and (with `hostingKind`) the kind it holds in the new host. Reads, never writes.
  *
  * It does not dry-run, and derives no boundary-edge dissolve. Those dissolves are the command
  * attempt's own facilitating actions, committed as sibling fragments, so this fragment alone
@@ -86,18 +88,20 @@ export const planObjectMoveTransfer = async (
     }
 
     // A view-move leaves a host only if no other binding of the mover stays under it: the mover's own
-    // containment edge in a host it stays in is untouched.
+    // node (and its hosting kind) in a host it stays in is untouched.
     const left = mover === undefined ? froms : froms.filter((hostId) => !mover.presenceNodes.some((node) => (
         !args.moverBindings!.includes(node.universalKey) && bindingHasParentOn(node, hostId)
     )))
-    const departures = await Promise.all(left.map(async (hostId) => ({ hostId, graph: await getGraph(hostId) })))
+    // `In` a character is possession, which the arrival default already writes as `Held`: an `In`
+    // there would be a kind the character host refuses.
+    const hostingKind = args.hostingKind === 'In' && isEphemeraCharacterId(args.toHostId) ? undefined : args.hostingKind
 
     const buildArgs = {
         entityId: args.entityId,
-        departures,
+        departures: left,
         toHostId: args.toHostId,
         presenceSteps: resolved.steps,
-        ...(args.containment ? { containment: args.containment } : {}),
+        ...(hostingKind ? { hostingKind } : {}),
     }
 
     const plan = compilePositionKernelOp(buildObjectMoveOp(buildArgs))

@@ -1,4 +1,5 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { HostRelationalEdge } from '../../types'
@@ -73,13 +74,11 @@ export type PositionKernelMoveOp = {
      */
     dissolvedEdges?: readonly { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[]
     /**
-     * Hosting kinds only (AB-54). Unlike `dissolvedEdges`, this is a compiler *instruction*
-     * ("establish this at the destination"), not a pre-classified verdict --- there is no
-     * legality question to defer for a hosting-kind establish (always succeeds, root-anchored,
-     * no boundary contention), so the compiler is allowed to synthesize the `establishRelation`
-     * step itself.
+     * The hosting kind the mover holds at the destination (AB-54). A compiler
+     * *instruction* ("set this once the mover is a member of `to`"), not a pre-classified verdict: there
+     * is no legality question to defer, so the compiler synthesizes the `setHostingKind` step itself.
      */
-    containment?: 'On' | 'In' | 'PartOf'
+    hostingKind?: EphemeraHostingKind
     /** Present only when this move should narrate world lines --- see doc comment above. */
     narration?: MembershipMoveNarrationInput
 }

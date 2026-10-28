@@ -92,8 +92,8 @@ describe('ludicCacheObjectHandles', () => {
         })
         const boxGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'On' }],
-            ports: [{ portId: 'port_1', fromHostId: boxId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'ConnectedTo' }],
+            ports: [{ portId: 'port_1', fromHostId: boxId, kind: 'ConnectedTo' }],
         })
         const pebbleGraph = testLudicGraph(pebble, { nodes: [{ tag: 'Object', universalKey: pebble }] })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([

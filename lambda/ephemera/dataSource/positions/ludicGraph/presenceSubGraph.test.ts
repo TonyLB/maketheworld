@@ -191,6 +191,19 @@ describe("PN-6 clause (c): a presence-terminal edge is qualified only in its own
 describe('subGraphFromNodes', () => {
     const bucket = new Set([roomId, charA, objC])
 
+    it('keeps a member\'s hostingKind through the cut', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC, hostingKind: 'On' },
+                { tag: 'Object', universalKey: objD, hostingKind: 'In' },
+            ],
+        })
+        const result = subGraphFromNodes(graph, new Set([roomId, objC]))
+        expect(result.hostingKindOf(objC)).toBe('On')
+        expect(result.nodeIds.has(objD)).toBe(false)
+    })
+
     it('keeps an interior edge unchanged', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
@@ -275,14 +288,14 @@ describe('subGraphFromNodes', () => {
     // a port for a crossing that was never crossing anything. Nothing is lost by excluding them
     // --- objD's own bucket carries each edge whole, both terminals real.
     //
-    it('excludes a hosting edge to a node outside the bucket rather than minting a stub', () => {
+    it('excludes an edge to the root from a node outside the bucket rather than minting a stub', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
             ],
-            edges: [{ tag: 'Relational', from: objD, to: roomId, kind: 'In' }],
+            edges: [{ tag: 'Relational', from: objD, to: roomId, kind: 'ConnectedTo' }],
         })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.relationalEdges).toEqual([])
@@ -304,7 +317,7 @@ describe('subGraphFromNodes', () => {
         expect(result.ports).toEqual([])
     })
 
-    it('keeps a hosting edge to the root, and a peer edge out through a port, for a node in the bucket', () => {
+    it('keeps an edge to the root, and a peer edge out through a port, for a node in the bucket', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
@@ -312,13 +325,13 @@ describe('subGraphFromNodes', () => {
             ],
             ports: [crossingPort('cross_1')],
             edges: [
-                { tag: 'Relational', from: objC, to: roomId, kind: 'In' },
+                { tag: 'Relational', from: objC, to: roomId, kind: 'ConnectedTo' },
                 { tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Custom', relationLabel: 'under' },
             ],
         })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.relationalEdges).toEqual([
-            { from: objC, to: roomId, kind: 'In' },
+            { from: objC, to: roomId, kind: 'ConnectedTo' },
             { from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Custom', relationLabel: 'under' },
         ])
         expect(result.ports).toEqual([crossingPort('cross_1')])
@@ -446,16 +459,16 @@ describe('subGraphFromNodes', () => {
     })
 
     it('mints the same stub id for a ConnectedTo edge in either endpoint order, but not for a directional one', () => {
-        const stubIdFor = (from: typeof objC, to: typeof objD, kind: 'ConnectedTo' | 'On') => subGraphFromNodes(testLudicGraph(roomId, {
+        const stubIdFor = (from: typeof objC, to: typeof objD, kind: 'ConnectedTo' | 'Custom') => subGraphFromNodes(testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
             ],
-            edges: [{ tag: 'Relational', from, to, kind }],
+            edges: [kind === 'Custom' ? { tag: 'Relational', from, to, kind, relationLabel: 'against' } : { tag: 'Relational', from, to, kind }],
         }), bucket).ports[0].portId
         expect(stubIdFor(objC, objD, 'ConnectedTo')).toEqual(stubIdFor(objD, objC, 'ConnectedTo'))
-        expect(stubIdFor(objC, objD, 'On')).not.toEqual(stubIdFor(objD, objC, 'On'))
+        expect(stubIdFor(objC, objD, 'Custom')).not.toEqual(stubIdFor(objD, objC, 'Custom'))
     })
 
     it('prefixes a minted stub id with STUB-, so the merge can tell it from an authored crossing port', () => {

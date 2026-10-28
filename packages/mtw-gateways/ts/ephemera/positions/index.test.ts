@@ -112,6 +112,23 @@ describe('positions project', () => {
         })
     })
 
+    it('projectComponentGraphFromStoredLudicGraph drops a member\'s hostingKind (authored shape; the cache carries it)', () => {
+        const graph = projectComponentGraphFromStoredLudicGraph({
+            rootId: characterId, ports: [],
+            nodes: [
+                { tag: 'Character', universalKey: characterId },
+                { tag: 'Object', universalKey: objectId, hostingKind: 'Held' },
+            ],
+        })
+        expect(graph).toEqual({
+            nodes: [
+                { tag: 'Character', universalKey: characterId },
+                { tag: 'Object', universalKey: objectId },
+            ],
+            edges: [],
+        })
+    })
+
     it('projectComponentGraphFromStoredLudicGraph passes through relational edges', () => {
         const graph = projectComponentGraphFromStoredLudicGraph({
             rootId: objectId, ports: [],
@@ -123,7 +140,7 @@ describe('positions project', () => {
                 tag: 'Relational',
                 from: objectId,
                 to: 'OBJECT#Table',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })
         expect(graph.nodes).toEqual([
@@ -134,7 +151,7 @@ describe('positions project', () => {
             tag: 'Relational',
             from: objectId,
             to: 'OBJECT#Table',
-            kind: 'On',
+            kind: 'ConnectedTo',
         }])
     })
 

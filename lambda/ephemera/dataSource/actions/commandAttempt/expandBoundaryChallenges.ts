@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraLudicTerminalsEqual, isHostingRelationKind, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalsEqual, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
@@ -120,13 +120,8 @@ const boundaryActionsInGraph = (
     graph: EphemeraLudicGraph,
     getGraph: ExpansionEnvironment['getGraph']
 ): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
-    // A mover's own containment edge into the host it is leaving (the cup `On` the table, read
-    // from the table's shard) is removed by the move itself, as `buildObjectMoveOp` does at
-    // commit, so it is not a boundary edge and never reaches the hosting-kind classifier.
-    const outcomes = boundaryEdgeOutcomes(objectId, graph, (edge) =>
-        isHostingRelationKind(edge.kind)
-        && ephemeraLudicTerminalsEqual(edge.to, graph.rootId)
-        && ephemeraLudicTerminalsEqual(edge.from, objectId))
+    // The mover's hosting kind is a field of its node, not an edge, so it is never a boundary edge.
+    const outcomes = boundaryEdgeOutcomes(objectId, graph)
     return outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
         const chain = findRelationalChainFromLeg({ hostId: graph.hostId, edge: entry.edge }, { getGraph })
         if (chain.verdict !== 'found') {

@@ -14,8 +14,8 @@ const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
 
 describe('fetchRelationalReachability', () => {
     it("fetches a removal-set member's own container graph and its own owned graph", async () => {
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TABLE_ID)
-        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TABLE_ID, 'In')
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In')
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
             if (hostId === ROOM_ID) return roomGraph
             if (hostId === TABLE_ID) return tableGraph
@@ -32,11 +32,11 @@ describe('fetchRelationalReachability', () => {
     it('follows a port address terminal found in a fetched graph to the port-owning graph', async () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(TABLE_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(TABLE_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
-            .addObject(CUP_ID)
+            .addObject(CUP_ID, 'In')
             .addPort(port)
             .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
@@ -56,11 +56,11 @@ describe('fetchRelationalReachability', () => {
     it('follows a port record\'s fromHostId to the exterior graph, discovering it from the interior side', async () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-            .addObject(STRING_ID)
-            .addObject(TABLE_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(TABLE_ID, 'In')
             .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
-            .addObject(CUP_ID)
+            .addObject(CUP_ID, 'In')
             .addPort(port)
             .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
@@ -83,7 +83,7 @@ describe('fetchRelationalReachability', () => {
 describe('findRelationalChainsTouching', () => {
     it('finds a portless edge touching a removal-set member', () => {
         const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Custom' as const, relationLabel: 'under' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(BROOM_ID).addObject(HOOK_ID).addRelationalEdge(edge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(BROOM_ID, 'In').addObject(HOOK_ID, 'In').addRelationalEdge(edge)
 
         const chains = findRelationalChainsTouching(new Set([BROOM_ID]), new Map([[ROOM_ID, roomGraph]]))
 
@@ -94,8 +94,8 @@ describe('findRelationalChainsTouching', () => {
         const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
         const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID).addObject(TABLE_ID).addRelationalEdge(exteriorEdge)
-        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID).addPort(port).addRelationalEdge(interiorEdge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(exteriorEdge)
+        const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(interiorEdge)
         const graphs = new Map([[ROOM_ID, roomGraph], [TABLE_ID, tableGraph]])
 
         const fromCup = findRelationalChainsTouching(new Set([CUP_ID]), graphs)
@@ -114,7 +114,7 @@ describe('findRelationalChainsTouching', () => {
 
     it('ignores an edge that touches no removal-set member', () => {
         const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Custom' as const, relationLabel: 'under' }
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(BROOM_ID).addObject(HOOK_ID).addRelationalEdge(edge)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(BROOM_ID, 'In').addObject(HOOK_ID, 'In').addRelationalEdge(edge)
 
         const chains = findRelationalChainsTouching(new Set([STRING_ID]), new Map([[ROOM_ID, roomGraph]]))
 

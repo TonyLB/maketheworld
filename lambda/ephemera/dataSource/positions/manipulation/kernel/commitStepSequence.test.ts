@@ -418,7 +418,7 @@ describe('commitStepSequence', () => {
             'ROOM#Kitchen': otherRoomGraph,
         })
 
-        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' }]
 
         const result = await commitStepSequence(
             {
@@ -598,12 +598,12 @@ describe('commitStepSequence', () => {
                     { tag: 'Object', universalKey: TABLE_ID },
                     presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
-                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' }],
             })
             const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
                 release(TRAY_ID, 'Base', ROOM_ID),
             ]
 
@@ -635,12 +635,12 @@ describe('commitStepSequence', () => {
                     { tag: 'Object', universalKey: TABLE_ID },
                     presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
-                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' }],
             })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
                 release(TRAY_ID, 'Base', ROOM_ID),
             ]
 
@@ -805,13 +805,13 @@ describe('commitStepSequence', () => {
             ])
         })
 
-        it('a containment step no supplied edge covers still streams its own fact, in step order', async () => {
+        it('a setHostingKind step streams no fact of its own, and the supplied edge\'s fact still streams', async () => {
             const { transactWrite } = makeTransactWriteMock(crossingGraphs())
 
             const result = await commitStepSequence(
                 {
                     steps: [
-                        { kind: 'establishRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'On' },
+                        { kind: 'setHostingKind', hostId: TABLE_ID, memberId: CUP_ID, hostingKind: 'On' },
                         ...crossingSteps,
                     ],
                 },
@@ -827,7 +827,6 @@ describe('commitStepSequence', () => {
             expect(result.ok).toBe(true)
             const updates = stepFactCalls(streamEvent).map(([payload]: any[]) => payload.update)
             expect(updates).toEqual([
-                expect.objectContaining({ type: 'Object Relation Changed', subjectId: CUP_ID, targetId: TABLE_ID, relationKind: 'On' }),
                 expect.objectContaining({ type: 'Object Relation Changed', subjectId: STRING_ID, targetId: CUP_ID, ...tie }),
             ])
         })
@@ -1040,7 +1039,7 @@ describe('commitStepSequence', () => {
             const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph })
 
             await commitStepSequence(
-                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'On' }] },
+                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' }] },
                 { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
             )
 
@@ -1114,7 +1113,7 @@ describe('commitStepSequence', () => {
             const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined)
 
             const result = await commitStepSequence(
-                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'On' }], existenceItems },
+                { steps: [{ kind: 'establishRelation', subjectId: TRAY_ID, targetId: GLASS_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' }], existenceItems },
                 { messageBus: messageBus as any, streamEvent, getCurrentHost: () => ROOM_ID, transactWrite }
             )
 

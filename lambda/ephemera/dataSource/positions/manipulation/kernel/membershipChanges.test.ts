@@ -35,7 +35,7 @@ describe('membershipChangesOf', () => {
     })
 
     it('anchors a mover at its last presence step, ignoring steps that are not presence writes', () => {
-        const dissolve: MutationKernelStep = { kind: 'dissolveRelation', subjectId: tray, targetId: 'OBJECT#Table' as EphemeraObjectId, hostId: roomA, relationKind: 'On' }
+        const dissolve: MutationKernelStep = { kind: 'dissolveRelation', subjectId: tray, targetId: 'OBJECT#Table' as EphemeraObjectId, hostId: roomA, relationKind: 'ConnectedTo' }
         const prior = graphs([roomA, holding(roomA, tray)], [tray, own(roomA)])
         const after = graphs([roomA, holding(roomA)], [tray, own()])
 

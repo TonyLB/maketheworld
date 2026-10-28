@@ -44,19 +44,12 @@ describe('expandSameHost', () => {
         })
     })
 
-    it('errors rather than crossing on a hosting kind ("put tray on table") --- no branch on this route at all', () => {
-        // this shape used to be the motivating case for `repaired` --- move the tray
-        // onto the table's host and call the precondition fixed. A hosting relation is a
-        // membership move, not a relational placement, so it gets no branch on this route at
-        // all now --- not even a state lookup, since hosting kinds fail the peer-kind gate before
-        // `findShardBoundary` is ever called. Unreachable live (the ingress lane defers `on` per
-        // CD2); asserted so that making it reachable is a deliberate act with a branch built for
-        // it, not a silent fall-through into peer-relation machinery.
-        const result = expandAndLower({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', operationKind: 'establishRelation' })
+    it('errors rather than crossing on ConnectedTo --- topology is written by extend, with no sameHost branch on this route', () => {
+        const result = expandAndLower({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'ConnectedTo', operationKind: 'establishRelation' })
 
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
-        expect(result.reason).toEqual(expect.stringContaining('On'))
+        expect(result.reason).toEqual(expect.stringContaining('ConnectedTo'))
     })
 
     it('defers on a Custom relation kind when no shared boundary is reachable', () => {
@@ -161,11 +154,11 @@ describe('expandSameHost', () => {
             const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             return {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
-                    .addObject(NECKLACE_ID)
-                    .addObject(TABLE_ID)
+                    .addObject(NECKLACE_ID, 'In')
+                    .addObject(TABLE_ID, 'In')
                     .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' }),
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
-                    .addObject(CHARM_ID)
+                    .addObject(CHARM_ID, 'In')
                     .addPort(port)
                     .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' }),
             } as Record<string, EphemeraLudicGraph>
@@ -178,8 +171,8 @@ describe('expandSameHost', () => {
 
         it('errors on a same-host duplicate', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(NECKLACE_ID)
-                .addObject(TABLE_ID)
+                .addObject(NECKLACE_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: NECKLACE_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
 
             const result = expandSameHost(
@@ -212,8 +205,8 @@ describe('expandSameHost', () => {
     describe('dissolveRelation', () => {
         it('a portless dissolve (both endpoints already share a host) resolves to the same single dissolveRelation step as before --- no regression from routing away from findShardBoundary', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(TRAY_ID)
-                .addObject(TABLE_ID)
+                .addObject(TRAY_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
 
             const result = expandAndLower(
@@ -230,11 +223,11 @@ describe('expandSameHost', () => {
         it("a genuine crossing dissolve (the string-in-room / cup-on-table crossing chain, reversed) resolves via findRelationalChain", () => {
             const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(NECKLACE_ID)
-                .addObject(TABLE_ID)
+                .addObject(NECKLACE_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
             const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
-                .addObject(CHARM_ID)
+                .addObject(CHARM_ID, 'In')
                 .addPort(port)
                 .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' })
 
@@ -272,7 +265,7 @@ describe('expandSameHost', () => {
         })
 
         it('defers to the LLM validator (BD-10) when no matching chain is found to dissolve', () => {
-            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID).addObject(TABLE_ID)
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID, 'In').addObject(TABLE_ID, 'In')
 
             const result = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'dissolveRelation' },
@@ -288,8 +281,8 @@ describe('expandSameHost', () => {
             // Two structurally distinct edges both reach targetId from subjectId --- mirrors
             // `findRelationalChain.test.ts`'s own ambiguous fixture.
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(TRAY_ID)
-                .addObject(TABLE_ID)
+                .addObject(TRAY_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
                 .addRelationalEdge({ from: TABLE_ID, to: TRAY_ID, kind: 'Custom', relationLabel: 'under' })
 

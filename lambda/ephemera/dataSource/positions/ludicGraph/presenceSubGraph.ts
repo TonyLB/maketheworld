@@ -31,7 +31,7 @@ import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfac
 import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
 import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
-import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge } from './index'
+import { EphemeraLudicGraph, toStoredRelationalEdge } from './index'
 
 /**
  * The bucket a presence binding names --- the nodes of `graph` present at that binding.
@@ -256,9 +256,8 @@ export const subGraphFromNodes = (
     // carried into every bucket unconditionally instead (PN-6: a presence node is a member of no
     // bucket, present in every cut). They can't be reconstructed via `nodeIds`-then-`nodeFromId`
     // either way --- a structure node's `fromHostPresences`/`cover` have no derivation from the id alone.
-    const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
     const subNodes = [
-        ...componentNodeIds.filter((id) => nodes.has(id)).map(nodeFromId),
+        ...graph.componentNodes.filter((node) => nodes.has(node.universalKey)),
         ...graph.presenceNodes,
     ]
 

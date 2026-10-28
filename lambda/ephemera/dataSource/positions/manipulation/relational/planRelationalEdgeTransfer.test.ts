@@ -137,8 +137,8 @@ describe('planRelationalEdgeTransfer', () => {
         it('dissolves a one-sided crossing: a leg on each host, and the port it crossed through', async () => {
             // The string sits in the room (the common ancestor); the cup sits on the table.
             withGraphs({ [STRING]: [ROOM], [CUP]: [TABLE], [TABLE]: [ROOM] }, {
-                [ROOM]: EphemeraLudicGraph.empty(ROOM).addObject(STRING).addObject(TABLE).addRelationalEdge(tied(STRING, tablePort)),
-                [TABLE]: EphemeraLudicGraph.empty(TABLE).addObject(CUP)
+                [ROOM]: EphemeraLudicGraph.empty(ROOM).addObject(STRING, 'In').addObject(TABLE, 'In').addRelationalEdge(tied(STRING, tablePort)),
+                [TABLE]: EphemeraLudicGraph.empty(TABLE).addObject(CUP, 'In')
                     .addPort({ portId: 'port-table', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                     .addRelationalEdge(tied(tablePort, CUP)),
             })
@@ -160,11 +160,11 @@ describe('planRelationalEdgeTransfer', () => {
             // middle leg between the two ports.
             const boxPort = { owner: BOX, port: 'port-box' }
             withGraphs({ [STRING]: [BOX], [CUP]: [TABLE], [BOX]: [ROOM], [TABLE]: [ROOM] }, {
-                [ROOM]: EphemeraLudicGraph.empty(ROOM).addObject(BOX).addObject(TABLE).addRelationalEdge(tied(boxPort, tablePort)),
-                [BOX]: EphemeraLudicGraph.empty(BOX).addObject(STRING)
+                [ROOM]: EphemeraLudicGraph.empty(ROOM).addObject(BOX, 'In').addObject(TABLE, 'In').addRelationalEdge(tied(boxPort, tablePort)),
+                [BOX]: EphemeraLudicGraph.empty(BOX).addObject(STRING, 'In')
                     .addPort({ portId: 'port-box', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                     .addRelationalEdge(tied(STRING, boxPort)),
-                [TABLE]: EphemeraLudicGraph.empty(TABLE).addObject(CUP)
+                [TABLE]: EphemeraLudicGraph.empty(TABLE).addObject(CUP, 'In')
                     .addPort({ portId: 'port-table', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                     .addRelationalEdge(tied(tablePort, CUP)),
             })

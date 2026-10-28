@@ -1,3 +1,4 @@
+import { hostingFamily } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
@@ -8,8 +9,8 @@ const describeTerminal = (terminal: EphemeraLudicTerminalId): string => typeof t
 /**
  * Why `terminal` cannot be an endpoint of a `ConnectedTo` edge in `hostId`'s graph, or undefined if it can.
  * `ConnectedTo` joins parts of one whole, so an endpoint is the whole itself, one of its bindings (a
- * port address the whole owns, whether or not it also has named parts), or a part of it (a node with
- * a `PartOf` edge to it). A part's own parts live in the part's graph, not this one.
+ * port address the whole owns, whether or not it also has named parts), or a part of it (a node whose
+ * hosting kind is a composition kind, `PartOf` or `SectionOf`). A part's own parts live in the part's graph, not this one.
  */
 const endpointViolation = (graph: EphemeraLudicGraph, hostId: EphemeraMembershipHostId, terminal: EphemeraLudicTerminalId): string | undefined => {
     if (typeof terminal !== 'string') {
@@ -18,7 +19,8 @@ const endpointViolation = (graph: EphemeraLudicGraph, hostId: EphemeraMembership
     if (terminal === hostId) {
         return undefined
     }
-    const isPart = graph.relationalEdges.some((edge) => edge.kind === 'PartOf' && edge.from === terminal && edge.to === hostId)
+    const kind = graph.hostingKindOf(terminal)
+    const isPart = kind !== undefined && hostingFamily(kind) === 'composition'
     return isPart
         ? undefined
         : `${terminal} is not a part of ${hostId}: a join between separate wholes is a peer relation (Custom), not ConnectedTo`

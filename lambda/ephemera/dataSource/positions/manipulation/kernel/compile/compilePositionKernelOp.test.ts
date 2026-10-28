@@ -143,7 +143,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
     it('renders severed boundary edges as dissolveRelation steps ahead of the presence steps (BD-28)', () => {
         const plan = compilePositionKernelOp(objectOp({
-            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' } }],
+            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'ConnectedTo' } }],
         }))
 
         const kinds = plan.steps.map((step) => step.kind)
@@ -154,13 +154,13 @@ describe('compilePositionKernelOp --- object moves', () => {
             subjectId: TRAY,
             targetId: 'OBJECT#Table',
             hostId: FROM_ROOM,
-            relationKind: 'On',
+            relationKind: 'ConnectedTo',
         })
     })
 
     it('renders a dissolveRelation step for a non-Object (Character) dissolved-edge endpoint, no throw', () => {
         const plan = compilePositionKernelOp(objectOp({
-            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: CHARACTER_ID, to: TRAY, kind: 'On' } }],
+            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: CHARACTER_ID, to: TRAY, kind: 'ConnectedTo' } }],
         }))
 
         expect(plan.steps.find((step) => step.kind === 'dissolveRelation')).toEqual({
@@ -168,7 +168,7 @@ describe('compilePositionKernelOp --- object moves', () => {
             subjectId: CHARACTER_ID,
             targetId: TRAY,
             hostId: FROM_ROOM,
-            relationKind: 'On',
+            relationKind: 'ConnectedTo',
         })
     })
 
@@ -177,8 +177,8 @@ describe('compilePositionKernelOp --- object moves', () => {
         const plan = compilePositionKernelOp(objectOp({
             froms: [FROM_ROOM, TABLE],
             dissolvedEdges: [
-                { hostId: FROM_ROOM, edge: { from: TRAY, to: FROM_ROOM, kind: 'On' } },
-                { hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'On' } },
+                { hostId: FROM_ROOM, edge: { from: TRAY, to: FROM_ROOM, kind: 'ConnectedTo' } },
+                { hostId: TABLE, edge: { from: TRAY, to: TABLE, kind: 'ConnectedTo' } },
             ],
         }))
 
@@ -188,7 +188,7 @@ describe('compilePositionKernelOp --- object moves', () => {
 
     it('emits the dissolves and the presence re-point, and nothing else', () => {
         const plan = compilePositionKernelOp(objectOp({
-            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'On' } }],
+            dissolvedEdges: [{ hostId: FROM_ROOM, edge: { from: TRAY, to: 'OBJECT#Table' as EphemeraObjectId, kind: 'ConnectedTo' } }],
         }))
 
         expect(plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'reparentPresenceBinding'])
@@ -196,23 +196,23 @@ describe('compilePositionKernelOp --- object moves', () => {
     })
 
     describe('containment and presence binding', () => {
-        it('emits an establishRelation step after the presence steps when containment is set', () => {
-            const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
+        it('emits a setHostingKind step after the presence steps when hostingKind is set', () => {
+            const plan = compilePositionKernelOp(objectOp({ hostingKind: 'On' }))
 
             const kinds = plan.steps.map((step) => step.kind)
-            expect(kinds.indexOf('reparentPresenceBinding')).toBeLessThan(kinds.indexOf('establishRelation'))
-            expect(plan.steps.find((step) => step.kind === 'establishRelation')).toEqual({
-                kind: 'establishRelation',
-                subjectId: TRAY,
-                targetId: CHARACTER_ID,
+            expect(kinds.indexOf('reparentPresenceBinding')).toBeLessThan(kinds.indexOf('setHostingKind'))
+            expect(plan.steps.find((step) => step.kind === 'setHostingKind')).toEqual({
+                kind: 'setHostingKind',
                 hostId: CHARACTER_ID,
-                relationKind: 'On',
+                memberId: TRAY,
+                hostingKind: 'On',
             })
+            expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
         })
 
-        it('emits no establishRelation step when containment is absent (plain take-hold)', () => {
+        it('emits no setHostingKind step when hostingKind is absent (plain take-hold)', () => {
             const plan = compilePositionKernelOp(objectOp())
-            expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
+            expect(plan.steps.some((step) => step.kind === 'setHostingKind')).toBe(false)
         })
 
         it('re-points the presence binding at the destination on every object rehost, containment or not', () => {
@@ -242,8 +242,8 @@ describe('compilePositionKernelOp --- object moves', () => {
             expect(compilePositionKernelOp(objectOp({ presenceSteps: steps })).steps).toEqual(steps)
         })
 
-        it('throws when containment is set with no destination', () => {
-            expect(() => compilePositionKernelOp(objectOp({ containment: 'On', to: null }))).toThrow()
+        it('throws when hostingKind is set with no destination', () => {
+            expect(() => compilePositionKernelOp(objectOp({ hostingKind: 'On', to: null }))).toThrow()
         })
     })
 })

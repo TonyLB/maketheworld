@@ -8,6 +8,7 @@ import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraOb
 import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
+    EphemeraHostingKind,
     EphemeraLudicGraphComponentNode,
     EphemeraLudicGraphData,
     EphemeraLudicGraphFieldPayload,
@@ -19,7 +20,7 @@ import type {
     EphemeraLudicTerminalPrimitive,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -263,6 +264,15 @@ export class EphemeraLudicGraph {
     }
 
     /**
+     * Every component member node's full record (root included), with its `hostingKind` if it
+     * carries one. A cut or merge that remakes a graph from node sets needs these, since
+     * `nodeFromId` would rebuild the node without the kind.
+     */
+    get componentNodes(): EphemeraLudicGraphComponentNode[] {
+        return this._nodes.filter((node): node is EphemeraLudicGraphComponentNode => node.tag !== 'Presence')
+    }
+
+    /**
      * Every node's `universalKey`, regardless of tag --- a kind-indifferent presence/catalog
      * scan ("what's here to look at"), additive alongside the typed `characterIds`/`objectIds`
      * accessors rather than replacing them (see `AGENT.md`, Node model). Named `nodeIds`, not
@@ -378,6 +388,9 @@ export class EphemeraLudicGraph {
             if (left.tag !== right.tag || left.universalKey !== right.universalKey) {
                 return false
             }
+            if (left.tag !== 'Presence' && right.tag !== 'Presence' && left.hostingKind !== right.hostingKind) {
+                return false
+            }
         }
         const aEdges = a.edges ?? []
         const bEdges = b.edges ?? []
@@ -403,11 +416,74 @@ export class EphemeraLudicGraph {
         return true
     }
 
-    addCharacter(characterId: EphemeraCharacterId): EphemeraLudicGraph {
-        if (this.characterIds.has(characterId)) {
+    /**
+     * A member's hosting kind in this host's graph: `undefined` for the root, a presence
+     * node, or an absent id; every other member carries one.
+     */
+    hostingKindOf(id: EphemeraLudicTerminalPrimitive): EphemeraHostingKind | undefined {
+        const node = this._nodes.find((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
+        return node && node.tag !== 'Presence' ? node.hostingKind : undefined
+    }
+
+    /**
+     * The one add path behind the typed `add*` methods. A kind is required for every member except
+     * the root (which carries none) and is checked against this host (`isHostingKindLegalOnHost`);
+     * an illegal or missing kind throws. One kind per membership: re-adding a present node
+     * with the same kind (or, for the root, none) is a no-op, but a *different* kind is a change of
+     * kind, not an add, and throws.
+     */
+    private addMember(node: EphemeraLudicGraphComponentNode, hostingKind: EphemeraHostingKind | undefined): EphemeraLudicGraph {
+        const isRoot = node.universalKey === ephemeraLudicTerminalOwner(this.rootId)
+        if (hostingKind === undefined && !isRoot) {
+            throw new Error(`${node.universalKey} needs a hosting kind to join ${this.hostId}`)
+        }
+        if (hostingKind !== undefined) {
+            this.assertHostingKindLegal(node.universalKey, hostingKind)
+        }
+        const existing = this._nodes.find((entry) => entry.tag === node.tag && entry.universalKey === node.universalKey)
+        if (existing) {
+            const existingKind = existing.tag !== 'Presence' ? existing.hostingKind : undefined
+            if (hostingKind !== undefined && existingKind !== hostingKind) {
+                throw new Error(`${node.universalKey} is already in ${this.hostId} with hosting kind ${existingKind ?? 'none'}; refusing to change it to ${hostingKind}`)
+            }
             return this
         }
-        return this.withNodes([...this._nodes, characterNode(characterId)])
+        return this.withNodes([...this._nodes, hostingKind !== undefined ? { ...node, hostingKind } : node])
+    }
+
+    /** Throws unless `hostingKind` may be carried by `memberId` in this host (not the root; legal on the root's tag). */
+    private assertHostingKindLegal(memberId: EphemeraLudicTerminalPrimitive, hostingKind: EphemeraHostingKind): void {
+        if (memberId === ephemeraLudicTerminalOwner(this.rootId)) {
+            throw new Error(`${memberId} is the root of ${this.hostId} and carries no hosting kind`)
+        }
+        const hostTag = this._nodes.find((entry) => entry.universalKey === ephemeraLudicTerminalOwner(this.rootId))?.tag
+        if (hostTag && hostTag !== 'Presence' && !isHostingKindLegalOnHost(hostingKind, hostTag)) {
+            throw new Error(`Hosting kind ${hostingKind} is not legal on a ${hostTag} host (${this.hostId})`)
+        }
+    }
+
+    /**
+     * Sets the hosting kind of a node already in this host: the explicit change-of-kind that `add*`
+     * refuses. It is the apply of the `setHostingKind` kernel step (`put X on Y`), whose
+     * node arrived earlier in the same step sequence with its default kind. Setting the kind it
+     * already has returns `this`. Throws if the node is absent, is the root, or the kind is illegal
+     * on this host.
+     */
+    setHostingKind(id: EphemeraPositionAdjacencyContainedId, hostingKind: EphemeraHostingKind): EphemeraLudicGraph {
+        const index = this._nodes.findIndex((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
+        if (index < 0) {
+            throw new Error(`Cannot set hosting kind of ${id}: not a member of ${this.hostId}`)
+        }
+        this.assertHostingKindLegal(id, hostingKind)
+        const node = this._nodes[index]
+        if (node.tag !== 'Presence' && node.hostingKind === hostingKind) {
+            return this
+        }
+        return this.withNodes(this._nodes.map((entry, entryIndex) => entryIndex === index ? { ...entry, hostingKind } as EphemeraLudicGraphNode : entry))
+    }
+
+    addCharacter(characterId: EphemeraCharacterId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addMember(characterNode(characterId), hostingKind)
     }
 
     /**
@@ -424,11 +500,8 @@ export class EphemeraLudicGraph {
         )
     }
 
-    addObject(objectId: EphemeraObjectId): EphemeraLudicGraph {
-        if (this.objectIds.has(objectId)) {
-            return this
-        }
-        return this.withNodes([...this._nodes, objectNode(objectId)])
+    addObject(objectId: EphemeraObjectId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addMember(objectNode(objectId), hostingKind)
     }
 
     /**
@@ -461,11 +534,8 @@ export class EphemeraLudicGraph {
      * `removeFeature` are added alongside for symmetry with `removeObject`/`removeCharacter` rather
      * than left as a half-built pair --- both idle today, since population is additive-only.
      */
-    addRoom(roomId: EphemeraRoomId): EphemeraLudicGraph {
-        if (this.roomIds.has(roomId)) {
-            return this
-        }
-        return this.withNodes([...this._nodes, roomNode(roomId)])
+    addRoom(roomId: EphemeraRoomId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addMember(roomNode(roomId), hostingKind)
     }
 
     removeRoom(roomId: EphemeraRoomId): EphemeraLudicGraph {
@@ -475,11 +545,8 @@ export class EphemeraLudicGraph {
         )
     }
 
-    addFeature(featureId: EphemeraFeatureId): EphemeraLudicGraph {
-        if (this.featureIds.has(featureId)) {
-            return this
-        }
-        return this.withNodes([...this._nodes, featureNode(featureId)])
+    addFeature(featureId: EphemeraFeatureId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addMember(featureNode(featureId), hostingKind)
     }
 
     removeFeature(featureId: EphemeraFeatureId): EphemeraLudicGraph {
@@ -504,11 +571,11 @@ export class EphemeraLudicGraph {
      * `EphemeraLudicTerminalPrimitive` --- Area is a host only and never itself a member, so it has
      * no add/remove case here (see that type's own doc comment).
      */
-    addNode(id: EphemeraPositionAdjacencyContainedId): EphemeraLudicGraph {
-        if (isEphemeraObjectId(id)) return this.addObject(id)
-        if (isEphemeraCharacterId(id)) return this.addCharacter(id)
-        if (isEphemeraRoomId(id)) return this.addRoom(id)
-        return this.addFeature(id)
+    addNode(id: EphemeraPositionAdjacencyContainedId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        if (isEphemeraObjectId(id)) return this.addObject(id, hostingKind)
+        if (isEphemeraCharacterId(id)) return this.addCharacter(id, hostingKind)
+        if (isEphemeraRoomId(id)) return this.addRoom(id, hostingKind)
+        return this.addFeature(id, hostingKind)
     }
 
     removeNode(id: EphemeraPositionAdjacencyContainedId): EphemeraLudicGraph {
@@ -641,7 +708,7 @@ export const seedFromActiveCharacters = (
 ): EphemeraLudicGraph =>
     EphemeraLudicGraph.fromFieldPayload(hostId, {
         rootId: hostId,
-        nodes: [nodeFromId(hostId), ...activeCharacters.map(({ EphemeraId }) => characterNode(EphemeraId))],
+        nodes: [nodeFromId(hostId), ...activeCharacters.map(({ EphemeraId }) => ({ ...characterNode(EphemeraId), hostingKind: 'In' as const }))],
         edges: [],
         ports: [],
     })

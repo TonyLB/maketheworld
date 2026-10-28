@@ -44,10 +44,7 @@ export type ObjectRelationChangedPublishedPayload = {
     beatAnchorTime: number;
 } & RelationalKindAndLabel
 
-// 'Present' retired from HostRelationalEdgeKind at presenceNodes Slice 3 (PN-14) -- checked
-// unexported/module-private here (and in every sibling copy of this Set), so this is not a
-// published-vocabulary break for any consumer outside lambda/ephemera/dataSource.
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf', 'ConnectedTo'])
+const RELATION_INSTRUCTION_KINDS = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
 
 /**
  * The rooms whose stored `ludicCache` was just marked stale (its marker bumped), whatever the
@@ -156,7 +153,7 @@ export const isObjectRelationChangedPublishedPayload = (
     if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {
         return false
     }
-    if (typeof v.relationKind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(v.relationKind as HostRelationalEdgeKind)) {
+    if (typeof v.relationKind !== 'string' || !RELATION_INSTRUCTION_KINDS.has(v.relationKind as HostRelationalEdgeKind)) {
         return false
     }
     if (v.relationKind === 'Custom') {

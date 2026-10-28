@@ -30,7 +30,7 @@ describe('runExecutor', () => {
         // establishRelation step. The grounded `Change` itself seeds directly: it
         // carries no host, and command-expansion dispatches on its primitive to find the chain,
         // which retires as one output, still a value.
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID).addObject(CUP_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(SAUCER_ID, 'In').addObject(CUP_ID, 'In')
 
         const env: ExpansionEnvironment = {
             getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
@@ -65,7 +65,7 @@ describe('runExecutor', () => {
 
     it("a relational Change that crosses a shard boundary retires as one chain: the port and both legs, in order", () => {
         const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
-        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID).addObject(TABLE_ID)
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(ROPE_ID, 'In').addObject(TABLE_ID, 'In')
 
         const env: ExpansionEnvironment = {
             getGraph: (hostId) => (hostId === ROOM_ID ? roomGraph : undefined),
@@ -127,7 +127,7 @@ describe('runExecutor', () => {
     // scenario today throws AB-54's invariant error instead, at `boundaryEdgeOutcomes` itself.
 
     it('runs a fully-grounded seed', () => {
-        const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID)
+        const graph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID, 'In')
         const env: ExpansionEnvironment = {
             getGraph: (hostId) => (hostId === ROOM_ID ? graph : undefined),
             getCurrentHost: (id) => (id === TRAY_ID ? ROOM_ID : undefined),

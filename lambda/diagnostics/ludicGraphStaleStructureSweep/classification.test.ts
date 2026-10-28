@@ -18,7 +18,7 @@ describe('isLudicGraphStructurallyStale', () => {
             rootId: 'ROOM#Kitchen',
             nodes: [
                 { tag: 'Room', universalKey: 'ROOM#Kitchen' },
-                { tag: 'Character', universalKey: 'CHARACTER#one' },
+                { tag: 'Character', universalKey: 'CHARACTER#one', hostingKind: 'In' },
             ],
             ports: [],
         })).toBe(false)

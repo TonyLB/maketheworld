@@ -100,8 +100,8 @@ const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType
 const cafeGraph = (edges: any[] = []) => testLudicGraph(R1, {
     nodes: [
         { tag: 'Room', universalKey: R1 },
-        { tag: 'Object', universalKey: TABLE },
-        { tag: 'Object', universalKey: BOX },
+        { tag: 'Object', universalKey: TABLE, hostingKind: 'In' },
+        { tag: 'Object', universalKey: BOX, hostingKind: 'In' },
         presenceBindingNode(parentRemainderKey(R1), undefined, { members: [entry(TABLE, 'PRESENCE#tbl'), entry(BOX, 'PRESENCE#Base')] } as any),
     ],
     edges,
@@ -118,7 +118,7 @@ const freshWorld = (): World => {
         ],
     })
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-        [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX })],
+        [R1, room(R1, { tag: 'Object', universalKey: TABLE, hostingKind: 'In' }, { tag: 'Object', universalKey: BOX, hostingKind: 'In' })],
         [R2, room(R2)],
         [TABLE, testLudicGraph(TABLE, {
             nodes: [
@@ -497,6 +497,13 @@ const cases: Case[] = [
         rooms: [R1],
         changesCache: true,
         act: () => commit([{ kind: 'dissolveRelation', subjectId: BOX, targetId: TABLE, hostId: R1, relationKind: 'Custom', relationLabel: 'tied to' }]),
+    },
+    {
+        name: 'a member\'s hosting kind is set in a room',
+        kinds: ['setHostingKind'],
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([{ kind: 'setHostingKind', hostId: R1, memberId: BOX, hostingKind: 'On' }]),
     },
     {
         name: 'a crossing port is added to a nested host, then removed',

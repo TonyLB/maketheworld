@@ -35,7 +35,7 @@ describe('healLudicGraphStructure', () => {
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: true }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
-                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' }],
                 ports: [],
             }),
             writeHealedLudicGraph,
@@ -48,7 +48,7 @@ describe('healLudicGraphStructure', () => {
                 rootId: ROOM_ID,
                 nodes: [
                     { tag: 'Room', universalKey: ROOM_ID },
-                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
                 ],
                 ports: [],
             },
@@ -61,7 +61,7 @@ describe('healLudicGraphStructure', () => {
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
-                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' }],
                 ports: [],
             }),
             writeHealedLudicGraph,
@@ -73,7 +73,7 @@ describe('healLudicGraphStructure', () => {
             rootId: ROOM_ID,
             nodes: [
                 { tag: 'Room', universalKey: ROOM_ID },
-                { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
             ],
             ports: [],
         })
@@ -81,13 +81,13 @@ describe('healLudicGraphStructure', () => {
 
     it('preserves edges and other nodes untouched while adding only the missing root node', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const edges = [{ tag: 'Relational' as const, from: 'OBJECT#broom', to: 'OBJECT#table', kind: 'On' as const }]
+        const edges = [{ tag: 'Relational' as const, from: 'OBJECT#broom', to: 'OBJECT#table', kind: 'ConnectedTo' as const }]
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [
-                    { tag: 'Object', universalKey: 'OBJECT#broom' },
-                    { tag: 'Object', universalKey: 'OBJECT#table' },
+                    { tag: 'Object', universalKey: 'OBJECT#broom', hostingKind: 'In' },
+                    { tag: 'Object', universalKey: 'OBJECT#table', hostingKind: 'In' },
                 ],
                 edges,
                 ports: [],
@@ -101,8 +101,8 @@ describe('healLudicGraphStructure', () => {
                 rootId: ROOM_ID,
                 nodes: [
                     { tag: 'Room', universalKey: ROOM_ID },
-                    { tag: 'Object', universalKey: 'OBJECT#broom' },
-                    { tag: 'Object', universalKey: 'OBJECT#table' },
+                    { tag: 'Object', universalKey: 'OBJECT#broom', hostingKind: 'In' },
+                    { tag: 'Object', universalKey: 'OBJECT#table', hostingKind: 'In' },
                 ],
                 edges,
                 ports: [],
@@ -178,7 +178,7 @@ describe('healLudicGraphStructure', () => {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'On' }],
+                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' }],
             }),
             writeHealedLudicGraph,
         })
@@ -191,11 +191,11 @@ describe('healLudicGraphStructure', () => {
 
     it('preserves an already-well-formed ports array untouched', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const ports = [{ portId: 'ab6129d', fromHostId: 'OBJECT#box', kind: 'On' }]
+        const ports = [{ portId: 'ab6129d', fromHostId: 'OBJECT#box', kind: 'ConnectedTo' }]
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
-                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }],
+                nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' }],
                 ports,
             }),
             writeHealedLudicGraph,
@@ -206,7 +206,7 @@ describe('healLudicGraphStructure', () => {
             repairedPayload: {
                 nodes: [
                     { tag: 'Room', universalKey: ROOM_ID },
-                    { tag: 'Character', universalKey: 'CHARACTER#Alpha' },
+                    { tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' },
                 ],
                 ports,
             },
@@ -268,7 +268,7 @@ describe('healLudicGraphStructure', () => {
             markHostsStale.mockRestore()
         })
 
-        const staleGraph = { rootId: ROOM_ID, nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha' }], ports: [] }
+        const staleGraph = { rootId: ROOM_ID, nodes: [{ tag: 'Character', universalKey: 'CHARACTER#Alpha', hostingKind: 'In' }], ports: [] }
 
         it('marks the healed host\'s rooms right after its own write', async () => {
             await healLudicGraphStructure(ROOM_ID, { dryRun: false }, { getStoredLudicGraph: async () => staleGraph })
