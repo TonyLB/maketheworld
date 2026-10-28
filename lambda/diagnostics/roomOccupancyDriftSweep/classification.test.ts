@@ -13,7 +13,7 @@ const graphWithCharacter = {
     // Concepts clause 3 requires the root to be present in `nodes`.
     nodes: [
         { tag: 'Room' as const, universalKey: roomId },
-        { tag: 'Character' as const, universalKey: characterId },
+        { tag: 'Character' as const, universalKey: characterId, hostingKind: 'In' as const },
     ],
 }
 

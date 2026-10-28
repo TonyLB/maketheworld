@@ -395,8 +395,8 @@ export type EphemeraLudicGraphComponentNodeBase =
  * A member's hosting kind (hostingKindOnNode plan, HK-3): how this node sits in the host whose
  * graph holds it. *Placement* kinds (`On`, `In`, `Held`) say where a distinct thing sits relative
  * to its host; *composition* kinds (`PartOf`, `SectionOf`) say a distinct part, or a fungible
- * stretch, of the host read as an abstraction. Distinct from `HostingRelationKind` (the edge
- * trio, which retires from the stored edge type in Slice 3).
+ * stretch, of the host read as an abstraction. Distinct from `HostingRelationKind` (the
+ * planner-instruction trio; no stored edge carries one).
  */
 export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf'] as const
 export type EphemeraHostingKind = typeof HOSTING_KINDS[number]
@@ -435,9 +435,9 @@ export const isHostingKindLegalOnHost = (kind: EphemeraHostingKind, hostTag: Eph
 }
 
 /**
- * Every component member node may carry `hostingKind` (HK-3). Optional until Slice 3 makes it
- * required on non-root members, so stored rows without it still parse; always absent on the root
- * node and on presence nodes (checked by the guards, since the type cannot name "non-root").
+ * Every non-root component member node carries `hostingKind` (HK-3). The type leaves it optional
+ * because it cannot name "non-root"; the payload guard and the container require it on members and
+ * refuse it on the root node and on presence nodes.
  */
 export type EphemeraLudicGraphComponentNode = EphemeraLudicGraphComponentNodeBase & {
     hostingKind?: EphemeraHostingKind;
@@ -525,10 +525,23 @@ export type HostingRelationKind = typeof HOSTING_RELATION_KINDS[number]
 export const isHostingRelationKind = (value: string): value is HostingRelationKind =>
     (HOSTING_RELATION_KINDS as readonly string[]).includes(value)
 
+/**
+ * The kinds a **stored** relational edge or crossing port may carry (hostingKindOnNode Slice 3):
+ * the peer and topology kinds only. A member's hosting kind is a field of its node
+ * (`EphemeraHostingKind`), never an edge, so none is representable here. One named union, so a
+ * later closed peer kind (`SecuredTo`) adds a member rather than reopening every site.
+ */
 export type HostRelationalEdgeKind =
-    | HostingRelationKind                       // hosting kinds (AB-54); In/PartOf non-exclusive (premise 9)
-    | 'Custom'                                  // peer kind (AB-54): the only one; a label says which relation
-    | 'ConnectedTo'                             // topology within ONE whole (symmetric); not a hosting kind --- never decides shard placement
+    | 'Custom'                                  // peer kind (AB-54): a label says which relation
+    | 'ConnectedTo'                             // topology within ONE whole (symmetric); never decides shard placement
+export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
+
+/**
+ * The kinds a relation **instruction** may name (the planner/DTO lane: `put X on Y`, published
+ * events): a stored edge kind, or a hosting kind. An instruction is not a stored edge, so the
+ * hosting kinds stay legal here even though a stored edge cannot hold one.
+ */
+export type RelationInstructionKind = HostRelationalEdgeKind | HostingRelationKind
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
 // was ever constructed by any writer -- the migration moves bucket membership onto `cover`
@@ -555,7 +568,7 @@ export type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind
     | { kind: 'Custom'; relationLabel: string }
 
 /** `RelationalEdgeKindAndLabel` for the lane that spells the field `relationKind`. */
-export type RelationalKindAndLabel<K extends string = HostRelationalEdgeKind> =
+export type RelationalKindAndLabel<K extends string = RelationInstructionKind> =
     | { relationKind: Exclude<K, 'Custom'> }
     | { relationKind: 'Custom'; relationLabel: string }
 
@@ -583,12 +596,20 @@ export const relationKindAndLabelFrom = (source: RelationalKindAndLabel): Relati
         : { relationKind: source.relationKind }
 )
 
-/** The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. */
-export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => (
-    source.relationKind === 'Custom'
-        ? { kind: 'Custom', relationLabel: source.relationLabel }
-        : { kind: source.relationKind }
-)
+/**
+ * The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. A hosting-kind
+ * instruction has no edge spelling (it is applied to the member's node), so it throws: callers
+ * branch on `isHostingRelationKind` first.
+ */
+export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => {
+    if (source.relationKind === 'Custom') {
+        return { kind: 'Custom', relationLabel: source.relationLabel }
+    }
+    if (isHostingRelationKind(source.relationKind)) {
+        throw new Error(`edgeKindAndLabelFrom: hosting kind ${source.relationKind} is a field of a member's node, not an edge`)
+    }
+    return { kind: source.relationKind }
+}
 
 /** Re-narrow an edge's own kind/label pair, for copying one edge shape onto another. */
 export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): RelationalEdgeKindAndLabel => (
@@ -638,8 +659,6 @@ export type EphemeraLudicRelationalEdgeData =
     | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
     | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
 
-const HOST_RELATIONAL_EDGE_KINDS = new Set<HostRelationalEdgeKind>(['On', 'Custom', 'In', 'PartOf', 'ConnectedTo'])
-
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
         return false
@@ -654,7 +673,7 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     if (!isEphemeraLudicTerminalId(edge.from) || !isEphemeraLudicTerminalId(edge.to)) {
         return false
     }
-    if (typeof edge.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(edge.kind as HostRelationalEdgeKind)) {
+    if (typeof edge.kind !== 'string' || !STORED_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
         return false
     }
     // Absent is the common case and stays legal --- identity is optional per edge (EA-8). A
@@ -853,7 +872,7 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     // As of presenceNodes Slice 7a (PN-14/PN-23), `EphemeraLudicGraphPort` is `EphemeraCrossingPort`
     // alone --- the presence sense (`EphemeraPresencePortKind`) retired along with the port
     // record, so a port's `kind` domain is exactly the edge Set now.
-    if (typeof entry.kind !== 'string' || !HOST_RELATIONAL_EDGE_KINDS.has(entry.kind as HostRelationalEdgeKind)) {
+    if (typeof entry.kind !== 'string' || !STORED_RELATIONAL_EDGE_KINDS.has(entry.kind)) {
         return false
     }
     // Mirrors the edge guard's own conditional one-for-one: the scale change a port
@@ -894,10 +913,17 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     const rootNode = graph.nodes.find((entry) => entry.universalKey === rootOwner)
     const hostTag = rootNode && rootNode.tag !== 'Presence' ? rootNode.tag : undefined
     for (const entry of graph.nodes) {
-        if (entry.tag === 'Presence' || entry.hostingKind === undefined) {
+        if (entry.tag === 'Presence') {
             continue
         }
-        if (entry.universalKey === rootOwner || !hostTag || !isHostingKindLegalOnHost(entry.hostingKind, hostTag)) {
+        if (entry.universalKey === rootOwner) {
+            if (entry.hostingKind !== undefined) {
+                return false
+            }
+            continue
+        }
+        // Required on every non-root component member (Slice 3): no kind is no longer read as `In`.
+        if (entry.hostingKind === undefined || !hostTag || !isHostingKindLegalOnHost(entry.hostingKind, hostTag)) {
             return false
         }
     }

@@ -85,7 +85,7 @@ describe('factsForStep', () => {
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: glassId },
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: glassId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: trayId, to: glassId, kind: 'ConnectedTo' }],
         })
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
@@ -130,7 +130,7 @@ describe('factsForStep', () => {
                 { tag: 'Character', universalKey: characterId },
                 { tag: 'Object', universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: characterId, to: tableId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: characterId, to: tableId, kind: 'ConnectedTo' }],
         })
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: tableId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
@@ -154,7 +154,7 @@ describe('factsForStep', () => {
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'ConnectedTo' }],
         })
         const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime, graphsMap([roomId, priorGraph]))

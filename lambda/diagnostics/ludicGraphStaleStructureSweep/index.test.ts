@@ -49,7 +49,7 @@ describe('ludicGraphStaleStructureSweep', () => {
                         rootId: ROOM_ID,
                         nodes: [
                             { tag: 'Room', universalKey: ROOM_ID },
-                            { tag: 'Character', universalKey: CHARACTER_ID },
+                            { tag: 'Character', universalKey: CHARACTER_ID, hostingKind: 'In' },
                         ],
                         ports: [],
                     },

@@ -1,7 +1,7 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, RelationInstructionKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { HostRelationalEdge } from '../../../../positions/ludicGraph'
@@ -42,7 +42,7 @@ export type FindRelationalChainResult =
 
 const edgeMatchesRelation = (
     edge: HostRelationalEdge,
-    relationKind: HostRelationalEdgeKind,
+    relationKind: RelationInstructionKind,
     relationLabel: string | undefined
 ): boolean => edge.kind === relationKind && (edge.kind !== 'Custom' || edge.relationLabel === relationLabel)
 
@@ -73,7 +73,7 @@ type ResolveEndpointResult =
 const resolveEndpoint = (
     terminal: EphemeraLudicTerminalId,
     arrivedFromHostId: EphemeraMembershipHostId,
-    relationKind: HostRelationalEdgeKind,
+    relationKind: RelationInstructionKind,
     relationLabel: string | undefined,
     getGraph: ExpansionEnvironment['getGraph'],
     visitedPortIds: ReadonlySet<string>
@@ -216,7 +216,7 @@ export const findRelationalChain = (
     input: {
         subjectId: EphemeraObjectId
         targetId: EphemeraObjectId
-        relationKind: HostRelationalEdgeKind
+        relationKind: RelationInstructionKind
         /** `relationKind: 'Custom'` only, matching `expandSameHost`'s own pairing. */
         relationLabel?: string
     },

@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraLudicTerminalsEqual, isHostingRelationKind, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalsEqual, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'

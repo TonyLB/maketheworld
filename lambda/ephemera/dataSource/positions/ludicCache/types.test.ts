@@ -200,7 +200,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             tag: 'Relational',
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
-            kind: 'On',
+            kind: 'ConnectedTo',
         })).toBe(true)
     })
 
@@ -225,7 +225,7 @@ describe('isEphemeraLudicCacheData', () => {
         tag: 'Relational' as const,
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
-        kind: 'On' as const,
+        kind: 'ConnectedTo' as const,
     }
 
     it('accepts a well-formed cache', () => {

@@ -145,7 +145,7 @@ const wireNodeToEphemera = (data: StandardLudicGraphNodeData): EphemeraLudicGrap
 
 //
 // Edge conversion. Stored relational edges are always Membership/Peer kind (never
-// Navigation/Topology -- confirmed by `HOST_RELATIONAL_EDGE_KINDS`, which the ephemera-stored
+// Navigation/Topology -- confirmed by `STORED_RELATIONAL_EDGE_KINDS`, which the ephemera-stored
 // guard already narrows to), so this only ever produces/consumes the relational arm of WML's
 // `LudicEdgeListData`.
 //

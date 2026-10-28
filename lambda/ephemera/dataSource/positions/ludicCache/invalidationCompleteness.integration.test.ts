@@ -100,8 +100,8 @@ const hostBinding = (name: string, parent: EphemeraMembershipHostId | ReturnType
 const cafeGraph = (edges: any[] = []) => testLudicGraph(R1, {
     nodes: [
         { tag: 'Room', universalKey: R1 },
-        { tag: 'Object', universalKey: TABLE },
-        { tag: 'Object', universalKey: BOX },
+        { tag: 'Object', universalKey: TABLE, hostingKind: 'In' },
+        { tag: 'Object', universalKey: BOX, hostingKind: 'In' },
         presenceBindingNode(parentRemainderKey(R1), undefined, { members: [entry(TABLE, 'PRESENCE#tbl'), entry(BOX, 'PRESENCE#Base')] } as any),
     ],
     edges,
@@ -118,7 +118,7 @@ const freshWorld = (): World => {
         ],
     })
     const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-        [R1, room(R1, { tag: 'Object', universalKey: TABLE }, { tag: 'Object', universalKey: BOX })],
+        [R1, room(R1, { tag: 'Object', universalKey: TABLE, hostingKind: 'In' }, { tag: 'Object', universalKey: BOX, hostingKind: 'In' })],
         [R2, room(R2)],
         [TABLE, testLudicGraph(TABLE, {
             nodes: [

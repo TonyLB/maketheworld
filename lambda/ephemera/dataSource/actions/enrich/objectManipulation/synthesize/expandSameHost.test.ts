@@ -161,11 +161,11 @@ describe('expandSameHost', () => {
             const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             return {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
-                    .addObject(NECKLACE_ID)
-                    .addObject(TABLE_ID)
+                    .addObject(NECKLACE_ID, 'In')
+                    .addObject(TABLE_ID, 'In')
                     .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' }),
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
-                    .addObject(CHARM_ID)
+                    .addObject(CHARM_ID, 'In')
                     .addPort(port)
                     .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' }),
             } as Record<string, EphemeraLudicGraph>
@@ -178,8 +178,8 @@ describe('expandSameHost', () => {
 
         it('errors on a same-host duplicate', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(NECKLACE_ID)
-                .addObject(TABLE_ID)
+                .addObject(NECKLACE_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: NECKLACE_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
 
             const result = expandSameHost(
@@ -212,8 +212,8 @@ describe('expandSameHost', () => {
     describe('dissolveRelation', () => {
         it('a portless dissolve (both endpoints already share a host) resolves to the same single dissolveRelation step as before --- no regression from routing away from findShardBoundary', () => {
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(TRAY_ID)
-                .addObject(TABLE_ID)
+                .addObject(TRAY_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
 
             const result = expandAndLower(
@@ -230,11 +230,11 @@ describe('expandSameHost', () => {
         it("a genuine crossing dissolve (the string-in-room / cup-on-table crossing chain, reversed) resolves via findRelationalChain", () => {
             const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(NECKLACE_ID)
-                .addObject(TABLE_ID)
+                .addObject(NECKLACE_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
             const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
-                .addObject(CHARM_ID)
+                .addObject(CHARM_ID, 'In')
                 .addPort(port)
                 .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' })
 
@@ -272,7 +272,7 @@ describe('expandSameHost', () => {
         })
 
         it('defers to the LLM validator (BD-10) when no matching chain is found to dissolve', () => {
-            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID).addObject(TABLE_ID)
+            const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(TRAY_ID, 'In').addObject(TABLE_ID, 'In')
 
             const result = expandAndLower(
                 { subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'Custom', relationLabel: 'under', operationKind: 'dissolveRelation' },
@@ -288,8 +288,8 @@ describe('expandSameHost', () => {
             // Two structurally distinct edges both reach targetId from subjectId --- mirrors
             // `findRelationalChain.test.ts`'s own ambiguous fixture.
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
-                .addObject(TRAY_ID)
-                .addObject(TABLE_ID)
+                .addObject(TRAY_ID, 'In')
+                .addObject(TABLE_ID, 'In')
                 .addRelationalEdge({ from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'under' })
                 .addRelationalEdge({ from: TABLE_ID, to: TRAY_ID, kind: 'Custom', relationLabel: 'under' })
 

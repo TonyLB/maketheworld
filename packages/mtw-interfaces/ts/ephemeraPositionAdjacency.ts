@@ -47,6 +47,9 @@ export type EphemeraPositionAdjacencyDataCategory =
  */
 export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraRoomId
 
+export const isEphemeraPositionAdjacencyContainedId = (value: unknown): value is EphemeraPositionAdjacencyContainedId =>
+    typeof value === 'string' && (isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraRoomId(value))
+
 export type EphemeraPositionAdjacencyRow = {
     EphemeraId: EphemeraPositionAdjacencyContainedId;
     DataCategory: EphemeraPositionAdjacencyDataCategory;

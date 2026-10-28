@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { RelationInstructionKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { findShardBoundary } from './findShardBoundary'
 import { buildCrossingLegs } from './buildCrossingLegs'
@@ -70,7 +70,7 @@ export const expandSameHost = (
     input: {
         subjectId: EphemeraObjectId
         objectId: EphemeraObjectId
-        relationKind: HostRelationalEdgeKind
+        relationKind: RelationInstructionKind
         /** `relationKind: 'Custom'` only. */
         relationLabel?: string
         /**

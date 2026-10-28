@@ -1332,11 +1332,7 @@ describe('applyStepSequenceCore', () => {
 
     describe('ConnectedTo legality', () => {
         const roomWithSiblings = () => testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, object(trayId), object(glassId), presenceBindingNode(parentRemainderKey(roomId))],
-            edges: [
-                { tag: 'Relational', from: trayId, to: roomId, kind: 'In' },
-                { tag: 'Relational', from: glassId, to: roomId, kind: 'In' },
-            ],
+            nodes: [{ tag: 'Room', universalKey: roomId }, { ...object(trayId), hostingKind: 'In' as const }, { ...object(glassId), hostingKind: 'In' as const }, presenceBindingNode(parentRemainderKey(roomId))],
         })
         const connect = (relationKind: 'ConnectedTo' | 'Custom'): MutationKernelStep => ({
             kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId,

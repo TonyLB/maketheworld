@@ -13,7 +13,7 @@ const PORT_ID = 'abcd123'
 const port = (overrides: Partial<EphemeraCrossingPort> = {}): EphemeraCrossingPort => ({
     portId: PORT_ID,
     fromHostId: REFERRER_ID,
-    kind: 'On',
+    kind: 'ConnectedTo',
     ...overrides,
 })
 
@@ -25,7 +25,7 @@ const referrerGraph = (edges: (RelationalEdgeKindAndLabel & { portId?: string })
     rootId: REFERRER_ID,
     nodes: [
         { tag: 'Room', universalKey: REFERRER_ID },
-        { tag: 'Object', universalKey: HOST_ID },
+        { tag: 'Object', universalKey: HOST_ID, hostingKind: 'In' },
     ],
     edges: edges.map((edge) => ({
         tag: 'Relational' as const,
@@ -43,7 +43,7 @@ describe('classifyLudicGraphPortMismatch', () => {
     // port is never compared against an exterior edge at all, so using one here would assert
     // agreement that the code never checks. Its cases are the presence block at the bottom.
     describe('agreement', () => {
-        it.each(['On', 'In', 'PartOf'] as const)(
+        it.each(['ConnectedTo'] as const)(
             'reports no mismatch when a label-free port agrees with the referring edge (%s)',
             (kind) => {
                 expect(classifyLudicGraphPortMismatch({
@@ -65,16 +65,16 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('treats a label absent on both sides as agreement, not as two unknowns', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }]),
+                port: port({ kind: 'ConnectedTo' }),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo' }]),
             })).toEqual({ mismatch: false })
         })
 
         it('reports no mismatch when the same edge is listed twice (a fan that agrees with itself)', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }, { kind: 'On' }]),
+                port: port({ kind: 'ConnectedTo' }),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo' }, { kind: 'ConnectedTo' }]),
             })).toEqual({ mismatch: false })
         })
     })
@@ -83,9 +83,9 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports a kind mismatch and corrects toward the exterior edge', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'In' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }]),
-            })).toEqual({ mismatch: true, correction: { kind: 'On' } })
+                port: port({ kind: 'Custom', exteriorRelationLabel: 'under' }),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo' }]),
+            })).toEqual({ mismatch: true, correction: { kind: 'ConnectedTo' } })
         })
 
         it('reports a label mismatch on Custom and corrects toward the exterior label', () => {
@@ -99,9 +99,9 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports a mismatch when the port records a label the exterior edge does not carry', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On', exteriorRelationLabel: 'leftover' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }]),
-            })).toEqual({ mismatch: true, correction: { kind: 'On' } })
+                port: port({ kind: 'ConnectedTo', exteriorRelationLabel: 'leftover' }),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo' }]),
+            })).toEqual({ mismatch: true, correction: { kind: 'ConnectedTo' } })
         })
 
         // Rewritten with the type rather than made to pass: this case used to describe an `On`
@@ -113,7 +113,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports a mismatch when the exterior edge carries a label the port does not', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
+                port: port({ kind: 'ConnectedTo' }),
                 referrerLudicGraph: referrerGraph([{ kind: 'Custom', relationLabel: 'balanced across' }]),
             })).toEqual({ mismatch: true, correction: { kind: 'Custom', exteriorRelationLabel: 'balanced across' } })
         })
@@ -121,19 +121,19 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('matches a crossing edge whichever terminal holds the port address', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'In' }),
+                port: port({ kind: 'Custom', exteriorRelationLabel: 'under' }),
                 referrerLudicGraph: {
                     ...referrerGraph([]),
-                    edges: [{ tag: 'Relational' as const, from: { owner: HOST_ID, port: PORT_ID }, to: REFERRER_ID, kind: 'On' as const }],
+                    edges: [{ tag: 'Relational' as const, from: { owner: HOST_ID, port: PORT_ID }, to: REFERRER_ID, kind: 'ConnectedTo' as const }],
                 },
-            })).toEqual({ mismatch: true, correction: { kind: 'On' } })
+            })).toEqual({ mismatch: true, correction: { kind: 'ConnectedTo' } })
         })
 
         it('reports a split exterior fan with no correction --- broken exteriorly, not repairable here', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On' }, { kind: 'Custom', relationLabel: 'tied to' }]),
+                port: port({ kind: 'ConnectedTo' }),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo' }, { kind: 'Custom', relationLabel: 'tied to' }]),
             })).toEqual({ mismatch: true })
         })
     })
@@ -147,7 +147,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports a mismatch with no correction when the referrer graph is well-formed but holds no edge into this port', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
+                port: port({ kind: 'ConnectedTo' }),
                 referrerLudicGraph: referrerGraph([]),
             })).toEqual({ mismatch: true })
         })
@@ -155,7 +155,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports no mismatch when the referrer graph is absent', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
+                port: port({ kind: 'ConnectedTo' }),
                 referrerLudicGraph: undefined,
             })).toEqual({ mismatch: false })
         })
@@ -163,7 +163,7 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports no mismatch when the referrer graph fails the shape guard (that is the structure sweep\'s finding)', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
+                port: port({ kind: 'ConnectedTo' }),
                 referrerLudicGraph: { rootId: REFERRER_ID, nodes: [{ tag: 'Room', universalKey: REFERRER_ID }] },
             })).toEqual({ mismatch: false })
         })
@@ -173,18 +173,18 @@ describe('classifyLudicGraphPortMismatch', () => {
         it('reports a mismatch with no correction when the referrer edge names the same owner but a different port', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'On', portId: 'someOtherPort' }]),
+                port: port({ kind: 'ConnectedTo' }),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo', portId: 'someOtherPort' }]),
             })).toEqual({ mismatch: true })
         })
 
         it('reports a mismatch with no correction when the referrer edge names the owner unqualified (no port address)', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
-                port: port({ kind: 'On' }),
+                port: port({ kind: 'ConnectedTo' }),
                 referrerLudicGraph: {
                     ...referrerGraph([]),
-                    edges: [{ tag: 'Relational' as const, from: REFERRER_ID, to: HOST_ID, kind: 'On' as const }],
+                    edges: [{ tag: 'Relational' as const, from: REFERRER_ID, to: HOST_ID, kind: 'ConnectedTo' as const }],
                 },
             })).toEqual({ mismatch: true })
         })

@@ -180,9 +180,9 @@ describe('crossing take payoff (integration)', () => {
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
                     .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID), covering([CHARACTER_ID], [STRING_ID, 'PRESENCE#string-in-bridge'], [TABLE_ID, 'PRESENCE#table-in-bridge'])))
-                    .addCharacter(CHARACTER_ID)
-                    .addObject(STRING_ID)
-                    .addObject(TABLE_ID)
+                    .addCharacter(CHARACTER_ID, 'In')
+                    .addObject(STRING_ID, 'In')
+                    .addObject(TABLE_ID, 'In')
                     .addRelationalEdge(tied(STRING_ID, tablePort)),
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
                     .addObject(CUP_ID, 'On')
@@ -225,16 +225,16 @@ describe('crossing take payoff (integration)', () => {
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
                     .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID), covering([CHARACTER_ID], [STRING_ID, 'PRESENCE#string-in-bridge'], [WALL_ID, 'PRESENCE#wall-in-bridge'])))
-                    .addCharacter(CHARACTER_ID)
-                    .addObject(STRING_ID)
-                    .addObject(WALL_ID)
+                    .addCharacter(CHARACTER_ID, 'In')
+                    .addObject(STRING_ID, 'In')
+                    .addObject(WALL_ID, 'In')
                     .addRelationalEdge(tied(STRING_ID, wallPort)),
                 [OTHER_ROOM_ID]: EphemeraLudicGraph.empty(OTHER_ROOM_ID)
                     .addPresenceNode(rootBinding(parentRemainderKey(OTHER_ROOM_ID), covering([ONLOOKER_ID], [WALL_ID, 'PRESENCE#wall-in-galley'])))
-                    .addCharacter(ONLOOKER_ID)
-                    .addObject(WALL_ID),
+                    .addCharacter(ONLOOKER_ID, 'In')
+                    .addObject(WALL_ID, 'In'),
                 [WALL_ID]: EphemeraLudicGraph.empty(WALL_ID)
-                    .addObject(HOOK_ID)
+                    .addObject(HOOK_ID, 'In')
                     .addPort(crossingPort('port-wall', ROOM_ID))
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-bridge', ROOM_ID, undefined, covering([HOOK_ID])))
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-galley', OTHER_ROOM_ID, undefined, covering([HOOK_ID])))

@@ -327,11 +327,11 @@ describe('attemptActionsFromTransfer: a crossing relation', () => {
     const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'is tied to' }
     const portAddress = { owner: tableId, port: 'port-1' }
     const roomGraph = EphemeraLudicGraph.empty(roomId)
-        .addObject(stringId)
-        .addObject(tableId)
+        .addObject(stringId, 'In')
+        .addObject(tableId, 'In')
         .addRelationalEdge({ from: stringId, to: portAddress, kind: 'Custom', relationLabel: 'is tied to' })
     const tableGraph = EphemeraLudicGraph.empty(tableId)
-        .addObject(cupId)
+        .addObject(cupId, 'In')
         .addPort(port)
         .addPresenceNode({ tag: 'Presence', universalKey: tableBinding, fromHostPresences: [{ host: roomId, presence: parentRemainderKey(roomId) }], cover: { members: [{ host: cupId, presence: 'PRESENCE#cup-in-table' as EphemeraPresenceNodeId }] } })
         .addRelationalEdge({ from: portAddress, to: cupId, kind: 'Custom', relationLabel: 'is tied to' })

@@ -24,6 +24,7 @@ const characterGhost = 'CHARACTER#ghost' as const
 const graphNode = (universalKey: string) => ({
     tag: 'Character' as const,
     universalKey,
+    hostingKind: 'In' as const,
 })
 
 // Concepts clause 3 requires the graph's own root to be present in `nodes`.

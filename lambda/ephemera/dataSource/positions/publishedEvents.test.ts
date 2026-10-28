@@ -114,7 +114,7 @@ describe('isObjectMovedPublishedPayload', () => {
 })
 
 describe('isObjectRelationChangedPublishedPayload', () => {
-    // This guard's HOST_RELATIONAL_EDGE_KINDS Set (this file) has its own copy of the
+    // This guard's RELATION_INSTRUCTION_KINDS Set (this file) has its own copy of the
     // persistence-lane widening -- a stale Set here fails silently rather than at compile time,
     // so a kernel-emitted containment fact must be checked to actually validate on publish.
     // Direction corrected 2026-08-20: the member is the subject ("the crystal ball is in
@@ -132,7 +132,7 @@ describe('isObjectRelationChangedPublishedPayload', () => {
     })
 
     // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
-    // (PN-14) -- this guard's HOST_RELATIONAL_EDGE_KINDS Set (this file) dropped it in the same
+    // (PN-14) -- this guard's RELATION_INSTRUCTION_KINDS Set (this file) dropped it in the same
     // change, and no writer ever constructed this payload shape (checked as part of PN-14's
     // standing check: no consumer outside lambda/ephemera/dataSource enumerates this kind).
     it('rejects a Present relationKind', () => {

@@ -4,6 +4,7 @@ import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { coverageViolationsOf, mergeablePairOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { graphFromMeta } from '../../ludicGraph'
@@ -359,8 +360,8 @@ export const applyStepSequenceCore = (
         // to remove, since a node leaving a host takes its kind with it.
         if (isHostingRelationKind(step.relationKind)) {
             if (step.kind === 'establishRelation') {
-                if (typeof step.subjectId !== 'string') {
-                    throw new Error(`establishRelation ${step.relationKind} in ${step.hostId}: subject ${step.subjectId.owner}/${step.subjectId.port} is a port, and a hosting kind belongs to a member`)
+                if (!isEphemeraPositionAdjacencyContainedId(step.subjectId)) {
+                    throw new Error(`establishRelation ${step.relationKind} in ${step.hostId}: subject ${JSON.stringify(step.subjectId)} is not a member, and a hosting kind belongs to one`)
                 }
                 graphs.set(step.hostId, hostGraph.setHostingKind(step.subjectId, step.relationKind))
             }

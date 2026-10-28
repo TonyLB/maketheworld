@@ -417,8 +417,8 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * A member's hosting kind in this host's graph (HK-3), `undefined` while the node carries none
-     * (the field is optional until the strict-guard slice) or is absent.
+     * A member's hosting kind in this host's graph (HK-3): `undefined` for the root, a presence
+     * node, or an absent id; every other member carries one.
      */
     hostingKindOf(id: EphemeraLudicTerminalPrimitive): EphemeraHostingKind | undefined {
         const node = this._nodes.find((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
@@ -426,13 +426,17 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * The one add path behind the typed `add*` methods. With no `hostingKind` it is the idempotent
-     * add it always was. A kind is checked against this host (the root carries none; legality is
-     * `isHostingKindLegalOnHost`) and thrown on if illegal. HK-1, one kind per membership: re-adding
-     * a present node with the same kind (or none) is a no-op, but a *different* kind is a change of
+     * The one add path behind the typed `add*` methods. A kind is required for every member except
+     * the root (which carries none) and is checked against this host (`isHostingKindLegalOnHost`);
+     * an illegal or missing kind throws. HK-1, one kind per membership: re-adding a present node
+     * with the same kind (or, for the root, none) is a no-op, but a *different* kind is a change of
      * kind, not an add, and throws.
      */
     private addMember(node: EphemeraLudicGraphComponentNode, hostingKind: EphemeraHostingKind | undefined): EphemeraLudicGraph {
+        const isRoot = node.universalKey === ephemeraLudicTerminalOwner(this.rootId)
+        if (hostingKind === undefined && !isRoot) {
+            throw new Error(`${node.universalKey} needs a hosting kind to join ${this.hostId}`)
+        }
         if (hostingKind !== undefined) {
             this.assertHostingKindLegal(node.universalKey, hostingKind)
         }
@@ -465,7 +469,7 @@ export class EphemeraLudicGraph {
      * already has returns `this`. Throws if the node is absent, is the root, or the kind is illegal
      * on this host.
      */
-    setHostingKind(id: EphemeraLudicTerminalPrimitive, hostingKind: EphemeraHostingKind): EphemeraLudicGraph {
+    setHostingKind(id: EphemeraPositionAdjacencyContainedId, hostingKind: EphemeraHostingKind): EphemeraLudicGraph {
         const index = this._nodes.findIndex((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
         if (index < 0) {
             throw new Error(`Cannot set hosting kind of ${id}: not a member of ${this.hostId}`)
@@ -704,7 +708,7 @@ export const seedFromActiveCharacters = (
 ): EphemeraLudicGraph =>
     EphemeraLudicGraph.fromFieldPayload(hostId, {
         rootId: hostId,
-        nodes: [nodeFromId(hostId), ...activeCharacters.map(({ EphemeraId }) => characterNode(EphemeraId))],
+        nodes: [nodeFromId(hostId), ...activeCharacters.map(({ EphemeraId }) => ({ ...characterNode(EphemeraId), hostingKind: 'In' as const }))],
         edges: [],
         ports: [],
     })

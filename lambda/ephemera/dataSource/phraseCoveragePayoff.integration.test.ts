@@ -90,10 +90,10 @@ type Member = [EphemeraObjectId, string]
 /** The room's graph: the actor, and each object directly in the room under its own binding. */
 const roomGraph = (members: Member[]) => (
     members.reduce(
-        (graph, [member]) => graph.addObject(member),
+        (graph, [member]) => graph.addObject(member, 'In'),
         EphemeraLudicGraph.empty(ROOM_ID)
             .addPresenceNode(rootBinding(parentRemainderKey(ROOM_ID), covering([CHARACTER_ID], ...members)))
-            .addCharacter(CHARACTER_ID)
+            .addCharacter(CHARACTER_ID, 'In')
     )
 )
 /** An object's own graph: its binding under its parent's, covering whatever rests on or in it. */
@@ -360,7 +360,7 @@ describe('phrase coverage payoff (integration)', () => {
     const seedHeldCupBesideBox = () => seed({
         graphs: {
             [ROOM_ID]: roomGraph([[BOX_ID, 'PRESENCE#box-in-room']]),
-            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base', covering([CUP_ID, 'PRESENCE#cup-held']))).addObject(CUP_ID),
+            [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base', covering([CUP_ID, 'PRESENCE#cup-held']))).addObject(CUP_ID, 'Held'),
             [CUP_ID]: objectGraph(CUP_ID, 'PRESENCE#cup-held', CHARACTER_ID, 'PRESENCE#Base'),
             [BOX_ID]: objectGraph(BOX_ID, 'PRESENCE#box-in-room', ROOM_ID, undefined, [], 'In'),
         },

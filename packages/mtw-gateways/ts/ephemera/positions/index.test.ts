@@ -123,7 +123,7 @@ describe('positions project', () => {
                 tag: 'Relational',
                 from: objectId,
                 to: 'OBJECT#Table',
-                kind: 'On',
+                kind: 'ConnectedTo',
             }],
         })
         expect(graph.nodes).toEqual([
@@ -134,7 +134,7 @@ describe('positions project', () => {
             tag: 'Relational',
             from: objectId,
             to: 'OBJECT#Table',
-            kind: 'On',
+            kind: 'ConnectedTo',
         }])
     })
 
