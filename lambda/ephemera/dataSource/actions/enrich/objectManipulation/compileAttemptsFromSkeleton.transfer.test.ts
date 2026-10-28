@@ -188,6 +188,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 { proposedCommand: 'put the cup on the tray', label: 'cup', referentAnswers: { cupRef: secondCupId, trayRef: trayId } },
             ],
             confidence: 0.9,
+            pass: 'pure',
             root: {
                 command: 'put cup on tray',
                 // Plan mints fresh action ids per call, so the frozen attempts are matched by shape.

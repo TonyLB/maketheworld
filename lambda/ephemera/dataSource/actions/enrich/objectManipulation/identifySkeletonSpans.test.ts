@@ -2,6 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { runIdentityStageOverReferenceKeys, runIdentityStageOverSkeleton } from './identifySkeletonSpans'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { resolvePureSpanToPool } from './resolvePureSpanToPool'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import type { ParseSkeleton } from './parse/parseToken'
 
@@ -211,5 +212,56 @@ describe('runIdentityStageOverReferenceKeys', () => {
         await expect(
             runIdentityStageOverReferenceKeys('put broom on anvil', skeleton, ['missingRef'], { objects: roomCatalog, exits: [] })
         ).rejects.toThrow('"missingRef" is not an objectSpan token')
+    })
+})
+
+describe('runIdentityStageOverSkeleton with a resolver', () => {
+    it('omits a declined span\'s keys from the pools and lists them as ineligible', async () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            { type: 'objectSpan', span: 'zebra', stableRefKey: 'zebraRef' },
+            { type: 'objectSpan', span: 'zebra', stableRefKey: 'zebraRef2' },
+        ]
+        const resolver = async (span: string) => (
+            span === 'broom'
+                ? { type: 'pool' as const, pool: { span, candidates: [] } }
+                : { type: 'ineligible' as const }
+        )
+
+        const result = await runIdentityStageOverSkeleton('x', skeleton, { objects: roomCatalog, exits: [] }, resolver)
+
+        expect(result.type).toBe('success')
+        if (result.type !== 'success') {
+            return
+        }
+        expect([...result.spanPools.keys()]).toEqual(['broomRef'])
+        expect(result.ineligible).toEqual(['zebraRef', 'zebraRef2'])
+    })
+})
+
+describe('runIdentityStageOverSkeleton with the pure resolver', () => {
+    it('pools exact and subsequence spans without embedding, and lists the rest as ineligible', async () => {
+        const catalog: ObjectManipulationCatalogEntry[] = [
+            { objectId: broomId, normalizedShortName: 'old broom', catalogScope: 'room' },
+            { objectId: anvilId, normalizedShortName: 'anvil', catalogScope: 'room' },
+        ]
+        const skeleton: ParseSkeleton = [
+            { type: 'objectSpan', span: 'anvil', stableRefKey: 'anvilRef' },
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            { type: 'objectSpan', span: 'zebra', stableRefKey: 'zebraRef' },
+        ]
+
+        const result = await runIdentityStageOverSkeleton('x', skeleton, { objects: catalog, exits: [] }, resolvePureSpanToPool)
+
+        expect(result.type).toBe('success')
+        if (result.type !== 'success') {
+            return
+        }
+        expect([...result.spanPools.keys()]).toEqual(['anvilRef', 'broomRef'])
+        expect(result.spanPools.get('anvilRef')?.candidates[0].sourceTags).toEqual(['exact'])
+        expect(result.spanPools.get('broomRef')?.candidates.map(({ id, sourceTags }) => ({ id, sourceTags })))
+            .toEqual([{ id: broomId, sourceTags: ['lexical'] }])
+        expect(result.ineligible).toEqual(['zebraRef'])
+        expect(mockGet).not.toHaveBeenCalled()
     })
 })

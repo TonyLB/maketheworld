@@ -15,13 +15,16 @@ import { NarrateAttemptAction } from '../../commandAttempt/action'
 import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import { adjudicateDeferred } from '../../commandAttempt/adjudicate'
 import { runIdentityStageOverReferenceKeys } from './identifySkeletonSpans'
+import { resolvePureSpanToPool } from './resolvePureSpanToPool'
+import type { SpanResolver } from './resolveExactSpan'
+import type { CompilePass } from '../../persistentCommand/payload'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { TransferMembershipChange } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { navigationIntentErrorMessages } from '../../discriminateIntent/exitResolution'
 import { selectPlanTuple } from './selectPlanCandidate'
-import type { ConsultAlternative } from './spanResolution'
+import type { ConsultAlternative, SpanCandidatePool } from './spanResolution'
 import { applyChallengeAnswers, primaryActionIdOf, resumeErrorMessages, type ResumeAnswers } from './resumeAnswers'
 import {
     attemptDryRun,
@@ -60,6 +63,11 @@ export type CompileAttemptsFromSkeletonInput = {
     roomExits?: readonly RoomExit[]
     /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */
     answers?: ResumeAnswers
+    /**
+     * The pass to start at (`actions/AGENT.contract.md` "Qualifier"). Absent on a first run, which tries
+     * the pure pass and falls through to the full one; a resume passes the pass that built its question.
+     */
+    startPass?: CompilePass
 }
 
 export type CompileAttemptsFromSkeletonDeps = {
@@ -245,7 +253,6 @@ async function compileReadings(
     // A step (a change, or a qualifier's assertion) needs the room graph, read once for the pool's
     // environment; a relation without one is refused. A plain look has no steps and reads nothing.
     const positionsReads = deps.positionsReadDeps ?? defaultPositionsReads()
-    const hasStep = ({ attempt }: AttemptEntry): boolean => attempt.actions().some((action) => action.desiredResult !== undefined)
     const roomGraph = hostRoomId !== undefined && survivors.some(hasStep)
         ? await positionsReads.getLudicGraph(hostRoomId)
         : undefined
@@ -265,16 +272,63 @@ async function compileReadings(
         input.heldInventoryCatalog ?? []
     )
 
-    // One Identify over every surviving fill's spans: a key shared by two fills is one span text, so one pool.
+    const ctx: ProducerContext = { input, intentConfidence, answers, hostRoomId, positionsReads, roomGraph, catalog }
+    // Each pass keeps its own refusals, and only the returned pass's join the once-only ones: a discarded
+    // pure pass's refusals must not surface as the "first Error over an Abstain".
+    if (input.startPass !== 'full') {
+        const pureRefusals: CompileAttemptsFromSkeletonResult[] = []
+        const pure = await runPurePass(ctx, [...survivors], pureRefusals)
+        if (pure !== undefined) {
+            refusals.push(...pureRefusals)
+            return pure
+        }
+    }
+    const fullRefusals: CompileAttemptsFromSkeletonResult[] = []
+    const full = await runFullPass(ctx, [...survivors], fullRefusals, 'full')
+    refusals.push(...fullRefusals)
+    return full
+}
+
+const hasStep = ({ attempt }: AttemptEntry): boolean => attempt.actions().some((action) => action.desiredResult !== undefined)
+
+/** What the once-only steps of `compileReadings` settle, and every pass reads. */
+type ProducerContext = {
+    input: CompileAttemptsFromSkeletonInput
+    intentConfidence: number
+    answers: ResumeAnswers | undefined
+    hostRoomId: EphemeraRoomId | undefined
+    positionsReads: ObjectManipulationPositionsReadDeps
+    roomGraph: Awaited<ReturnType<ObjectManipulationPositionsReadDeps['getLudicGraph']>> | undefined
+    catalog: ReturnType<typeof mergeObjectManipulationCatalogs>
+}
+
+/** One Identify over every surviving fill's spans: a key shared by two fills is one span text, so one pool. */
+const identifySurvivors = (ctx: ProducerContext, survivors: readonly AttemptEntry[], resolver?: SpanResolver) => {
+    const { input, catalog } = ctx
     const spans = [...new Map(survivors.flatMap(({ skeleton }) => skeleton.flatMap((token) => (
         token.type === 'objectSpan' ? [[token.stableRefKey, token] as const] : []
     )))).values()]
-    const identityResult = await runIdentityStageOverReferenceKeys(
+    return runIdentityStageOverReferenceKeys(
         input.command,
         spans,
         attemptSpanKeys(survivors.map((entry) => entry.attempt)),
-        { objects: catalog, exits: input.roomExits ?? [] }
+        { objects: catalog, exits: input.roomExits ?? [] },
+        resolver
     )
+}
+
+/**
+ * The full pass: Identify with the full resolver (every span not matched exactly embeds), then the
+ * steps every pass shares. `refusals` is this pass's own list.
+ */
+async function runFullPass(
+    ctx: ProducerContext,
+    survivors: AttemptEntry[],
+    refusals: CompileAttemptsFromSkeletonResult[],
+    pass: CompilePass
+): Promise<CompileAttemptsFromSkeletonResult> {
+    const { intentConfidence } = ctx
+    const identityResult = await identifySurvivors(ctx, survivors)
     if (identityResult.type === 'error') {
         // Nothing in the room or in hand: nothing grounds.
         return identityResult.errorMessage === objectManipulationErrorMessages.noCatalog
@@ -282,19 +336,67 @@ async function compileReadings(
             : { type: 'Error', errorMessage: identityResult.errorMessage }
     }
 
-    // TEMPORARY BRIDGE (exact-fill precedence, `actions/AGENT.contract.md` "Qualifier"; ladder rung 14
-    // reconsiders it):
-    // when some fill has every span matched exactly, the fills that don't are dropped. The lexical rank
-    // forgives words around a name, so a longer span ("cup from table") would otherwise compete with the
-    // exact segmentation, even win when that one is illegal. With no fully exact fill, every fill competes.
-    const isExact = (key: string): boolean => (identityResult.spanPools.get(key)?.candidates ?? []).some(({ sourceTags }) => sourceTags.includes('exact'))
-    const isExactFill = (skeleton: ParseSkeleton): boolean => skeleton.every((token) => token.type !== 'objectSpan' || isExact(token.stableRefKey))
-    if (survivors.some(({ skeleton }) => isExactFill(skeleton))) {
-        survivors = survivors.filter(({ skeleton }) => isExactFill(skeleton))
+    const { spanPools } = identityResult
+    survivors = applyExactFillPrecedence(survivors, spanPools)
+    survivors = dropPostIdentityRefusals(survivors, intentConfidence, refusals)
+    if (survivors.length === 0) {
+        return firstRefusal(refusals)
     }
+    return proposeToResult(ctx, survivors, spanPools, pass)
+}
 
-    // Post-Identify: each survivor's own refusal, then the survivors again.
-    survivors = survivors.filter((entry) => {
+/**
+ * The pure pass: Identify with the pure resolver (no span embeds), keeping only the fills whose every
+ * object span matched by name, then the steps every pass shares. Its result stands only if it is a
+ * CommandAttempt or a Consult (at least one reading passed the dry run); otherwise it is `undefined`
+ * and the full pass runs. `refusals` is this pass's own list, discarded with it.
+ */
+async function runPurePass(
+    ctx: ProducerContext,
+    survivors: AttemptEntry[],
+    refusals: CompileAttemptsFromSkeletonResult[]
+): Promise<CompileAttemptsFromSkeletonResult | undefined> {
+    const identityResult = await identifySurvivors(ctx, survivors, resolvePureSpanToPool)
+    if (identityResult.type === 'error') {
+        return undefined
+    }
+    const { spanPools, ineligible } = identityResult
+    const declined = new Set(ineligible)
+    survivors = survivors.filter(({ skeleton }) => !skeleton.some((token) => token.type === 'objectSpan' && declined.has(token.stableRefKey)))
+    if (survivors.length === 0) {
+        return undefined
+    }
+    survivors = applyExactFillPrecedence(survivors, spanPools)
+    survivors = dropPostIdentityRefusals(survivors, ctx.intentConfidence, refusals)
+    if (survivors.length === 0) {
+        return undefined
+    }
+    const result = await proposeToResult(ctx, survivors, spanPools, 'pure')
+    return result.type === 'CommandAttempt' || result.type === 'Consult' ? result : undefined
+}
+
+/**
+ * TEMPORARY BRIDGE (exact-fill precedence, `actions/AGENT.contract.md` "Qualifier"; ladder rung 14
+ * reconsiders it):
+ * when some fill has every span matched exactly, the fills that don't are dropped. The lexical rank
+ * forgives words around a name, so a longer span ("cup from table") would otherwise compete with the
+ * exact segmentation, even win when that one is illegal. With no fully exact fill, every fill competes.
+ */
+function applyExactFillPrecedence(survivors: AttemptEntry[], spanPools: ReadonlyMap<string, SpanCandidatePool>): AttemptEntry[] {
+    const isExact = (key: string): boolean => (spanPools.get(key)?.candidates ?? []).some(({ sourceTags }) => sourceTags.includes('exact'))
+    const isExactFill = (skeleton: ParseSkeleton): boolean => skeleton.every((token) => token.type !== 'objectSpan' || isExact(token.stableRefKey))
+    return survivors.some(({ skeleton }) => isExactFill(skeleton))
+        ? survivors.filter(({ skeleton }) => isExactFill(skeleton))
+        : survivors
+}
+
+/** Post-Identify: each survivor's own refusal (pushed to `refusals`), then the survivors again. */
+function dropPostIdentityRefusals(
+    survivors: AttemptEntry[],
+    intentConfidence: number,
+    refusals: CompileAttemptsFromSkeletonResult[]
+): AttemptEntry[] {
+    return survivors.filter((entry) => {
         const refused = postIdentityRefusal(entry, intentConfidence)
         if (refused) {
             refusals.push(refused)
@@ -302,10 +404,16 @@ async function compileReadings(
         }
         return true
     })
-    if (survivors.length === 0) {
-        return firstRefusal(refusals)
-    }
+}
 
+/** Propose -> environment -> dry run -> select -> result, over survivors whose spans are grounded. */
+async function proposeToResult(
+    ctx: ProducerContext,
+    survivors: AttemptEntry[],
+    spanPools: ReadonlyMap<string, SpanCandidatePool>,
+    pass: CompilePass
+): Promise<CompileAttemptsFromSkeletonResult> {
+    const { input, intentConfidence, answers, hostRoomId, positionsReads, roomGraph, catalog } = ctx
     // The pool's no-assignment reason comes from its first surviving attempt.
     const lead = survivors[0]!
     // A candidate is grounded from its attempt, keeping the Plan-minted action ids: its fill is found by the primary one.
@@ -313,7 +421,7 @@ async function compileReadings(
     const proposed = proposeAttemptCandidates({
         command: input.command,
         attempts: survivors.map((entry) => entry.attempt),
-        spanPools: identityResult.spanPools,
+        spanPools,
         catalog,
         noAssignmentReason: noAssignmentReasonFor(lead.attempt.kind),
         referentAnswers: answers?.referentAnswers,
@@ -382,6 +490,7 @@ async function compileReadings(
             type: 'Consult',
             alternatives: selection.alternatives.map(({ proposedCommand, objectId, referentAnswers, viewAnswers }, index) => ({ proposedCommand, objectId, label: labels[index], referentAnswers, ...(viewAnswers !== undefined ? { viewAnswers } : {}) })),
             confidence: intentConfidence,
+            pass,
             // All of Plan's fills and attempts, not the survivors: a resume restarts from the same frozen set.
             root: {
                 command: input.command,

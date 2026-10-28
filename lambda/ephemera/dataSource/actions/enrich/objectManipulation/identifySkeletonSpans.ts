@@ -3,6 +3,7 @@ import type { ObjectManipulationCatalogEntry } from './catalogMerge'
 import { exitSpanPool } from './exitSpanPool'
 import { runIdentityStage } from './identityStage'
 import type { ObjectSpanToken, ParseSkeleton, SpanStructure } from './parse/parseToken'
+import type { SpanResolver } from './resolveCatalogSpanToPool'
 import type { SpanCandidatePool } from './spanResolution'
 
 function isObjectSpanToken(token: ParseSkeleton[number]): token is ObjectSpanToken {
@@ -16,7 +17,12 @@ export type SpanCatalogs = {
 }
 
 export type SkeletonIdentityStageResult =
-    | { type: 'success'; spanPools: ReadonlyMap<string, SpanCandidatePool> }
+    | {
+        type: 'success'
+        spanPools: ReadonlyMap<string, SpanCandidatePool>
+        /** The stableRefKeys whose span the resolver declined: absent from `spanPools`. Always empty under the full resolver. */
+        ineligible: readonly string[]
+    }
     | { type: 'error'; errorMessage: string }
 
 /**
@@ -28,12 +34,13 @@ export type SkeletonIdentityStageResult =
  * and every key holding that text (two occurrences, `benchRef1` and `benchRef2`) shares its pool;
  * Identify scores a text with the union of its occurrences' structure (`SpanStructure`).
  * Identify runs, and can fail for want of a catalog, only when there is an object span to ground.
- * An exit span's pool is the exits' exact match (`exitSpanPool`).
+ * An exit span's pool is the exits' exact match (`exitSpanPool`), and never ineligible.
  */
 export async function runIdentityStageOverSkeleton(
     command: string,
     skeleton: ParseSkeleton,
-    catalogs: SpanCatalogs
+    catalogs: SpanCatalogs,
+    resolver?: SpanResolver
 ): Promise<SkeletonIdentityStageResult> {
     const spanTokens = skeleton.filter(isObjectSpanToken)
     const objectSpanTokens = spanTokens.filter((token) => token.catalog === undefined)
@@ -46,19 +53,24 @@ export async function runIdentityStageOverSkeleton(
         return held.length === 0 ? [] : [[text, { tokens: held[0].tokens, alternatives }] as const]
     }))
     const identityResult = texts.length > 0
-        ? await runIdentityStage(command, texts, catalogs.objects, structures)
-        : { type: 'success' as const, spanPools: [] }
+        ? await runIdentityStage(command, texts, catalogs.objects, structures, resolver)
+        : { type: 'success' as const, spanPools: [], ineligible: [] }
     if (identityResult.type === 'error') {
         return identityResult
     }
 
-    const poolOf = new Map(texts.map((text, index) => [text, identityResult.spanPools[index]]))
+    // Every pool carries the span as given; a declined text has none.
+    const poolOf = new Map(identityResult.spanPools.map((pool) => [pool.span, pool]))
+    const poolFor = (token: ObjectSpanToken): SpanCandidatePool | undefined => (
+        token.catalog === 'exits' ? exitSpanPool(token.span, catalogs.exits) : poolOf.get(token.span)
+    )
     return {
         type: 'success',
-        spanPools: new Map(spanTokens.map((token) => [
-            token.stableRefKey,
-            token.catalog === 'exits' ? exitSpanPool(token.span, catalogs.exits) : poolOf.get(token.span)!,
-        ])),
+        spanPools: new Map(spanTokens.flatMap((token) => {
+            const pool = poolFor(token)
+            return pool === undefined ? [] : [[token.stableRefKey, pool] as const]
+        })),
+        ineligible: spanTokens.filter((token) => poolFor(token) === undefined).map(({ stableRefKey }) => stableRefKey),
     }
 }
 
@@ -72,7 +84,8 @@ export async function runIdentityStageOverReferenceKeys(
     command: string,
     skeleton: ParseSkeleton,
     referenceKeys: readonly string[],
-    catalogs: SpanCatalogs
+    catalogs: SpanCatalogs,
+    resolver?: SpanResolver
 ): Promise<SkeletonIdentityStageResult> {
     const keys = new Set(referenceKeys)
     const skeletonKeys = new Set(skeleton.filter(isObjectSpanToken).map((token) => token.stableRefKey))
@@ -82,5 +95,5 @@ export async function runIdentityStageOverReferenceKeys(
         }
     }
     const referenced: ParseSkeleton = skeleton.filter((token) => !isObjectSpanToken(token) || keys.has(token.stableRefKey))
-    return runIdentityStageOverSkeleton(command, referenced, catalogs)
+    return runIdentityStageOverSkeleton(command, referenced, catalogs, resolver)
 }

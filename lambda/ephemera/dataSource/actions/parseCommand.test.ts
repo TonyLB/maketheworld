@@ -1104,6 +1104,7 @@ describe('parseCommand LLM path', () => {
                 type: 'Consult',
                 confidence: 1,
                 root: expect.objectContaining({ confidence: 1, fills: expect.any(Array) }),
+                pass: 'full',
                 alternatives: [
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
                     expect.objectContaining({ proposedCommand: 'take the mop', objectId: mopId }),
@@ -1142,6 +1143,7 @@ describe('parseCommand LLM path', () => {
                 type: 'Consult',
                 confidence: 1,
                 root: expect.objectContaining({ confidence: 1, fills: expect.any(Array) }),
+                pass: 'pure',
                 alternatives: [
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: broomId }),
                     expect.objectContaining({ proposedCommand: 'take the broom', objectId: mopId }),

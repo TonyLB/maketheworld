@@ -29,12 +29,14 @@ export const resumePersistentCommand = (
     world: PersistentCommandWorld,
     deps: CompileAttemptsFromSkeletonDeps = {}
 ): Promise<CompileAttemptsFromSkeletonResult> => {
-    const { root, selectedAttempt, referentAnswers, viewAnswers, challengeAnswers } = payload
+    const { root, pass, selectedAttempt, referentAnswers, viewAnswers, challengeAnswers } = payload
     return compileAttemptsFromSkeleton(
         {
             command: root.command,
             fills: root.fills.map(({ skeleton, attempts }) => ({ skeleton, attempts: attempts.map((data) => CommandAttempt.fromJSON(data)) })),
             ...world,
+            // A payload without a pass was built before passes existed: it resumes on the pools it saw.
+            startPass: pass ?? 'full',
             answers: { selectedAttempt, referentAnswers, viewAnswers, challengeAnswers },
         },
         root.confidence,

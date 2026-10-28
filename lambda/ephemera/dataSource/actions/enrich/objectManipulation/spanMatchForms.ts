@@ -1,4 +1,5 @@
 import { normalizeExitName } from '../../normalizeExitName'
+import { normalizeShortNameForEmbedding } from '../../../objects/embedding/impromptuEmbeddingNeedsRefresh'
 
 const LEADING_ARTICLES = ['an', 'a', 'the', 'some'] as const
 
@@ -29,4 +30,27 @@ export function peelLeadingArticleWhenTail(rawSpan: string): string {
 export function spanMatchForms(rawSpan: string): string[] {
     const forms = [normalizeExitName(rawSpan), normalizeExitName(peelLeadingArticleWhenTail(rawSpan))]
     return [...new Set(forms)].filter((form) => form.length > 0)
+}
+
+const NAME_SUBSEQUENCE_MIN_CHARS = 3
+
+/**
+ * Whether the span's words appear among the name's words in the same order, gaps allowed, whole
+ * words only ("cup" matches "big red cup", not "cupboard"). The span is read as the SpanEmbeddings
+ * key form: leading article peeled, then normalized; under three characters, or a bare article, never matches.
+ */
+export function spanIsNameSubsequence(rawSpan: string, normalizedShortName: string): boolean {
+    const span = normalizeShortNameForEmbedding(peelLeadingArticleWhenTail(rawSpan))
+    if (span.length < NAME_SUBSEQUENCE_MIN_CHARS || (LEADING_ARTICLES as readonly string[]).includes(span)) {
+        return false
+    }
+    const nameWords = normalizedShortName.split(' ')
+    const unmatched = span.split(' ').reduce<string[] | undefined>((remaining, word) => {
+        if (!remaining) {
+            return undefined
+        }
+        const at = remaining.indexOf(word)
+        return at < 0 ? undefined : remaining.slice(at + 1)
+    }, nameWords)
+    return unmatched !== undefined
 }
