@@ -1,6 +1,6 @@
 # Hosting kind on the member node
 
-**Status:** opened 2026-10-27, not started. All decisions (HK-1 through HK-6) settled 2026-10-28; nothing blocks. **Next step: [Slice 0](#recommended-order).** **Operational step owed by the user before Slice 2 deploys:** the Coyote `await` clear, *then* parking characters offline (order per [HK-6](#open-decisions-implementation--plan-only)). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+**Status:** opened 2026-10-27, Slice 0 done 2026-10-28 (the user hand-checked the dev database: no Objects, no Room edges, so the HK-6 zero condition already holds). All decisions (HK-1 through HK-6) settled 2026-10-28; nothing blocks Slice 1. **Next step: [Slice 1](#recommended-order)** (see [Slice 0 findings](#slice-0-findings) first: take and drop write no kind today, so Slice 2 mints a writer rather than moving one). **Operational step ([HK-6](#open-decisions-implementation--plan-only)) is moot for now:** there are no Objects to clear. If objects are placed before Slice 2 deploys, do the Coyote `await` clear, *then* park characters offline. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Goal
 
@@ -57,7 +57,7 @@ HK-1 through HK-6 were settled with the user on 2026-10-28, after the [discussio
 
 | Slice | State |
 | --- | --- |
-| 0. Inventory (no code) | |
+| 0. Inventory (no code) | Done 2026-10-28; dev database hand-checked by the user (no Objects, no Room edges). Baselines green (ephemera 3972, interfaces 766, gateways 309, diagnostics 161). Two real hosting-edge writers (population, move `containment`); no hosting-kind port minted by any writer; take/drop write no kind. Details in [Slice 0 findings](#slice-0-findings). |
 | 1. Field, guard, container accessors (no behavior change) | |
 | 2. Writers and readers move to the field | |
 | 3. Hosting kinds leave the edge and port types; guard made strict | |
@@ -68,19 +68,19 @@ HK-1 through HK-6 were settled with the user on 2026-10-28, after the [discussio
 
 Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as it is done.
 
-- [ ] **Slice 0. Inventory, no code.** Record findings in [Progress](#progress), and pass the port finding to wmlRelationalEdges OD-1.
-    - [ ] Every **producer** of a hosting-kind edge (`establishRelation` with a hosting `relationKind`; `containment` on move ops; population; fixtures in `containmentDriftScenarios.ts`). Confirm each writes `member -K-> rootId` and one kind per member.
-    - [ ] Every producer of a **hosting-kind port**, including stub ports minted from severed edges (`presenceSubGraph.ts` `subGraphFromNodes`, `mergeReducer.ts` stubs, `stubPortIdFromEdge`). In particular, find out whether a hosting edge can straddle two presence buckets of one host in the fold, which would mint a hosting-kind stub port.
-    - [ ] Every **reader** of a hosting kind on an edge or port (start from `grep -rnE "(kind\|relationKind) ?(===\|!==) ?'(On\|In\|PartOf)'\|isHostingRelationKind\|case '(On\|In\|PartOf)'"` over `lambda/`, `packages/mtw-gateways/ts`, `packages/mtw-interfaces/ts`), including narration and `attemptCandidates.ts` (the first-edge kind check).
-    - [ ] Dev-instance stored rows: write a one-off **read-only** scan over every stored `ludicGraph` (rooms, characters, objects) that counts hosting-kind edges and ports. Run it now for a baseline, and again after the user's clear (HK-6). The second run must report zero before Slice 2 deploys. Also list any objects outside Coyote `gameRooms`, since the clear does not reach them.
-    - [ ] Every place that writes an object into a **character** host, and the kind it writes (take, pick up, population onto characters if any). Each becomes a `Held` writer in Slice 2.
+- [X] **Slice 0. Inventory, no code.** Record findings in [Progress](#progress), and pass the port finding to wmlRelationalEdges OD-1.
+    - [X] Every **producer** of a hosting-kind edge (`establishRelation` with a hosting `relationKind`; `containment` on move ops; population; fixtures in `containmentDriftScenarios.ts`). Confirm each writes `member -K-> rootId` and one kind per member.
+    - [X] Every producer of a **hosting-kind port**, including stub ports minted from severed edges (`presenceSubGraph.ts` `subGraphFromNodes`, `mergeReducer.ts` stubs, `stubPortIdFromEdge`). In particular, find out whether a hosting edge can straddle two presence buckets of one host in the fold, which would mint a hosting-kind stub port. *(Verdict passed to wmlRelationalEdges OD-1.)*
+    - [X] Every **reader** of a hosting kind on an edge or port (start from `grep -rnE "(kind\|relationKind) ?(===\|!==) ?'(On\|In\|PartOf)'\|isHostingRelationKind\|case '(On\|In\|PartOf)'"` over `lambda/`, `packages/mtw-gateways/ts`, `packages/mtw-interfaces/ts`), including narration and `attemptCandidates.ts` (the first-edge kind check).
+    - [X] Dev-instance stored rows: write a one-off **read-only** scan over every stored `ludicGraph` (rooms, characters, objects) that counts hosting-kind edges and ports. Run it now for a baseline, and again after the user's clear (HK-6). The second run must report zero before Slice 2 deploys. Also list any objects outside Coyote `gameRooms`, since the clear does not reach them. *(Done by hand 2026-10-28: the user checked the dev database directly and found no Objects and no edges in any Room, so the baseline and the HK-6 post-clear state coincide at zero. The script is not needed.)*
+    - [X] Every place that writes an object into a **character** host, and the kind it writes (take, pick up, population onto characters if any). Each becomes a `Held` writer in Slice 2.
 - [ ] **Slice 1. The field, with no behavior change** (per HK-1--HK-3).
     - [ ] Add `hostingKind` (the five values) to the component member arms in `ephemeraMeta.ts`, with its guard: required on non-root component members once Slice 3 lands, optional until then so stored rows still parse; per-host legality (`Held` only on characters; `In`, `PartOf`, `SectionOf` never on characters) checked from the start.
     - [ ] `hostingFamily(kind)`, total over the five values, with a unit test that fails on an unmapped kind.
     - [ ] Container accessors on `EphemeraLudicGraph` (a read of a member's kind, and setting it as part of adding the member), with unit tests, including a `SectionOf` round trip (no writer exists for it).
     - [ ] `EphemeraLudicCacheNode` omits the field (HK-4), so the cache cannot inherit an ambiguous one.
 - [ ] **Slice 2. Writers and readers move to the field.**
-    - [ ] Writers: population (`containmentPopulationSteps.ts`), the move compiler's `containment` (the node is added with its kind; a move into a character host writes `Held`), and `establishRelation`/`dissolveRelation` for hosting kinds (refused for hosting kinds from here on, if Slice 0 finds a caller other than population and moves).
+    - [ ] Writers: population (`containmentPopulationSteps.ts`), the move compiler's `containment` (the node is added with its kind; a move into a character host writes `Held`; take and drop write no kind today, so they become new writers: `Held` on take, `In` on drop, per [Slice 0 findings](#slice-0-findings)), and `establishRelation`/`dissolveRelation` for hosting kinds (refused for hosting kinds from here on, if Slice 0 finds a caller other than population and moves).
     - [ ] Readers: `connectedToLegality.ts` (its `isPart` reads `hostingFamily(kind) === 'composition'`, so `SectionOf` members qualify), `attemptCandidates.ts`, `fixedContainmentDriftSweep/classification.ts`, narration, and every other reader from Slice 0.
     - [ ] Retire `findOwnRootContainmentEdge` and the own-edge exclusion in `boundaryActionsInGraph`. Leaving a host now removes the kind with the node.
     - [ ] `classifyInteractionUnderTransfer`'s hosting-kind branch becomes unreachable by type (Slice 3); leave a comment until then.
@@ -99,6 +99,37 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
     - [ ] `ludicGraph/AGENT.md` (*Membership nodes*, *Relational edges*) and `positions/AGENT.implementation.md`.
     - [ ] Open the `SecuredTo` follow-on plan from the discussion's record (see [Relationship to other plans](#relationship-to-other-plans)), so nothing in the discussion file is lost.
     - [ ] Grep for inbound links to this file and its discussion companion (`grep -rn "hostingKindOnNode" .`), then delete both.
+
+## Slice 0 findings
+
+Recorded 2026-10-28. Deleted with the plan (Slice 5).
+
+**Hosting-edge producers.** Two write paths, both to `member -K-> rootId`, one kind per member:
+
+| Producer | Where | Kind | Slice 2 |
+| --- | --- | --- | --- |
+| Containment population | [`containmentPopulationSteps.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/containment/containmentPopulationSteps.ts) (`establishRelation`, `hostId: parentId`) | `In` for an object child, `PartOf` for Room/Feature/Area | Writes the node's `hostingKind`; its "has edge already" check reads the field |
+| Move `containment` | `commitAttempt.ts` -> `planObjectMoveTransfer` -> `buildObjectMoveOp` -> `compilePositionKernelOp` (`establishSteps`, `hostId: op.to`) | `On`/`In` from the planner; the op type also allows `PartOf` but `planStep.ts` narrows to `On \| In`, so nothing mints it | Node added with its kind |
+
+Everything else that builds `establishRelation`/`dissolveRelation` (`applyObjectRelationalChange`, `commitAttempt` relational branch, `extendSteps`, `resolvePresenceMoves`, `applyStepSequenceCore`) carries `Custom` or `ConnectedTo`; `compileAttemptsFromSkeleton.ts` refuses a hosting `relationKind` for establish. The only fixtures with hosting edges are `containmentDriftScenarios.ts` (`PartOf`, root `to`) and the deliberate non-root `OBJECT_A -On-> OBJECT_B` case in `ludicGraph/index.test.ts` (about 32 test files build `kind: 'On'|'In'|'PartOf'` literals in all).
+
+**Take and drop write no kind at all.** A `transferMembership` without `containment` (take, drop) adds no edge: membership by node only, with "no hosting edge means `In`" supplying the kind. So in Slice 2, `Held` on take and `In` on drop are **new writes**, and "required on every non-root member" (HK-3) means every membership path must set a kind, not only the two above. No other character-host writer exists: improvised objects (`persistImprovisationObject.ts`) write no `ludicGraph`; the kernel owns it.
+
+**Hosting-kind ports: none minted.** In `subGraphFromNodes` the root is a neutral endpoint, so `member -K-> rootId` is kept whole when the member is in the bucket and dropped when it is cut away. A member bound in two buckets keeps its edge in both. No stub port arises. Only a hosting edge whose `to` is not the root can straddle, and the container accepts that shape but no writer produces it. Hosting-kind authored ports have no producer either (`buildCrossingLegs` is typed over `HostRelationalEdgeKind` but is fed peer kinds). Verdict passed to wmlRelationalEdges OD-1. HK-2 is not contradicted.
+
+**Readers of a hosting kind.** Each has a Slice 2 or 3 line already, except where noted:
+
+- `fixedContainmentDriftSweep/classification.ts:77` (`PartOf` edge check), `connectedToLegality.ts:21` (`isPart`), `attemptCandidates.ts:708` (first-edge kind check on the relational route), `expandBoundaryChallenges.ts:127` (`isHostingRelationKind`), `interactionUnderTransfer.ts:36-38` (hosting-kind throw), `findOwnRootContainmentEdge.ts` (used by `buildObjectMoveOp.ts:60`, which feeds `dissolvedEdges`).
+- Type and guard sites for Slice 3: `HostRelationalEdgeKind` and `isHostingRelationKind` (`ephemeraMeta.ts:473-476`), the three `HOST_RELATIONAL_EDGE_KINDS` sets (`ephemeraMeta.ts:589`, `ludicGraph/baseClasses.ts:48`, `publishedEvents.ts:50`) plus the `ephemeraMeta.ts:605` and `:800` guards that use the first one, `manipulation/types.ts:15`, `wireProjection.ts:199`, `presenceSubGraph.ts:324`, `buildCrossingLegs.ts`, `expandSameHost.ts`, `findRelationalChain.ts`, and `classifyLudicGraphPortMismatch.ts` in gateways.
+- Stays as is: `compileAttemptsFromSkeleton.ts:163` and `commitAttempt.ts:237` (planner/DTO `relationKind`, an instruction), `attemptCandidates.ts:308` (preposition from the move's `containment`).
+- **Not on any Slice 2 line:** the `mergeReducer.ts`/`enumerateShards.ts` fold (Slice 4 owns it), `findRelationalChainsForRemoval.ts` and `clearCoyoteGameImprovisationObjects.ts` (both read `relationalEdges`; neither compares a hosting kind, but Slice 2 should confirm they tolerate a graph with no hosting edges, which is what every host will hold).
+- `packages/mtw-interfaces/dist` and `packages/mtw-gateways/dist` hold stale `.d.ts` copies of these types (an older kind set); they are build output and not readers.
+
+**Stored-row state.** The user checked the dev database by hand on 2026-10-28: there are no Objects and no edges in any Room, so there are zero hosting-kind edges and ports, and the HK-6 gate already holds. The planned scan script was not run and is not kept. Re-check only if objects are placed on the instance before Slice 3 deploys.
+
+**Baselines before any edit (all green).** `lambda/ephemera`: 420 suites passed, 1 skipped (3972 tests passed, 9 skipped). `packages/mtw-interfaces`: 28 suites, 766 tests. `packages/mtw-gateways`: 37 suites, 309 tests. `lambda/diagnostics`: 22 suites, 161 tests.
+
+**Open decisions:** none added. No finding contradicts HK-1 through HK-6; the take/drop finding widens Slice 2's work but not any decision.
 
 ## Verification
 
