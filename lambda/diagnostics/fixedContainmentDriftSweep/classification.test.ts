@@ -6,15 +6,15 @@ const FEATURE = 'FEATURE#Stove'
 const OBJECT = 'OBJECT#Pot'
 
 const root = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members: [] } }
-const partOf = (from: string, to: string) => ({ tag: 'Relational', kind: 'PartOf', from, to })
+const partOfNode = (tag: string, universalKey: string, hostingKind = 'PartOf') => ({ tag, universalKey, hostingKind })
 const pointingAt = (host: string, presence = 'PRESENCE#Base', members: unknown[] = []) => ({
     nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#Base', fromHostPresences: [{ host, presence }], cover: { members } }],
 })
 const carveOut = (members: unknown[] = []) => ({
     nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresences: [{ host: AREA, presence: 'PRESENCE#Base' }], cover: { members } }],
 })
-const areaGraph = { nodes: [root, ROOM], edges: [partOf(ROOM, AREA)] }
-const roomGraph = { nodes: [root, FEATURE], edges: [partOf(FEATURE, ROOM)] }
+const areaGraph = { nodes: [root, partOfNode('Room', ROOM)] }
+const roomGraph = { nodes: [root, partOfNode('Feature', FEATURE)] }
 
 describe('isFixedContainmentDrifted', () => {
     it('passes a fully populated nesting', () => {
@@ -26,9 +26,9 @@ describe('isFixedContainmentDrifted', () => {
         expect(isFixedContainmentDrifted(AREA, { ...areaGraph, nodes: [root] }, [ROOM], () => carveOut())).toBe(true)
     })
 
-    it('flags a parent with no PartOf edge from the child', () => {
+    it('flags a parent whose node for the child lacks the PartOf kind', () => {
         expect(isFixedContainmentDrifted(AREA, { nodes: [root, ROOM] }, [ROOM], () => carveOut())).toBe(true)
-        expect(isFixedContainmentDrifted(AREA, { ...areaGraph, edges: [partOf(ROOM, 'AREA#Other')] }, [ROOM], () => carveOut())).toBe(true)
+        expect(isFixedContainmentDrifted(AREA, { nodes: [root, partOfNode('Room', ROOM, 'In')] }, [ROOM], () => carveOut())).toBe(true)
     })
 
     it('flags an authored child that was never populated (no row, or no binding at the parent)', () => {

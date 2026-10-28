@@ -1923,8 +1923,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         const onTable = 'PRESENCE#rope-table' as EphemeraPresenceNodeId
         // The rope lies partly on the table (a spread): one binding under the room, one under the table.
         const tableWith = (nodes: EphemeraObjectId[], edges: Array<Record<string, unknown>> = []) => testLudicGraph(TABLE, {
-            nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey })),
-            edges: [{ tag: 'Relational', from: ROPE, to: TABLE, kind: 'On' }, ...edges] as any,
+            nodes: nodes.map((universalKey) => ({ tag: 'Object' as const, universalKey, ...(universalKey === ROPE ? { hostingKind: 'On' as const } : {}) })),
+            edges: edges as any,
         })
         const ropeGraph = () => testLudicGraph(ROPE as unknown as EphemeraRoomId, {
             nodes: [
@@ -2065,9 +2065,8 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         const crossingShards = () => ({
             [ROOM]: roomWith([STRING, TABLE], [{ tag: 'Relational', from: STRING, to: portAddress, kind: 'Custom', relationLabel: 'is tied to' }]),
             [TABLE]: EphemeraLudicGraph.empty(TABLE)
-                .addObject(CUP)
+                .addObject(CUP, 'On')
                 .addPort({ portId: 'port-1', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
-                .addRelationalEdge({ from: CUP, to: TABLE, kind: 'On' })
                 .addRelationalEdge({ from: portAddress, to: CUP, kind: 'Custom', relationLabel: 'is tied to' }),
         })
 
@@ -2103,8 +2102,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                     graphs: {
                         [ROOM]: roomWith([TABLE]),
                         [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
-                            nodes: [{ tag: 'Object', universalKey: COIN }],
-                            edges: [{ tag: 'Relational', from: COIN, to: TABLE, kind: 'On' }] as any,
+                            nodes: [{ tag: 'Object', universalKey: COIN, hostingKind: 'On' }],
                         }),
                     },
                 }
@@ -2135,13 +2133,11 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
                         [ROOM]: roomWith([TABLE]),
                         [TABLE]: testLudicGraph(TABLE as unknown as EphemeraRoomId, {
                             nodes: [
-                                { tag: 'Object', universalKey: COIN },
-                                { tag: 'Object', universalKey: POST },
+                                { tag: 'Object', universalKey: COIN, hostingKind: 'On' },
+                                { tag: 'Object', universalKey: POST, hostingKind: 'On' },
                                 { tag: 'Presence', universalKey: tableBinding, fromHostPresences: [{ host: ROOM, presence: parentRemainderKey(ROOM) }], cover: { members: [] } },
                             ],
                             edges: [
-                                { tag: 'Relational', from: COIN, to: TABLE, kind: 'On' },
-                                { tag: 'Relational', from: POST, to: TABLE, kind: 'On' },
                                 { tag: 'Relational', from: COIN, to: POST, kind: 'Custom', relationLabel: 'is lashed to' },
                             ] as any,
                         }),

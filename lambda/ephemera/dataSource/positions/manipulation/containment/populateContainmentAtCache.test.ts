@@ -57,8 +57,7 @@ describe('populateContainmentAtCache', () => {
 
     it('does nothing when every named child is already fully populated', async () => {
         const parentGraph = testLudicGraph(AREA_ID, {
-            nodes: [{ tag: 'Room', universalKey: ROOM_A }, presenceBindingNode('Base')],
-            edges: [{ tag: 'Relational', from: ROOM_A, to: AREA_ID, kind: 'PartOf' }],
+            nodes: [{ tag: 'Room', universalKey: ROOM_A, hostingKind: 'PartOf' }, presenceBindingNode('Base')],
         })
         const childGraph = testLudicGraph(ROOM_A, {
             nodes: [{ tag: 'Presence', universalKey: 'PRESENCE#binding-1', fromHostPresences: [{ host: AREA_ID, presence: 'PRESENCE#Base' }], cover: { members: [] } }],

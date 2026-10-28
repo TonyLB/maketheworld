@@ -1,9 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { HostRelationalEdge } from '../types'
-import type { EphemeraLudicGraph } from '../../ludicGraph'
-import { findOwnRootContainmentEdge } from './findOwnRootContainmentEdge'
 import type { PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
 import type { MutationKernelStep } from '../kernel/kernelStep'
 
@@ -11,17 +8,15 @@ export type BuildObjectMoveOpArgs = {
     /** The moved object --- the whole moved set: anything it hosts lives in its own shard and travels with it. */
     entityId: EphemeraObjectId
     /**
-     * The hosts the mover leaves, each with its graph as of whenever the caller fetched it: one
-     * for most moves, several for a view across several hosts, none for a move of one part that
-     * leaves another part behind in every host it starts from. Each graph is used
-     * only to find the mover's own containment edge into its root (if any), which is stripped
-     * here: leaving a host means leaving its containment, as entering one means
-     * gaining it (`containment`). No other edge is dissolved here. A boundary edge's dissolve is a facilitating action the
-     * command attempt states explicitly, and the commit path
-     * commits it as a sibling of this op; one the attempt does not cover is left in place for
-     * `applyDeparture` to report as `repairable`, and the move is refused.
+     * The hosts the mover leaves: one for most moves, several for a view across several hosts, none
+     * for a move of one part that leaves another part behind in every host it starts from. Leaving a
+     * host takes the mover's node with its hosting kind, so nothing is dissolved for it here. No
+     * edge is dissolved by this op at all: a boundary edge's dissolve is a facilitating action the
+     * command attempt states explicitly, and the commit path commits it as a sibling of this op; one
+     * the attempt does not cover is left in place for `applyDeparture` to report as `repairable`,
+     * and the move is refused.
      */
-    departures: readonly { hostId: EphemeraMembershipHostId; graph: EphemeraLudicGraph }[]
+    departures: readonly EphemeraMembershipHostId[]
     toHostId: EphemeraMembershipHostId
     /** The mover's presence steps, named by `resolvePresenceMoves`. */
     presenceSteps: readonly MutationKernelStep[]
@@ -51,24 +46,17 @@ export type BuildObjectMoveOpArgs = {
  * No carried-object count: a moved object's hosted contents live in its own shard and travel with
  * it, so the move names one entity.
  *
- * `dissolvedEdges` is derived here from `departures`, not handed in pre-computed by the caller: it
- * holds only the mover's own containment edge in each host it leaves. See
- * `departures`' own doc comment above for why boundary edges are not folded in.
+ * The op carries no `dissolvedEdges`: the mover's hosting kind is a field of its node and leaves with it
+ * (hostingKindOnNode HK-7), so there is no own containment edge to strip.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => {
-    const dissolvedEdges = args.departures.flatMap(({ hostId, graph }): { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[] => {
-        const edge = findOwnRootContainmentEdge(args.entityId, graph)
-        return edge ? [{ hostId, edge }] : []
-    })
-
     return {
         kind: 'move',
         moved: args.entityId,
-        froms: args.departures.map(({ hostId }) => hostId),
+        froms: [...args.departures],
         to: args.toHostId,
         header: null,
         presenceSteps: args.presenceSteps,
-        dissolvedEdges,
         ...(args.containment ? { containment: args.containment } : {}),
     }
 }

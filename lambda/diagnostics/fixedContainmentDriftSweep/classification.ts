@@ -1,15 +1,15 @@
 import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { parentPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { presenceGraphViewOf } from '../presenceCoverDriftSweep/classification'
 
-type RawEdge = { kind?: unknown; from?: EphemeraLudicTerminalId; to?: EphemeraLudicTerminalId }
-
-const edgesOf = (ludicGraph: unknown): RawEdge[] => {
-    const edges = (ludicGraph as { edges?: unknown } | undefined)?.edges
-    return Array.isArray(edges) ? edges as RawEdge[] : []
+/** The hosting kind a stored node carries (hostingKindOnNode HK-3), read from the raw row; a bare-id node carries none. */
+const hostingKindOfNode = (ludicGraph: unknown, nodeId: string): unknown => {
+    const nodes = (ludicGraph as { nodes?: unknown } | undefined)?.nodes
+    const node = Array.isArray(nodes)
+        ? nodes.find((entry) => typeof entry === 'object' && entry !== null && (entry as { universalKey?: unknown }).universalKey === nodeId)
+        : undefined
+    return (node as { hostingKind?: unknown } | undefined)?.hostingKind
 }
 
 /** The children a fixed nesting can hold: Rooms in an Area, Features in a Room or Feature. Objects move, so they are never fixed. */
@@ -28,7 +28,7 @@ const isFixedChildOf = (parentId: string, childId: string): boolean => (
  *   Object's root becomes its placement, so it is not checked for one unless it hosts a fixed child.
  * - For each authored child that is a legal fixed nesting (`isFixedChildOf`):
  *   - the parent's node list lacks the child's node;
- *   - the parent's graph holds no `PartOf` edge from the child to the parent;
+ *   - the parent's node for the child does not carry the `PartOf` hosting kind;
  *   - the child holds no binding with the parent's root binding among its parents (a Room's binding into an
  *     Area must also be an empty-member carve-out).
  *
@@ -68,18 +68,11 @@ export const isFixedContainmentDrifted = (
     if (!rootId) {
         return false
     }
-    const edges = edgesOf(parentGraph)
     return children.some((childId) => {
         if (!parent.nodeIds.includes(childId)) {
             return true
         }
-        const hasEdge = edges.some((edge) => (
-            edge.kind === 'PartOf' &&
-            edge.from !== undefined && edge.to !== undefined &&
-            ephemeraLudicTerminalsEqual(edge.from, childId as EphemeraLudicTerminalId) &&
-            ephemeraLudicTerminalsEqual(edge.to, parentId as EphemeraLudicTerminalId)
-        ))
-        if (!hasEdge) {
+        if (hostingKindOfNode(parentGraph, childId) !== 'PartOf') {
             return true
         }
         const child = presenceGraphViewOf(childId, childGraphOf(childId))

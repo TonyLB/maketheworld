@@ -191,6 +191,19 @@ describe("PN-6 clause (c): a presence-terminal edge is qualified only in its own
 describe('subGraphFromNodes', () => {
     const bucket = new Set([roomId, charA, objC])
 
+    it('keeps a member\'s hostingKind through the cut (hostingKindOnNode Slice 2)', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Room', universalKey: roomId },
+                { tag: 'Object', universalKey: objC, hostingKind: 'On' },
+                { tag: 'Object', universalKey: objD, hostingKind: 'In' },
+            ],
+        })
+        const result = subGraphFromNodes(graph, new Set([roomId, objC]))
+        expect(result.hostingKindOf(objC)).toBe('On')
+        expect(result.nodeIds.has(objD)).toBe(false)
+    })
+
     it('keeps an interior edge unchanged', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [

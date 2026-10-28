@@ -32,8 +32,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
     it('emits nothing when everything is already populated (the idempotency obligation)', () => {
         const parentGraph = testLudicGraph(AREA_ID, {
-            nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
-            edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
+            nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID, hostingKind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_ID, { nodes: [areaCarveOut()] })
 
@@ -64,8 +63,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
     it('emits only the presence-binding step when the containment edge already exists', () => {
         const parentGraph = testLudicGraph(AREA_ID, {
-            nodes: [areaRoot],
-            edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
+            nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID, hostingKind: 'PartOf' }],
         })
         const childGraph = testLudicGraph(ROOM_ID, { nodes: [] })
 
@@ -173,8 +171,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         it('repairs a pointer naming only the host once the parent binding exists', () => {
             const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, {
-                nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
-                edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
+                nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' }],
             })
             const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID, presence: 'PRESENCE#gone' as any })
             const childGraph = testLudicGraph(FEATURE_ID, { nodes: [hostOnly] })
@@ -190,8 +187,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
         it('repairs a room\'s Area binding that lists members to an empty carve-out', () => {
             const parentGraph = testLudicGraph(AREA_ID, {
-                nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
-                edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
+                nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID, hostingKind: 'PartOf' }],
             })
             const wrong = presenceBindingNode('binding-1', AREA_ID, { members: [{ host: FEATURE_ID, presence: 'PRESENCE#stove-in-kitchen' as any }] })
             const childGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, wrong] })
@@ -207,8 +203,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
         it('repairs a stored host-only Room-in-Area carve-out to name the Area\'s root', () => {
             const parentGraph = testLudicGraph(AREA_ID, {
-                nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID }],
-                edges: [{ tag: 'Relational', from: ROOM_ID, to: AREA_ID, kind: 'PartOf' }],
+                nodes: [areaRoot, { tag: 'Room', universalKey: ROOM_ID, hostingKind: 'PartOf' }],
             })
             const hostOnly = presenceBindingNode('binding-1', { host: AREA_ID, presence: 'PRESENCE#gone' as any }, { members: [] })
             const childGraph = testLudicGraph(ROOM_ID, { nodes: [hostOnly] })
@@ -225,8 +220,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         it('repairs a pointer that names no parent binding once the parent has one', () => {
             const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, {
-                nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
-                edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
+                nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' }],
             })
             const hostOnly = presenceBindingNode('feature-binding', { host: ROOM_ID, presence: 'PRESENCE#gone' as any })
             const stale = { ...hostOnly, fromHostPresences: [{ host: ROOM_ID, presence: 'PRESENCE#gone' as any }] }
@@ -240,8 +234,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
         it('is a true no-op once repaired', () => {
             const remainder = presenceBindingNode('Base')
             const parentGraph = testLudicGraph(ROOM_ID, {
-                nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID }],
-                edges: [{ tag: 'Relational', from: FEATURE_ID, to: ROOM_ID, kind: 'PartOf' }],
+                nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' }],
             })
             const childGraph = testLudicGraph(FEATURE_ID, {
                 nodes: [presenceBindingNode('feature-binding', { host: ROOM_ID, presence: remainder.universalKey })],
@@ -340,8 +333,7 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
         it('emits nothing on a rerun over populated state', () => {
             const parentGraph = testLudicGraph(ROOM_ID, {
-                nodes: [remainder, { tag: 'Object', universalKey: OBJECT_ID }],
-                edges: [{ tag: 'Relational', from: OBJECT_ID, to: ROOM_ID, kind: 'In' }],
+                nodes: [remainder, { tag: 'Object', universalKey: OBJECT_ID, hostingKind: 'In' }],
             })
             const childGraph = testLudicGraph(OBJECT_ID, {
                 nodes: [presenceBindingNode('cup-binding', { host: ROOM_ID, presence: remainder.universalKey })],

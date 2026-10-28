@@ -341,6 +341,19 @@ describe('mergeSameHostBucket', () => {
         expect([...merged.nodeIds]).toEqual(expect.arrayContaining([roomId, objC, objD]))
     })
 
+    it('keeps each member\'s hostingKind through the merge (hostingKindOnNode Slice 2)', () => {
+        const bucketA = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC, hostingKind: 'On' }],
+        })
+        const bucketB = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC, hostingKind: 'On' }, { tag: 'Object', universalKey: objD, hostingKind: 'In' }],
+        })
+
+        const merged = mergeSameHostBucket(bucketA, bucketB)
+        expect(merged.hostingKindOf(objC)).toBe('On')
+        expect(merged.hostingKindOf(objD)).toBe('In')
+    })
+
     it('still consumes a minted stub matched on both sides', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],

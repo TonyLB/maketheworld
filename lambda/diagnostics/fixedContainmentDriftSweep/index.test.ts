@@ -9,7 +9,7 @@ const root = { tag: 'Presence', universalKey: 'PRESENCE#Base', cover: { members:
 const carveOut = {
     nodes: [root, { tag: 'Presence', universalKey: 'PRESENCE#c', fromHostPresences: [{ host: AREA_ID, presence: 'PRESENCE#Base' }], cover: { members: [] } }],
 }
-const cleanArea = { nodes: [root, ROOM_ID], edges: [{ tag: 'Relational', kind: 'PartOf', from: ROOM_ID, to: AREA_ID }] }
+const cleanArea = { nodes: [root, { tag: 'Room', universalKey: ROOM_ID, hostingKind: 'PartOf' }] }
 const authored: Record<string, string[]> = { [AREA_ID]: [ROOM_ID] }
 
 describe('fixedContainmentDriftSweep', () => {

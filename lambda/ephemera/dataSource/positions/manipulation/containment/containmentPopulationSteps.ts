@@ -3,7 +3,7 @@ import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonyl
 import { isEphemeraAreaId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { BASE_PRESENCE_ID, ephemeraLudicTerminalsEqual } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
@@ -66,24 +66,13 @@ export const rootStep = (
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
  *   goes through the same checks, with an `In` edge. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
- * - **Containment edge**: emitted only if `parentGraph` carries no edge of the child's kind (`PartOf`, or `In` for an Object) from `childId` to
- *   `parentId` already. `establishRelation`'s `op: 'add'` is already idempotent-safe on an existing
- *   edge (`EphemeraLudicGraph.applyRelationalPatch`) --- this check isn't load-bearing for
- *   correctness --- but skipping it when nothing changed is what keeps a fully-populated `cacheAsset`
- *   rerun from committing a transaction at all, rather than three no-op writes every time. Rooms and
- *   Features are always `PartOf`, never `In` (2026-09-05): Room-in-Area and Feature-in-Room/Feature are
- *   fixed/authored nestings, not the mobile placement `In` is for.
- *
- * The containment-edge check compares terminals with `ephemeraLudicTerminalsEqual`, not `===`
- * (2026-09-11, closing PQ-10). It is a **hardening, not a fix**: a `PartOf` terminal cannot be
- * port-qualified today, by two independent arguments --- containment is root-incident within a
- * graph (`AGENT.concepts.md`, the star topology), and `PartOf` is a *hosting* kind under AB-54,
- * so it never crosses a boundary and has no port to qualify. Both are constructor disciplines
- * rather than enforced invariants, and the star one is explicitly documented as *dropped rather
- * than defended* if multi-level nesting in one graph arrives --- so the raw `===` was correct by
- * coincidence of the current writers, not by type. Equality is the right relation here rather
- * than `ephemeraLudicTerminalRefersTo`: a *port* of the child being part of the parent would be
- * a different edge, not this one.
+ * - **Containment kind**: emitted only if `parentGraph` does not already hold `childId` with the child's kind (`PartOf`, or `In` for an
+ *   Object) as its `hostingKind`. The kind is a field of the child's node in the parent's graph, not an edge
+ *   (hostingKindOnNode HK-3); the binding steps above add that node with the same default, so applying the
+ *   `establishRelation` is idempotent, and skipping it when nothing changed is what keeps a fully-populated
+ *   `cacheAsset` rerun from committing a transaction at all. Rooms and Features are always `PartOf`, never `In`
+ *   (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement
+ *   `In` is for.
  */
 export const containmentPopulationSteps = (
     parentId: EphemeraMembershipHostId,
@@ -158,13 +147,8 @@ export const containmentPopulationSteps = (
 
     // Objects are mobile, so they sit `In` their authored parent; Rooms and Features nest `PartOf`.
     const relationKind = isEphemeraObjectId(childId) ? 'In' : 'PartOf'
-    const hasContainmentEdge = parentGraph.relationalEdges.some(
-        (edge) =>
-            edge.kind === relationKind &&
-            ephemeraLudicTerminalsEqual(edge.from, childId) &&
-            ephemeraLudicTerminalsEqual(edge.to, parentId)
-    )
-    if (!hasContainmentEdge) {
+    const hasContainmentKind = parentGraph.hostingKindOf(childId) === relationKind
+    if (!hasContainmentKind) {
         const edgeStep: ExecutorEstablishRelationStep = {
             kind: 'establishRelation',
             subjectId: childId,

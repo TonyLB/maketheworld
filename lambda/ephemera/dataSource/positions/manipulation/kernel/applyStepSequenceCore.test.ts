@@ -96,7 +96,45 @@ describe('applyStepSequenceCore', () => {
         if (outcome.verdict !== 'legal') return
         const nextDest = outcome.graphs.get(characterId)!
         expect(nextDest.objectIds.has(trayId)).toBe(true)
-        expect(nextDest.relationalEdges).toEqual([{ from: trayId, to: glassId, kind: 'On' }])
+        // a hosting kind lands on the arrived node (HK-7), refining the `Held` its arrival gave it; no edge
+        expect(nextDest.hostingKindOf(trayId)).toBe('On')
+        expect(nextDest.relationalEdges).toEqual([])
+    })
+
+    it('a move alone gives the arriving object its default kind: Held in a character, In elsewhere (take and drop write no establish)', () => {
+        const roomGraph = hostHolding(roomId, object(trayId))
+        const taken = applyStepSequenceCore(
+            [moveStep(trayId, 'PRESENCE#Base', remainderOf(roomId), remainderOf(characterId))],
+            graphsMap([roomId, roomGraph], [characterId, hostHolding(characterId)], [trayId, moverAt(trayId, roomId)])
+        )
+        expect(taken.verdict).toBe('legal')
+        if (taken.verdict !== 'legal') return
+        expect(taken.graphs.get(characterId)!.hostingKindOf(trayId)).toBe('Held')
+
+        const dropped = applyStepSequenceCore(
+            [moveStep(trayId, 'PRESENCE#Base', remainderOf(characterId), remainderOf(roomId))],
+            graphsMap([roomId, hostHolding(roomId)], [characterId, hostHolding(characterId, object(trayId))], [trayId, moverAt(trayId, characterId)])
+        )
+        expect(dropped.verdict).toBe('legal')
+        if (dropped.verdict !== 'legal') return
+        expect(dropped.graphs.get(roomId)!.hostingKindOf(trayId)).toBe('In')
+    })
+
+    it('a hosting-kind dissolveRelation changes nothing: the kind lives on the node and leaves with it (HK-7)', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId, hostingKind: 'On' },
+                { tag: 'Object', universalKey: tableId },
+                presenceBindingNode(parentRemainderKey(roomId)),
+            ],
+        })
+        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        expect(outcome.graphs.get(roomId)!.hostingKindOf(trayId)).toBe('On')
     })
 
     it('BD-28 alone: a bare dissolveRelation step actually removes the edge, no membership change', () => {
@@ -106,9 +144,9 @@ describe('applyStepSequenceCore', () => {
                 { tag: 'Object', universalKey: tableId },
                 presenceBindingNode(parentRemainderKey(roomId)),
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
         })
-        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }]
+        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' }]
 
         const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
 
@@ -150,7 +188,8 @@ describe('applyStepSequenceCore', () => {
         expect(outcome.verdict).toBe('legal')
         if (outcome.verdict !== 'legal') return
         const nextGraph = outcome.graphs.get(roomId)!
-        expect(nextGraph.relationalEdges).toEqual([{ from: characterId, to: tableId, kind: 'On' }])
+        expect(nextGraph.hostingKindOf(characterId)).toBe('On')
+        expect(nextGraph.relationalEdges).toEqual([])
     })
 
     it('AB-54 hosting kinds: establishRelation carries the correct host explicitly, not resolved by intersection (put cup on table)', () => {
@@ -178,7 +217,8 @@ describe('applyStepSequenceCore', () => {
         expect(nextRoom.objectIds.has(trayId)).toBe(false)
         expect(nextRoom.objectIds.has(tableId)).toBe(true)
         expect(nextTableShard.objectIds.has(trayId)).toBe(true)
-        expect(nextTableShard.relationalEdges).toEqual([{ from: trayId, to: tableId, kind: 'On' }])
+        expect(nextTableShard.hostingKindOf(trayId)).toBe('On')
+        expect(nextTableShard.relationalEdges).toEqual([])
     })
 
     it('stale (hostNotInFootprint): a move whose departure host is absent from the graphs map', () => {
@@ -385,10 +425,10 @@ describe('applyStepSequenceCore', () => {
                     { tag: 'Object', universalKey: tableId },
                     presenceBindingNode(parentRemainderKey(roomId)),
                 ],
-                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' }],
             })
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' },
                 releaseStep(trayId, 'PRESENCE#Base', remainderOf(roomId)),
             ]
 
@@ -1315,11 +1355,7 @@ describe('applyStepSequenceCore', () => {
 
         it('commits a ConnectedTo between two parts of one whole', () => {
             const whole = testLudicGraph(trayId, {
-                nodes: [object(trayId), object(glassId), object(tableId), presenceBindingNode(parentRemainderKey(trayId))],
-                edges: [
-                    { tag: 'Relational', from: glassId, to: trayId, kind: 'PartOf' },
-                    { tag: 'Relational', from: tableId, to: trayId, kind: 'PartOf' },
-                ],
+                nodes: [object(trayId), { ...object(glassId), hostingKind: 'PartOf' }, { ...object(tableId), hostingKind: 'PartOf' }, presenceBindingNode(parentRemainderKey(trayId))],
             })
             const outcome = applyStepSequenceCore(
                 [{ kind: 'establishRelation', subjectId: glassId, targetId: tableId, hostId: trayId, relationKind: 'ConnectedTo' }],

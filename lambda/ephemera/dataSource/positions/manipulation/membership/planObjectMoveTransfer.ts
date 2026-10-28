@@ -1,4 +1,5 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -86,18 +87,20 @@ export const planObjectMoveTransfer = async (
     }
 
     // A view-move leaves a host only if no other binding of the mover stays under it: the mover's own
-    // containment edge in a host it stays in is untouched.
+    // node (and its hosting kind) in a host it stays in is untouched.
     const left = mover === undefined ? froms : froms.filter((hostId) => !mover.presenceNodes.some((node) => (
         !args.moverBindings!.includes(node.universalKey) && bindingHasParentOn(node, hostId)
     )))
-    const departures = await Promise.all(left.map(async (hostId) => ({ hostId, graph: await getGraph(hostId) })))
+    // `In` a character is possession, which the arrival default already writes as `Held`: an `In`
+    // establish there would name a kind the character host refuses (hostingKindOnNode HK-3).
+    const containment = args.containment === 'In' && isEphemeraCharacterId(args.toHostId) ? undefined : args.containment
 
     const buildArgs = {
         entityId: args.entityId,
-        departures,
+        departures: left,
         toHostId: args.toHostId,
         presenceSteps: resolved.steps,
-        ...(args.containment ? { containment: args.containment } : {}),
+        ...(containment ? { containment } : {}),
     }
 
     const plan = compilePositionKernelOp(buildObjectMoveOp(buildArgs))

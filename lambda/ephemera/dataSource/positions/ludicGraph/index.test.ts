@@ -253,6 +253,22 @@ describe('EphemeraLudicGraph', () => {
             expect(EphemeraLudicGraph.fromFieldPayload(HOST_ID, graph.toStored()).hostingKindOf(OBJECT_A)).toBe('On')
         })
 
+        it('setHostingKind changes the kind of a present node, and is idempotent (HK-7)', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A)
+            const on = graph.setHostingKind(OBJECT_A, 'On')
+            expect(on.hostingKindOf(OBJECT_A)).toBe('On')
+            expect(on.setHostingKind(OBJECT_A, 'On')).toBe(on)
+            expect(on.setHostingKind(OBJECT_A, 'In').hostingKindOf(OBJECT_A)).toBe('In')
+            expect(graph.hostingKindOf(OBJECT_A)).toBeUndefined()
+        })
+
+        it('setHostingKind throws on an absent node, the root, and an illegal kind', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A)
+            expect(() => graph.setHostingKind(OBJECT_B, 'On')).toThrow()
+            expect(() => graph.setHostingKind(HOST_ID, 'On')).toThrow()
+            expect(() => graph.setHostingKind(OBJECT_A, 'Held')).toThrow()
+        })
+
         it('equals distinguishes kinds', () => {
             const on = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
             const inside = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')

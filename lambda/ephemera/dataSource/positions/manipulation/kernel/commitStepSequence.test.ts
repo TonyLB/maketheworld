@@ -598,12 +598,12 @@ describe('commitStepSequence', () => {
                     { tag: 'Object', universalKey: TABLE_ID },
                     presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
-                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' }],
             })
             const { transactWrite, cascadeItems } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
                 release(TRAY_ID, 'Base', ROOM_ID),
             ]
 
@@ -635,12 +635,12 @@ describe('commitStepSequence', () => {
                     { tag: 'Object', universalKey: TABLE_ID },
                     presenceBindingNode(parentRemainderKey(ROOM_ID)),
                 ],
-                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'On' }],
+                edges: [{ tag: 'Relational', from: TRAY_ID, to: TABLE_ID, kind: 'Custom', relationLabel: 'tied to' }],
             })
             const { transactWrite } = makeTransactWriteMock({ [ROOM_ID]: roomGraph, [TRAY_ID]: moverGraph(TRAY_ID, ROOM_ID) })
 
             const steps: MutationKernelStep[] = [
-                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'On' },
+                { kind: 'dissolveRelation', subjectId: TRAY_ID, targetId: TABLE_ID, hostId: ROOM_ID, relationKind: 'Custom', relationLabel: 'tied to' },
                 release(TRAY_ID, 'Base', ROOM_ID),
             ]
 

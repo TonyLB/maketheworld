@@ -9,23 +9,15 @@ const strandB = 'OBJECT#StrandB' as EphemeraObjectId
 const cup = 'OBJECT#Cup' as EphemeraObjectId
 const plate = 'OBJECT#Plate' as EphemeraObjectId
 const lab = 'ROOM#Lab' as EphemeraRoomId
-const object = (universalKey: EphemeraObjectId) => ({ tag: 'Object' as const, universalKey })
+const object = (universalKey: EphemeraObjectId, hostingKind?: 'In' | 'PartOf' | 'SectionOf') => ({ tag: 'Object' as const, universalKey, ...(hostingKind ? { hostingKind } : {}) })
 const port = (owner: EphemeraObjectId | EphemeraRoomId, name: string) => ({ owner, port: `PRESENCE#${name}` as EphemeraPresenceNodeId })
 
 const partlessRope = testLudicGraph(rope, { nodes: [object(rope), presenceBindingNode('pA', lab), presenceBindingNode('pB', lab)] })
 const partedRope = testLudicGraph(rope, {
-    nodes: [object(rope), object(strandA), object(strandB), presenceBindingNode('pA', lab)],
-    edges: [
-        { tag: 'Relational', from: strandA, to: rope, kind: 'PartOf' },
-        { tag: 'Relational', from: strandB, to: rope, kind: 'PartOf' },
-    ],
+    nodes: [object(rope), object(strandA, 'PartOf'), object(strandB, 'SectionOf'), presenceBindingNode('pA', lab)],
 })
 const labGraph = testLudicGraph(lab, {
-    nodes: [{ tag: 'Room', universalKey: lab }, object(cup), object(plate), presenceBindingNode('Base')],
-    edges: [
-        { tag: 'Relational', from: cup, to: lab, kind: 'In' },
-        { tag: 'Relational', from: plate, to: lab, kind: 'In' },
-    ],
+    nodes: [{ tag: 'Room', universalKey: lab }, object(cup, 'In'), object(plate, 'In'), presenceBindingNode('Base')],
 })
 
 describe('connectedToViolation', () => {
@@ -37,7 +29,7 @@ describe('connectedToViolation', () => {
         expect(connectedToViolation(partedRope, rope, port(rope, 'pA'), port(rope, 'pB'))).toBeUndefined()
     })
 
-    it('allows a part to a part', () => {
+    it('allows a part to a part, of either composition kind (PartOf and SectionOf)', () => {
         expect(connectedToViolation(partedRope, rope, strandA, strandB)).toBeUndefined()
     })
 
@@ -52,8 +44,7 @@ describe('connectedToViolation', () => {
 
     it('refuses a part joined to a sibling that is not a part', () => {
         const withStranger = testLudicGraph(rope, {
-            nodes: [object(rope), object(strandA), object(cup)],
-            edges: [{ tag: 'Relational', from: strandA, to: rope, kind: 'PartOf' }],
+            nodes: [object(rope), object(strandA, 'PartOf'), object(cup, 'In')],
         })
         expect(connectedToViolation(withStranger, rope, strandA, cup)).toMatch(/OBJECT#Cup/)
     })

@@ -49,6 +49,19 @@ describe('planObjectMoveTransfer', () => {
             expect(result.fromHostId).toBe(ROOM_ID)
         })
 
+        it('drops an `In` containment into a character: possession is the arrival default (Held), and the character host refuses `In`', async () => {
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
+            const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')], edges: [] })
+            const trayGraph = testLudicGraph(TRAY_ID, { nodes: [trayBinding('tray-in-room', ROOM_ID)] })
+            const getGraph = worldOf({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph })
+
+            const result = await planObjectMoveTransfer({ entityId: TRAY_ID, fromHostId: ROOM_ID, toHostId: CHARACTER_ID, containment: 'In', getGraph })
+
+            expect(result.ok).toBe(true)
+            if (!result.ok) { throw new Error('expected a legal plan') }
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding'])
+        })
+
         it('builds no boundary-edge dissolve and does not dry-run: those belong to the attempt and commitAttempt', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, {
                 nodes: [
@@ -104,10 +117,9 @@ describe('planObjectMoveTransfer', () => {
             expect(establishStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY_ID, hostId: TRAY_ID, relationKind: 'On' }))
         })
 
-        it('moved tray-to-tray: the old containment edge dissolves with no throw, a new one establishes at the destination', async () => {
+        it('moved tray-to-tray: nothing dissolves (the kind leaves with the node), and a new kind establishes at the destination', async () => {
             const tray1Graph = testLudicGraph(TRAY_ID, {
-                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
-                edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
+                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID, hostingKind: 'On' }],
             })
             const tray2Graph = testLudicGraph(TRAY2_ID, { nodes: [{ tag: 'Object', universalKey: TRAY2_ID }, presenceBindingNode('Base')], edges: [] })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-on-tray', TRAY_ID)] })
@@ -123,16 +135,14 @@ describe('planObjectMoveTransfer', () => {
 
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
-            const dissolveStep = result.plan.steps.find((step) => step.kind === 'dissolveRelation')
-            expect(dissolveStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY_ID }))
+            expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation')).toBe(false)
             const establishStep = result.plan.steps.find((step) => step.kind === 'establishRelation')
             expect(establishStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY2_ID, relationKind: 'On' }))
         })
 
-        it('taken off with no containment: the old edge dissolves, no establishRelation step', async () => {
+        it('taken off with no containment: no dissolve and no establishRelation step', async () => {
             const trayGraph = testLudicGraph(TRAY_ID, {
-                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID }],
-                edges: [{ tag: 'Relational', from: CUP_ID, to: TRAY_ID, kind: 'On' }],
+                nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID, hostingKind: 'On' }],
             })
             const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')], edges: [] })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-on-tray', TRAY_ID)] })
@@ -148,8 +158,7 @@ describe('planObjectMoveTransfer', () => {
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
             expect(result.plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
-            const dissolveStep = result.plan.steps.find((step) => step.kind === 'dissolveRelation')
-            expect(dissolveStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY_ID }))
+            expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation')).toBe(false)
         })
     })
 
@@ -157,8 +166,7 @@ describe('planObjectMoveTransfer', () => {
         // A cup spread across the room floor and the table: a member of both.
         const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }, { tag: 'Object', universalKey: TABLE_ID }] })
         const tableGraph = testLudicGraph(TABLE_ID, {
-            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: CUP_ID }],
-            edges: [{ tag: 'Relational', from: CUP_ID, to: TABLE_ID, kind: 'On' }],
+            nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: CUP_ID, hostingKind: 'On' }],
         })
         const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
         // The whole is every binding the cup has: the hosts they sit under are the hosts it leaves.
@@ -170,12 +178,11 @@ describe('planObjectMoveTransfer', () => {
             getGraph: worldOf({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph, [CHARACTER_ID]: characterGraph, [CUP_ID]: cupGraph }),
         })
 
-        it('a binding shared across hosts loses both parents in one reparent, and its edge on the table is stripped there', async () => {
+        it('a binding shared across hosts loses both parents in one reparent, with nothing dissolved', async () => {
             const result = await take(testLudicGraph(CUP_ID, { nodes: [presenceBindingNode('cup', [ROOM_ID, TABLE_ID])] }))
 
             if (!result.ok) { throw new Error(result.errorCode) }
             expect(result.plan.steps).toEqual([
-                expect.objectContaining({ kind: 'dissolveRelation', subjectId: CUP_ID, targetId: TABLE_ID, hostId: TABLE_ID, relationKind: 'On' }),
                 {
                     kind: 'reparentPresenceBinding',
                     hostId: CUP_ID,
@@ -203,21 +210,19 @@ describe('planObjectMoveTransfer', () => {
             ])
         })
 
-        it('a view across two hosts strips the containment edge only in the host it fully leaves', async () => {
+        it('a view across two hosts dissolves nothing: the kind stays on the node in the host it keeps, and leaves with the node in the host it leaves', async () => {
             // The table holds two bindings, and the cup sits under both: the view moves the part on its left and
             // the part in the room, so the cup still sits on the table's right and keeps its edge there.
             const leftRightTable = testLudicGraph(TABLE_ID, {
                 nodes: [
                     { tag: 'Object', universalKey: TABLE_ID },
-                    { tag: 'Object', universalKey: CUP_ID },
+                    { tag: 'Object', universalKey: CUP_ID, hostingKind: 'On' },
                     presenceBindingNode('table-left', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
                     presenceBindingNode('table-right', { host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }),
                 ],
-                edges: [{ tag: 'Relational', from: CUP_ID, to: TABLE_ID, kind: 'On' }],
             })
             const roomWithEdge = testLudicGraph(ROOM_ID, {
-                nodes: [{ tag: 'Object', universalKey: CUP_ID }, { tag: 'Object', universalKey: TABLE_ID }],
-                edges: [{ tag: 'Relational', from: CUP_ID, to: ROOM_ID, kind: 'In' }],
+                nodes: [{ tag: 'Object', universalKey: CUP_ID, hostingKind: 'In' }, { tag: 'Object', universalKey: TABLE_ID }],
             })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [
                 trayBinding('cup-in-room', ROOM_ID),
@@ -233,9 +238,7 @@ describe('planObjectMoveTransfer', () => {
             })
 
             if (!result.ok) { throw new Error(result.errorCode) }
-            expect(result.plan.steps.filter((step) => step.kind === 'dissolveRelation')).toEqual([
-                expect.objectContaining({ subjectId: CUP_ID, targetId: ROOM_ID, hostId: ROOM_ID, relationKind: 'In' }),
-            ])
+            expect(result.plan.steps.filter((step) => step.kind === 'dissolveRelation')).toEqual([])
         })
 
         it('refuses a part that already sits under the destination, and a part the mover no longer has', async () => {
@@ -251,7 +254,7 @@ describe('planObjectMoveTransfer', () => {
             const result = await take(testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-in-room', ROOM_ID), trayBinding('cup-on-table', TABLE_ID)] }))
 
             if (!result.ok) { throw new Error(result.errorCode) }
-            expect(result.plan.steps.map((step) => step.kind)).toEqual(['dissolveRelation', 'reparentPresenceBinding', 'reparentPresenceBinding', 'joinPresenceBindings'])
+            expect(result.plan.steps.map((step) => step.kind)).toEqual(['reparentPresenceBinding', 'reparentPresenceBinding', 'joinPresenceBindings'])
             expect(result.plan.steps[result.plan.steps.length - 1]).toMatchObject({ hostId: CUP_ID, into: PresenceKey('cup-in-room'), toJoin: [PresenceKey('cup-on-table')] })
         })
     })

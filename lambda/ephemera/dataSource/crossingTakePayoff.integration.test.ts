@@ -185,10 +185,9 @@ describe('crossing take payoff (integration)', () => {
                     .addObject(TABLE_ID)
                     .addRelationalEdge(tied(STRING_ID, tablePort)),
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
-                    .addObject(CUP_ID)
+                    .addObject(CUP_ID, 'On')
                     .addPort(crossingPort('port-table', ROOM_ID))
                     .addPresenceNode(fullBinding('PRESENCE#table-in-bridge', ROOM_ID, undefined, covering([CUP_ID, 'PRESENCE#cup-on-table'])))
-                    .addRelationalEdge({ from: CUP_ID, to: TABLE_ID, kind: 'On' })
                     .addRelationalEdge(tied(tablePort, CUP_ID)),
                 [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
                 [CUP_ID]: EphemeraLudicGraph.empty(CUP_ID).addPresenceNode(fullBinding('PRESENCE#cup-on-table', TABLE_ID, 'PRESENCE#table-in-bridge')),

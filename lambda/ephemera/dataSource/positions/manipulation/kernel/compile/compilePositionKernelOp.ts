@@ -50,9 +50,8 @@ const CAPTURE_ID_TO = 'capture:to'
  * creates one.
  */
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
-    // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but this op's only producer
-    // (`buildObjectMoveOp`) severs the mover's own containment edges, which join two
-    // primitives: a port-qualified edge is a crossing, which Expansion dissolves as its own
+    // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but a port-qualified edge is a
+    // crossing, which Expansion dissolves as its own
     // attempt action, never here. So skip rather than assume. Each edge carries its own host.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
         .filter(({ edge }) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))

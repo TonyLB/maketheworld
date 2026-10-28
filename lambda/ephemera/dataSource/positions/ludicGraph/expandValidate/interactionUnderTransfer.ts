@@ -43,11 +43,10 @@ export function classifyInteractionUnderTransfer(
             // over, and reaching here means a producer built a graph the constructor does not
             // author. The earlier note here -- "replace before ludicCache nests" -- is withdrawn.
             //
-            // One shape now has a producer: a moved object's own edge into the host it
-            // is leaving, member -> that host's root. `buildObjectMoveOp` (3d, 2026-09-08 ---
-            // formerly `executeMembershipTransfer`'s retired `honorDefer` mode) strips that edge
-            // from the graph before this classifier ever sees it, so it never reaches here. Every
-            // other hosting-kind edge reaching this branch is still the unauthored-graph case above.
+            // The mover's own edge into the host it is leaving used to be the one producer. A hosting
+            // kind is now a field of the member's node (hostingKindOnNode HK-3/HK-7), which leaves
+            // with the node, so no writer produces a hosting-kind edge and this branch is
+            // unreachable. Slice 3 of that plan narrows the stored edge type and removes the branch.
             //
             // What would legitimately retire this throw: AB-53 keeps containment root-to-part
             // as an ITERATION-1 CONSTRUCTOR DISCIPLINE, not a structural lock. If multi-level
@@ -76,19 +75,10 @@ export type BoundaryEdgeOutcome = {
  */
 export function boundaryEdgeOutcomes(
     moverId: EphemeraObjectId,
-    graph: EphemeraLudicGraph,
-    /**
-     * Edges the move itself removes, so they are not boundary edges: the mover's own containment
-     * edge into the host it is leaving, which the move op dissolves. A predicate, not a list:
-     * `relationalEdges` builds fresh edge objects on every read, so identity never matches.
-     */
-    isRemovedByMove: (edge: HostRelationalEdge) => boolean = () => false
+    graph: EphemeraLudicGraph
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
-        if (isRemovedByMove(edge)) {
-            continue
-        }
         // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but the mover is
         // Object-only: `applyDeparture.ts` calls in here only for an object. See
         // `ludicGraph/AGENT.md`'s "Character-relation widening" note.

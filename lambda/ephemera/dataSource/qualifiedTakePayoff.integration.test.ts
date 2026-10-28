@@ -79,7 +79,7 @@ const roomGraph = (members: Member[]) => (
 /** An object's own graph: its binding under its parent's, covering whatever rests on or in it. */
 const objectGraph = (objectId: EphemeraObjectId, presence: string, parentHost: EphemeraMembershipHostId, parentPresence?: string, members: Member[] = [], kind: 'On' | 'In' = 'On') => (
     members.reduce(
-        (graph, [member]) => graph.addObject(member).addRelationalEdge({ from: member, to: objectId, kind }),
+        (graph, [member]) => graph.addObject(member, kind),
         EphemeraLudicGraph.empty(objectId).addPresenceNode(fullBinding(presence, parentHost, parentPresence, covering(...members)))
     )
 )

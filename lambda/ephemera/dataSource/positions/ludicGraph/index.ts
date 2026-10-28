@@ -264,6 +264,15 @@ export class EphemeraLudicGraph {
     }
 
     /**
+     * Every component member node's full record (root included), with its `hostingKind` if it
+     * carries one. A cut or merge that remakes a graph from node sets needs these, since
+     * `nodeFromId` would rebuild the node without the kind (hostingKindOnNode Slice 2).
+     */
+    get componentNodes(): EphemeraLudicGraphComponentNode[] {
+        return this._nodes.filter((node): node is EphemeraLudicGraphComponentNode => node.tag !== 'Presence')
+    }
+
+    /**
      * Every node's `universalKey`, regardless of tag --- a kind-indifferent presence/catalog
      * scan ("what's here to look at"), additive alongside the typed `characterIds`/`objectIds`
      * accessors rather than replacing them (see `AGENT.md`, Node model). Named `nodeIds`, not
@@ -425,13 +434,7 @@ export class EphemeraLudicGraph {
      */
     private addMember(node: EphemeraLudicGraphComponentNode, hostingKind: EphemeraHostingKind | undefined): EphemeraLudicGraph {
         if (hostingKind !== undefined) {
-            if (node.universalKey === ephemeraLudicTerminalOwner(this.rootId)) {
-                throw new Error(`${node.universalKey} is the root of ${this.hostId} and carries no hosting kind`)
-            }
-            const hostTag = this._nodes.find((entry) => entry.universalKey === ephemeraLudicTerminalOwner(this.rootId))?.tag
-            if (hostTag && hostTag !== 'Presence' && !isHostingKindLegalOnHost(hostingKind, hostTag)) {
-                throw new Error(`Hosting kind ${hostingKind} is not legal on a ${hostTag} host (${this.hostId})`)
-            }
+            this.assertHostingKindLegal(node.universalKey, hostingKind)
         }
         const existing = this._nodes.find((entry) => entry.tag === node.tag && entry.universalKey === node.universalKey)
         if (existing) {
@@ -442,6 +445,37 @@ export class EphemeraLudicGraph {
             return this
         }
         return this.withNodes([...this._nodes, hostingKind !== undefined ? { ...node, hostingKind } : node])
+    }
+
+    /** Throws unless `hostingKind` may be carried by `memberId` in this host (not the root; legal on the root's tag). */
+    private assertHostingKindLegal(memberId: EphemeraLudicTerminalPrimitive, hostingKind: EphemeraHostingKind): void {
+        if (memberId === ephemeraLudicTerminalOwner(this.rootId)) {
+            throw new Error(`${memberId} is the root of ${this.hostId} and carries no hosting kind`)
+        }
+        const hostTag = this._nodes.find((entry) => entry.universalKey === ephemeraLudicTerminalOwner(this.rootId))?.tag
+        if (hostTag && hostTag !== 'Presence' && !isHostingKindLegalOnHost(hostingKind, hostTag)) {
+            throw new Error(`Hosting kind ${hostingKind} is not legal on a ${hostTag} host (${this.hostId})`)
+        }
+    }
+
+    /**
+     * Sets the hosting kind of a node already in this host: the explicit change-of-kind that `add*`
+     * refuses (HK-7). It is the apply of a hosting-kind `establishRelation` (`put X on Y`), whose
+     * node arrived earlier in the same step sequence with its default kind. Setting the kind it
+     * already has returns `this`. Throws if the node is absent, is the root, or the kind is illegal
+     * on this host.
+     */
+    setHostingKind(id: EphemeraLudicTerminalPrimitive, hostingKind: EphemeraHostingKind): EphemeraLudicGraph {
+        const index = this._nodes.findIndex((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
+        if (index < 0) {
+            throw new Error(`Cannot set hosting kind of ${id}: not a member of ${this.hostId}`)
+        }
+        this.assertHostingKindLegal(id, hostingKind)
+        const node = this._nodes[index]
+        if (node.tag !== 'Presence' && node.hostingKind === hostingKind) {
+            return this
+        }
+        return this.withNodes(this._nodes.map((entry, entryIndex) => entryIndex === index ? { ...entry, hostingKind } as EphemeraLudicGraphNode : entry))
     }
 
     addCharacter(characterId: EphemeraCharacterId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {

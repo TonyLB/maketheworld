@@ -176,8 +176,7 @@ export function extractRelationalEdgesFromStored(
  * All four fall out of one inequality test, because `undefined === undefined`.
  *
  * **The sites that use structure as identity change together or not at all** ---
- * `addRelationalEdge`, `removeRelationalEdge` and `applyRelationalPatch` in `index.ts`, and
- * the met-edge filter in `membership/buildObjectMoveOp.ts`. All four compose this helper, so
+ * `addRelationalEdge`, `removeRelationalEdge` and `applyRelationalPatch` in `index.ts`. All three compose this helper, so
  * wiring the rule here is what keeps them in step; chain-aware matching in one and structural
  * matching in another is how a remove deletes a leg it was not aimed at.
  */

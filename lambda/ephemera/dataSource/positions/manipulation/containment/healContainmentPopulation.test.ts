@@ -1,5 +1,4 @@
 import type { EphemeraAreaId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -33,7 +32,6 @@ const OBJECT_ID = 'OBJECT#Kettle' as EphemeraObjectId
 const HOST_ONLY_BINDING = 'PRESENCE#stove-host-only' as EphemeraPresenceNodeId
 const ROOM_REMAINDER = 'PRESENCE#kitchen-remainder' as EphemeraPresenceNodeId
 
-const partOf = (from: EphemeraLudicTerminalId, to: EphemeraLudicTerminalId) => ({ tag: 'Relational' as const, from, to, kind: 'PartOf' as const })
 
 const withGraphs = (graphs: Record<string, EphemeraLudicGraph>) => {
     ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) => graphs[hostId] ?? testLudicGraph(hostId as any))
@@ -62,8 +60,7 @@ describe('healContainmentPopulation', () => {
     it('mints the room parent\'s remainder and repairs a child binding that could name no parent binding', async () => {
         withGraphs({
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
-                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }],
-                edges: [partOf(FEATURE_ID, ROOM_ID)],
+                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' }],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
                 nodes: [{ tag: 'Presence', universalKey: HOST_ONLY_BINDING, fromHostPresences: [{ host: ROOM_ID, presence: 'PRESENCE#gone' as EphemeraPresenceNodeId }], cover: { members: [] } }],
@@ -89,8 +86,7 @@ describe('healContainmentPopulation', () => {
     it('repairs a room\'s Area binding that lists members to an empty-member carve-out naming the Area\'s root', async () => {
         withGraphs({
             [AREA_ID]: testLudicGraph(AREA_ID, {
-                nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
-                edges: [partOf(ROOM_ID, AREA_ID)],
+                nodes: [{ tag: 'Room', universalKey: ROOM_ID, hostingKind: 'PartOf' }],
             }),
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
                 nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, presenceBindingNode('kitchen-in-area', AREA_ID, { members: [{ host: FEATURE_ID, presence: 'PRESENCE#stove-in-kitchen' as EphemeraPresenceNodeId }] })],
@@ -118,10 +114,9 @@ describe('healContainmentPopulation', () => {
         withGraphs({
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
                 nodes: [
-                    { tag: 'Feature', universalKey: FEATURE_ID },
+                    { tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' },
                     presenceBindingNode(ROOM_REMAINDER),
                 ],
-                edges: [partOf(FEATURE_ID, ROOM_ID)],
             }),
             [FEATURE_ID]: testLudicGraph(FEATURE_ID, {
                 nodes: [presenceBindingNode('stove-in-kitchen', { host: ROOM_ID, presence: ROOM_REMAINDER })],
@@ -145,8 +140,7 @@ describe('healContainmentPopulation', () => {
     it('only reruns population for authored Room/Feature children, never Objects', async () => {
         withGraphs({
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
-                nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, presenceBindingNode(ROOM_REMAINDER)],
-                edges: [partOf(OBJECT_ID, ROOM_ID)],
+                nodes: [{ tag: 'Object', universalKey: OBJECT_ID, hostingKind: 'In' }, presenceBindingNode(ROOM_REMAINDER)],
             }),
         })
         withAuthored([{ universalKey: OBJECT_ID }])
@@ -175,8 +169,7 @@ describe('healContainmentPopulation', () => {
     it('leaves alone a child with a PartOf edge that is no longer authored, and one the asset removed', async () => {
         withGraphs({
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
-                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID }, presenceBindingNode(ROOM_REMAINDER)],
-                edges: [partOf(FEATURE_ID, ROOM_ID)],
+                nodes: [{ tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' }, presenceBindingNode(ROOM_REMAINDER)],
             }),
         })
         withAuthored([{ universalKey: FEATURE_ID, ref: -1 }])
