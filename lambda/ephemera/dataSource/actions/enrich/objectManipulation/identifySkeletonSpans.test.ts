@@ -213,3 +213,27 @@ describe('runIdentityStageOverReferenceKeys', () => {
         ).rejects.toThrow('"missingRef" is not an objectSpan token')
     })
 })
+
+describe('runIdentityStageOverSkeleton with a resolver', () => {
+    it('omits a declined span\'s keys from the pools and lists them as ineligible', async () => {
+        const skeleton: ParseSkeleton = [
+            { type: 'objectSpan', span: 'broom', stableRefKey: 'broomRef' },
+            { type: 'objectSpan', span: 'zebra', stableRefKey: 'zebraRef' },
+            { type: 'objectSpan', span: 'zebra', stableRefKey: 'zebraRef2' },
+        ]
+        const resolver = async (span: string) => (
+            span === 'broom'
+                ? { type: 'pool' as const, pool: { span, candidates: [] } }
+                : { type: 'ineligible' as const }
+        )
+
+        const result = await runIdentityStageOverSkeleton('x', skeleton, { objects: roomCatalog, exits: [] }, resolver)
+
+        expect(result.type).toBe('success')
+        if (result.type !== 'success') {
+            return
+        }
+        expect([...result.spanPools.keys()]).toEqual(['broomRef'])
+        expect(result.ineligible).toEqual(['zebraRef', 'zebraRef2'])
+    })
+})

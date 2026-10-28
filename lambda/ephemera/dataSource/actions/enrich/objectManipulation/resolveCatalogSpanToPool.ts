@@ -1,13 +1,11 @@
-import internalCache from '../../../../internalCache'
 import type { ObjectManipulationCatalogEntry } from './catalogMerge'
-import { buildSpanCandidatePool } from './embeddingMatch/buildSpanCandidatePool'
+import { buildEmbeddedLexicalPool } from './embeddedLexicalPool'
 import {
     exactCatalogMatches,
     objectManipulationErrorMessageForResolution,
     resolveObjectSpanToObjectId,
 } from './resolveObjectSpan'
 import type { SpanStructure } from './parse/parseToken'
-import { peelLeadingArticleWhenTail } from './spanMatchForms'
 import {
     catalogScopeToLocus,
     type ObjectSpanCandidate,
@@ -17,6 +15,7 @@ import {
 export type ResolveCatalogSpanToPoolResult =
     | { type: 'pool'; pool: SpanCandidatePool }
     | { type: 'error'; errorMessage: string }
+    | { type: 'ineligible' }
 
 const buildExactCandidate = (entry: ObjectManipulationCatalogEntry): ObjectSpanCandidate => ({
     id: entry.objectId,
@@ -56,16 +55,24 @@ const buildExactSpanCandidatePool = (
 }
 
 /**
- * FT-2.1: resolve one object span to a SpanCandidatePool (evidence artifact).
- * Exact unique match (as given, then with a leading article peeled) short-circuits without
- * embed; ambiguous exact duplicates form an exact pool; non-exact spans rank via
- * buildSpanCandidatePool.
+ * Identify's seam: how one object span becomes a pool. `ineligible` is a resolver declining the span
+ * (the full resolver never does); the caller decides what an ineligible span costs.
  */
-export async function resolveCatalogSpanToPool(
+export type SpanResolver = (
     span: string,
     catalog: readonly ObjectManipulationCatalogEntry[],
     structure?: SpanStructure
-): Promise<ResolveCatalogSpanToPoolResult> {
+) => Promise<ResolveCatalogSpanToPoolResult>
+
+/**
+ * The exact piece of resolving a span: an exact unique match (as given, then with a leading article
+ * peeled) or ambiguous exact duplicates form an exact pool, and an empty catalog is an error. Returns
+ * undefined when the span matches no name exactly, leaving it to a resolver's non-exact piece.
+ */
+export function resolveExactSpan(
+    span: string,
+    catalog: readonly ObjectManipulationCatalogEntry[]
+): ResolveCatalogSpanToPoolResult | undefined {
     const resolution = resolveObjectSpanToObjectId(span, catalog)
     if (resolution.type === 'NoCatalog') {
         return {
@@ -96,14 +103,13 @@ export async function resolveCatalogSpanToPool(
         }
     }
 
-    // Both channels rank the span with its leading article peeled (the embed handler peels its own
-    // key); the pool keeps the span as given.
-    const matchSpan = peelLeadingArticleWhenTail(span)
-    const embedResult = await internalCache.SpanEmbeddings.get(span)
-    const pool = buildSpanCandidatePool(matchSpan, catalog, {
-        ...(embedResult.success ? { spanEmbedding: embedResult.embedding } : {}),
-        ...(structure !== undefined ? { structure } : {}),
-    })
-
-    return { type: 'pool', pool: { ...pool, span } }
+    return undefined
 }
+
+/**
+ * FT-2.1: the full resolver, one object span to a SpanCandidatePool (evidence artifact).
+ * Exact matches short-circuit without embed; non-exact spans rank via the embedded lexical pool.
+ */
+export const resolveCatalogSpanToPool: SpanResolver = async (span, catalog, structure) => (
+    resolveExactSpan(span, catalog) ?? { type: 'pool', pool: await buildEmbeddedLexicalPool(span, catalog, structure) }
+)

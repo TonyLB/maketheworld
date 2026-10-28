@@ -60,6 +60,7 @@ describe('runIdentityStage', () => {
                     locus: { kind: 'room' },
                 }],
             }],
+            ineligible: [],
         })
         expect(mockGet).not.toHaveBeenCalled()
         if (result.type === 'success') {
@@ -215,5 +216,18 @@ describe('runIdentityStage', () => {
             type: 'error',
             errorMessage: objectManipulationErrorMessages.noCatalog,
         })
+    })
+
+    it('uses the given resolver, reporting declined spans beside the pools', async () => {
+        const resolver = jest.fn(async (span: string, catalog: readonly ObjectManipulationCatalogEntry[]) => (
+            span === 'broom'
+                ? { type: 'pool' as const, pool: { span, candidates: [] } }
+                : { type: 'ineligible' as const }
+        ))
+
+        const result = await runIdentityStage('x', ['broom', 'zebra'], roomCatalog, new Map(), resolver)
+
+        expect(result).toEqual({ type: 'success', spanPools: [{ span: 'broom', candidates: [] }], ineligible: ['zebra'] })
+        expect(mockGet).not.toHaveBeenCalled()
     })
 })

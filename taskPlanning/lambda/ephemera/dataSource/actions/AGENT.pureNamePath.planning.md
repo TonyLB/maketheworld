@@ -1,6 +1,6 @@
 # Pure-name path (Identify without embeddings)
 
-**Status:** Not started. Next: Slice 1 (extract the shared utilities and the full-pass orchestrator, no behavior change).
+**Status:** Slice 1 shipped (utilities and the full-pass orchestrator extracted, no behavior change). Next: Slice 2 (name-subsequence predicate and the pure resolver).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and the Recommended order checkbox conventions.
 
@@ -55,7 +55,7 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 
 | Slice | State |
 | --- | --- |
-| 1. Utilities + full-pass orchestrator extracted (no behavior change) | |
+| 1. Utilities + full-pass orchestrator extracted (no behavior change) | Shipped (full suite green) |
 | 2. Name-subsequence predicate + pure resolver | |
 | 3. Pure-pass and cross-pass orchestrators, recorded pass, payoff test | |
 | 4. Durable docs; plan deleted | |
@@ -64,11 +64,11 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 
 Mark pending items `[ ]` and completed items `[X]`; mark each nested line `[X]` as it is done.
 
-- [ ] **Slice 1 --- utilities and the full-pass orchestrator.**
-    - [ ] Split `resolveCatalogSpanToPool` into its pieces (catalog/exact match; embed-plus-lexical pool) and recompose them as the **full resolver**, keeping the exported name and behavior.
-    - [ ] `runIdentityStage` / `runIdentityStageOverSkeleton` / `runIdentityStageOverReferenceKeys` take the resolver as a parameter and return ineligible span texts beside the pools (always empty under the full resolver).
-    - [ ] In `compileAttemptsFromSkeleton.ts`, extract the shared steps after Identify (exact-fill precedence, post-Identify refusals, and propose -> environment -> dry run -> select -> result) as utilities, and the **full-pass orchestrator** over them with its own refusals list (PP-4). `compileReadings` keeps the once-only steps and calls the full pass.
-    - [ ] No test changes expected beyond call sites of the Identify functions; the full suite passes unchanged.
+- [X] **Slice 1 --- utilities and the full-pass orchestrator.**
+    - [X] Split `resolveCatalogSpanToPool` into its pieces (`resolveExactSpan`; `buildEmbeddedLexicalPool`, in `embeddedLexicalPool.ts`, the only module that imports `internalCache`) and recompose them as the **full resolver**, keeping the exported name and behavior. `SpanResolver` and the `ineligible` result variant live in `resolveCatalogSpanToPool.ts`.
+    - [X] `runIdentityStage` / `runIdentityStageOverSkeleton` / `runIdentityStageOverReferenceKeys` take the resolver as an optional trailing parameter (default: the full resolver) and return ineligible beside the pools (always empty under the full resolver): `runIdentityStage` the span **texts**, the skeleton-keyed functions the **stableRefKeys** (the pure pass drops fills by key), with ineligible keys absent from the `spanPools` map.
+    - [X] In `compileAttemptsFromSkeleton.ts`, extract the shared steps after Identify (exact-fill precedence, post-Identify refusals, and propose -> environment -> dry run -> select -> result) as utilities, and the **full-pass orchestrator** over them with its own refusals list (PP-4). `compileReadings` keeps the once-only steps and calls the full pass.
+    - [X] Tests: one existing `identityStage.test.ts` expectation gained `ineligible: []`; two new tests cover a custom resolver declining a span. The rest of the suite passes unchanged.
 - [ ] **Slice 2 --- the pure resolver.**
     - [ ] Word-subsequence predicate (PP-1), with unit tests: `cup` / `red cup` / `big cup` vs "big red cup" match; `cup red` vs "red cup", `cup` vs "cupboard" / "teacup", `up` vs "cup up" (under 3 characters) do not; `the cup` matches "red cup" (article peeled).
     - [ ] **Pure resolver**: the catalog/exact piece as today, else the PP-2 pool, else `ineligible`. Its module does not import `internalCache`.
