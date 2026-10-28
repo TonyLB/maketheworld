@@ -2,13 +2,12 @@ import { v4 as uuidv4 } from 'uuid'
 import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraAreaId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraHostingKind, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
-import type { ExecutorEstablishRelationStep } from '../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelStep } from '../kernel/kernelStep'
+import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelSetHostingKindStep, MutationKernelStep } from '../kernel/kernelStep'
 
 /**
  * A parent's root binding, the one its children name (`childParentBindingIdOf`). A Room or Area
@@ -64,12 +63,12 @@ export const rootStep = (
  *   root is `rootStep`'s, minted once per parent before any child is computed.
  * - **Authored Objects** (`positions/AGENT.contract.md`, `Component Updated`): an Object child is skipped outright if its own graph holds any
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
- *   goes through the same checks, with an `In` edge. A live binding of the wrong shape is
+ *   goes through the same checks, with an `In` kind. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
  * - **Containment kind**: emitted only if `parentGraph` does not already hold `childId` with the child's kind (`PartOf`, or `In` for an
  *   Object) as its `hostingKind`. The kind is a field of the child's node in the parent's graph, not an edge
- *   (hostingKindOnNode HK-3); the binding steps above add that node with the same default, so applying the
- *   `establishRelation` is idempotent, and skipping it when nothing changed is what keeps a fully-populated
+ *   (hostingKindOnNode HK-3); the binding steps above add that node with the same default, so the
+ *   `setHostingKind` step is idempotent, and skipping it when nothing changed is what keeps a fully-populated
  *   `cacheAsset` rerun from committing a transaction at all. Rooms and Features are always `PartOf`, never `In`
  *   (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement
  *   `In` is for.
@@ -146,17 +145,15 @@ export const containmentPopulationSteps = (
     }
 
     // Objects are mobile, so they sit `In` their authored parent; Rooms and Features nest `PartOf`.
-    const relationKind = isEphemeraObjectId(childId) ? 'In' : 'PartOf'
-    const hasContainmentKind = parentGraph.hostingKindOf(childId) === relationKind
-    if (!hasContainmentKind) {
-        const edgeStep: ExecutorEstablishRelationStep = {
-            kind: 'establishRelation',
-            subjectId: childId,
-            targetId: parentId,
+    const hostingKind: EphemeraHostingKind = isEphemeraObjectId(childId) ? 'In' : 'PartOf'
+    if (parentGraph.hostingKindOf(childId) !== hostingKind) {
+        const kindStep: MutationKernelSetHostingKindStep = {
+            kind: 'setHostingKind',
             hostId: parentId,
-            relationKind,
+            memberId: childId,
+            hostingKind,
         }
-        steps.push(edgeStep)
+        steps.push(kindStep)
     }
 
     return steps

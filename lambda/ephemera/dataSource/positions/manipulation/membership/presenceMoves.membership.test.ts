@@ -262,7 +262,7 @@ describe('a move of one part leaves the mover a member of both hosts', () => {
 
     it('holds the rug in the room and on the table, one part in each, with its On kind on the table', async () => {
         const before = world()
-        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, moverBindings: [presence('rug-far')], containment: 'On', getGraph: worldOf(before) })
+        const planned = await planObjectMoveTransfer({ entityId: rug, fromHostId: roomA, toHostId: table, moverBindings: [presence('rug-far')], hostingKind: 'On', getGraph: worldOf(before) })
         if (!planned.ok) { throw new Error(`expected a plan, got ${planned.errorCode}`) }
         const steps = planned.plan.steps.filter(isKernelMutationStep)
         const prior = new Map(Object.entries(before) as [EphemeraMembershipHostId, EphemeraLudicGraph][])

@@ -1,4 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { PositionKernelMoveOp } from '../kernel/compile/positionKernelOp'
@@ -20,8 +21,8 @@ export type BuildObjectMoveOpArgs = {
     toHostId: EphemeraMembershipHostId
     /** The mover's presence steps, named by `resolvePresenceMoves`. */
     presenceSteps: readonly MutationKernelStep[]
-    /** Hosting kinds only (AB-54); see `ExecuteMembershipTransferArgs.containment`'s doc comment. */
-    containment?: 'On' | 'In' | 'PartOf'
+    /** Hosting kinds only (AB-54); see `PositionKernelMoveOp.hostingKind`'s doc comment. */
+    hostingKind?: EphemeraHostingKind
 }
 
 /**
@@ -57,6 +58,6 @@ export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMo
         to: args.toHostId,
         header: null,
         presenceSteps: args.presenceSteps,
-        ...(args.containment ? { containment: args.containment } : {}),
+        ...(args.hostingKind ? { hostingKind: args.hostingKind } : {}),
     }
 }

@@ -82,7 +82,7 @@ export const computeStepSequenceFootprint = (
             }
             continue
         }
-        if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort') {
+        if (step.kind === 'addCrossingPort' || step.kind === 'removeCrossingPort' || step.kind === 'setHostingKind') {
             hosts.add(step.hostId)
             continue
         }

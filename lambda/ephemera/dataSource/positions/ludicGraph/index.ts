@@ -464,7 +464,7 @@ export class EphemeraLudicGraph {
 
     /**
      * Sets the hosting kind of a node already in this host: the explicit change-of-kind that `add*`
-     * refuses (HK-7). It is the apply of a hosting-kind `establishRelation` (`put X on Y`), whose
+     * refuses (HK-7). It is the apply of the `setHostingKind` kernel step (`put X on Y`), whose
      * node arrived earlier in the same step sequence with its default kind. Setting the kind it
      * already has returns `this`. Throws if the node is absent, is the root, or the kind is illegal
      * on this host.

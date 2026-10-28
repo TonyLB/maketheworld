@@ -196,23 +196,23 @@ describe('compilePositionKernelOp --- object moves', () => {
     })
 
     describe('containment and presence binding', () => {
-        it('emits an establishRelation step after the presence steps when containment is set', () => {
-            const plan = compilePositionKernelOp(objectOp({ containment: 'On' }))
+        it('emits a setHostingKind step after the presence steps when hostingKind is set', () => {
+            const plan = compilePositionKernelOp(objectOp({ hostingKind: 'On' }))
 
             const kinds = plan.steps.map((step) => step.kind)
-            expect(kinds.indexOf('reparentPresenceBinding')).toBeLessThan(kinds.indexOf('establishRelation'))
-            expect(plan.steps.find((step) => step.kind === 'establishRelation')).toEqual({
-                kind: 'establishRelation',
-                subjectId: TRAY,
-                targetId: CHARACTER_ID,
+            expect(kinds.indexOf('reparentPresenceBinding')).toBeLessThan(kinds.indexOf('setHostingKind'))
+            expect(plan.steps.find((step) => step.kind === 'setHostingKind')).toEqual({
+                kind: 'setHostingKind',
                 hostId: CHARACTER_ID,
-                relationKind: 'On',
+                memberId: TRAY,
+                hostingKind: 'On',
             })
+            expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
         })
 
-        it('emits no establishRelation step when containment is absent (plain take-hold)', () => {
+        it('emits no setHostingKind step when hostingKind is absent (plain take-hold)', () => {
             const plan = compilePositionKernelOp(objectOp())
-            expect(plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
+            expect(plan.steps.some((step) => step.kind === 'setHostingKind')).toBe(false)
         })
 
         it('re-points the presence binding at the destination on every object rehost, containment or not', () => {
@@ -242,8 +242,8 @@ describe('compilePositionKernelOp --- object moves', () => {
             expect(compilePositionKernelOp(objectOp({ presenceSteps: steps })).steps).toEqual(steps)
         })
 
-        it('throws when containment is set with no destination', () => {
-            expect(() => compilePositionKernelOp(objectOp({ containment: 'On', to: null }))).toThrow()
+        it('throws when hostingKind is set with no destination', () => {
+            expect(() => compilePositionKernelOp(objectOp({ hostingKind: 'On', to: null }))).toThrow()
         })
     })
 })

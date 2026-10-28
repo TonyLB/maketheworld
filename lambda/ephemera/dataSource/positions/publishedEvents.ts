@@ -6,7 +6,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, RelationInstructionKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
@@ -44,8 +44,7 @@ export type ObjectRelationChangedPublishedPayload = {
     beatAnchorTime: number;
 } & RelationalKindAndLabel
 
-// An instruction, not a stored edge, so the hosting kinds stay legal here (hostingKindOnNode Slice 3).
-const RELATION_INSTRUCTION_KINDS = new Set<RelationInstructionKind>(['On', 'Custom', 'In', 'PartOf', 'ConnectedTo'])
+const RELATION_INSTRUCTION_KINDS = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
 
 /**
  * The rooms whose stored `ludicCache` was just marked stale (its marker bumped), whatever the
@@ -154,7 +153,7 @@ export const isObjectRelationChangedPublishedPayload = (
     if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {
         return false
     }
-    if (typeof v.relationKind !== 'string' || !RELATION_INSTRUCTION_KINDS.has(v.relationKind as RelationInstructionKind)) {
+    if (typeof v.relationKind !== 'string' || !RELATION_INSTRUCTION_KINDS.has(v.relationKind as HostRelationalEdgeKind)) {
         return false
     }
     if (v.relationKind === 'Custom') {

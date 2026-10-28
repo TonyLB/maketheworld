@@ -76,7 +76,8 @@ describe('applyObjectRelationalChange', () => {
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
                 hostId: ROOM_ID,
-                relationKind: 'On',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
                 operation: 'establish',
             },
             { messageBus: messageBus as any, streamEvent, transactWrite }
@@ -94,7 +95,8 @@ describe('applyObjectRelationalChange', () => {
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
                 hostId: ROOM_ID,
-                relationKind: 'On',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
                 operation: 'establish',
             },
             { messageBus: messageBus as any, streamEvent, transactWrite }
@@ -111,7 +113,8 @@ describe('applyObjectRelationalChange', () => {
                 subjectId: BROOM_ID,
                 targetId: TABLE_ID,
                 hostId: ROOM_ID,
-                relationKind: 'On',
+                relationKind: 'Custom',
+                relationLabel: 'tied to',
                 operation: 'establish',
             }),
         }))

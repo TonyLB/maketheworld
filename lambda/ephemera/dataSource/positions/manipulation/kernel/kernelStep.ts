@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraCrossingPort, EphemeraHostingKind, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type {
@@ -206,6 +206,20 @@ export type MutationKernelRemoveCrossingPortStep = {
     portId: string
 }
 
+/**
+ * Sets the hosting kind of a member already present in a host's graph (hostingKindOnNode HK-8). A
+ * hosting kind is a property of one membership, not a relation between two things, so it has its own
+ * step rather than riding `establishRelation`. Arrival writes a default kind (`defaultHostingKind`);
+ * this step refines it (`put X on Y`, population). Same kind is a no-op; an illegal kind for the host
+ * throws. It emits no published fact. `hostId` is the host written, so it is the step's footprint.
+ */
+export type MutationKernelSetHostingKindStep = {
+    kind: 'setHostingKind'
+    hostId: EphemeraMembershipHostId
+    memberId: EphemeraPositionAdjacencyContainedId
+    hostingKind: EphemeraHostingKind
+}
+
 export type MutationKernelStep =
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
@@ -219,6 +233,7 @@ export type MutationKernelStep =
     | MutationKernelRepairPresenceBindingStep
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
+    | MutationKernelSetHostingKindStep
 
 /**
  * Every `MutationKernelStep` kind, as a record so adding a kind to the union without listing it here
@@ -238,6 +253,7 @@ export const mutationKernelStepKinds = {
     repairPresenceBinding: true,
     addCrossingPort: true,
     removeCrossingPort: true,
+    setHostingKind: true,
 } as const satisfies Record<MutationKernelStep['kind'], true>
 
 /**
@@ -401,7 +417,8 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'splitPresenceBinding' ||
     step.kind === 'repairPresenceBinding' ||
     step.kind === 'addCrossingPort' ||
-    step.kind === 'removeCrossingPort'
+    step.kind === 'removeCrossingPort' ||
+    step.kind === 'setHostingKind'
 
 /**
  * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):

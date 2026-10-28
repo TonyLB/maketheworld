@@ -395,8 +395,8 @@ export type EphemeraLudicGraphComponentNodeBase =
  * A member's hosting kind (hostingKindOnNode plan, HK-3): how this node sits in the host whose
  * graph holds it. *Placement* kinds (`On`, `In`, `Held`) say where a distinct thing sits relative
  * to its host; *composition* kinds (`PartOf`, `SectionOf`) say a distinct part, or a fungible
- * stretch, of the host read as an abstraction. Distinct from `HostingRelationKind` (the
- * planner-instruction trio; no stored edge carries one).
+ * stretch, of the host read as an abstraction. It is a node field, set by the
+ * `setHostingKind` kernel step; no relation instruction or stored edge carries one (HK-8).
  */
 export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf'] as const
 export type EphemeraHostingKind = typeof HOSTING_KINDS[number]
@@ -513,19 +513,6 @@ export type EphemeraLudicGraphStructureNode = {
 export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraLudicGraphStructureNode
 
 /**
- * AB-54's hosting kinds --- the subordinate node lives in its host's own shard, so these are
- * never given deterministic move/interaction behavior (the retired closed peer kinds had it): their
- * containment mechanism, not a lookup table, decides what happens (2026-09-06 conversation ---
- * "the hosting/containment relations can continue to be hard-coded"). This pairing exists only
- * so consumers that need to ask "is this kind hosting?" (narration dispatch, for one) share one
- * answer instead of re-spelling the trio.
- */
-export const HOSTING_RELATION_KINDS = ['On', 'In', 'PartOf'] as const
-export type HostingRelationKind = typeof HOSTING_RELATION_KINDS[number]
-export const isHostingRelationKind = (value: string): value is HostingRelationKind =>
-    (HOSTING_RELATION_KINDS as readonly string[]).includes(value)
-
-/**
  * The kinds a **stored** relational edge or crossing port may carry (hostingKindOnNode Slice 3):
  * the peer and topology kinds only. A member's hosting kind is a field of its node
  * (`EphemeraHostingKind`), never an edge, so none is representable here. One named union, so a
@@ -536,12 +523,6 @@ export type HostRelationalEdgeKind =
     | 'ConnectedTo'                             // topology within ONE whole (symmetric); never decides shard placement
 export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
 
-/**
- * The kinds a relation **instruction** may name (the planner/DTO lane: `put X on Y`, published
- * events): a stored edge kind, or a hosting kind. An instruction is not a stored edge, so the
- * hosting kinds stay legal here even though a stored edge cannot hold one.
- */
-export type RelationInstructionKind = HostRelationalEdgeKind | HostingRelationKind
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
 // was ever constructed by any writer -- the migration moves bucket membership onto `cover`
@@ -568,7 +549,7 @@ export type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind
     | { kind: 'Custom'; relationLabel: string }
 
 /** `RelationalEdgeKindAndLabel` for the lane that spells the field `relationKind`. */
-export type RelationalKindAndLabel<K extends string = RelationInstructionKind> =
+export type RelationalKindAndLabel<K extends string = HostRelationalEdgeKind> =
     | { relationKind: Exclude<K, 'Custom'> }
     | { relationKind: 'Custom'; relationLabel: string }
 
@@ -596,17 +577,10 @@ export const relationKindAndLabelFrom = (source: RelationalKindAndLabel): Relati
         : { relationKind: source.relationKind }
 )
 
-/**
- * The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. A hosting-kind
- * instruction has no edge spelling (it is applied to the member's node), so it throws: callers
- * branch on `isHostingRelationKind` first.
- */
+/** The inverse of `relationKindAndLabelOf`: DTO spelling in, edge spelling out. */
 export const edgeKindAndLabelFrom = (source: RelationalKindAndLabel): RelationalEdgeKindAndLabel => {
     if (source.relationKind === 'Custom') {
         return { kind: 'Custom', relationLabel: source.relationLabel }
-    }
-    if (isHostingRelationKind(source.relationKind)) {
-        throw new Error(`edgeKindAndLabelFrom: hosting kind ${source.relationKind} is a field of a member's node, not an edge`)
     }
     return { kind: source.relationKind }
 }

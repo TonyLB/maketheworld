@@ -44,19 +44,12 @@ describe('expandSameHost', () => {
         })
     })
 
-    it('errors rather than crossing on a hosting kind ("put tray on table") --- no branch on this route at all', () => {
-        // this shape used to be the motivating case for `repaired` --- move the tray
-        // onto the table's host and call the precondition fixed. A hosting relation is a
-        // membership move, not a relational placement, so it gets no branch on this route at
-        // all now --- not even a state lookup, since hosting kinds fail the peer-kind gate before
-        // `findShardBoundary` is ever called. Unreachable live (the ingress lane defers `on` per
-        // CD2); asserted so that making it reachable is a deliberate act with a branch built for
-        // it, not a silent fall-through into peer-relation machinery.
-        const result = expandAndLower({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'On', operationKind: 'establishRelation' })
+    it('errors rather than crossing on ConnectedTo --- topology is written by extend, with no sameHost branch on this route', () => {
+        const result = expandAndLower({ subjectId: TRAY_ID, objectId: TABLE_ID, relationKind: 'ConnectedTo', operationKind: 'establishRelation' })
 
         expect(result.verdict).toBe('error')
         if (result.verdict !== 'error') return
-        expect(result.reason).toEqual(expect.stringContaining('On'))
+        expect(result.reason).toEqual(expect.stringContaining('ConnectedTo'))
     })
 
     it('defers on a Custom relation kind when no shared boundary is reachable', () => {

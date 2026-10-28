@@ -335,16 +335,16 @@ Mental model: [**Host-local relational patch**](AGENT.concepts.md#manipulation-l
 
 ### Relation kinds
 
-**`HostRelationalEdgeKind`** is the hosting kinds (`HostingRelationKind`: `On`, `In`, `PartOf`) plus one peer kind, `Custom`, plus the topology kind `ConnectedTo`:
+**`HostRelationalEdgeKind`** is one peer kind, `Custom`, plus the topology kind `ConnectedTo`. The hosting kinds (`On`, `In`, `PartOf`, and the placement/composition kinds `Held` and `SectionOf`) are not relation kinds: each is the `hostingKind` field of a member's node, set by the `setHostingKind` kernel step:
 
 | Kind | Player language (examples) | Persist |
 | --- | --- | --- |
-| **`On`** / **`In`** | on, onto, in, inside | Containment: the member's `hostingKind` on its node in the new host's graph (hostingKindOnNode HK-3), not an edge. Arrival gives a default kind (`defaultHostingKind`: `Held` for an object in a character, `In` for an object elsewhere, `PartOf` for a Room/Feature/Area); a move's `containment` flag becomes a hosting-kind `establishRelation`, which `applyStepSequenceCore` applies as `setHostingKind`, and a hosting-kind `dissolveRelation` changes nothing. **Must not** persist as a peer edge between siblings |
+| **`On`** / **`In`** | on, onto, in, inside | Containment: the member's `hostingKind` on its node in the new host's graph (hostingKindOnNode HK-3), not an edge. Arrival gives a default kind (`defaultHostingKind`: `Held` for an object in a character, `In` for an object elsewhere, `PartOf` for a Room/Feature/Area); a move's `hostingKind` (the planner's parsed preposition) compiles to a `setHostingKind` step after the presence steps, which `applyStepSequenceCore` applies through `EphemeraLudicGraph.setHostingKind` (no published fact), and leaving a host removes the node and its kind with it. **Must not** persist as a peer edge between siblings |
 | **`PartOf`** | none (no deterministic authoring) | Containment, same shape: the member's `hostingKind` on its node |
 | **`Custom`** | under, against, tied to, wrapped around, long-tail phrases | **`kind: 'Custom'`** + **`relationLabel`** (see below) |
 | **`ConnectedTo`** | none directly: written by **extend** (spread, drape, carrying one end of a rope onward) and rewritten by contraction | **`kind: 'ConnectedTo'`**, no label. Topology within one whole: how its parts or bindings join |
 
-**`ConnectedTo` rules (the kind and its legality check; produced by extend, `extendSteps`):** it is **not** a hosting kind (not in `HOSTING_RELATION_KINDS`) and never decides shard placement. It is **symmetric**: `A -ConnectedTo- B` and `B -ConnectedTo- A` are one edge, compared order-insensitively (`ephemeraEdgeEndpointsEqual`; `collapsedEdgeIdentityKey`, `stubPortIdFromEdge` and `isFactOfRelationalEdge` agree), and every other kind stays directional. A move that severs one defers to the adjudicator (`classifyInteractionUnderTransfer`), as a `Custom` edge does. In WML it sits in the Topology class (`LUDIC_EDGE_TOPOLOGY_KINDS`).
+**`ConnectedTo` rules (the kind and its legality check; produced by extend, `extendSteps`):** it is **not** a hosting kind (a hosting kind is a node field, not an edge) and never decides shard placement. It is **symmetric**: `A -ConnectedTo- B` and `B -ConnectedTo- A` are one edge, compared order-insensitively (`ephemeraEdgeEndpointsEqual`; `collapsedEdgeIdentityKey`, `stubPortIdFromEdge` and `isFactOfRelationalEdge` agree), and every other kind stays directional. A move that severs one defers to the adjudicator (`classifyInteractionUnderTransfer`), as a `Custom` edge does. In WML it sits in the Topology class (`LUDIC_EDGE_TOPOLOGY_KINDS`).
 
 There is no deterministic parse of a peer relation: `Custom` is produced only by the LLM Plan fallback, and the relation's words live in `relationLabel`. There are no closed peer kinds; a move that severs any peer edge defers to the adjudicator. **Manner, not physics:** the graph cannot tell clearance (a lamp under a table, moved away) from a pinned relation (a rope lashed to a post), and `Custom` has no finer kind, so the adjudicator meets a severed peer subject-move either way. The rule is the manner in which the move happens, not what the graph holds.
 
@@ -358,7 +358,7 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 
 ```typescript
 type HostRelationalEdgeKind =
-    | 'On' | 'In' | 'PartOf' | 'Custom'
+    | 'Custom' | 'ConnectedTo'
 
 /** The kind/label pairing, shared by every type that carries one. */
 type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
@@ -383,6 +383,7 @@ type HostRelationalPatch = {
 - **`relationLabel` belongs structurally to `Custom`**, and the rule runs **both** ways: a `Custom` edge **must** carry a non-empty label, and **no other kind may carry one at all**. This is expressed in the type (`RelationalEdgeKindAndLabel`, and `RelationalKindAndLabel` for the DTO lane's `relationKind` spelling), not by runtime checks at each layer --- an illegal pairing does not compile.
 - **`Custom`** edges **must** persist **`relationLabel`** on the stored forward-graph edge --- **not** presentation-only copy in perception.
 - **`isEphemeraLudicRelationalEdgeData` must reject a non-`Custom` edge carrying a label**, since such a value is unrepresentable and a guard accepting it would lie about what it narrows. A stored row in that shape is recovered by [`extractRelationalEdgesFromStored`](ludicGraph/baseClasses.ts)'s fallback **with the stray label stripped** --- sound and lossless. A `Custom` row with no usable label is **not** recoverable there and is dropped.
+- **`setHostingKind`** is not an edge patch: it sets the `hostingKind` field of one member's node (`EphemeraLudicGraph.setHostingKind`), is legality-checked against the host, and writes no edge.
 - **`establishRelation`** ingress **must** map to **`op: 'add'`**; **`dissolveRelation`** **must** map to **`op: 'remove'`** matching **`from`**, **`to`**, **`kind`**, and **`relationLabel`** (when **`Custom`**).
 
 ### Kernel and compound apply

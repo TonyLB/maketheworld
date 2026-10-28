@@ -1,9 +1,10 @@
 import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { isEphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { ExecutorDissolveRelationStep, ExecutorEstablishRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
-import type { KernelStep, MutationKernelCaptureStep, NarrationSpecification } from '../kernelStep'
+import type { ExecutorDissolveRelationStep } from '../../../../actions/enrich/objectManipulation/synthesize/executorTypes'
+import type { KernelStep, MutationKernelCaptureStep, MutationKernelSetHostingKindStep, NarrationSpecification } from '../kernelStep'
 import type { MembershipMoveNarrationInput } from './positionKernelOp'
 import type { PositionKernelMoveOp } from './positionKernelOp'
 
@@ -66,22 +67,22 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
 
     const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved
 
-    if (op.containment && op.to === null) {
-        throw new Error('compilePositionKernelOp: containment set with no destination --- caller bug, not a legal "give to nobody" shape')
+    if (op.hostingKind && op.to === null) {
+        throw new Error('compilePositionKernelOp: hostingKind set with no destination --- caller bug, not a legal "give to nobody" shape')
     }
 
-    // establishing the destination-side containment edge only makes sense once the moved
-    // object is actually a node of `toHostId`'s graph, so this runs after the presence steps (which
-    // apply membership) --- placed before them it would resolve `findHostOf(primaryMovedId)` against
-    // the *old* host.
-    const establishSteps: ExecutorEstablishRelationStep[] = op.containment
+    // setting the kind only makes sense once the moved object is actually a node of `toHostId`'s
+    // graph, so this runs after the presence steps (which apply membership).
+    if (op.hostingKind && !isEphemeraPositionAdjacencyContainedId(primaryMovedId)) {
+        throw new Error(`compilePositionKernelOp: hostingKind set for ${JSON.stringify(primaryMovedId)}, which cannot be a member`)
+    }
+    const hostingKindSteps: MutationKernelSetHostingKindStep[] = op.hostingKind
         ? [{
-            kind: 'establishRelation',
-            subjectId: primaryMovedId,
-            targetId: op.to as EphemeraLudicTerminalPrimitive,
-            // Safe: the `op.containment && op.to === null` guard above already threw.
+            kind: 'setHostingKind',
+            // Safe: guarded above.
             hostId: op.to as EphemeraMembershipHostId,
-            relationKind: op.containment,
+            memberId: primaryMovedId as EphemeraPositionAdjacencyContainedId,
+            hostingKind: op.hostingKind,
         }]
         : []
 
@@ -95,7 +96,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
     const presenceBindingSteps: KernelStep[] = [...op.presenceSteps]
 
     if (!op.narration) {
-        return { steps: [...dissolveSteps, ...presenceBindingSteps, ...establishSteps, ...headerSteps] }
+        return { steps: [...dissolveSteps, ...presenceBindingSteps, ...hostingKindSteps, ...headerSteps] }
     }
 
     const { narration } = op
@@ -143,7 +144,7 @@ export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPosit
             ...captureFromSteps,
             ...dissolveSteps,
             ...presenceBindingSteps,
-            ...establishSteps,
+            ...hostingKindSteps,
             ...captureToStep,
             ...narrateLeaveSteps,
             ...headerSteps,

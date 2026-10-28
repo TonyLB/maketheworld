@@ -20,7 +20,7 @@ const trayBinding = (name: string, parent: string) => presenceBindingNode(name, 
 
 /**
  * Take/drop/give's `planObjectMoveTransfer`: the containment-cycle refusal, and the move's own
- * compiled plan (transfer, own containment strip, establish into a new host). It neither
+ * compiled plan (transfer, and the hosting kind set in a new host). It neither
  * dry-runs nor derives a boundary-edge dissolve --- `commitAttempt.test.ts` covers the dry run
  * over the whole attempt, and `commitStepSequence`/`applyStepSequenceCore`'s own suites cover
  * commit mechanics. `getGraph` is the only I/O seam, so no `internalCache`/`transactWrite`
@@ -49,13 +49,13 @@ describe('planObjectMoveTransfer', () => {
             expect(result.fromHostId).toBe(ROOM_ID)
         })
 
-        it('drops an `In` containment into a character: possession is the arrival default (Held), and the character host refuses `In`', async () => {
+        it('drops an `In` hosting kind into a character: possession is the arrival default (Held), and the character host refuses `In`', async () => {
             const roomGraph = testLudicGraph(ROOM_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }], edges: [] })
             const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')], edges: [] })
             const trayGraph = testLudicGraph(TRAY_ID, { nodes: [trayBinding('tray-in-room', ROOM_ID)] })
             const getGraph = worldOf({ [ROOM_ID]: roomGraph, [CHARACTER_ID]: characterGraph, [TRAY_ID]: trayGraph })
 
-            const result = await planObjectMoveTransfer({ entityId: TRAY_ID, fromHostId: ROOM_ID, toHostId: CHARACTER_ID, containment: 'In', getGraph })
+            const result = await planObjectMoveTransfer({ entityId: TRAY_ID, fromHostId: ROOM_ID, toHostId: CHARACTER_ID, hostingKind: 'In', getGraph })
 
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
@@ -97,7 +97,7 @@ describe('planObjectMoveTransfer', () => {
      * and `applyStepSequenceCore`'s own suites' job.
      */
     describe('On rehost', () => {
-        it('put on an empty tray: transferMembership then an establishRelation edge into the tray', async () => {
+        it('put on an empty tray: the presence steps, then a setHostingKind step for the tray', async () => {
             const characterGraph = testLudicGraph(CHARACTER_ID, { nodes: [{ tag: 'Object', universalKey: CUP_ID }], edges: [] })
             const trayGraph = testLudicGraph(TRAY_ID, { nodes: [{ tag: 'Object', universalKey: TRAY_ID }, presenceBindingNode('Base')], edges: [] })
             const cupGraph = testLudicGraph(CUP_ID, { nodes: [trayBinding('cup-held', CHARACTER_ID)] })
@@ -107,17 +107,18 @@ describe('planObjectMoveTransfer', () => {
                 entityId: CUP_ID,
                 fromHostId: CHARACTER_ID,
                 toHostId: TRAY_ID,
-                containment: 'On',
+                hostingKind: 'On',
                 getGraph,
             })
 
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
-            const establishStep = result.plan.steps.find((step) => step.kind === 'establishRelation')
-            expect(establishStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY_ID, hostId: TRAY_ID, relationKind: 'On' }))
+            const kindStep = result.plan.steps.find((step) => step.kind === 'setHostingKind')
+            expect(kindStep).toEqual({ kind: 'setHostingKind', hostId: TRAY_ID, memberId: CUP_ID, hostingKind: 'On' })
+            expect(result.plan.steps.some((step) => step.kind === 'establishRelation')).toBe(false)
         })
 
-        it('moved tray-to-tray: nothing dissolves (the kind leaves with the node), and a new kind establishes at the destination', async () => {
+        it('moved tray-to-tray: nothing dissolves (the kind leaves with the node), and the new kind is set at the destination', async () => {
             const tray1Graph = testLudicGraph(TRAY_ID, {
                 nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID, hostingKind: 'On' }],
             })
@@ -129,18 +130,18 @@ describe('planObjectMoveTransfer', () => {
                 entityId: CUP_ID,
                 fromHostId: TRAY_ID,
                 toHostId: TRAY2_ID,
-                containment: 'On',
+                hostingKind: 'On',
                 getGraph,
             })
 
             expect(result.ok).toBe(true)
             if (!result.ok) { throw new Error('expected a legal plan') }
             expect(result.plan.steps.some((step) => step.kind === 'dissolveRelation')).toBe(false)
-            const establishStep = result.plan.steps.find((step) => step.kind === 'establishRelation')
-            expect(establishStep).toEqual(expect.objectContaining({ subjectId: CUP_ID, targetId: TRAY2_ID, relationKind: 'On' }))
+            const kindStep = result.plan.steps.find((step) => step.kind === 'setHostingKind')
+            expect(kindStep).toEqual({ kind: 'setHostingKind', hostId: TRAY2_ID, memberId: CUP_ID, hostingKind: 'On' })
         })
 
-        it('taken off with no containment: no dissolve and no establishRelation step', async () => {
+        it('taken off with no hostingKind: no dissolve and no setHostingKind step', async () => {
             const trayGraph = testLudicGraph(TRAY_ID, {
                 nodes: [{ tag: 'Object', universalKey: TRAY_ID }, { tag: 'Object', universalKey: CUP_ID, hostingKind: 'On' }],
             })
@@ -275,7 +276,7 @@ describe('planObjectMoveTransfer', () => {
                 entityId: TRAY_ID,
                 fromHostId: ROOM_ID,
                 toHostId: CUP_ID,
-                containment: 'On',
+                hostingKind: 'On',
                 getGraph,
             })
 
@@ -290,7 +291,7 @@ describe('planObjectMoveTransfer', () => {
                 entityId: TRAY_ID,
                 fromHostId: ROOM_ID,
                 toHostId: TRAY_ID,
-                containment: 'On',
+                hostingKind: 'On',
                 getGraph,
             })
 

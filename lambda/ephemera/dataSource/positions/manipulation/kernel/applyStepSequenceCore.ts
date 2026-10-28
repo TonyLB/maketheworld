@@ -1,10 +1,9 @@
-import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom, isHostingRelationKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { coverageViolationsOf, mergeablePairOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { isEphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { graphFromMeta } from '../../ludicGraph'
@@ -342,6 +341,15 @@ export const applyStepSequenceCore = (
             continue
         }
 
+        if (step.kind === 'setHostingKind') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            graphs.set(step.hostId, graph.setHostingKind(step.memberId, step.hostingKind))
+            continue
+        }
+
         // establishRelation / dissolveRelation: confirm the carried hostId against live
         // graph state, throw on mismatch (BD-33 assert-and-throw, unchanged discipline), else apply
         // the patch there. See `confirmCarriedHost`'s doc comment for the stale-vs-throw split.
@@ -354,18 +362,6 @@ export const applyStepSequenceCore = (
         const { subjectHosts, targetHosts } = confirmCarriedHost(step.subjectId, step.targetId, step.hostId, graphs)
         if (subjectHosts.length === 0 || targetHosts.length === 0) {
             return { verdict: 'stale', reasonCode: 'staleRelationalCandidate' }
-        }
-        // A hosting kind is a property of the subject's membership in this host, not an edge (HK-7):
-        // establish sets it on the node that arrived with its default kind, and dissolve has nothing
-        // to remove, since a node leaving a host takes its kind with it.
-        if (isHostingRelationKind(step.relationKind)) {
-            if (step.kind === 'establishRelation') {
-                if (!isEphemeraPositionAdjacencyContainedId(step.subjectId)) {
-                    throw new Error(`establishRelation ${step.relationKind} in ${step.hostId}: subject ${JSON.stringify(step.subjectId)} is not a member, and a hosting kind belongs to one`)
-                }
-                graphs.set(step.hostId, hostGraph.setHostingKind(step.subjectId, step.relationKind))
-            }
-            continue
         }
         if (step.kind === 'establishRelation' && step.relationKind === 'ConnectedTo') {
             const violation = connectedToViolation(hostGraph, step.hostId, step.subjectId, step.targetId)

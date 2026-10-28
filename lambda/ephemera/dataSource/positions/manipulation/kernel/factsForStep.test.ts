@@ -21,11 +21,12 @@ const graphsMap = (
 ): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map(entries)
 
 describe('isFactOfRelationalEdge', () => {
-    const fact = (kind: 'ConnectedTo' | 'On', subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => ({
-        type: 'Object Relation Changed' as const, subjectId, targetId, hostId: roomId, operation: 'establish' as const, beatAnchorTime, relationKind: kind,
+    const kindOf = (kind: 'ConnectedTo' | 'Custom') => kind === 'Custom' ? { relationKind: 'Custom' as const, relationLabel: 'tied to' } : { relationKind: kind }
+    const fact = (kind: 'ConnectedTo' | 'Custom', subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => ({
+        type: 'Object Relation Changed' as const, subjectId, targetId, hostId: roomId, operation: 'establish' as const, beatAnchorTime, ...kindOf(kind),
     })
-    const edge = (kind: 'ConnectedTo' | 'On', subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => ({
-        subjectId, targetId, operation: 'establish' as const, relationKind: kind,
+    const edge = (kind: 'ConnectedTo' | 'Custom', subjectId: EphemeraObjectId, targetId: EphemeraObjectId) => ({
+        subjectId, targetId, operation: 'establish' as const, ...kindOf(kind),
     })
 
     it('matches a ConnectedTo fact in either endpoint order', () => {
@@ -33,8 +34,8 @@ describe('isFactOfRelationalEdge', () => {
     })
 
     it('stays directional for other kinds', () => {
-        expect(isFactOfRelationalEdge(fact('On', glassId, tableId), edge('On', tableId, glassId))).toBe(false)
-        expect(isFactOfRelationalEdge(fact('On', glassId, tableId), edge('On', glassId, tableId))).toBe(true)
+        expect(isFactOfRelationalEdge(fact('Custom', glassId, tableId), edge('Custom', tableId, glassId))).toBe(false)
+        expect(isFactOfRelationalEdge(fact('Custom', glassId, tableId), edge('Custom', glassId, tableId))).toBe(true)
     })
 })
 
@@ -87,7 +88,7 @@ describe('factsForStep', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: glassId, kind: 'ConnectedTo' }],
         })
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
         expect(facts).toEqual([
             {
@@ -95,7 +96,7 @@ describe('factsForStep', () => {
                 subjectId: trayId,
                 targetId: glassId,
                 hostId: roomId,
-                relationKind: 'On',
+                relationKind: 'ConnectedTo',
                 operation: 'establish',
                 beatAnchorTime,
             },
@@ -109,7 +110,7 @@ describe('factsForStep', () => {
                 { tag: 'Object', universalKey: tableId },
             ],
         })
-        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'ConnectedTo' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
         expect(facts).toEqual([
             {
@@ -117,7 +118,7 @@ describe('factsForStep', () => {
                 subjectId: trayId,
                 targetId: tableId,
                 hostId: roomId,
-                relationKind: 'On',
+                relationKind: 'ConnectedTo',
                 operation: 'dissolve',
                 beatAnchorTime,
             },
@@ -132,7 +133,7 @@ describe('factsForStep', () => {
             ],
             edges: [{ tag: 'Relational', from: characterId, to: tableId, kind: 'ConnectedTo' }],
         })
-        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: tableId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: tableId, hostId: roomId, relationKind: 'ConnectedTo' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime)
         expect(facts).toEqual([
             {
@@ -140,7 +141,7 @@ describe('factsForStep', () => {
                 subjectId: characterId,
                 targetId: tableId,
                 hostId: roomId,
-                relationKind: 'On',
+                relationKind: 'ConnectedTo',
                 operation: 'establish',
                 beatAnchorTime,
             },
@@ -156,7 +157,7 @@ describe('factsForStep', () => {
             ],
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'ConnectedTo' }],
         })
-        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'On' }
+        const step: MutationKernelStep = { kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'ConnectedTo' }
         const facts = factsForStep(step, graphsMap([roomId, finalGraph]), beatAnchorTime, graphsMap([roomId, priorGraph]))
         expect(facts).toEqual([
             {
@@ -164,11 +165,16 @@ describe('factsForStep', () => {
                 subjectId: trayId,
                 targetId: tableId,
                 hostId: roomId,
-                relationKind: 'On',
+                relationKind: 'ConnectedTo',
                 operation: 'dissolve',
                 beatAnchorTime,
             },
         ])
+    })
+
+    it('a setHostingKind step yields no facts: a hosting kind is not a relation (HK-8)', () => {
+        const step: MutationKernelStep = { kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'On' }
+        expect(factsForStep(step, graphsMap([roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId, hostingKind: 'On' }] })]), beatAnchorTime)).toEqual([])
     })
 
     it('a capture step yields no facts --- it is not a world event', () => {

@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { RelationInstructionKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { findShardBoundary } from './findShardBoundary'
 import { buildCrossingLegs } from './buildCrossingLegs'
@@ -70,7 +70,7 @@ export const expandSameHost = (
     input: {
         subjectId: EphemeraObjectId
         objectId: EphemeraObjectId
-        relationKind: RelationInstructionKind
+        relationKind: HostRelationalEdgeKind
         /** `relationKind: 'Custom'` only. */
         relationLabel?: string
         /**
@@ -105,10 +105,8 @@ export const expandSameHost = (
         }
     }
 
-    // The peer kind (AB-54; `Custom` is the only one). A hosting kind puts the subordinate node
-    // *inside* the superior's own shard, so there is no boundary between them to cross and a
-    // minted crossing port would be a false record of one --- they fall to the error below
-    // instead. `Present` is the port mechanism's own kind and is never an assertion's subject.
+    // The peer kind (AB-54; `Custom` is the only one). `ConnectedTo` is topology within one whole,
+    // written by extend, never asserted as a sameHost relation --- it falls to the error below.
     if (relationKind === 'Custom') {
         if (operationKind === 'establishRelation') {
             // A relation that already holds is refused, not re-established: a same-host edge's
@@ -174,6 +172,6 @@ export const expandSameHost = (
 
     return {
         verdict: 'error',
-        reason: `sameHost violation for hosting kind ${relationKind} --- a hosting relation is a membership move, not a relational placement, and has no branch on this route (CD2h)`,
+        reason: `sameHost violation for ${relationKind} --- a topology relation is written by extend, not asserted, and has no branch on this route`,
     }
 }

@@ -143,8 +143,8 @@ const preIdentityRefusal = (entry: AttemptEntry, input: CompileAttemptsFromSkele
 }
 
 /**
- * An attempt's checks after Identify, which need its spans resolved: a relation's containment kind,
- * and a look's referent carrying a stableRefKey.
+ * An attempt's checks after Identify, which need its spans resolved: a look's referent carrying a
+ * stableRefKey.
  */
 const postIdentityRefusal = (entry: AttemptEntry, intentConfidence: number): CompileAttemptsFromSkeletonResult | undefined => {
     const { attempt } = entry
@@ -155,18 +155,6 @@ const postIdentityRefusal = (entry: AttemptEntry, intentConfidence: number): Com
             return { type: 'Abstain', confidence: intentConfidence, reason: `${lookedAt?.referentType} referent has no stableRefKey to resolve against` }
         }
         return undefined
-    }
-    if (kind === 'relation') {
-        // isContainmentSpan routes hosting kinds to the containment producer before a Change reaches here.
-        const relation = attempt.actions()[0]?.desiredResult
-        if (relation?.kind === 'change' && (relation.primitive === 'establishRelation' || relation.primitive === 'dissolveRelation')
-            && (relation.relationKind === 'In' || relation.relationKind === 'PartOf' || relation.relationKind === 'On')) {
-            return {
-                type: 'Abstain',
-                confidence: intentConfidence,
-                reason: 'Containment relation kinds are not yet groundable as establishRelation/dissolveRelation steps',
-            }
-        }
     }
     return undefined
 }

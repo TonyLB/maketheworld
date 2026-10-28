@@ -499,6 +499,15 @@ const cases: Case[] = [
         act: () => commit([{ kind: 'dissolveRelation', subjectId: BOX, targetId: TABLE, hostId: R1, relationKind: 'Custom', relationLabel: 'tied to' }]),
     },
     {
+        name: 'a member\'s hosting kind is set in a room',
+        kinds: ['setHostingKind'],
+        rooms: [R1],
+        // the cache carries no hosting kind yet (hostingKindOnNode Slice 4 adds reconstructed edges), so the
+        // read cannot show the change; the room is still marked stale, which is what this case proves
+        changesCache: false,
+        act: () => commit([{ kind: 'setHostingKind', hostId: R1, memberId: BOX, hostingKind: 'On' }]),
+    },
+    {
         name: 'a crossing port is added to a nested host, then removed',
         kinds: ['addCrossingPort', 'removeCrossingPort'],
         rooms: [R1],
