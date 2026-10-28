@@ -17,7 +17,7 @@ export const bindingPointsAt = (moverId: EphemeraMembershipHostId, hostId: Ephem
 )
 
 /**
- * The hosting kind a node carries on arrival at a host (HK-7), before any explicit
+ * The hosting kind a node carries on arrival at a host, before any explicit
  * `establishRelation` refines it (`put X on Y` sets `On`). An object in a character's graph is
  * `Held`; an object anywhere else is `In`; a Room, Feature or Area nests `PartOf` (fixed
  * nesting, not mobile placement). This is what gives take and drop a kind, since they write no

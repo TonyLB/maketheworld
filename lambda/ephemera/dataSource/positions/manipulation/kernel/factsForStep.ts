@@ -83,7 +83,7 @@ export const factsForStep = (
     }
 
     // a hosting kind is a property of one membership, and `Object Relation Changed` has no consumer
-    // for it (hostingKindOnNode HK-8): the move's own fact already covers the arrival.
+    // for it: the move's own fact already covers the arrival.
     if (step.kind === 'setHostingKind') {
         return []
     }

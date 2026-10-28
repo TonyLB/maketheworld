@@ -392,11 +392,11 @@ export type EphemeraLudicGraphComponentNodeBase =
     }
 
 /**
- * A member's hosting kind (hostingKindOnNode plan, HK-3): how this node sits in the host whose
+ * A member's hosting kind: how this node sits in the host whose
  * graph holds it. *Placement* kinds (`On`, `In`, `Held`) say where a distinct thing sits relative
  * to its host; *composition* kinds (`PartOf`, `SectionOf`) say a distinct part, or a fungible
  * stretch, of the host read as an abstraction. It is a node field, set by the
- * `setHostingKind` kernel step; no relation instruction or stored edge carries one (HK-8).
+ * `setHostingKind` kernel step; no relation instruction or stored edge carries one.
  */
 export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf'] as const
 export type EphemeraHostingKind = typeof HOSTING_KINDS[number]
@@ -423,7 +423,7 @@ export const hostingFamily = (kind: EphemeraHostingKind): EphemeraHostingFamily 
 }
 
 /**
- * Per-host legality (HK-3). A node cannot know its host, so this takes the host's tag: `Held` only
+ * Per-host legality. A node cannot know its host, so this takes the host's tag: `Held` only
  * on a character host; `In`, `PartOf` and `SectionOf` never on one (`On` on a character is worn,
  * or a coating); `On` anywhere.
  */
@@ -435,7 +435,7 @@ export const isHostingKindLegalOnHost = (kind: EphemeraHostingKind, hostTag: Eph
 }
 
 /**
- * Every non-root component member node carries `hostingKind` (HK-3). The type leaves it optional
+ * Every non-root component member node carries `hostingKind`. The type leaves it optional
  * because it cannot name "non-root"; the payload guard and the container require it on members and
  * refuse it on the root node and on presence nodes.
  */
@@ -513,7 +513,7 @@ export type EphemeraLudicGraphStructureNode = {
 export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraLudicGraphStructureNode
 
 /**
- * The kinds a **stored** relational edge or crossing port may carry (hostingKindOnNode Slice 3):
+ * The kinds a **stored** relational edge or crossing port may carry:
  * the peer and topology kinds only. A member's hosting kind is a field of its node
  * (`EphemeraHostingKind`), never an edge, so none is representable here. One named union, so a
  * later closed peer kind (`SecuredTo`) adds a member rather than reopening every site.
@@ -882,7 +882,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     if (!graph.nodes.some((entry) => entry.universalKey === rootOwner)) {
         return false
     }
-    // HK-3: the root carries no hosting kind, and every member's kind must be legal for the host
+    // the root carries no hosting kind, and every member's kind must be legal for the host
     // kind. A node cannot see its host, so the per-host rule lives here, where `rootId` is known.
     const rootNode = graph.nodes.find((entry) => entry.universalKey === rootOwner)
     const hostTag = rootNode && rootNode.tag !== 'Presence' ? rootNode.tag : undefined

@@ -96,7 +96,7 @@ describe('applyStepSequenceCore', () => {
         if (outcome.verdict !== 'legal') return
         const nextDest = outcome.graphs.get(characterId)!
         expect(nextDest.objectIds.has(trayId)).toBe(true)
-        // a hosting kind lands on the arrived node (HK-8), refining the `Held` its arrival gave it; no edge
+        // a hosting kind lands on the arrived node, refining the `Held` its arrival gave it; no edge
         expect(nextDest.hostingKindOf(trayId)).toBe('On')
         expect(nextDest.relationalEdges).toEqual([])
     })

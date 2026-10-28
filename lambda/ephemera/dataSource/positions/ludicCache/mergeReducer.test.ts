@@ -341,7 +341,7 @@ describe('mergeSameHostBucket', () => {
         expect([...merged.nodeIds]).toEqual(expect.arrayContaining([roomId, objC, objD]))
     })
 
-    it('keeps each member\'s hostingKind through the merge (hostingKindOnNode Slice 2)', () => {
+    it('keeps each member\'s hostingKind through the merge', () => {
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC, hostingKind: 'On' }],
         })

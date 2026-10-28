@@ -258,7 +258,7 @@ describe('buildLudicCache', () => {
         ])
     })
 
-    // HK-4 (as built): the kind rides on the cover entry, per host, not on the node (which several
+    // the kind rides on the cover entry, per host, not on the node (which several
     // hosts share) and not as an edge. A member listed by two bindings of one host repeats its kind.
     it('carries each member\'s hosting kind on its cover entries, in the host that holds it', async () => {
         const objB = 'OBJECT#B' as EphemeraObjectId

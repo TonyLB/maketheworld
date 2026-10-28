@@ -116,7 +116,7 @@ describe('isObjectMovedPublishedPayload', () => {
 describe('isObjectRelationChangedPublishedPayload', () => {
     // This guard's RELATION_INSTRUCTION_KINDS Set (this file) is its own copy of the stored
     // kinds -- a stale Set here fails silently rather than at compile time, so the hosting kinds
-    // (now a node field, set by `setHostingKind`, hostingKindOnNode HK-8) are checked to be refused.
+    // (now a node field, set by `setHostingKind`) are checked to be refused.
     it.each(['On', 'In', 'PartOf'] as const)('rejects a %s hosting relationKind (a hosting kind is set by a setHostingKind step, not a relation fact)', (relationKind) => {
         expect(isObjectRelationChangedPublishedPayload({
             type: 'Object Relation Changed',

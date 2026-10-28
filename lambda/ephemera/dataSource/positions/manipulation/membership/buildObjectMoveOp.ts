@@ -48,7 +48,7 @@ export type BuildObjectMoveOpArgs = {
  * it, so the move names one entity.
  *
  * The op carries no `dissolvedEdges`: the mover's hosting kind is a field of its node and leaves with it
- * (hostingKindOnNode HK-7), so there is no own containment edge to strip.
+ *, so there is no own containment edge to strip.
  */
 export const buildObjectMoveOp = (args: BuildObjectMoveOpArgs): PositionKernelMoveOp => {
     return {

@@ -3,7 +3,7 @@ import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraRoomId } from '@tonylb
 import { parentPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import { presenceGraphViewOf } from '../presenceCoverDriftSweep/classification'
 
-/** The hosting kind a stored node carries (hostingKindOnNode HK-3), read from the raw row; a bare-id node carries none. */
+/** The hosting kind a stored node carries, read from the raw row; a bare-id node carries none. */
 const hostingKindOfNode = (ludicGraph: unknown, nodeId: string): unknown => {
     const nodes = (ludicGraph as { nodes?: unknown } | undefined)?.nodes
     const node = Array.isArray(nodes)

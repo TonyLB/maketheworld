@@ -54,7 +54,7 @@ import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 /**
  * Built from the node arms that never had `hostingKind`, not `Omit<..., 'hostingKind'>`: `Omit` over a
  * union is not distributive and would collapse the discriminated tag. A member's kind is
- * per-host (HK-2), so on a node that combines several hosts the field would be ambiguous (in
+ * per-host, so on a node that combines several hosts the field would be ambiguous (in
  * which host?); the cache carries it on the cover entry instead (`EphemeraLudicCacheCoverEntry.hostingKind`).
  */
 export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNodeBase & {
@@ -89,7 +89,7 @@ export type EphemeraLudicCachePresenceNode = Omit<EphemeraLudicGraphStructureNod
  * which never had a binding minted --- and the member was still covered, so the entry stays
  * with `presence` absent. Entries copied from a graph-side explicit entry always carry it.
  *
- * `hostingKind` is the covered member's kind in the cover's owning host (HK-2: per member node,
+ * `hostingKind` is the covered member's kind in the cover's owning host (per member node,
  * so every entry for one member in one host agrees). The cache combines several hosts, so the
  * kind cannot sit on the cache node (in which host?); the entry already names both the host
  * (through its binding's owner) and the member. Optional only because a hand-built entry may

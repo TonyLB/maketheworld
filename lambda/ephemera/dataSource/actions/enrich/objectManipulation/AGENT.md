@@ -170,9 +170,9 @@ Eligible exact-name, single-span, single-host, exit-edge-free **`takeHold`** / *
 | Relation kind | Subject moves | Target moves |
 | --- | --- | --- |
 | `Custom` | Defer | Defer |
-| `On` / `In` / `PartOf` | Throws (AB-54) | Throws (AB-54) |
+| `ConnectedTo` | Defer | Defer |
 
-Hosting kinds never reach the table legitimately: a hosted thing lives in its host's own shard and travels with it, so "take the tray" moves the glass on it without any edge to classify. A hosting-kind edge on the exterior graph means a producer built a graph the constructor does not author, so the classifier throws.
+A hosting kind never reaches the table: it is a field of the member's node, not an edge, and a hosted thing lives in its host's own shard and travels with it, so "take the tray" moves the glass on it without any edge to classify. The stored-edge guard refuses a hosting-kind edge outright.
 
 **Construction vs. validation.** Three callers read the table, and none widens what moves:
 

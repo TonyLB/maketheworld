@@ -165,6 +165,20 @@ Bystanders write only the room's characters row, never a cover. `unpointedBindin
 
 Normative rules for all of the above: [`AGENT.contract.md`'s presence-nodes section](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path).
 
+**Hosting kind on the member node (shipped 2026-10-28).** Rules: [`AGENT.contract.md` --- Relation kinds](AGENT.contract.md#relation-kinds). A member's kind is the `hostingKind` field of its node, and nothing stores it as an edge or port. The pieces:
+
+- **Types and guards** in [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts): `EphemeraHostingKind`, `hostingFamily` (total), `isHostingKindLegalOnHost`, `STORED_RELATIONAL_EDGE_KINDS`. Container accessors `hostingKindOf` and `setHostingKind` in [`ludicGraph/index.ts`](ludicGraph/index.ts); `componentNodes` hands the cut and merge rebuilds (`subGraphFromNodes`, `mergeSameHostBucket`) the real nodes so a kind survives them.
+- **Arrival default:** `settleMembership` adds an arriving node with `defaultHostingKind`; that is what gives take and drop a kind.
+- **`setHostingKind` kernel step** ([`kernelStep.ts`](manipulation/kernel/kernelStep.ts)): applied by `applyStepSequenceCore`; footprint locks its `hostId`; `factsForStep` returns no fact; `invalidationCompleteness.integration.test.ts` has its case (`changesCache: true`). Producers: the move compiler (`PositionKernelMoveOp.hostingKind`, mapped from the planner's parsed preposition in `commitAttempt`) and containment population (which skips the step when the node already holds the kind). `planObjectMoveTransfer` drops an `In` into a character host (possession is `Held`).
+- **`dissolvedEdges`** on `PositionKernelMoveOp` has no producer now; it stays as the compiler's seam for classified peer-edge dissolves.
+- **Readers:** `connectedToLegality` (`hostingFamily === 'composition'`), the drift sweep's `PartOf` check (reads the raw node), `boundaryActionsInGraph`.
+- **Cache and wire:** the kind rides on `EphemeraLudicCacheCoverEntry.hostingKind` (set in `presenceCacheNodesFromFold`); the gateway read projection ([`project.ts`](../../../../packages/mtw-gateways/ts/ephemera/positions/project.ts)) deliberately drops it, as it drops `ports`.
+- **Payoff:** [`hostingKindPayoff.integration.test.ts`](../hostingKindPayoff.integration.test.ts).
+
+**Shelved: hosting kinds no longer publish `Object Relation Changed`.** They used to, through the generic relational tail; nothing consumed it. If a consumer of a kind change appears, give `setHostingKind` a fact then.
+
+**Shelved: deploy gate for the strict kind guard.** The guard and container refuse a stored row whose non-root member nodes carry no `hostingKind` (characters seeded or arrived before the field existed, any object), and `healLudicGraphStructure` would call such a row unhealable. Before deploying, the dev rows must hold no kind-less member: clear room graphs and park characters offline, or run a one-off that sets `In` on kind-less members. No heal code was written (the dev instance holds nothing worth keeping). Also re-check zero hosting-kind edges and ports if objects were placed. The user owns this check.
+
 ### `ludicCache/` (the `ludicCache` prototype, Channel C)
 
 The `ludicCache` prototype (Channel C): the types, the pairwise reducer pieces, and the whole-cache rebuild seeded at a host. A room-seeded consumer (the command referent pool, the room affordance header) reads the room's stored row, rebuilt once per change ([Stored row](#stored-row-read-mark-rebuild)); a non-room seed keeps the per-request cold rebuild. The rules are in [`AGENT.contract.md` --- Ludic cache staleness and rebuild](AGENT.contract.md#ludic-cache-staleness-and-rebuild). Fulfils the `EphemeraLudicCacheData` naming reservation in [`internalCache/AGENT.md`](../../internalCache/AGENT.md). Mental model: [`AGENT.ludicNetwork.md`](AGENT.ludicNetwork.md) section 5.

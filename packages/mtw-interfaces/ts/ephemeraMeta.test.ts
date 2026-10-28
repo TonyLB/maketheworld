@@ -720,7 +720,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(false)
     })
 
-    // A hosting kind is a field of the member's node (hostingKindOnNode Slice 3), so a stored edge
+    // A hosting kind is a field of the member's node, so a stored edge
     // or port carrying one is refused rather than read as a membership.
     it.each(['On', 'In', 'PartOf'] as const)('rejects a %s hosting edge, member to root', (kind) => {
         expect(isEphemeraLudicGraphFieldPayload({
@@ -1314,7 +1314,7 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
     })
 })
 
-describe('hosting kind on the member node (hostingKindOnNode Slice 1)', () => {
+describe('hosting kind on the member node', () => {
     const hosts = [
         { tag: 'Character', id: 'CHARACTER#Alpha' },
         { tag: 'Object', id: 'OBJECT#tray' },

@@ -74,7 +74,7 @@ export type PositionKernelMoveOp = {
      */
     dissolvedEdges?: readonly { hostId: EphemeraMembershipHostId; edge: HostRelationalEdge }[]
     /**
-     * The hosting kind the mover holds at the destination (AB-54, hostingKindOnNode HK-8). A compiler
+     * The hosting kind the mover holds at the destination (AB-54). A compiler
      * *instruction* ("set this once the mover is a member of `to`"), not a pre-classified verdict: there
      * is no legality question to defer, so the compiler synthesizes the `setHostingKind` step itself.
      */

@@ -1,5 +1,5 @@
 /**
- * Payoff test for hostingKindOnNode (Slice 4): a member's hosting kind lives on its node in the
+ * Payoff test for the hosting kind on the member node: a member's hosting kind lives on its node in the
  * host's graph and nowhere else, through a real take. Terminates at the committed graphs: the table
  * keeps no hosting residue once the cup is taken, the character holds the cup as `Held`, and a cup
  * `In` a box stays `In` the box when the box itself is taken. (The cache side, `hostingKind` on a

@@ -172,7 +172,7 @@ describe('factsForStep', () => {
         ])
     })
 
-    it('a setHostingKind step yields no facts: a hosting kind is not a relation (HK-8)', () => {
+    it('a setHostingKind step yields no facts: a hosting kind is not a relation', () => {
         const step: MutationKernelStep = { kind: 'setHostingKind', hostId: roomId, memberId: trayId, hostingKind: 'On' }
         expect(factsForStep(step, graphsMap([roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId, hostingKind: 'On' }] })]), beatAnchorTime)).toEqual([])
     })

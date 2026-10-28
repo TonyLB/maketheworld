@@ -45,7 +45,7 @@ describe('buildObjectMoveOp', () => {
         expect(op.dissolvedEdges).toBeUndefined()
     })
 
-    it('names every host left, and strips no containment edge: the hosting kind is on the node and leaves with it (HK-7)', () => {
+    it('names every host left, and strips no containment edge: the hosting kind is on the node and leaves with it', () => {
         const op = buildObjectMoveOp({
             entityId: TRAY,
             departures: [ROOM, TABLE],

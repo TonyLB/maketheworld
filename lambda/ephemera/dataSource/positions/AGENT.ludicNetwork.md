@@ -58,7 +58,7 @@ Three things to hold onto:
 
 1. **The host is a node in its own graph, as the root.** `OBJECT#Box`'s graph has a node `OBJECT#Box` and `rootId: 'OBJECT#Box'`. The root is an ordinary node --- it can be a relation endpoint --- and it is the same object that appears as an ordinary *member* node in `ROOM#Lab`'s graph. *Whole* and *part* are roles relative to a level, not kinds of thing.
 2. **Membership is the node list.** `OBJECT#Cup` is in the box because `OBJECT#Cup` is a node in `OBJECT#Box`'s graph --- not because of any edge. A reverse index (the **adjacency** rows, `(EphemeraId: OBJECT#Cup, DataCategory: POSITION#OBJECT#Box)`) exists **iff** that node does, and answers "what hosts is X in?" without scanning graphs.
-3. **Edges say *how* a member relates, never *whether* it is there.** Relation kinds split in two. **Hosting kinds** --- `On`, `In`, `PartOf` --- describe a member's relation to the host it lives in (the subordinate is in *its host's* graph). **Peer kind** --- `Custom` (with a free-text `relationLabel`) --- relate two members of one graph and host nothing. A member with no hosting edge stated is `In` its host by default. Edge direction reads as English about the subject: `OBJECT#Spring -PartOf-> OBJECT#Contraption`, `OBJECT#Cup -In-> OBJECT#Box`.
+3. **Edges say *how* two members relate, never *whether* one is there; the kind of a membership rides on the member's node.** Relation kinds split in two. **Hosting kinds** --- `On`, `In`, `Held` (placement) and `PartOf`, `SectionOf` (composition) --- describe a member's relation to the host it lives in (the subordinate is in *its host's* graph). They are stored as `hostingKind` on the member's node entry in that host's graph, one per membership and required on every non-root member, never as an edge. **Peer kinds** --- `Custom` (with a free-text `relationLabel`) and the topology kind `ConnectedTo` --- are edges that relate two members of one graph and host nothing. Read as English about the subject: the spring's node in the contraption's graph says `PartOf`, the cup's node in the box's graph says `In`.
 
 So the example's Lab and Box graphs are:
 
@@ -73,7 +73,7 @@ ROOM#Lab.ludicGraph                       OBJECT#Box.ludicGraph
 
 The Lab's graph does **not** know the cup exists. Depth comes from graphs nesting --- the box's interior is the box's own shard --- never from one graph containing another.
 
-Every graph has the same internal structure regardless of host kind. That says nothing about *which* kinds sit above which in a containment ladder: rooms are hosts, and, although rooms are grouped into areas (containment population makes a room a node of its area's graph, with a binding into it), a room is where perspective stops: what sits below a room does not inherit the room's grouping. Two scoping facts follow: a **character** is hosted by a room and only a room; a **feature** is static (never moved, never the subject of a peer relation) but may be `PartOf` another feature.
+Every graph has the same internal structure regardless of host kind. That says nothing about *which* kinds sit above which in a containment ladder: rooms are hosts, and, although rooms are grouped into areas (containment population makes a room a node of its area's graph, with a binding into it), a room is where perspective stops: what sits below a room does not inherit the room's grouping. Two scoping facts follow: a **character** is hosted by a room and only a room; a **feature** is static (never moved, never the subject of a peer relation) but may be `PartOf` another feature (a node of kind `PartOf` in that feature's graph).
 
 Where this is normative: [`AGENT.contract.md` --- Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception), [Graph apply](AGENT.contract.md#graph-apply-end-state), [Membership persistence API](AGENT.contract.md#membership-persistence-api). Mental model: [`AGENT.concepts.md` --- Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports). Class API: [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md).
 
@@ -125,7 +125,7 @@ The spring is **inside the box** and **part of the contraption**. Both are hosti
 ```text
 OBJECT#Box.ludicGraph                    OBJECT#Contraption.ludicGraph
   nodes: …, OBJECT#Spring                  nodes: OBJECT#Contraption, OBJECT#Spring, …
-  (Spring is In the box by default)        edges: OBJECT#Spring -PartOf-> OBJECT#Contraption
+  (Spring node: hostingKind In)            (Spring node: hostingKind PartOf)
 ```
 
 Nothing is severed or duplicated here: *the spring is in the box* and *the spring is part of the contraption* are two independently complete facts, each stored where its host is. `getMembershipContainers(OBJECT#Spring)` returns both hosts. The spring's own graph (its interior, if it has parts) is one shard regardless of how many hosts hold it.
@@ -134,7 +134,7 @@ Consequences worth carrying:
 
 - **Traversal is a DAG walk, not tree recursion.** A reader following "what is in the Lab" reaches the spring twice (via the box, via the contraption) and must dedupe, not error.
 - **Moving a thing is a membership change, not a subtree copy.** Taking the spring out of the box removes its node from the box's graph and leaves the contraption's untouched --- unless a rule says the relation must dissolve, which is a legality question for the move, not a structural one.
-- **`In` and `PartOf` are non-exclusive** and typed on the edge, not the node. The spring is not a different kind of object for being a part; the *same* object is a whole of its own interior and a part of two containers.
+- **`In` and `PartOf` are non-exclusive across hosts** and typed on the membership (each host's node entry), not on the component. A member holds one kind per host, so the spring's two kinds sit in two graphs. The spring is not a different kind of object for being a part; the *same* object is a whole of its own interior and a part of two containers.
 - **Abstractions are minted, not found.** The contraption exists as a component because someone (the modeller, a recognition path) judged the grouping useful and wrote it. Nothing compels a grouping.
 
 Mental model: [`AGENT.concepts.md` --- Abstraction Fractal](AGENT.concepts.md#abstraction-fractal) (why "DAG, not tree" is permanent) and [Minted, not found](AGENT.concepts.md#minted-not-found).
@@ -162,9 +162,8 @@ OBJECT#Rope.ludicGraph
   nodes:  OBJECT#Rope, OBJECT#RopeEndA, OBJECT#RopeEndB,
           { Presence, PRESENCE#p1, fromHostPresences: [ROOM#Lab],  cover: [EndA] }   // bucket 1
           { Presence, PRESENCE#p2, fromHostPresences: [ROOM#Hall], cover: [EndB] }   // bucket 2
-  edges:  OBJECT#RopeEndA -PartOf-> OBJECT#Rope
-          OBJECT#RopeEndB -PartOf-> OBJECT#Rope
-          OBJECT#RopeEndA -ConnectedTo- OBJECT#RopeEndB
+          (EndA, EndB nodes: hostingKind SectionOf)
+  edges:  OBJECT#RopeEndA -ConnectedTo- OBJECT#RopeEndB
 ```
 
 `ConnectedTo` is topology inside one whole: how its parts join, and symmetric (`A -ConnectedTo- B` is the same edge as `B -ConnectedTo- A`). A join between separate wholes (tied to, soldered to) is a peer relation, `Custom` with a label. A rope with no named parts, the kind a player makes by carrying one end into the next room, carries the same edge between its two **bindings** instead (`{owner: Rope, port: p1} -ConnectedTo- {owner: Rope, port: p2}`): that is what extend writes.
@@ -251,7 +250,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Root** | The host's own node in its own graph; recorded, never derived | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Whole / part** | Roles, not kinds: a thing is a whole of its interior and a part of its containers, at once | same |
 | **Membership** | X is in H iff X is a node in H's graph; mirrored by an adjacency row | [Graph apply](AGENT.contract.md#graph-apply-end-state) |
-| **Hosting kind / peer kind** | `On`/`In`/`PartOf` put the subject in its host's graph; `Custom` relates two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
+| **Hosting kind / peer kind** | `On`/`In`/`Held`/`PartOf`/`SectionOf` are a field of the member's node in its host's graph; `Custom`/`ConnectedTo` are edges relating two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
 | **Terminal** | An edge endpoint: bare component id, or a port address `{ owner, port }` | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
 | **Port** | A single-use boundary slot a host publishes; either a crossing port or a presence binding | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |

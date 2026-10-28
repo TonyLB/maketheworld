@@ -206,7 +206,7 @@ describe('EphemeraLudicGraph', () => {
         })
     })
 
-    describe('hosting kind (hostingKindOnNode Slice 1)', () => {
+    describe('hosting kind', () => {
         const CHILD_ROOM = 'ROOM#Nested' as EphemeraRoomId
         const CHILD_FEATURE = 'FEATURE#Nested' as EphemeraFeatureId
 
@@ -233,7 +233,7 @@ describe('EphemeraLudicGraph', () => {
             expect(EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'Held').hostingKindOf(OBJECT_A)).toBe('Held')
         })
 
-        it('re-adding is a no-op with the same kind, and throws on a different kind or none (HK-1)', () => {
+        it('re-adding is a no-op with the same kind, and throws on a different kind or none', () => {
             const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
             expect(graph.addObject(OBJECT_A, 'On')).toBe(graph)
             expect(() => graph.addObject(OBJECT_A)).toThrow()
@@ -253,7 +253,7 @@ describe('EphemeraLudicGraph', () => {
             expect(EphemeraLudicGraph.fromFieldPayload(HOST_ID, graph.toStored()).hostingKindOf(OBJECT_A)).toBe('On')
         })
 
-        it('setHostingKind changes the kind of a present node, and is idempotent (HK-7)', () => {
+        it('setHostingKind changes the kind of a present node, and is idempotent', () => {
             const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')
             const on = graph.setHostingKind(OBJECT_A, 'On')
             expect(on.hostingKindOf(OBJECT_A)).toBe('On')
@@ -598,7 +598,7 @@ describe('EphemeraLudicGraph', () => {
             expect(edges).toEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
-        // A hosting kind is a field of the member's node (hostingKindOnNode Slice 3), so a stored
+        // A hosting kind is a field of the member's node, so a stored
         // edge carrying one is dropped by the recovery path, not survived, and the guard refuses it.
         it.each(['On', 'In', 'PartOf'] as const)('extractRelationalEdgesFromStored drops a %s hosting edge rather than recovering it', (kind) => {
             const edge = { tag: 'Relational', from: OBJECT_A, to: HOST_ID, kind }

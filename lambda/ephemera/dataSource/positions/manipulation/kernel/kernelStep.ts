@@ -207,7 +207,7 @@ export type MutationKernelRemoveCrossingPortStep = {
 }
 
 /**
- * Sets the hosting kind of a member already present in a host's graph (hostingKindOnNode HK-8). A
+ * Sets the hosting kind of a member already present in a host's graph. A
  * hosting kind is a property of one membership, not a relation between two things, so it has its own
  * step rather than riding `establishRelation`. Arrival writes a default kind (`defaultHostingKind`);
  * this step refines it (`put X on Y`, population). Same kind is a no-op; an illegal kind for the host

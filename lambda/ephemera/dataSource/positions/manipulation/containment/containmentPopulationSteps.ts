@@ -67,7 +67,7 @@ export const rootStep = (
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
  * - **Containment kind**: emitted only if `parentGraph` does not already hold `childId` with the child's kind (`PartOf`, or `In` for an
  *   Object) as its `hostingKind`. The kind is a field of the child's node in the parent's graph, not an edge
- *   (hostingKindOnNode HK-3); the binding steps above add that node with the same default, so the
+ *  ; the binding steps above add that node with the same default, so the
  *   `setHostingKind` step is idempotent, and skipping it when nothing changed is what keeps a fully-populated
  *   `cacheAsset` rerun from committing a transaction at all. Rooms and Features are always `PartOf`, never `In`
  *   (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement

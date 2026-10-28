@@ -93,7 +93,7 @@ export const planObjectMoveTransfer = async (
         !args.moverBindings!.includes(node.universalKey) && bindingHasParentOn(node, hostId)
     )))
     // `In` a character is possession, which the arrival default already writes as `Held`: an `In`
-    // there would be a kind the character host refuses (hostingKindOnNode HK-3).
+    // there would be a kind the character host refuses.
     const hostingKind = args.hostingKind === 'In' && isEphemeraCharacterId(args.toHostId) ? undefined : args.hostingKind
 
     const buildArgs = {

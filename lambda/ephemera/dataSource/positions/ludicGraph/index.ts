@@ -266,7 +266,7 @@ export class EphemeraLudicGraph {
     /**
      * Every component member node's full record (root included), with its `hostingKind` if it
      * carries one. A cut or merge that remakes a graph from node sets needs these, since
-     * `nodeFromId` would rebuild the node without the kind (hostingKindOnNode Slice 2).
+     * `nodeFromId` would rebuild the node without the kind.
      */
     get componentNodes(): EphemeraLudicGraphComponentNode[] {
         return this._nodes.filter((node): node is EphemeraLudicGraphComponentNode => node.tag !== 'Presence')
@@ -417,7 +417,7 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * A member's hosting kind in this host's graph (HK-3): `undefined` for the root, a presence
+     * A member's hosting kind in this host's graph: `undefined` for the root, a presence
      * node, or an absent id; every other member carries one.
      */
     hostingKindOf(id: EphemeraLudicTerminalPrimitive): EphemeraHostingKind | undefined {
@@ -428,7 +428,7 @@ export class EphemeraLudicGraph {
     /**
      * The one add path behind the typed `add*` methods. A kind is required for every member except
      * the root (which carries none) and is checked against this host (`isHostingKindLegalOnHost`);
-     * an illegal or missing kind throws. HK-1, one kind per membership: re-adding a present node
+     * an illegal or missing kind throws. One kind per membership: re-adding a present node
      * with the same kind (or, for the root, none) is a no-op, but a *different* kind is a change of
      * kind, not an add, and throws.
      */
@@ -464,7 +464,7 @@ export class EphemeraLudicGraph {
 
     /**
      * Sets the hosting kind of a node already in this host: the explicit change-of-kind that `add*`
-     * refuses (HK-7). It is the apply of the `setHostingKind` kernel step (`put X on Y`), whose
+     * refuses. It is the apply of the `setHostingKind` kernel step (`put X on Y`), whose
      * node arrived earlier in the same step sequence with its default kind. Setting the kind it
      * already has returns `this`. Throws if the node is absent, is the root, or the kind is illegal
      * on this host.
