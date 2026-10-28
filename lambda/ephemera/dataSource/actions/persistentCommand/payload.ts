@@ -52,8 +52,15 @@ export type PersistentCommandPending = {
     answer?: string
 }
 
+/** Which producer pass built a Consult: `pure` grounds by name alone, `full` embeds (`compileAttemptsFromSkeleton`). */
+export type CompilePass = 'pure' | 'full'
+
+export const isCompilePass = (value: unknown): value is CompilePass => value === 'pure' || value === 'full'
+
 export type PersistentCommandPayload = {
     root: PersistentCommandRoot
+    /** The pass whose pools built the question, which a resume starts at. Beside `root`, not in it: the producer's, not Plan's. Absent means `full`. */
+    pass?: CompilePass
     /** Absent for a command with no echo (no session), and for rows written before it existed. */
     transcript?: PersistentCommandTranscript
     /** Absent for a command that is not waiting on a choice, and for rows written before it existed. */
@@ -124,6 +131,7 @@ const isPersistentCommandPending = (value: unknown): value is PersistentCommandP
 export const isPersistentCommandPayload = (value: unknown): value is PersistentCommandPayload => (
     isRecord(value)
     && isPersistentCommandRoot(value.root)
+    && (value.pass === undefined || isCompilePass(value.pass))
     && (value.transcript === undefined || isPersistentCommandTranscript(value.transcript))
     && (value.pending === undefined || isPersistentCommandPending(value.pending))
     && (value.selectedAttempt === undefined || typeof value.selectedAttempt === 'string')

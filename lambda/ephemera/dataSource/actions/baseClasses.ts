@@ -28,7 +28,7 @@ import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/inv
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
-import { isPersistentCommandRoot, type PersistentCommandRoot } from './persistentCommand/payload'
+import { isCompilePass, isPersistentCommandRoot, type CompilePass, type PersistentCommandRoot } from './persistentCommand/payload'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
 import type { MessageBus } from '../../messageBus/baseClasses'
@@ -98,6 +98,8 @@ export type ParseCommandConsultResult = {
     confidence: ParseCommandConfidence
     /** Plan's output, frozen, for a handler that stores the question as a persistent command. */
     root?: PersistentCommandRoot
+    /** The producer pass whose pools built these alternatives, stored beside `root` so a resume starts there. */
+    pass?: CompilePass
 }
 
 /**
@@ -403,6 +405,9 @@ export function isParseCommandConsultResult(
         return false
     }
     if (result.root !== undefined && !isPersistentCommandRoot(result.root)) {
+        return false
+    }
+    if (result.pass !== undefined && !isCompilePass(result.pass)) {
         return false
     }
     return result.alternatives.every((alternative) => {

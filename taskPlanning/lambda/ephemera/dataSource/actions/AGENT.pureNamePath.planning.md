@@ -1,6 +1,6 @@
 # Pure-name path (Identify without embeddings)
 
-**Status:** Slices 1-2 shipped (utilities and full-pass orchestrator extracted; name-subsequence predicate and pure resolver, not yet called in production). Next: Slice 3 (pure-pass and cross-pass orchestrators).
+**Status:** Slices 1-3 shipped (utilities, name-subsequence predicate and pure resolver, pure-pass and cross-pass orchestrators with the recorded pass; the pure pass is live). Next: Slice 4 (durable docs; plan deleted).
 
 Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) once for durability expectations, what belongs in task plans vs durable package docs, and the Recommended order checkbox conventions.
 
@@ -57,7 +57,7 @@ Plan-only: decisions made in order to implement the slices below. Do not copy in
 | --- | --- |
 | 1. Utilities + full-pass orchestrator extracted (no behavior change) | Shipped (full suite green) |
 | 2. Name-subsequence predicate + pure resolver | Shipped (full suite green) |
-| 3. Pure-pass and cross-pass orchestrators, recorded pass, payoff test | |
+| 3. Pure-pass and cross-pass orchestrators, recorded pass, payoff test | Shipped (full suite green) |
 | 4. Durable docs; plan deleted | |
 
 ## Recommended order
@@ -73,18 +73,19 @@ Mark pending items `[ ]` and completed items `[X]`; mark each nested line `[X]` 
     - [X] Word-subsequence predicate (PP-1), `spanIsNameSubsequence` in `spanMatchForms.ts`, with unit tests: `cup` / `red cup` / `big cup` vs "big red cup" match; `cup red` vs "red cup", `cup` vs "cupboard" / "teacup", `up` vs "cup up" (under 3 characters) do not; `the cup` matches "red cup" (article peeled). A bare article (`the`, `some`) never matches, even against a name that contains it.
     - [X] **Pure resolver** (`resolvePureSpanToPool.ts`): the catalog/exact piece as today, else the PP-2 pool, else `ineligible`. To make "never imports `internalCache`" structural, `resolveExactSpan`, `SpanResolver` and the result type moved to `resolveExactSpan.ts` (re-exported from `resolveCatalogSpanToPool.ts`, so importers are unchanged); the pure test module-mocks `internalCache` to throw on import.
     - [X] Unit tests through Identify with the pure resolver: an exact span, a subsequence span (lexical-only pool over the matching candidates only), and an ineligible span.
-- [ ] **Slice 3 --- pure-pass and cross-pass orchestrators.**
-    - [ ] **Pure-pass orchestrator**: Identify with the pure resolver; drop every survivor whose fill holds an ineligible key; with none left, report failure without running the shared steps; else run them with its own refusals list and report success on `CommandAttempt` or `Consult` (PP-3).
-    - [ ] **Cross-pass orchestrator** (`compileReadings`): after the once-only steps, run the pure pass unless the starting pass is `full` (PP-6); on success return its result; otherwise run the full pass on **all** survivors. Only the returned pass's refusals reach `compileAttemptsFromSkeleton` (PP-4).
-    - [ ] Record the pass (PP-6): the producer's `Consult` carries `pass`; the persistent-command payload stores it beside `root` (type, guard in `payload.ts`, the write path); `resume.ts` passes it back as the starting pass, absent meaning `full`.
-    - [ ] **Payoff test** (`compileAttemptsFromSkeleton.purePass.test.ts`; terminates at the observable: the result and the Bedrock calls), with `internalCache` module-mocked and `SpanEmbeddings.get` a `jest.fn`:
-        - [ ] `get cup` with a "red cup": `CommandAttempt` taking the red cup, `get` not called.
-        - [ ] `get cup` with a "red cup" and a "blue cup": `Consult` between them, `get` not called.
-        - [ ] `get light` with a "light switch" and a "lamp": takes the light switch, `get` not called (records the PP policy).
-        - [ ] `get cup red` with a "red cup", and `get mug` with a "red cup": `get` called (full pass), results as today.
-        - [ ] A pure reading the dry run refuses (`take cup from table`, the table holding no cup): `get` called, same `Error` as today.
-        - [ ] Resume (PP-6): answering the two-cups Consult (`pass: 'pure'`) resolves with `get` not called; a resume with `pass: 'full'`, or with no pass, calls `get`; a `pure` resume whose world changed so the pure pass no longer succeeds falls through and calls `get`.
-    - [ ] Re-run `skeletonMatcher.characterization.test.ts` and `phraseCoveragePayoff.integration.test.ts`. Any changed outcome is reviewed case by case against the PP policy, not re-baselined wholesale; list each change in the PR.
+- [X] **Slice 3 --- pure-pass and cross-pass orchestrators.**
+    - [X] **Pure-pass orchestrator**: Identify with the pure resolver; drop every survivor whose fill holds an ineligible key; with none left, report failure without running the shared steps; else run them with its own refusals list and report success on `CommandAttempt` or `Consult` (PP-3). `runPurePass` returns `undefined` for failure; the full pass takes a `pass` tag, and `identifySurvivors` is the span collection both share.
+    - [X] **Cross-pass orchestrator** (`compileReadings`): after the once-only steps, run the pure pass unless the starting pass is `full` (PP-6); on success return its result; otherwise run the full pass on **all** survivors. Only the returned pass's refusals reach `compileAttemptsFromSkeleton` (PP-4).
+    - [X] Record the pass (PP-6): the producer's `Consult` carries `pass`; the persistent-command payload stores it beside `root` (type, guard in `payload.ts`, the write path); `resume.ts` passes it back as the starting pass, absent meaning `full`. The producer's input field is `startPass` (absent on a first run, which tries the pure pass); `CompilePass` and `isCompilePass` live in `payload.ts`, and the field travels through `selectQuestion.ts`, `rowStore.ts` and `answer.ts`.
+    - [X] **Payoff test** (`compileAttemptsFromSkeleton.purePass.test.ts`; terminates at the observable: the result and the Bedrock calls), with `internalCache` module-mocked and `SpanEmbeddings.get` a `jest.fn`:
+        - [X] `get cup` with a "red cup": `CommandAttempt` taking the red cup, `get` not called.
+        - [X] `get cup` with a "red cup" and a "blue cup": `Consult` between them, `get` not called.
+        - [X] `get light` with a "light switch" and a "lamp": takes the light switch, `get` not called (records the PP policy).
+        - [X] `get cup red` with a "red cup", and `get mug` with a "red cup": `get` called (full pass), results as today.
+        - [X] A pure reading the dry run refuses (`take cup from table`, the table holding no cup): `get` called, same `Error` as today.
+        - [X] Resume (PP-6): answering the two-cups Consult (`pass: 'pure'`) resolves with `get` not called; a resume with `pass: 'full'`, or with no pass, calls `get`; a `pure` resume whose world changed so the pure pass no longer succeeds falls through and calls `get`.
+    - [X] Re-run `skeletonMatcher.characterization.test.ts` and `phraseCoveragePayoff.integration.test.ts`. Any changed outcome is reviewed case by case against the PP policy, not re-baselined wholesale; list each change in the PR.
+        - Changed outcomes, reviewed against the PP policy: every Consult now carries `pass` (snapshots and four `toEqual` expectations gained it); `skeletonMatcher.characterization` `drop the cup in the box` has the same `CommandAttempt` with `embedSpan` 1 -> 0 (a name-subsequence span skipped its embed). No other outcome changed.
 - [ ] **Slice 4 --- durable docs, then delete this plan.**
     - [ ] [`actions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md) "Qualifier": a rule for the pure pass (PP-1's match, PP-3's success, the literal-beats-semantic policy, PP-6), placed by "Exact-fill precedence".
     - [ ] [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) "Compile": the cross-pass orchestrator, the two passes, and the span-resolver seam in Identify.
@@ -95,6 +96,7 @@ Mark pending items `[ ]` and completed items `[X]`; mark each nested line `[X]` 
 
 - **Retiring exact-fill precedence.** The pure pass gates on the dry run, which the bridge does not, so it may make the bridge redundant; that call stays with rung 14 item (3).
 - **Rung 14's Consult floor** (what counts as near-exact for a Consult). A pure-pass Consult is a near-exact one by construction, consistent with rung 14's recommendation, but its calibration is rung 14's.
+- **Which pass's refusal is the answer.** A pure-pass dry-run `Error` is discarded when the full pass runs, so a later `Abstain` replaces it; the rule (first success, else earliest `Error`, else `Abstain`) is shelved in [`actions/AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md) "Shelved: answers across passes", and whether a looser reading may beat a refused literal one is rung 14 item (3). The Slice 3 fall-through test ("red cup") pins today's behavior: the single-span reading succeeds.
 - **Pure-passing part of a command** (grounding eligible spans lexically while embedding the rest). Rejected: mixed scales across fills, and no latency gain while any span embeds.
 
 ## Verification

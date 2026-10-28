@@ -3,6 +3,7 @@ import type { CommandSelectOutcome } from '@tonylb/mtw-interfaces/ts/messages'
 import type { ParseCommandConsultResult } from './baseClasses'
 import type { ViewAnswer } from './objectViews'
 import type {
+    CompilePass,
     PersistentCommandPayload,
     PersistentCommandPending,
     PersistentCommandRoot,
@@ -12,6 +13,7 @@ import type { TranscriptContext } from './persistentCommand/transcript'
 /** A question for the player, as the row stores it and the bubble shows it. */
 export type SelectQuestion = {
     root: PersistentCommandRoot
+    pass?: CompilePass
     pending: PersistentCommandPending
     outcome: CommandSelectOutcome
 }
@@ -37,7 +39,7 @@ export const selectQuestionFromConsult = (
     result: ParseCommandConsultResult,
     mintOptionId: () => string
 ): SelectQuestion | undefined => {
-    const { root, alternatives } = result
+    const { root, alternatives, pass } = result
     if (!root || alternatives.length < 2) {
         return undefined
     }
@@ -58,6 +60,7 @@ export const selectQuestionFromConsult = (
     }))
     return {
         root,
+        ...(pass !== undefined ? { pass } : {}),
         pending: {
             options: Object.fromEntries(options.map(({ optionId, answers }) => [optionId, answers])),
             ...(options.some(({ views }) => views !== undefined)
@@ -82,6 +85,7 @@ export const askRowPayload = (
     prior: Pick<PersistentCommandPayload, 'referentAnswers' | 'viewAnswers' | 'challengeAnswers'> = { referentAnswers: {}, challengeAnswers: {} }
 ): PersistentCommandPayload => ({
     root: question.root,
+    ...(question.pass !== undefined ? { pass: question.pass } : {}),
     transcript: { messageId: transcript.messageId, createdTime: transcript.createdTime, command: transcript.command },
     pending: question.pending,
     referentAnswers: prior.referentAnswers,

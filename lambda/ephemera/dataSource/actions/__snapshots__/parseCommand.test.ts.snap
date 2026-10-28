@@ -1196,6 +1196,7 @@ Object {
       },
     ],
     "confidence": 1,
+    "pass": "pure",
     "root": Object {
       "command": "take the broom",
       "confidence": 1,

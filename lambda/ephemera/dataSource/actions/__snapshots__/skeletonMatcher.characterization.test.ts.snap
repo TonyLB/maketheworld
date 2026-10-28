@@ -67,7 +67,7 @@ Object {
     "stubCalls": Object {
       "acme": 0,
       "classify": 0,
-      "embedSpan": 1,
+      "embedSpan": 0,
       "enrich": 0,
     },
   },

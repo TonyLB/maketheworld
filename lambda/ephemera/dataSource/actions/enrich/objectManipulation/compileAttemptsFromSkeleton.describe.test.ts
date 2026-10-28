@@ -143,6 +143,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                 { proposedCommand: 'look at the rocket skates', objectId: secondRocketSkatesId, label: 'rocket skates', referentAnswers: { rocketSkatesRef: secondRocketSkatesId } },
             ],
             confidence: 0.9,
+            pass: 'pure',
             root: {
                 command: 'look rocket skates',
                 // Plan mints fresh action ids per call, so the frozen attempts are matched by shape.

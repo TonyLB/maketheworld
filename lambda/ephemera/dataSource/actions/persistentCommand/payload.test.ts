@@ -16,6 +16,14 @@ describe('isPersistentCommandPayload', () => {
         expect(isPersistentCommandPayload(rest)).toBe(true)
     })
 
+    it.each(['pure', 'full'])('accepts a %s pass beside the root', (pass) => {
+        expect(isPersistentCommandPayload({ ...takeCupPayload(), pass })).toBe(true)
+    })
+
+    it('rejects a pass that is neither pure nor full', () => {
+        expect(isPersistentCommandPayload({ ...takeCupPayload(), pass: 'hybrid' })).toBe(false)
+    })
+
     it('accepts a pending question, answered or not', () => {
         const payload = twoCupPendingPayload()
         expect(isPersistentCommandPayload(payload)).toBe(true)

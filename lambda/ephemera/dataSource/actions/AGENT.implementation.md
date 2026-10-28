@@ -340,6 +340,13 @@ Not owned by any plan; what remains after referent questions. Rules for the row 
 - **Other routes need their own freeze point.** The Acme order route reads world counts inside an LLM call, so it cannot use the frozen Plan root. (A navigation is a Plan attempt, so it freezes with the rest.)
 - **Which of two same-named exits** (user, 2026-10-27: refused for now). Two exits here with one name, to two rooms, ground an exit span to both, and the dry run refuses every reading with the ambiguity ([`AGENT.contract.md`](AGENT.contract.md#qualifier) "A navigation is an attempt"). Asking instead needs three things: labels from the destination rooms' names (no read gives them today, and both options would read "north"), room ids admitted to `referentAnswers` and `ConsultAlternative` (object ids only), and the resume guards and stale check taking them.
 
+## Shelved: answers across passes
+
+Deferred 2026-10-27, from pureNamePath Slice 3 (user). Owned by no plan. The producer tries the pure pass, then the full pass, and the LLM rung follows; today the last pass to run decides the answer.
+
+- **Keep the most literal refusal when no later pass succeeds.** Passes are ordered by literalness: the answer should be the first success, else the earliest `Error`, else an `Abstain`. Today the pure pass's refusals are discarded whole (`compileReadings`), so `take cup from table` with a "red cup" and a table that holds no cup, if the full pass then abstains, loses "The table has no cup." for "not understood", which climbs and ends as the generic reply. A pure-pass dry-run `Error` is "understood, and the world forbids it" over fully literal name matches, unlike the entry refusals that rule was drawn against; keep it as the fallback, and the LLM pass slots in at the end. This is a change in `compileReadings` alone.
+- **May a looser reading beat a literal one the world refused?** Not shelved here: it is the exact-fill precedence question, in [ladder](../../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.objectManipulationIterations.planning.md) rung 14 item (3). With a name that matches only by subsequence ("red cup"), no fill is exact, so the single-span `cup from table` (no qualifier, no assertion) competes with the qualifier reading the dry run refused, and takes a cup that is not on the table.
+
 ## Shelved: qualifiers and phrase shapes
 
 Deferred 2026-10-23, when qualified referents shipped as one qualifier on a take (rules in [`AGENT.contract.md`](AGENT.contract.md#qualifier); git history for the plan and its corpus). Owned by no plan. Its first rule (a qualifier restricts what something is; an argument says where it goes) holds here too.
