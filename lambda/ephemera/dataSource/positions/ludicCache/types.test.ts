@@ -37,6 +37,15 @@ describe('isEphemeraLudicCacheNode', () => {
         })).toBe(true)
     })
 
+    it('rejects a node carrying hostingKind (per-host, so ambiguous in a cache; HK-4)', () => {
+        expect(isEphemeraLudicCacheNode({
+            tag: 'Object',
+            universalKey: 'OBJECT#helmet',
+            hostingKind: 'On',
+            presenceNodes: [],
+        })).toBe(false)
+    })
+
     it('rejects a node whose base shape is invalid', () => {
         expect(isEphemeraLudicCacheNode({
             tag: 'Bogus',

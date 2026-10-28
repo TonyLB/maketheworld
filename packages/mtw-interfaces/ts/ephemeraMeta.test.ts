@@ -16,6 +16,10 @@ import {
     ephemeraLudicTerminalOwner,
     ephemeraLudicTerminalsEqual,
     ephemeraLudicTerminalRefersTo,
+    HOSTING_KINDS,
+    hostingFamily,
+    isEphemeraHostingKind,
+    isHostingKindLegalOnHost,
 } from './ephemeraMeta'
 
 const baseRow = {
@@ -1328,6 +1332,66 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
         expect(isEphemeraMetaCharacter({
             EphemeraId: 'CHARACTER#Alpha',
             DataCategory: 'Meta::Room',
+        })).toBe(false)
+    })
+})
+
+describe('hosting kind on the member node (hostingKindOnNode Slice 1)', () => {
+    const hosts = [
+        { tag: 'Character', id: 'CHARACTER#Alpha' },
+        { tag: 'Object', id: 'OBJECT#tray' },
+        { tag: 'Room', id: 'ROOM#Kitchen' },
+        { tag: 'Feature', id: 'FEATURE#sign' },
+        { tag: 'Area', id: 'AREA#Overworld' },
+    ] as const
+    const payload = (host: typeof hosts[number], member: Record<string, unknown>) => ({
+        rootId: host.id,
+        ports: [],
+        nodes: [{ tag: host.tag, universalKey: host.id }, member],
+    })
+
+    it('isEphemeraHostingKind accepts exactly the five kinds', () => {
+        expect([...HOSTING_KINDS]).toEqual(['On', 'In', 'Held', 'PartOf', 'SectionOf'])
+        HOSTING_KINDS.forEach((kind) => expect(isEphemeraHostingKind(kind)).toBe(true))
+        expect(isEphemeraHostingKind('Bogus')).toBe(false)
+        expect(isEphemeraHostingKind('Custom')).toBe(false)
+        expect(isEphemeraHostingKind(undefined)).toBe(false)
+    })
+
+    it('hostingFamily is total over HOSTING_KINDS', () => {
+        HOSTING_KINDS.forEach((kind) => expect(['placement', 'composition']).toContain(hostingFamily(kind)))
+        expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'placement')).toEqual(['On', 'In', 'Held'])
+        expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'composition')).toEqual(['PartOf', 'SectionOf'])
+    })
+
+    it('the component guard accepts each kind and rejects an unknown one', () => {
+        HOSTING_KINDS.forEach((kind) => expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: kind })).toBe(true))
+        expect(isEphemeraLudicGraphComponentNode({ tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: 'Bogus' })).toBe(false)
+    })
+
+    it('the structure guard rejects a presence node carrying hostingKind', () => {
+        expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresences: [], cover: { members: [] }, hostingKind: 'On' })).toBe(false)
+    })
+
+    it('legality table: Held only on characters; In/PartOf/SectionOf never on characters; On anywhere', () => {
+        hosts.forEach((host) => {
+            HOSTING_KINDS.forEach((kind) => {
+                const expected = host.tag === 'Character' ? (kind === 'On' || kind === 'Held') : kind !== 'Held'
+                expect(isHostingKindLegalOnHost(kind, host.tag)).toBe(expected)
+                expect(isEphemeraLudicGraphFieldPayload(payload(host, { tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: kind }))).toBe(expected)
+            })
+        })
+    })
+
+    it('a payload with no hostingKind anywhere still parses (stored rows)', () => {
+        hosts.forEach((host) => expect(isEphemeraLudicGraphFieldPayload(payload(host, { tag: 'Object', universalKey: 'OBJECT#cup' }))).toBe(true))
+    })
+
+    it('rejects a hostingKind on the root node', () => {
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen', hostingKind: 'In' }],
         })).toBe(false)
     })
 })

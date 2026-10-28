@@ -369,7 +369,7 @@ export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId,
  * AGENT.concepts.md's premise-11 warning (the same guard already written on
  * EphemeraPositionAdjacencyContainedId).
  */
-export type EphemeraLudicGraphComponentNode =
+export type EphemeraLudicGraphComponentNodeBase =
     | {
         tag: 'Character';
         universalKey: EphemeraCharacterId;
@@ -390,6 +390,58 @@ export type EphemeraLudicGraphComponentNode =
         tag: 'Area';
         universalKey: EphemeraAreaId;
     }
+
+/**
+ * A member's hosting kind (hostingKindOnNode plan, HK-3): how this node sits in the host whose
+ * graph holds it. *Placement* kinds (`On`, `In`, `Held`) say where a distinct thing sits relative
+ * to its host; *composition* kinds (`PartOf`, `SectionOf`) say a distinct part, or a fungible
+ * stretch, of the host read as an abstraction. Distinct from `HostingRelationKind` (the edge
+ * trio, which retires from the stored edge type in Slice 3).
+ */
+export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf'] as const
+export type EphemeraHostingKind = typeof HOSTING_KINDS[number]
+export const isEphemeraHostingKind = (value: unknown): value is EphemeraHostingKind =>
+    typeof value === 'string' && (HOSTING_KINDS as readonly string[]).includes(value)
+
+export type EphemeraHostingFamily = 'placement' | 'composition'
+
+/** Total over the five kinds: consumers that care about the distinction read the family, never a list of kinds. */
+export const hostingFamily = (kind: EphemeraHostingKind): EphemeraHostingFamily => {
+    switch (kind) {
+        case 'On':
+        case 'In':
+        case 'Held':
+            return 'placement'
+        case 'PartOf':
+        case 'SectionOf':
+            return 'composition'
+        default: {
+            const unmapped: never = kind
+            throw new Error(`hostingFamily: unmapped hosting kind ${String(unmapped)}`)
+        }
+    }
+}
+
+/**
+ * Per-host legality (HK-3). A node cannot know its host, so this takes the host's tag: `Held` only
+ * on a character host; `In`, `PartOf` and `SectionOf` never on one (`On` on a character is worn,
+ * or a coating); `On` anywhere.
+ */
+export const isHostingKindLegalOnHost = (kind: EphemeraHostingKind, hostTag: EphemeraLudicGraphComponentNodeBase['tag']): boolean => {
+    if (hostTag === 'Character') {
+        return kind === 'On' || kind === 'Held'
+    }
+    return kind !== 'Held'
+}
+
+/**
+ * Every component member node may carry `hostingKind` (HK-3). Optional until Slice 3 makes it
+ * required on non-root members, so stored rows without it still parse; always absent on the root
+ * node and on presence nodes (checked by the guards, since the type cannot name "non-root").
+ */
+export type EphemeraLudicGraphComponentNode = EphemeraLudicGraphComponentNodeBase & {
+    hostingKind?: EphemeraHostingKind;
+}
 
 /**
  * One covered binding: a `{ host, presence }` pair, not a bare component id (PN-20, decided
@@ -694,6 +746,9 @@ export const isEphemeraLudicGraphComponentNode = (value: unknown): value is Ephe
         return false
     }
     const entry = value as EphemeraLudicGraphComponentNode
+    if (entry.hostingKind !== undefined && !isEphemeraHostingKind(entry.hostingKind)) {
+        return false
+    }
     if (entry.tag === 'Character') {
         return isEphemeraCharacterId(entry.universalKey)
     }
@@ -748,6 +803,7 @@ export const isEphemeraLudicGraphStructureNode = (value: unknown): value is Ephe
     // `LudicGraphStaleStructureSweep` instead of silently losing its parent.
     return isEphemeraPresenceNodeId(entry.universalKey) &&
         isEphemeraPresenceParentPointerList(entry.fromHostPresences) &&
+        !('hostingKind' in entry) &&
         !('fromHostId' in entry) &&
         !('fromHostPresence' in entry) &&
         isEphemeraPresenceCover(entry.cover)
@@ -832,6 +888,18 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     const rootOwner = ephemeraLudicTerminalOwner(graph.rootId)
     if (!graph.nodes.some((entry) => entry.universalKey === rootOwner)) {
         return false
+    }
+    // HK-3: the root carries no hosting kind, and every member's kind must be legal for the host
+    // kind. A node cannot see its host, so the per-host rule lives here, where `rootId` is known.
+    const rootNode = graph.nodes.find((entry) => entry.universalKey === rootOwner)
+    const hostTag = rootNode && rootNode.tag !== 'Presence' ? rootNode.tag : undefined
+    for (const entry of graph.nodes) {
+        if (entry.tag === 'Presence' || entry.hostingKind === undefined) {
+            continue
+        }
+        if (entry.universalKey === rootOwner || !hostTag || !isHostingKindLegalOnHost(entry.hostingKind, hostTag)) {
+            return false
+        }
     }
     if ('edges' in graph) {
         const edges = graph.edges

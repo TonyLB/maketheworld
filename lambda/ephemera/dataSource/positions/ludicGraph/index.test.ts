@@ -1,6 +1,6 @@
 import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicGraphData, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import {
@@ -203,6 +203,61 @@ describe('EphemeraLudicGraph', () => {
                 expect(graph.removeNode(CHARACTER_A).characterIds.has(CHARACTER_A)).toBe(false)
                 expect(graph.removeNode(CHILD_FEATURE_ID).featureIds.has(CHILD_FEATURE_ID)).toBe(false)
             })
+        })
+    })
+
+    describe('hosting kind (hostingKindOnNode Slice 1)', () => {
+        const CHILD_ROOM = 'ROOM#Nested' as EphemeraRoomId
+        const CHILD_FEATURE = 'FEATURE#Nested' as EphemeraFeatureId
+
+        it('a node added without a kind carries none, and is serialized exactly as before', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A)
+            expect(graph.hostingKindOf(OBJECT_A)).toBeUndefined()
+            expect(graph.toStored().nodes).toEqual([roomNode(HOST_ID), objectNode(OBJECT_A)])
+            expect('hostingKind' in graph.toStored().nodes[1]).toBe(false)
+        })
+
+        it('sets the kind as part of adding the member, for each add method and addNode', () => {
+            expect(EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On').hostingKindOf(OBJECT_A)).toBe('On')
+            expect(EphemeraLudicGraph.empty(HOST_ID).addCharacter(CHARACTER_A, 'On').hostingKindOf(CHARACTER_A)).toBe('On')
+            expect(EphemeraLudicGraph.empty(AREA_HOST_ID).addRoom(CHILD_ROOM, 'PartOf').hostingKindOf(CHILD_ROOM)).toBe('PartOf')
+            expect(EphemeraLudicGraph.empty(HOST_ID).addFeature(CHILD_FEATURE, 'PartOf').hostingKindOf(CHILD_FEATURE)).toBe('PartOf')
+            expect(EphemeraLudicGraph.empty(HOST_ID).addNode(OBJECT_A, 'In').hostingKindOf(OBJECT_A)).toBe('In')
+        })
+
+        it('throws on a kind that is illegal for the host, and on any kind for the root', () => {
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'Held')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'In')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'SectionOf')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addRoom(HOST_ID, 'In')).toThrow()
+            expect(EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'Held').hostingKindOf(OBJECT_A)).toBe('Held')
+        })
+
+        it('re-adding is a no-op with the same kind or none, and throws on a different kind (HK-1)', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
+            expect(graph.addObject(OBJECT_A, 'On')).toBe(graph)
+            expect(graph.addObject(OBJECT_A)).toBe(graph)
+            expect(() => graph.addObject(OBJECT_A, 'In')).toThrow()
+        })
+
+        it('SectionOf round trips through JSON and the guard (no writer exists for it yet)', () => {
+            const graph = EphemeraLudicGraph.empty(OBJECT_HOST_ID).addObject(OBJECT_A, 'SectionOf')
+            const json = JSON.parse(JSON.stringify(graph.toJSON()))
+            expect(isEphemeraLudicGraphData(json)).toBe(true)
+            expect(EphemeraLudicGraph.fromJSON(json).hostingKindOf(OBJECT_A)).toBe('SectionOf')
+        })
+
+        it('clone and fromFieldPayload preserve the field', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
+            expect(graph.clone().hostingKindOf(OBJECT_A)).toBe('On')
+            expect(EphemeraLudicGraph.fromFieldPayload(HOST_ID, graph.toStored()).hostingKindOf(OBJECT_A)).toBe('On')
+        })
+
+        it('equals distinguishes kinds', () => {
+            const on = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On')
+            const inside = EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'In')
+            expect(on.equals(inside)).toBe(false)
+            expect(on.equals(EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'On'))).toBe(true)
         })
     })
 

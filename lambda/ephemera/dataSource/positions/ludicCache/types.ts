@@ -1,6 +1,6 @@
 import { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import type {
-    EphemeraLudicGraphComponentNode,
+    EphemeraLudicGraphComponentNodeBase,
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
     EphemeraLudicTerminalId,
@@ -49,7 +49,13 @@ import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
  * carries through regardless of bucket --- a node-level field duplicated a fact the graph already
  * states. No producer or consumer of this type existed at removal time.
  */
-export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNode & {
+/**
+ * Built from the node arms that never had `hostingKind`, not `Omit<..., 'hostingKind'>`: `Omit` over a
+ * union is not distributive and would collapse the discriminated tag. A member's kind is
+ * per-host (HK-2), so on a node that combines several hosts the field would be ambiguous (in
+ * which host?); the cache carries reconstructed edges instead (HK-4).
+ */
+export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNodeBase & {
     /** `undefined` means unresolved --- no equality-with-id inference (see `catalogHandles.ts`). */
     shortName?: string;
     /** `undefined` means unresolved or absent --- `Gloss` is optional on every kind, so no sentinel is needed. */
@@ -131,6 +137,9 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
         return false
     }
     const node = value as EphemeraLudicCacheNode
+    if ('hostingKind' in node) {
+        return false
+    }
     if (!Array.isArray(node.presenceNodes) || !node.presenceNodes.every((binding) => isEphemeraLudicCachePresenceNode(binding))) {
         return false
     }
