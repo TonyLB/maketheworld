@@ -42,15 +42,15 @@ describe('findRelationalChain', () => {
     })
 
     it("finds the string-in-room / cup-on-table crossing chain: one crossing port on the table (interior) side", () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(STRING_ID, 'In')
             .addObject(TABLE_ID, 'In')
-            .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
+            .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'to' })
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
             .addObject(CUP_ID, 'In')
             .addPort(port)
-            .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
+            .addRelationalEdge({ from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
 
         const env = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, { [STRING_ID]: ROOM_ID })
 
@@ -65,22 +65,22 @@ describe('findRelationalChain', () => {
                 {
                     type: 'edge',
                     hostId: ROOM_ID,
-                    edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' },
+                    edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'to' },
                 },
                 { type: 'port', hostId: TABLE_ID, port },
                 {
                     type: 'edge',
                     hostId: TABLE_ID,
-                    edge: { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' },
+                    edge: { from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' },
                 },
             ],
         })
     })
 
     it('starts from the target\'s host when only the target\'s is known, still reporting the chain subject -> target', () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
-        const roomLeg = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const tableLeg = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const roomLeg = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
+        const tableLeg = { from: { owner: TABLE_ID, port: 'PORT-port-1' as const }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(roomLeg)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(tableLeg)
 
@@ -208,9 +208,9 @@ describe('findRelationalChainFromLeg', () => {
     })
 
     it("resolves the string-in-room / cup-on-table crossing chain seeded from the exterior (room-side) leg", () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
-        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
+        const interiorEdge = { from: { owner: TABLE_ID, port: 'PORT-port-1' as const }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(exteriorEdge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(interiorEdge)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -229,9 +229,9 @@ describe('findRelationalChainFromLeg', () => {
     })
 
     it("resolves the same chain seeded from the interior (table-side) leg --- the directional-bug fix, never exercised before this row", () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
-        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
+        const interiorEdge = { from: { owner: TABLE_ID, port: 'PORT-port-1' as const }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(exteriorEdge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(interiorEdge)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -257,7 +257,7 @@ describe('findRelationalChainFromLeg', () => {
     })
 
     it('declines when a port address has no backing crossing-port record', () => {
-        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'missing-port' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-missing-port' as const }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In')
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -281,7 +281,7 @@ describe('findRelationalChainFromLeg', () => {
             fromHostPresences: [{ host: ROOM_ID, presence: parentRemainderKey(ROOM_ID) }],
             cover: { members: [] },
         }
-        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addPresenceNode(presenceNode)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -300,7 +300,7 @@ describe('findRelationalChainFromLeg', () => {
     // presence-node record" decline, because a miss could not say which collection had been meant.
     // Asserting the reasons, not just the verdict, is what holds that distinction open.
     it('declines a tagged presence address whose binding is absent from this graph --- not pulled, not dangling', () => {
-        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PRESENCE#presence-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -313,8 +313,8 @@ describe('findRelationalChainFromLeg', () => {
         }))
     })
 
-    it('declines a bare crossing-port address with no backing port record, as a dangling reference', () => {
-        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'crossing-1' }, kind: 'Custom' as const, relationLabel: 'to' }
+    it('declines an untagged crossing-port address with no backing port record, as a dangling reference', () => {
+        const edge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-crossing-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addRelationalEdge(edge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
         const { getGraph } = envFrom({ [ROOM_ID]: roomGraph, [TABLE_ID]: tableGraph }, {})
@@ -323,7 +323,7 @@ describe('findRelationalChainFromLeg', () => {
 
         expect(result.verdict).toEqual('declined')
         expect(result).toEqual(expect.objectContaining({
-            reason: 'port crossing-1 has no backing crossing-port record',
+            reason: 'port PORT-crossing-1 has no backing crossing-port record',
         }))
     })
 })

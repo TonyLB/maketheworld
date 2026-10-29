@@ -6,8 +6,8 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@ton
 import { isEphemeraCharacterId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { MessageBus, StreamingEventMessage } from '../../messageBus/baseClasses'
 
 /**
@@ -36,8 +36,8 @@ export type ObjectMovedPublishedPayload = {
 export type ObjectRelationChangedPublishedPayload = {
     type: 'Object Relation Changed';
     /** Widened from EphemeraObjectId --- the kernel's relational step terminals are no longer Object-only. */
-    subjectId: EphemeraLudicTerminalPrimitive;
-    targetId: EphemeraLudicTerminalPrimitive;
+    subjectId: EphemeraLudicNodeTerminal;
+    targetId: EphemeraLudicNodeTerminal;
     /** Room or Character host the relation changed on (BD-15/16 slice 4; was Room-only `hostRoomId`). */
     hostId: EphemeraMembershipHostId;
     operation: 'establish' | 'dissolve';
@@ -144,10 +144,10 @@ export const isObjectRelationChangedPublishedPayload = (
     if (v.type !== 'Object Relation Changed') {
         return false
     }
-    if (typeof v.subjectId !== 'string' || !isEphemeraLudicTerminalPrimitive(v.subjectId)) {
+    if (!isEphemeraLudicNodeTerminal(v.subjectId)) {
         return false
     }
-    if (typeof v.targetId !== 'string' || !isEphemeraLudicTerminalPrimitive(v.targetId)) {
+    if (!isEphemeraLudicNodeTerminal(v.targetId)) {
         return false
     }
     if (typeof v.hostId !== 'string' || !isEphemeraMembershipHostId(v.hostId)) {

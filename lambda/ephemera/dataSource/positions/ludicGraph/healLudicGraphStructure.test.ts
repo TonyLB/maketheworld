@@ -178,7 +178,7 @@ describe('healLudicGraphStructure', () => {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' }],
+                ports: [{ portId: 'PORT-ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' }],
             }),
             writeHealedLudicGraph,
         })
@@ -191,7 +191,7 @@ describe('healLudicGraphStructure', () => {
 
     it('preserves an already-well-formed ports array untouched', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const ports = [{ portId: 'ab6129d', fromHostId: 'OBJECT#box', kind: 'ConnectedTo' }]
+        const ports = [{ portId: 'PORT-ab6129d', fromHostId: 'OBJECT#box', kind: 'ConnectedTo' }]
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,

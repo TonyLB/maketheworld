@@ -725,9 +725,9 @@ describe('commitStepSequence', () => {
         const STRING_ID = 'OBJECT#String' as EphemeraObjectId
         const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
         const tie = { relationKind: 'Custom' as const, relationLabel: 'tied to' }
-        const port = { owner: TABLE_ID, port: 'Base' }
+        const port = { owner: TABLE_ID, port: 'PORT-tie' as const }
         const crossingSteps: MutationKernelStep[] = [
-            { kind: 'addCrossingPort', hostId: TABLE_ID, port: { portId: 'Base', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } },
+            { kind: 'addCrossingPort', hostId: TABLE_ID, port: { portId: 'PORT-tie', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' } },
             { kind: 'establishRelation', subjectId: port, targetId: CUP_ID, hostId: TABLE_ID, ...tie },
             { kind: 'establishRelation', subjectId: STRING_ID, targetId: port, hostId: ROOM_ID, ...tie },
         ]

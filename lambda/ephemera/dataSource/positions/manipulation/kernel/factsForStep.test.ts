@@ -205,9 +205,9 @@ describe('factsForStep', () => {
         const addStep: MutationKernelStep = {
             kind: 'addCrossingPort',
             hostId: tableId,
-            port: { portId: 'p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+            port: { portId: 'PORT-p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
         }
-        const removeStep: MutationKernelStep = { kind: 'removeCrossingPort', hostId: tableId, portId: 'p1' }
+        const removeStep: MutationKernelStep = { kind: 'removeCrossingPort', hostId: tableId, portId: 'PORT-p1' }
         expect(factsForStep(addStep, graphsMap(), beatAnchorTime)).toEqual([])
         expect(factsForStep(removeStep, graphsMap(), beatAnchorTime)).toEqual([])
     })
@@ -232,7 +232,7 @@ describe('factsForStep', () => {
         const step: MutationKernelStep = {
             kind: 'establishRelation',
             subjectId: trayId,
-            targetId: { owner: tableId, port: 'p1' },
+            targetId: { owner: tableId, port: 'PORT-p1' },
             hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',
@@ -249,15 +249,15 @@ describe('factForRelationalEdge', () => {
                 { tag: 'Object', universalKey: trayId },
                 { tag: 'Object', universalKey: tableId },
             ],
-            edges: [{ tag: 'Relational', from: trayId, to: { owner: tableId, port: 'p1' }, kind: 'Custom', relationLabel: 'tied to' }],
+            edges: [{ tag: 'Relational', from: trayId, to: { owner: tableId, port: 'PORT-p1' }, kind: 'Custom', relationLabel: 'tied to' }],
         })
         const tableGraph = testLudicGraph(tableId, {
             nodes: [
                 { tag: 'Object', universalKey: tableId },
                 { tag: 'Object', universalKey: glassId },
             ],
-            ports: [{ portId: 'p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'tied to' }],
-            edges: [{ tag: 'Relational', from: { owner: tableId, port: 'p1' }, to: glassId, kind: 'Custom', relationLabel: 'tied to' }],
+            ports: [{ portId: 'PORT-p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'tied to' }],
+            edges: [{ tag: 'Relational', from: { owner: tableId, port: 'PORT-p1' }, to: glassId, kind: 'Custom', relationLabel: 'tied to' }],
         })
         const fact = factForRelationalEdge(
             { subjectId: trayId, targetId: glassId, operation: 'establish', relationKind: 'Custom', relationLabel: 'tied to' },

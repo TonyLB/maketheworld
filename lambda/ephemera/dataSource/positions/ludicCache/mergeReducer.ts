@@ -21,7 +21,8 @@
  * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
@@ -148,7 +149,7 @@ export const dedupeEdgesByIdentity = (edges: EphemeraLudicCacheEdge[]): Ephemera
  * per host.
  */
 const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: EphemeraMembershipHostId): EphemeraLudicTerminalId =>
-    typeof terminal === 'string' && isPresenceTaggedPortId(terminal) ? { owner, port: terminal } : terminal
+    isEphemeraLudicNodeTerminal(terminal) && isEphemeraPresenceNodeId(terminal) ? { owner, port: terminal } : terminal
 
 /**
  * Collapse of crossing relation ports.

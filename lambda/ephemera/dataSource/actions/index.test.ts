@@ -2492,20 +2492,20 @@ describe('ephemeraActionsDataSource', () => {
             const portStep = {
                 kind: 'addCrossingPort' as const,
                 hostId: tableId,
-                port: { portId: 'p1', fromHostId: hostRoom, kind: 'Custom' as const, exteriorRelationLabel: 'tied to' },
+                port: { portId: 'PORT-p1', fromHostId: hostRoom, kind: 'Custom' as const, exteriorRelationLabel: 'tied to' },
             }
             const legSteps = [
                 {
                     kind: 'establishRelation' as const,
                     subjectId: 'OBJECT#String' as EphemeraObjectId,
-                    targetId: { owner: tableId, port: 'p1' },
+                    targetId: { owner: tableId, port: 'PORT-p1' },
                     relationKind: 'Custom' as const,
                     relationLabel: 'tied to',
                     hostId: hostRoom,
                 },
                 {
                     kind: 'establishRelation' as const,
-                    subjectId: { owner: tableId, port: 'p1' },
+                    subjectId: { owner: tableId, port: 'PORT-p1' },
                     targetId: 'OBJECT#Cup' as EphemeraObjectId,
                     relationKind: 'Custom' as const,
                     relationLabel: 'tied to',

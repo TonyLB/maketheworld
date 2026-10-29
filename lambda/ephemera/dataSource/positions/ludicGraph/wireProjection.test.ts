@@ -10,7 +10,7 @@ import type { EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMe
 import { isStandardLudicGraphPresenceNodeData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
 
 import { testLudicGraph } from './testFixtures'
-import { fromWireLudicGraph, toWireLudicGraph } from './wireProjection'
+import { fromWireLudicGraph, toWireLudicGraph, toWireLudicGraphFull } from './wireProjection'
 import { parentRemainderKey, presenceBindingNode } from './testFixtures'
 
 const tableId = 'OBJECT#Table' as EphemeraObjectId
@@ -57,14 +57,14 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
                     { tag: 'Relational', kind: 'ConnectedTo', from: boxId, to: featureId },
                     // Port-qualified terminal (LG-11): an interior edge landing on this graph's
                     // own boundary port -- `owner: tableId` is `graph.hostId` itself, exactly the
-                    // running example's `{owner: OBJECT#Box, port: 8f3a} -TiedTo-> OBJECT#Cup` shape.
-                    { tag: 'Relational', kind: 'ConnectedTo', from: { owner: tableId, port: 'crossport1' }, to: boxId },
+                    // running example's `{owner: OBJECT#Box, port: PORT-8f3a} -TiedTo-> OBJECT#Cup` shape.
+                    { tag: 'Relational', kind: 'ConnectedTo', from: { owner: tableId, port: 'PORT-crossport1' }, to: boxId },
                     // Bare presence-node terminal (LG-11, PR-15/PN-6 clause (c)): an edge landing
                     // directly on this graph's own binding1 presence node.
                     { tag: 'Relational', kind: 'ConnectedTo', from: boxId, to: bindingId },
                 ],
                 ports: [
-                    { portId: 'crossport1', fromHostId: roomId, kind: 'ConnectedTo' },
+                    { portId: 'PORT-crossport1', fromHostId: roomId, kind: 'ConnectedTo' },
                 ],
             })
 
@@ -150,6 +150,18 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
             expect(() => fromWireLudicGraph(tableId, {
                 edges: [{ kind: 'Navigation', uuid: 'e1', payload: {} } as any],
             })).toThrow(/Navigation/)
+        })
+
+        // A wire port id is sorted into a crossing id or a binding id; nothing else is stored.
+        it('rejects a port id that is neither a crossing port id nor a binding id', () => {
+            const wire = toWireLudicGraphFull(testLudicGraph(tableId, {
+                nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: boxId }],
+                edges: [{ tag: 'Relational', kind: 'Custom', relationLabel: 'tied to', from: { owner: tableId, port: 'PORT-ab6129d' }, to: boxId }],
+                ports: [{ portId: 'PORT-ab6129d', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'tied to' }],
+            }))
+            const bare = JSON.parse(JSON.stringify(wire).split('PORT-ab6129d').join('ab6129d'))
+            expect(() => fromWireLudicGraph(tableId, { ...bare, ports: [] })).toThrow(/ab6129d/)
+            expect(() => fromWireLudicGraph(tableId, { ...bare, edges: [] })).toThrow(/ab6129d/)
         })
     })
 })

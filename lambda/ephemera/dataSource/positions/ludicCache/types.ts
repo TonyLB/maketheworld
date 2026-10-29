@@ -11,7 +11,7 @@ import {
     isEphemeraHostingKind,
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicRelationalEdgeData,
-    isPresenceTaggedPortId,
+    isEphemeraLudicNodeTerminal,
     isEphemeraPresenceParentPointerList,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -172,7 +172,7 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
 // corruption, not an unpulled-binding case (that case is an owner-qualified terminal whose binding
 // is simply absent from `nodes`, which the referential-integrity pass below already permits).
 const isNotBarePresenceTerminal = (terminal: EphemeraLudicTerminalId): boolean =>
-    !(typeof terminal === 'string' && isPresenceTaggedPortId(terminal))
+    !(isEphemeraLudicNodeTerminal(terminal) && isEphemeraPresenceNodeId(terminal))
 
 export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudicCacheEdge => {
     if (!isEphemeraLudicRelationalEdgeData(value)) {

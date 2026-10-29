@@ -1,6 +1,6 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 import type { StreamingEventHeader } from '@tonylb/mtw-lambda-patterns/ts/dataSource/baseClasses'
@@ -164,15 +164,15 @@ export const clearCoyoteGameImprovisationObjects = async (
     const chains = findRelationalChainsTouching(objectIdSet, reachableGraphs)
     if (chains.length > 0) {
         const dissolveSteps = chains.flatMap((chain) => lowerRelationalChain(chain, 'dissolveRelation'))
-        const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
+        const hostByReferencedId = new Map<EphemeraLudicNodeTerminal, EphemeraMembershipHostId>()
         for (const step of dissolveSteps) {
             if (step.kind !== 'dissolveRelation') {
                 continue
             }
-            if (isEphemeraLudicTerminalPrimitive(step.subjectId)) {
+            if (isEphemeraLudicNodeTerminal(step.subjectId)) {
                 hostByReferencedId.set(step.subjectId, step.hostId)
             }
-            if (isEphemeraLudicTerminalPrimitive(step.targetId)) {
+            if (isEphemeraLudicNodeTerminal(step.targetId)) {
                 hostByReferencedId.set(step.targetId, step.hostId)
             }
         }

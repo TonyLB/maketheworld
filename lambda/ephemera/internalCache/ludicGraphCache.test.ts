@@ -114,7 +114,7 @@ describe('EphemeraLudicGraphCacheData', () => {
                     rootId: OBJECT_HOST_ID,
                     nodes: [nodeFromId(OBJECT_HOST_ID), objectNode(OBJECT_A)],
                     edges: [],
-                    ports: [{ portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }],
+                    ports: [{ portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }],
                 },
             }),
         })
@@ -122,7 +122,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         const graph = await cache.getLudicGraph(OBJECT_HOST_ID)
 
         expect(graph.ports).toEqual([
-            { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' },
+            { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' },
         ])
     })
 
@@ -134,7 +134,7 @@ describe('EphemeraLudicGraphCacheData', () => {
             rootId: OBJECT_HOST_ID,
             nodes: [nodeFromId(OBJECT_HOST_ID), objectNode(OBJECT_A)],
             edges: [],
-            ports: [{ portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }],
+            ports: [{ portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }],
         })
 
         cache.set(original)

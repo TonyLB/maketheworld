@@ -1,8 +1,8 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicTerminalPrimitive, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicNodeTerminal, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicBindingAddress, isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { HostRelationalEdge } from '../../../../positions/ludicGraph'
 import type { ExpansionEnvironment } from './executorTypes'
@@ -14,7 +14,7 @@ import type { ExpansionEnvironment } from './executorTypes'
  * ancestry, a question with no dependency on whether a relation already exists. This function
  * answers the opposite question -- "these two are already linked by some relation -- what chain
  * already connects them, so a dissolve can remove it?" -- which containment ancestry cannot answer
- * (a crossing's port carries a `uuidv4()` `portId` unrecoverable from where the objects currently
+ * (a crossing's port carries a minted `PORT-${uuid}` `portId` unrecoverable from where the objects currently
  * live), so it walks **existing relational edges and ports** instead.
  *
  * Wired into `expandSameHost.ts`'s `dissolveRelation` branch.
@@ -52,7 +52,7 @@ const edgeMatchesRelation = (
  * the seed edge's own terminal on this side was already primitive).
  */
 type ResolveEndpointResult =
-    | { declined: false; endpoint: EphemeraLudicTerminalPrimitive; steps: RelationalChainStep[] }
+    | { declined: false; endpoint: EphemeraLudicNodeTerminal; steps: RelationalChainStep[] }
     | { declined: true; reason: string }
 
 /**
@@ -78,7 +78,7 @@ const resolveEndpoint = (
     getGraph: ExpansionEnvironment['getGraph'],
     visitedPortIds: ReadonlySet<string>
 ): ResolveEndpointResult => {
-    if (isEphemeraLudicTerminalPrimitive(terminal)) {
+    if (isEphemeraLudicNodeTerminal(terminal)) {
         return { declined: false, endpoint: terminal, steps: [] }
     }
 
@@ -92,7 +92,7 @@ const resolveEndpoint = (
     // node id (Slice 3's 1:1 mint) -- resolved to that node rather than declined, per PN-4/PN-5.
     // The tag says WHICH collection to read (PN-24), so this dispatches before any port lookup and
     // reads only `presenceNodes`; a crossing port's id is bare and can never take this branch.
-    if (isPresenceTaggedPortId(portId)) {
+    if (isEphemeraLudicBindingAddress(terminal)) {
         const presenceNode = portOwnerGraph?.presenceNodes.find((node) => node.universalKey === portId)
         if (presenceNode) {
             return { declined: false, endpoint: presenceNode.universalKey, steps: [] }
@@ -164,7 +164,7 @@ const resolveEndpoint = (
 export type FindRelationalChainFromLegResult =
     | {
         verdict: 'found'
-        endpoints: readonly [EphemeraLudicTerminalPrimitive, EphemeraLudicTerminalPrimitive]
+        endpoints: readonly [EphemeraLudicNodeTerminal, EphemeraLudicNodeTerminal]
         steps: RelationalChainStep[]
     }
     | { verdict: 'declined'; reason: string }

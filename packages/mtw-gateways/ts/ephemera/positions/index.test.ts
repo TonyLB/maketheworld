@@ -52,7 +52,7 @@ const storedRoomGraph: EphemeraLudicGraphFieldPayload = {
     edges: [{
         tag: 'Relational',
         from: objectId,
-        to: { owner: objectHostId, port: 'port-1' },
+        to: { owner: objectHostId, port: 'PORT-port-1' },
         kind: 'Custom',
         relationLabel: 'to',
     }],
@@ -63,7 +63,7 @@ const storedObjectGraphWithPort: EphemeraLudicGraphFieldPayload = {
     rootId: objectHostId,
     nodes: [{ tag: 'Object', universalKey: objectHostId }],
     edges: [],
-    ports: [{ portId: 'port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
+    ports: [{ portId: 'PORT-port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
 }
 
 describe('positions project', () => {
@@ -513,7 +513,7 @@ describe('PositionsCacheHandler', () => {
         // emptied `ports` on every read. A crossing's port record was invisible to every consumer
         // reading through `internalCache.Positions`, so chain discovery silently declined.
         expect(graph.ports).toEqual([
-            { portId: 'port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+            { portId: 'PORT-port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
         ])
     })
 

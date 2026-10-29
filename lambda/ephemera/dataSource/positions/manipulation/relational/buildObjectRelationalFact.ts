@@ -1,17 +1,17 @@
 import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { ObjectRelationChangedPublishedPayload } from '../../publishedEvents'
 import type { RelationalIngressOperation } from './types'
 
 // Renamed from buildObjectRelationalFact --- subjectId/targetId widened to
-// EphemeraLudicTerminalPrimitive, so `Object` in the old name was a restriction the
+// EphemeraLudicNodeTerminal, so `Object` in the old name was a restriction the
 // code no longer has. The published payload's type name and wire `type` string
 // ('Object Relation Changed') are left alone --- they're load-bearing for existing
 // stream consumers/stored events, and renaming them is a separate, unforced change.
 export const buildRelationalFact = (args: {
-    subjectId: EphemeraLudicTerminalPrimitive
-    targetId: EphemeraLudicTerminalPrimitive
+    subjectId: EphemeraLudicNodeTerminal
+    targetId: EphemeraLudicNodeTerminal
     hostId: EphemeraMembershipHostId
     operation: RelationalIngressOperation
     beatAnchorTime: number

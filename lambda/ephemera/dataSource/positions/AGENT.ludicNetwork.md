@@ -93,7 +93,7 @@ There are two kinds of thing a port address can name, distinguished by the port 
 
 | Port id looks like | Names | Backed by |
 | --- | --- | --- |
-| bare uuid (`'8f3a…'`) | a **crossing port** --- a relation passing through the host's boundary | a record in the owner's `ports` list |
+| `PORT-<uuid>` (or `STUB-…` for a same-host stub) | a **crossing port** --- a relation passing through the host's boundary | a record in the owner's `ports` list |
 | `PRESENCE#<uuid>` | a **presence binding** --- one way the owner is present somewhere (section 4) | a presence node in the owner's `nodes` |
 
 ### Crossing ports: one relation, several legs
@@ -102,10 +102,10 @@ When the player ties the rope (in the Lab) to the cup (in the box), the relation
 
 ```text
 ROOM#Lab.ludicGraph                             OBJECT#Box.ludicGraph
-  edges: OBJECT#Rope -TiedTo-> {owner: OBJECT#Box, port: 8f3a}
-                                                  ports: { portId: 8f3a, fromHostId: ROOM#Lab, kind: Custom,
+  edges: OBJECT#Rope -TiedTo-> {owner: OBJECT#Box, port: PORT-8f3a}
+                                                  ports: { portId: PORT-8f3a, fromHostId: ROOM#Lab, kind: Custom,
                                                            exteriorRelationLabel: 'TiedTo' }
-                                                  edges: {owner: OBJECT#Box, port: 8f3a} -TiedTo-> OBJECT#Cup
+                                                  edges: {owner: OBJECT#Box, port: PORT-8f3a} -TiedTo-> OBJECT#Cup
 ```
 
 - **One fact, relayed.** Both legs carry the same `kind` and label; a crossing never changes what the relation *is* from one side to the other. The pair is a **chain**; each stored edge is a **leg**. Identity adheres to the chain (`chainId`, when minted, is stamped on every leg); hosting and the mutation site adhere to the leg. A relation crossing *n* boundaries is *n+1* legs and *n* crossing ports, built one hop at a time.

@@ -4,7 +4,7 @@ import type {
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicRelationalEdgeData,
     EphemeraLudicTerminalId,
-    EphemeraLudicTerminalPrimitive,
+    EphemeraLudicNodeTerminal,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
@@ -197,7 +197,7 @@ export function edgesMatch(
 }
 
 export function nodeHasRelationalEdge(
-    nodeId: EphemeraLudicTerminalPrimitive,
+    nodeId: EphemeraLudicNodeTerminal,
     edges: readonly HostRelationalEdge[]
 ): boolean {
     return edges.some((edge) => ephemeraLudicTerminalRefersTo(edge.from, nodeId) || ephemeraLudicTerminalRefersTo(edge.to, nodeId))

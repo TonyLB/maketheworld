@@ -67,7 +67,7 @@ describe('buildCrossingLegs', () => {
         })
         if (addPortStep.kind !== 'addCrossingPort') return
         const portId = addPortStep.port.portId
-        expect(typeof portId).toBe('string')
+        expect(portId).toMatch(/^PORT-[0-9a-f-]{36}$/)
 
         expect(tableLegStep).toEqual({
             kind: 'establishRelation',
@@ -327,26 +327,26 @@ describe('buildCrossingLegs', () => {
 
 describe('lowerRelationalChain, dissolve', () => {
     it("the readout case, reversed: a 3-step found chain (edge, port, edge) becomes [dissolveRelation, removeCrossingPort, dissolveRelation]", () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const steps: RelationalChainStep[] = [
-            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'tied to' } },
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'tied to' } },
             { type: 'port', hostId: TABLE_ID, port },
-            { type: 'edge', hostId: TABLE_ID, edge: { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
+            { type: 'edge', hostId: TABLE_ID, edge: { from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
         expect(lowerRelationalChain(steps, 'dissolveRelation')).toEqual([
             {
                 kind: 'dissolveRelation',
                 subjectId: STRING_ID,
-                targetId: { owner: TABLE_ID, port: 'port-1' },
+                targetId: { owner: TABLE_ID, port: 'PORT-port-1' },
                 hostId: ROOM_ID,
                 relationKind: 'Custom',
                 relationLabel: 'tied to',
             },
-            { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'port-1' },
+            { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'PORT-port-1' },
             {
                 kind: 'dissolveRelation',
-                subjectId: { owner: TABLE_ID, port: 'port-1' },
+                subjectId: { owner: TABLE_ID, port: 'PORT-port-1' },
                 targetId: CUP_ID,
                 hostId: TABLE_ID,
                 relationKind: 'Custom',
@@ -366,14 +366,14 @@ describe('lowerRelationalChain, dissolve', () => {
     })
 
     it('a two-hop chain on one side --- deeper than buildCrossingLegs itself can mint --- maps through with no cap', () => {
-        const portA: EphemeraCrossingPort = { portId: 'port-a', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
-        const portB: EphemeraCrossingPort = { portId: 'port-b', fromHostId: BOX_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
+        const portA: EphemeraCrossingPort = { portId: 'PORT-port-a', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
+        const portB: EphemeraCrossingPort = { portId: 'PORT-port-b', fromHostId: BOX_ID, kind: 'Custom', exteriorRelationLabel: 'tied to' }
         const steps: RelationalChainStep[] = [
-            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: BOX_ID, port: 'port-a' }, kind: 'Custom', relationLabel: 'tied to' } },
+            { type: 'edge', hostId: ROOM_ID, edge: { from: STRING_ID, to: { owner: BOX_ID, port: 'PORT-port-a' }, kind: 'Custom', relationLabel: 'tied to' } },
             { type: 'port', hostId: BOX_ID, port: portA },
-            { type: 'edge', hostId: BOX_ID, edge: { from: { owner: BOX_ID, port: 'port-a' }, to: { owner: TRAY_ID, port: 'port-b' }, kind: 'Custom', relationLabel: 'tied to' } },
+            { type: 'edge', hostId: BOX_ID, edge: { from: { owner: BOX_ID, port: 'PORT-port-a' }, to: { owner: TRAY_ID, port: 'PORT-port-b' }, kind: 'Custom', relationLabel: 'tied to' } },
             { type: 'port', hostId: TRAY_ID, port: portB },
-            { type: 'edge', hostId: TRAY_ID, edge: { from: { owner: TRAY_ID, port: 'port-b' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
+            { type: 'edge', hostId: TRAY_ID, edge: { from: { owner: TRAY_ID, port: 'PORT-port-b' }, to: CUP_ID, kind: 'Custom', relationLabel: 'tied to' } },
         ]
 
         const result = lowerRelationalChain(steps, 'dissolveRelation')
@@ -386,7 +386,7 @@ describe('lowerRelationalChain, dissolve', () => {
             'removeCrossingPort',
             'dissolveRelation',
         ])
-        expect(result[1]).toEqual({ kind: 'removeCrossingPort', hostId: BOX_ID, portId: 'port-a' })
-        expect(result[3]).toEqual({ kind: 'removeCrossingPort', hostId: TRAY_ID, portId: 'port-b' })
+        expect(result[1]).toEqual({ kind: 'removeCrossingPort', hostId: BOX_ID, portId: 'PORT-port-a' })
+        expect(result[3]).toEqual({ kind: 'removeCrossingPort', hostId: TRAY_ID, portId: 'PORT-port-b' })
     })
 })

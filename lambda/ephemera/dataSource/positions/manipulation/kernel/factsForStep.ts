@@ -2,8 +2,8 @@ import { relationKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId, isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { buildObjectMovedFact } from '../membership/buildObjectMovedFact'
@@ -20,7 +20,7 @@ import type { MutationKernelStep } from './kernelStep'
 
 // Kind-indifferent: checks graph.nodeIds (any terminal kind), not graph.objectIds.
 const findHostOf = (
-    id: EphemeraLudicTerminalPrimitive,
+    id: EphemeraLudicNodeTerminal,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId | undefined => {
     for (const [hostId, graph] of graphs) {
@@ -93,9 +93,11 @@ export const factsForStep = (
         return []
     }
 
-    // a crossing leg names a port, not the edge's real pair, so it yields no fact; the edge's
-    // one fact comes from `factForRelationalEdge`, when the caller supplies the edge.
-    if (!isEphemeraLudicTerminalPrimitive(step.subjectId) || !isEphemeraLudicTerminalPrimitive(step.targetId)) {
+    // a step with an address end yields no fact. A crossing leg names a port, not the edge's real
+    // pair; the edge's one fact comes from `factForRelationalEdge`, when the caller supplies the
+    // edge. A step between two binding addresses is a whole's own topology (positions/
+    // AGENT.implementation.md, "Shelved: a whole's own topology edges emit no relation fact").
+    if (!isEphemeraLudicNodeTerminal(step.subjectId) || !isEphemeraLudicNodeTerminal(step.targetId)) {
         return []
     }
 

@@ -6,7 +6,7 @@ import * as markStale from '../ludicCache/markStale'
 
 const OBJECT_ID = 'OBJECT#Rope' as EphemeraObjectId
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
-const PORT_ID = 'abcd123'
+const PORT_ID = 'PORT-abcd123'
 
 const objectGraph = (ports: { portId: string; fromHostId: string; kind: EphemeraLudicGraphPort['kind']; exteriorRelationLabel?: string }[]) => ({
     rootId: OBJECT_ID,
@@ -98,13 +98,13 @@ describe('healLudicGraphPortMismatch', () => {
 
     it('repairs only the named port, leaving its siblings untouched', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const sibling = { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Custom' as const, exteriorRelationLabel: 'against' }
+        const sibling = { portId: 'PORT-zzz999', fromHostId: ROOM_ID, kind: 'Custom' as const, exteriorRelationLabel: 'against' }
         const outcome = await healLudicGraphPortMismatch(OBJECT_ID, PORT_ID, { dryRun: false }, {
             getStoredLudicGraph: readerFor({
                 [OBJECT_ID]: objectGraph([{ portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'under' }, sibling]),
                 // The sibling disagrees with its own referring edge too, and is still not touched:
                 // this heal repairs the port the finding named, not everything it happens to see.
-                [ROOM_ID]: roomGraph([{ kind: 'ConnectedTo' }, { kind: 'Custom', relationLabel: 'under', portId: 'zzz999' }]),
+                [ROOM_ID]: roomGraph([{ kind: 'ConnectedTo' }, { kind: 'Custom', relationLabel: 'under', portId: 'PORT-zzz999' }]),
             }),
             writeHealedLudicGraph,
         })

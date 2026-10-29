@@ -1,4 +1,5 @@
 import { classifyPresenceCoverDrift, coverRebuildsFor, lacksBase, orphanRepairsFor, orphanedPointersOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
+import { isEphemeraLudicBindingAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { ConnectedToPair, PresenceBindingView, PresenceCoverDriftFinding, PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 
 /**
@@ -33,11 +34,10 @@ export const presenceGraphViewOf = (hostId: string, ludicGraph: unknown): Presen
     return { hostId, nodeIds, presenceNodes, connectedTo: connectedToOf(hostId, ludicGraph) }
 }
 
-/** A port-address endpoint the host itself owns: one of its own bindings, by key. */
-const ownBindingOf = (hostId: string, endpoint: unknown): string | undefined => {
-    const { owner, port } = (endpoint ?? {}) as { owner?: unknown; port?: unknown }
-    return owner === hostId && typeof port === 'string' ? port : undefined
-}
+/** A binding address the host itself owns: one of its own bindings, by key. */
+const ownBindingOf = (hostId: string, endpoint: unknown): string | undefined => (
+    isEphemeraLudicBindingAddress(endpoint) && endpoint.owner === hostId ? endpoint.port : undefined
+)
 
 /** The row's `ConnectedTo` edges between two of its own bindings, as binding keys (the contraction rule reads them). */
 const connectedToOf = (hostId: string, ludicGraph: unknown): ConnectedToPair[] => {

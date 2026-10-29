@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { computeStepSequenceFootprint } from './computeStepSequenceFootprint'
 import type { MutationKernelStep } from './kernelStep'
@@ -16,7 +16,7 @@ const characterId = 'CHARACTER#Alpha' as EphemeraCharacterId
 describe('computeStepSequenceFootprint', () => {
     it('a relational step derives both endpoints host via getCurrentHost', () => {
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: trayId, targetId: glassId, hostId: roomId, relationKind: 'ConnectedTo' }
-        const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === trayId ? roomId : otherRoomId)
+        const getCurrentHost = (id: EphemeraLudicNodeTerminal) => (id === trayId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
@@ -31,7 +31,7 @@ describe('computeStepSequenceFootprint', () => {
 
     it('a relational step with a non-Object (Character) subject derives its host via getCurrentHost, no narrow needed', () => {
         const step: MutationKernelStep = { kind: 'establishRelation', subjectId: characterId, targetId: trayId, hostId: roomId, relationKind: 'ConnectedTo' }
-        const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === characterId ? roomId : otherRoomId)
+        const getCurrentHost = (id: EphemeraLudicNodeTerminal) => (id === characterId ? roomId : otherRoomId)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId, otherRoomId]))
     })
 
@@ -52,8 +52,8 @@ describe('computeStepSequenceFootprint', () => {
 
     it('addCrossingPort/removeCrossingPort steps contribute their hostId directly', () => {
         const steps: MutationKernelStep[] = [
-            { kind: 'addCrossingPort', hostId: roomId, port: { portId: 'p1', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' } },
-            { kind: 'removeCrossingPort', hostId: otherRoomId, portId: 'p2' },
+            { kind: 'addCrossingPort', hostId: roomId, port: { portId: 'PORT-p1', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' } },
+            { kind: 'removeCrossingPort', hostId: otherRoomId, portId: 'PORT-p2' },
         ]
         expect(computeStepSequenceFootprint(steps, () => undefined)).toEqual(new Set([roomId, otherRoomId]))
     })
@@ -119,12 +119,12 @@ describe('computeStepSequenceFootprint', () => {
         const step: MutationKernelStep = {
             kind: 'establishRelation',
             subjectId: trayId,
-            targetId: { owner: glassId, port: 'crossing-1' },
+            targetId: { owner: glassId, port: 'PORT-crossing-1' },
             hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',
         }
-        const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => (id === trayId ? roomId : undefined)
+        const getCurrentHost = (id: EphemeraLudicNodeTerminal) => (id === trayId ? roomId : undefined)
         expect(computeStepSequenceFootprint([step], getCurrentHost)).toEqual(new Set([roomId]))
     })
 
@@ -133,8 +133,8 @@ describe('computeStepSequenceFootprint', () => {
     it('a leg with two port-address endpoints (no primitive anchor) locks its own host', () => {
         const step: MutationKernelStep = {
             kind: 'dissolveRelation',
-            subjectId: { owner: trayId, port: 'crossing-1' },
-            targetId: { owner: glassId, port: 'crossing-2' },
+            subjectId: { owner: trayId, port: 'PORT-crossing-1' },
+            targetId: { owner: glassId, port: 'PORT-crossing-2' },
             hostId: roomId,
             relationKind: 'Custom',
             relationLabel: 'to',

@@ -17,15 +17,16 @@
  * something to project onto.
  */
 import type {
+    EphemeraCrossingPortId,
     EphemeraLudicGraphComponentNode,
     EphemeraLudicGraphFieldPayload,
     EphemeraLudicGraphNode,
     EphemeraLudicGraphPort,
     EphemeraLudicTerminalId,
-    EphemeraLudicTerminalPrimitive,
     EphemeraPresenceCover,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraCrossingPortId, isEphemeraLudicPortAddress, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -70,12 +71,21 @@ const referenceDataToEphemeraComponentId = (data: StandardReferenceData): Epheme
 //
 
 const ephemeraTerminalToWire = (terminal: EphemeraLudicTerminalId): StandardLudicTerminalData => {
-    if (typeof terminal === 'string') {
-        return isEphemeraPresenceNodeId(terminal)
-            ? { presence: terminal }
-            : ephemeraComponentIdToReferenceData(terminal)
+    if (isEphemeraLudicPortAddress(terminal)) {
+        return { owner: ephemeraComponentIdToReferenceData(terminal.owner), port: terminal.port }
     }
-    return { owner: ephemeraComponentIdToReferenceData(terminal.owner), port: terminal.port }
+    return isEphemeraPresenceNodeId(terminal)
+        ? { presence: terminal }
+        : ephemeraComponentIdToReferenceData(terminal)
+}
+
+/** The wire's port id is an untyped `string`; this is where it is sorted into a crossing port id
+ * or a binding's `PRESENCE#` id (`EphemeraCrossingPortId`). A stored graph carries no other kind. */
+const wirePortIdToCrossingPortId = (portId: string): EphemeraCrossingPortId => {
+    if (!isEphemeraCrossingPortId(portId)) {
+        throw new Error(`fromWireLudicGraph: port id ${portId} is neither a crossing port id (PORT-/STUB-) nor a binding id (PRESENCE#)`)
+    }
+    return portId
 }
 
 const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicTerminalId => {
@@ -83,9 +93,12 @@ const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicT
         return data.presence as EphemeraPresenceNodeId
     }
     if (typeof data === 'object' && data !== null && 'owner' in data) {
-        return { owner: referenceDataToEphemeraComponentId(data.owner), port: data.port }
+        const owner = referenceDataToEphemeraComponentId(data.owner)
+        return isPresenceTaggedPortId(data.port)
+            ? { owner, port: data.port }
+            : { owner, port: wirePortIdToCrossingPortId(data.port) }
     }
-    return referenceDataToEphemeraComponentId(data) as EphemeraLudicTerminalPrimitive
+    return referenceDataToEphemeraComponentId(data)
 }
 
 //
@@ -192,7 +205,7 @@ const portToWire = (port: EphemeraLudicGraphPort): StandardLudicGraphPortData =>
 })
 
 const wirePortToEphemera = (data: StandardLudicGraphPortData): EphemeraLudicGraphPort => ({
-    portId: data.portId,
+    portId: wirePortIdToCrossingPortId(data.portId),
     fromHostId: (typeof data.fromHostId === 'string' && isEphemeraPresenceNodeId(data.fromHostId))
         ? data.fromHostId
         : referenceDataToEphemeraComponentId(data.fromHostId as StandardReferenceData),

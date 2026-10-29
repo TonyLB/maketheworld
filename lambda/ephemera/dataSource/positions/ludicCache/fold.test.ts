@@ -437,7 +437,7 @@ describe('buildLudicCache', () => {
     it('collapses a crossing to one edge when a child is bound twice into the same host', async () => {
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boulder }, { tag: 'Object', universalKey: boxId }],
-            edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'port_1' }, kind: 'ConnectedTo' }],
+            edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'PORT-port_1' }, kind: 'ConnectedTo' }],
         })
         const boxGraph = testLudicGraph(boxId, {
             nodes: [
@@ -446,8 +446,8 @@ describe('buildLudicCache', () => {
                 presenceNode('box_in_a_1', roomA, { members: [] }),
                 presenceNode('box_in_a_2', roomA, { members: [] }),
             ],
-            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'ConnectedTo' }],
-            ports: [{ portId: 'port_1', fromHostId: roomA, kind: 'ConnectedTo' }],
+            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo' }],
+            ports: [{ portId: 'PORT-port_1', fromHostId: roomA, kind: 'ConnectedTo' }],
         })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, roomGraph], [boxId, boxGraph],
@@ -484,8 +484,8 @@ describe('buildLudicCache', () => {
                 { tag: 'Object', universalKey: pebble },
                 presenceNode('box_to_room', roomA, enumeratedCover()),
             ],
-            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'port_1' }, to: pebble, kind: 'ConnectedTo' }],
-            ports: [{ portId: 'port_1', fromHostId: boxId, kind: 'ConnectedTo' }],
+            edges: [{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo' }],
+            ports: [{ portId: 'PORT-port_1', fromHostId: boxId, kind: 'ConnectedTo' }],
         })
         const boulderGraph = testLudicGraph(boulder, { nodes: [{ tag: 'Object', universalKey: boulder }] })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([

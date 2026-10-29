@@ -151,16 +151,16 @@ describe('expandSameHost', () => {
             return []
         }
         const crossingShards = () => {
-            const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+            const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             return {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
                     .addObject(NECKLACE_ID, 'In')
                     .addObject(TABLE_ID, 'In')
-                    .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' }),
+                    .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'to' }),
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
                     .addObject(CHARM_ID, 'In')
                     .addPort(port)
-                    .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' }),
+                    .addRelationalEdge({ from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' }),
             } as Record<string, EphemeraLudicGraph>
         }
         const envOver = (graphs: Record<string, EphemeraLudicGraph>) => ({
@@ -221,15 +221,15 @@ describe('expandSameHost', () => {
         })
 
         it("a genuine crossing dissolve (the string-in-room / cup-on-table crossing chain, reversed) resolves via findRelationalChain", () => {
-            const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+            const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
             const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
                 .addObject(NECKLACE_ID, 'In')
                 .addObject(TABLE_ID, 'In')
-                .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
+                .addRelationalEdge({ from: NECKLACE_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'to' })
             const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
                 .addObject(CHARM_ID, 'In')
                 .addPort(port)
-                .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' })
+                .addRelationalEdge({ from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CHARM_ID, kind: 'Custom', relationLabel: 'to' })
 
             const result = expandAndLower(
                 { subjectId: NECKLACE_ID, objectId: CHARM_ID, relationKind: 'Custom', relationLabel: 'to', operationKind: 'dissolveRelation' },
@@ -246,15 +246,15 @@ describe('expandSameHost', () => {
                     {
                         kind: 'dissolveRelation',
                         subjectId: NECKLACE_ID,
-                        targetId: { owner: TABLE_ID, port: 'port-1' },
+                        targetId: { owner: TABLE_ID, port: 'PORT-port-1' },
                         hostId: ROOM_ID,
                         relationKind: 'Custom',
                         relationLabel: 'to',
                     },
-                    { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'port-1' },
+                    { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'PORT-port-1' },
                     {
                         kind: 'dissolveRelation',
-                        subjectId: { owner: TABLE_ID, port: 'port-1' },
+                        subjectId: { owner: TABLE_ID, port: 'PORT-port-1' },
                         targetId: CHARM_ID,
                         hostId: TABLE_ID,
                         relationKind: 'Custom',

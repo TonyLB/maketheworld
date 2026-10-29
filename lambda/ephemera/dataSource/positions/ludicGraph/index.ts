@@ -17,10 +17,10 @@ import type {
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
     EphemeraLudicTerminalId,
-    EphemeraLudicTerminalPrimitive,
+    EphemeraLudicNodeTerminal,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicRootId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPortId, EphemeraLudicRootId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
@@ -68,7 +68,7 @@ export const areaNode = (universalKey: EphemeraAreaId): EphemeraLudicGraphCompon
  * these five kinds for a host-bound graph (`rootId === hostId`), so every fresh-construction
  * factory below uses this to seed the root's own node alongside whatever else it builds.
  */
-export const nodeFromId = (id: EphemeraLudicTerminalPrimitive): EphemeraLudicGraphNode => {
+export const nodeFromId = (id: EphemeraLudicNodeTerminal): EphemeraLudicGraphNode => {
     if (isEphemeraCharacterId(id)) return characterNode(id)
     if (isEphemeraObjectId(id)) return objectNode(id)
     if (isEphemeraRoomId(id)) return roomNode(id)
@@ -282,7 +282,7 @@ export class EphemeraLudicGraph {
      * `nodeIds` also admits Room/Area, which `EphemeraThingId` (a catalog/Identify-layer type,
      * not a graph-node type) does not.
      */
-    get nodeIds(): Set<EphemeraLudicTerminalPrimitive> {
+    get nodeIds(): Set<EphemeraLudicNodeTerminal> {
         return new Set(this._nodes.map((node) => node.universalKey))
     }
 
@@ -421,7 +421,7 @@ export class EphemeraLudicGraph {
      * A member's hosting kind in this host's graph: `undefined` for the root, a presence
      * node, or an absent id; every other member carries one.
      */
-    hostingKindOf(id: EphemeraLudicTerminalPrimitive): EphemeraHostingKind | undefined {
+    hostingKindOf(id: EphemeraLudicNodeTerminal): EphemeraHostingKind | undefined {
         const node = this._nodes.find((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
         return node && node.tag !== 'Presence' ? node.hostingKind : undefined
     }
@@ -453,7 +453,7 @@ export class EphemeraLudicGraph {
     }
 
     /** Throws unless `hostingKind` may be carried by `memberId` in this host (not the root; legal on the root's tag). */
-    private assertHostingKindLegal(memberId: EphemeraLudicTerminalPrimitive, hostingKind: EphemeraHostingKind): void {
+    private assertHostingKindLegal(memberId: EphemeraLudicNodeTerminal, hostingKind: EphemeraHostingKind): void {
         if (memberId === ephemeraLudicTerminalOwner(this.rootId)) {
             throw new Error(`${memberId} is the root of ${this.hostId} and carries no hosting kind`)
         }
@@ -569,7 +569,7 @@ export class EphemeraLudicGraph {
      * collapsed to one loop over `nodeIds`/`addNode`/`removeNode` instead of kept as four to spell
      * out a distinction nothing downstream needed spelled out. Typed to
      * `EphemeraPositionAdjacencyContainedId` (Character/Object/Feature/Room) rather than the wider
-     * `EphemeraLudicTerminalPrimitive` --- Area is a host only and never itself a member, so it has
+     * `EphemeraLudicNodeTerminal` --- Area is a host only and never itself a member, so it has
      * no add/remove case here (see that type's own doc comment).
      */
     addNode(id: EphemeraPositionAdjacencyContainedId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
@@ -651,7 +651,7 @@ export class EphemeraLudicGraph {
         return this.withPorts([...this._ports, port])
     }
 
-    removePort(portId: string): EphemeraLudicGraph {
+    removePort(portId: EphemeraCrossingPortId): EphemeraLudicGraph {
         return this.withPorts(this._ports.filter((port) => port.portId !== portId))
     }
 
@@ -698,7 +698,7 @@ export class EphemeraLudicGraph {
         return nodeIds.has(ephemeraLudicTerminalOwner(from)) && nodeIds.has(ephemeraLudicTerminalOwner(to))
     }
 
-    nodeHasRelationalEdge(nodeId: EphemeraLudicTerminalPrimitive): boolean {
+    nodeHasRelationalEdge(nodeId: EphemeraLudicNodeTerminal): boolean {
         return nodeHasRelationalEdge(nodeId, this.relationalEdges)
     }
 

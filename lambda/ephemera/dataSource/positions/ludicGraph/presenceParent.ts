@@ -1,7 +1,7 @@
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { ConnectedToPair, PresenceGraphView } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import { BASE_PRESENCE_ID, isEphemeraLudicPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, isEphemeraLudicBindingAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
@@ -106,11 +106,11 @@ export const childParentBindingIdOf = (parentGraph: EphemeraLudicGraph): Ephemer
  * neighbors the contraction rule (`siblingContraction`) reads. An edge between named parts, or one whose
  * end is not the host's own, is not between bindings and is left out.
  */
-export const connectedToPairsOf = (graph: EphemeraLudicGraph): ConnectedToPair[] => (
-    graph.relationalEdges.flatMap(({ kind, from, to }): ConnectedToPair[] => (
+export const connectedToPairsOf = (graph: EphemeraLudicGraph): ConnectedToPair<EphemeraPresenceNodeId>[] => (
+    graph.relationalEdges.flatMap(({ kind, from, to }): ConnectedToPair<EphemeraPresenceNodeId>[] => (
         kind === 'ConnectedTo'
-            && isEphemeraLudicPortAddress(from) && from.owner === graph.hostId
-            && isEphemeraLudicPortAddress(to) && to.owner === graph.hostId
+            && isEphemeraLudicBindingAddress(from) && from.owner === graph.hostId
+            && isEphemeraLudicBindingAddress(to) && to.owner === graph.hostId
             ? [[from.port, to.port]]
             : []
     ))

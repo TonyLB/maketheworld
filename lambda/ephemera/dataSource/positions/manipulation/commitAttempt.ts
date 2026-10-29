@@ -3,8 +3,8 @@ import { isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphem
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
 import internalCache from '../../../internalCache'
@@ -557,20 +557,20 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
     // `computeStepSequenceFootprint`'s question for a relational endpoint. `transferMembership`
     // steps never call this (their hosts are already on the step itself), so this map only
     // ever needs relational entries, combined-attempt or not.
-    const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
+    const hostByReferencedId = new Map<EphemeraLudicNodeTerminal, EphemeraMembershipHostId>()
     for (const step of steps) {
         if (step.kind !== 'establishRelation' && step.kind !== 'dissolveRelation') {
             continue
         }
-        if (isEphemeraLudicTerminalPrimitive(step.subjectId)) {
+        if (isEphemeraLudicNodeTerminal(step.subjectId)) {
             hostByReferencedId.set(step.subjectId, step.hostId)
         }
-        if (isEphemeraLudicTerminalPrimitive(step.targetId)) {
+        if (isEphemeraLudicNodeTerminal(step.targetId)) {
             hostByReferencedId.set(step.targetId, step.hostId)
         }
     }
 
-    const getCurrentHost = (id: EphemeraLudicTerminalPrimitive) => hostByReferencedId.get(id)
+    const getCurrentHost = (id: EphemeraLudicNodeTerminal) => hostByReferencedId.get(id)
     const dryRun = await dryRunStepSequence(steps.filter(isKernelMutationStep), { getCurrentHost })
     if (dryRun.verdict !== 'legal') {
         console.error(`[mtw.ephemera.positions] commitAttempt: attempt refused (${dryRun.verdict}: ${dryRun.reasonCode})`)

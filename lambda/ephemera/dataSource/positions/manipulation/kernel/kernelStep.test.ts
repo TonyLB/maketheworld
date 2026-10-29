@@ -26,9 +26,9 @@ describe('isKernelMutationStep', () => {
         const addStep: KernelStep = {
             kind: 'addCrossingPort',
             hostId: roomId,
-            port: { portId: 'p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+            port: { portId: 'PORT-p1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' },
         }
-        const removeStep: KernelStep = { kind: 'removeCrossingPort', hostId: roomId, portId: 'p1' }
+        const removeStep: KernelStep = { kind: 'removeCrossingPort', hostId: roomId, portId: 'PORT-p1' }
         expect(isKernelMutationStep(addStep)).toBe(true)
         expect(isKernelMutationStep(removeStep)).toBe(true)
     })

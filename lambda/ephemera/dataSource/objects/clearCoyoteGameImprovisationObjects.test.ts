@@ -149,9 +149,9 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const STRING_ID = 'OBJECT#String' as EphemeraObjectId
         const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
         const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_A, kind: 'Custom', exteriorRelationLabel: 'to' }
-        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_A, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
+        const interiorEdge = { from: { owner: TABLE_ID, port: 'PORT-port-1' as const }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.fromFieldPayload(ROOM_A, {
             rootId: ROOM_A,
             ports: [],
@@ -183,7 +183,7 @@ describe('clearCoyoteGameImprovisationObjects', () => {
         const [{ steps }] = commitStepSequenceMock.mock.calls[0]
         expect(steps).toEqual(expect.arrayContaining([
             { kind: 'dissolveRelation', subjectId: exteriorEdge.from, targetId: exteriorEdge.to, hostId: ROOM_A, relationKind: 'Custom', relationLabel: 'to' },
-            { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'port-1' },
+            { kind: 'removeCrossingPort', hostId: TABLE_ID, portId: 'PORT-port-1' },
             { kind: 'dissolveRelation', subjectId: interiorEdge.from, targetId: interiorEdge.to, hostId: TABLE_ID, relationKind: 'Custom', relationLabel: 'to' },
         ]))
         expect(steps).toHaveLength(3)

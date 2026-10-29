@@ -524,8 +524,8 @@ const cases: Case[] = [
         rooms: [R1],
         changesCache: false,
         act: async () => {
-            await commit([{ kind: 'addCrossingPort', hostId: TABLE, port: { portId: 'p1', fromHostId: R1, kind: 'Custom', exteriorRelationLabel: 'tied to' } as any }])
-            await commit([{ kind: 'removeCrossingPort', hostId: TABLE, portId: 'p1' }])
+            await commit([{ kind: 'addCrossingPort', hostId: TABLE, port: { portId: 'PORT-p1', fromHostId: R1, kind: 'Custom', exteriorRelationLabel: 'tied to' } as any }])
+            await commit([{ kind: 'removeCrossingPort', hostId: TABLE, portId: 'PORT-p1' }])
         },
     },
     {

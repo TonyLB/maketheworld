@@ -7,7 +7,7 @@ import type {
     EphemeraRoomId,
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicTerminalId, EphemeraLudicNodeTerminal, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'

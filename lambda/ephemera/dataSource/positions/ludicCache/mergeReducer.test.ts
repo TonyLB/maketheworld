@@ -4,7 +4,7 @@
  * storage.
  */
 import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraLudicRelationalEdgeData, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPortId, EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraLudicRelationalEdgeData, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
@@ -46,20 +46,20 @@ const presenceNode = (portId: string, cover: EphemeraPresenceCover): EphemeraLud
     cover,
 })
 
-const crossingPort = (portId: string, kind: EphemeraLudicGraphPort['kind'] = 'ConnectedTo'): EphemeraLudicGraphPort => ({
+const crossingPort = (portId: EphemeraCrossingPortId, kind: EphemeraLudicGraphPort['kind'] = 'ConnectedTo'): EphemeraLudicGraphPort => ({
     portId,
     fromHostId: roomId,
     kind,
 })
 
-const parentLeg = (portId: string, kind: EphemeraLudicRelationalEdgeData['kind'] = 'ConnectedTo'): EphemeraLudicRelationalEdgeData => ({
+const parentLeg = (portId: EphemeraCrossingPortId, kind: EphemeraLudicRelationalEdgeData['kind'] = 'ConnectedTo'): EphemeraLudicRelationalEdgeData => ({
     tag: 'Relational',
     from: boulder,
     to: { owner: boxId, port: portId },
     kind,
 } as EphemeraLudicRelationalEdgeData)
 
-const childLeg = (portId: string, to: EphemeraLudicRelationalEdgeData['to'], kind: EphemeraLudicRelationalEdgeData['kind'] = 'ConnectedTo'): EphemeraLudicRelationalEdgeData => ({
+const childLeg = (portId: EphemeraCrossingPortId, to: EphemeraLudicRelationalEdgeData['to'], kind: EphemeraLudicRelationalEdgeData['kind'] = 'ConnectedTo'): EphemeraLudicRelationalEdgeData => ({
     tag: 'Relational',
     from: { owner: boxId, port: portId },
     to,
@@ -70,12 +70,12 @@ describe('collapseCrossingPorts', () => {
     it('collapses a single matched leg pair into one edge with the port terminal rewritten', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
-            edges: [parentLeg('port_1')],
+            edges: [parentLeg('PORT-port_1')],
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [childLeg('port_1', pebble)],
-            ports: [crossingPort('port_1')],
+            edges: [childLeg('PORT-port_1', pebble)],
+            ports: [crossingPort('PORT-port_1')],
         })
 
         expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([
@@ -91,12 +91,12 @@ describe('collapseCrossingPorts', () => {
     it('groups two independently-matched leg pairs landing on the same edge identity, onto one edge', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
-            edges: [parentLeg('port_1'), parentLeg('port_2')],
+            edges: [parentLeg('PORT-port_1'), parentLeg('PORT-port_2')],
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [childLeg('port_1', pebble), childLeg('port_2', pebble)],
-            ports: [crossingPort('port_1'), crossingPort('port_2')],
+            edges: [childLeg('PORT-port_1', pebble), childLeg('PORT-port_2', pebble)],
+            ports: [crossingPort('PORT-port_1'), crossingPort('PORT-port_2')],
         })
 
         const result = collapseCrossingPorts(parentGraph, childGraph)
@@ -111,17 +111,17 @@ describe('collapseCrossingPorts', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
             edges: [
-                { ...parentLeg('port_1'), edgeId: 'edge_1' },
-                { ...parentLeg('port_2'), edgeId: 'edge_2' },
+                { ...parentLeg('PORT-port_1'), edgeId: 'edge_1' },
+                { ...parentLeg('PORT-port_2'), edgeId: 'edge_2' },
             ],
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
             edges: [
-                { ...childLeg('port_1', pebble), edgeId: 'edge_1' },
-                { ...childLeg('port_2', pebble), edgeId: 'edge_2' },
+                { ...childLeg('PORT-port_1', pebble), edgeId: 'edge_1' },
+                { ...childLeg('PORT-port_2', pebble), edgeId: 'edge_2' },
             ],
-            ports: [crossingPort('port_1'), crossingPort('port_2')],
+            ports: [crossingPort('PORT-port_1'), crossingPort('PORT-port_2')],
         })
 
         const result = collapseCrossingPorts(parentGraph, childGraph)
@@ -136,20 +136,20 @@ describe('collapseCrossingPorts', () => {
     // twice. `collapsedEdgeIdentityKey` now normalizes UP to the exterior form (nesting made a
     // binding's cache lookup a path, so the owner must travel with the port id), which is why the
     // surviving record's `to` is the owner-qualified form, not the bare id --- `liftPresenceTerminal`
-    // widens the bare leg (`childLeg('port_1', binding)`) to match the already-qualified one.
+    // widens the bare leg (`childLeg('PORT-port_1', binding)`) to match the already-qualified one.
     it('dedups two legs reaching one presence binding by its two different addresses', () => {
         const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
-            edges: [parentLeg('port_1'), parentLeg('port_2')],
+            edges: [parentLeg('PORT-port_1'), parentLeg('PORT-port_2')],
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, presenceNode('b1', enumeratedCover(boxId))],
             edges: [
-                childLeg('port_1', binding),
-                childLeg('port_2', { owner: boxId, port: binding }),
+                childLeg('PORT-port_1', binding),
+                childLeg('PORT-port_2', { owner: boxId, port: binding }),
             ],
-            ports: [crossingPort('port_1'), crossingPort('port_2')],
+            ports: [crossingPort('PORT-port_1'), crossingPort('PORT-port_2')],
         })
 
         const result = collapseCrossingPorts(parentGraph, childGraph)
@@ -160,12 +160,12 @@ describe('collapseCrossingPorts', () => {
     it('does not collapse two edges that only coincidentally reach the same identity if their kinds disagree', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
-            edges: [parentLeg('port_1', 'ConnectedTo')],
+            edges: [parentLeg('PORT-port_1', 'ConnectedTo')],
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [{ ...childLeg('port_1', pebble, 'Custom'), relationLabel: 'tied' } as EphemeraLudicRelationalEdgeData],
-            ports: [crossingPort('port_1')],
+            edges: [{ ...childLeg('PORT-port_1', pebble, 'Custom'), relationLabel: 'tied' } as EphemeraLudicRelationalEdgeData],
+            ports: [crossingPort('PORT-port_1')],
         })
 
         expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
@@ -178,8 +178,8 @@ describe('collapseCrossingPorts', () => {
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: feather }],
-            edges: [childLeg('port_1', feather)],
-            ports: [crossingPort('port_1')],
+            edges: [childLeg('PORT-port_1', feather)],
+            ports: [crossingPort('PORT-port_1')],
         })
 
         expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([])
@@ -192,12 +192,12 @@ describe('collapseCrossingPorts', () => {
     it('throws when two legs disagree on edgeId, matching every other identity field it already asserts', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
-            edges: [{ ...parentLeg('port_1'), edgeId: 'edge_parent' }],
+            edges: [{ ...parentLeg('PORT-port_1'), edgeId: 'edge_parent' }],
         })
         const childGraph = testLudicGraph(boxId, {
             nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [{ ...childLeg('port_1', pebble), edgeId: 'edge_child' }],
-            ports: [crossingPort('port_1')],
+            edges: [{ ...childLeg('PORT-port_1', pebble), edgeId: 'edge_child' }],
+            ports: [crossingPort('PORT-port_1')],
         })
 
         expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
@@ -279,14 +279,14 @@ describe('collapseSameHostStubs', () => {
     it('does not splice an authored crossing port present in both buckets', () => {
         const transitLeg = {
             tag: 'Relational' as const,
-            from: { owner: roomId, port: 'cross_1' },
-            to: { owner: roomId, port: 'cross_2' },
+            from: { owner: roomId, port: 'PORT-cross_1' as const },
+            to: { owner: roomId, port: 'PORT-cross_2' as const },
             kind: 'Custom' as const,
             relationLabel: 'RopedTo',
         }
         const authored = [
-            { portId: 'cross_1', fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
-            { portId: 'cross_2', fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+            { portId: 'PORT-cross_1' as const, fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+            { portId: 'PORT-cross_2' as const, fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
         ]
         const bucketA = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
@@ -306,14 +306,14 @@ describe('collapseSameHostStubs', () => {
 describe('mergeSameHostBucket', () => {
     const transitLeg = {
         tag: 'Relational' as const,
-        from: { owner: roomId, port: 'cross_1' },
-        to: { owner: roomId, port: 'cross_2' },
+        from: { owner: roomId, port: 'PORT-cross_1' as const },
+        to: { owner: roomId, port: 'PORT-cross_2' as const },
         kind: 'Custom' as const,
         relationLabel: 'RopedTo',
     }
     const authored = [
-        { portId: 'cross_1', fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
-        { portId: 'cross_2', fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+        { portId: 'PORT-cross_1' as const, fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
+        { portId: 'PORT-cross_2' as const, fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
     ]
 
     //
@@ -575,28 +575,28 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
     const roomGraphWithAgainst = testLudicGraph(roomId, {
         nodes: roomNodes,
         edges: [
-            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: { owner: objC, port: 'p_c' }, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: { owner: objB, port: 'PORT-p_b' }, to: { owner: objC, port: 'PORT-p_c' }, kind: 'Custom', relationLabel: 'against' },
         ],
     })
     const bGraphWithPort = testLudicGraph(objB, {
         nodes: [{ tag: 'Object', universalKey: objB }, { tag: 'Object', universalKey: objD, hostingKind: 'In' }],
         edges: [
-            { tag: 'Relational', from: { owner: objB, port: 'p_b' }, to: objD, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: { owner: objB, port: 'PORT-p_b' }, to: objD, kind: 'Custom', relationLabel: 'against' },
         ],
-        ports: [{ portId: 'p_b', fromHostId: objB, kind: 'Custom', exteriorRelationLabel: 'against' }],
+        ports: [{ portId: 'PORT-p_b', fromHostId: objB, kind: 'Custom', exteriorRelationLabel: 'against' }],
     })
     const cGraphWithPort = testLudicGraph(objC, {
         nodes: [{ tag: 'Object', universalKey: objC }, { tag: 'Object', universalKey: objD, hostingKind: 'In' }, { tag: 'Object', universalKey: objE, hostingKind: 'In' }],
         edges: [
-            { tag: 'Relational', from: { owner: objC, port: 'p_c' }, to: objE, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: { owner: objC, port: 'PORT-p_c' }, to: objE, kind: 'Custom', relationLabel: 'against' },
         ],
-        ports: [{ portId: 'p_c', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'against' }],
+        ports: [{ portId: 'PORT-p_c', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'against' }],
     })
 
     it('resolves the bare port-to-port edge via two ordinary sequential merges, the second fed the first\'s result as its parent graph --- no single merge ever joins both ends at once (LC10 first/second job)', () => {
         const afterB = collapseCrossingPorts(roomGraphWithAgainst, bGraphWithPort)
         expect(afterB).toHaveLength(1)
-        expect(afterB[0]).toMatchObject({ from: objD, to: { owner: objC, port: 'p_c' }, kind: 'Custom', relationLabel: 'against' })
+        expect(afterB[0]).toMatchObject({ from: objD, to: { owner: objC, port: 'PORT-p_c' }, kind: 'Custom', relationLabel: 'against' })
         // The bare port-to-port edge is representable as a partial occurrence (P8 clause 3(b)):
         // one real terminal, one still port-qualified, and it type-checks as an ordinary cache
         // edge in its own right, confirming it isn't rejected by the shipped type.
@@ -616,7 +616,7 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         // result forward for B. Same final edge either way.
         const afterCFirst = collapseCrossingPorts(roomGraphWithAgainst, cGraphWithPort)
         expect(afterCFirst).toHaveLength(1)
-        expect(afterCFirst[0]).toMatchObject({ from: { owner: objB, port: 'p_b' }, to: objE, kind: 'Custom', relationLabel: 'against' })
+        expect(afterCFirst[0]).toMatchObject({ from: { owner: objB, port: 'PORT-p_b' }, to: objE, kind: 'Custom', relationLabel: 'against' })
 
         const parentAfterC = testLudicGraph(roomId, { nodes: roomNodes, edges: [afterCFirst[0]] })
         const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort)
@@ -645,8 +645,8 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
 })
 
 describe('collapsedEdgeIdentityKey: ConnectedTo symmetry', () => {
-    const a = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#a' }
-    const b = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#b' }
+    const a = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#a' as const }
+    const b = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#b' as const }
 
     it('hashes a ConnectedTo edge alike in either endpoint order', () => {
         expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'ConnectedTo' }))

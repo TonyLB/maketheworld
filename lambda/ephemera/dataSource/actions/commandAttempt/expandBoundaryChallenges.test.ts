@@ -3,7 +3,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { testLudicGraph, testLudicGraphFromEnvelope } from '../../positions/ludicGraph/testFixtures'
-import { attemptActionsFromBoundaryOutcomes, attemptActionsFromTransfer } from './expandBoundaryChallenges'
+import { attemptActionsFromBoundaryOutcomes, attemptActionsFromTransfer, customEdgeStructuralChallengeId } from './expandBoundaryChallenges'
 import { PositionAttemptAction } from './action'
 import { graphNodeRef } from '../enrich/objectManipulation/plan/planStep'
 import { parentRemainderKey } from '../../positions/ludicGraph/testFixtures'
@@ -132,6 +132,12 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         expect(expand('primary')).toEqual(expand('primary'))
         expect(expand('primary')).toEqual([`customEdge:primary:${ropeId}|${postId}|Custom|is lashed to`])
         expect(expand('other')).not.toEqual(expand('primary'))
+    })
+
+    it('keys an address end of a CustomEdgeChallenge by the shared terminal key (owner#port)', () => {
+        const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
+        expect(customEdgeStructuralChallengeId('primary', { from: ropeId, to: { owner: postId, port: binding }, kind: 'Custom', relationLabel: 'is lashed to' }))
+            .toBe(`customEdge:primary:${ropeId}|${postId}#${binding}|Custom|is lashed to`)
     })
 
     it('keys a CustomEdgeChallenge by edgeId when the edge has one', () => {
@@ -324,8 +330,8 @@ describe('attemptActionsFromTransfer: a crossing relation', () => {
     const stringId = 'OBJECT#String' as EphemeraObjectId
     const cupId = 'OBJECT#Cup' as EphemeraObjectId
     const tableBinding = 'PRESENCE#table-in-bridge' as EphemeraPresenceNodeId
-    const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'is tied to' }
-    const portAddress = { owner: tableId, port: 'port-1' }
+    const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'is tied to' }
+    const portAddress = { owner: tableId, port: 'PORT-port-1' as const }
     const roomGraph = EphemeraLudicGraph.empty(roomId)
         .addObject(stringId, 'In')
         .addObject(tableId, 'In')

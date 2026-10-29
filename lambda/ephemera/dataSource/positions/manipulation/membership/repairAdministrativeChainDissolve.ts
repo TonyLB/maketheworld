@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -11,7 +11,7 @@ import { fetchRelationalReachability, findRelationalChainsTouching } from '../re
 
 export type RepairAdministrativeChainDissolveResult = {
     dissolveSteps: readonly MutationKernelStep[]
-    hostByReferencedId: ReadonlyMap<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>
+    hostByReferencedId: ReadonlyMap<EphemeraLudicNodeTerminal, EphemeraMembershipHostId>
 }
 
 /**
@@ -33,7 +33,7 @@ export const repairAdministrativeChainDissolve = async (
     getMembershipContainers: (id: EphemeraObjectId | EphemeraCharacterId) => Promise<EphemeraMembershipHostId[]>,
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
 ): Promise<RepairAdministrativeChainDissolveResult> => {
-    const hostByReferencedId = new Map<EphemeraLudicTerminalPrimitive, EphemeraMembershipHostId>()
+    const hostByReferencedId = new Map<EphemeraLudicNodeTerminal, EphemeraMembershipHostId>()
     const dissolveSteps: MutationKernelStep[] = []
 
     if (isEphemeraObjectId(entityId)) {
@@ -44,10 +44,10 @@ export const repairAdministrativeChainDissolve = async (
             lowerRelationalChain(chain, 'dissolveRelation').forEach((step) => {
                 dissolveSteps.push(step)
                 if (step.kind === 'dissolveRelation') {
-                    if (isEphemeraLudicTerminalPrimitive(step.subjectId)) {
+                    if (isEphemeraLudicNodeTerminal(step.subjectId)) {
                         hostByReferencedId.set(step.subjectId, step.hostId)
                     }
-                    if (isEphemeraLudicTerminalPrimitive(step.targetId)) {
+                    if (isEphemeraLudicNodeTerminal(step.targetId)) {
                         hostByReferencedId.set(step.targetId, step.hostId)
                     }
                 }

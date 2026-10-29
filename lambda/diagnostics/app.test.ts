@@ -278,7 +278,7 @@ describe('diagnostics handler', () => {
     it('invokes ludicGraphPortMismatchSweep for direct LudicGraphPortMismatchSweep type', async () => {
         jest.mocked(ludicGraphPortMismatchSweep).mockResolvedValueOnce({
             emittedCount: 1,
-            ports: [{ ephemeraId: 'OBJECT#Rope' as EphemeraMembershipHostId, portId: 'abcd123' }],
+            ports: [{ ephemeraId: 'OBJECT#Rope' as EphemeraMembershipHostId, portId: 'PORT-abcd123' }],
         })
         const result = await handler({
             type: 'LudicGraphPortMismatchSweep',
@@ -290,7 +290,7 @@ describe('diagnostics handler', () => {
             diagnosticRunId: 'dr-lgpm',
             nowMs: 5555,
         })
-        expect(result).toEqual({ emittedCount: 1, ports: [{ ephemeraId: 'OBJECT#Rope', portId: 'abcd123' }] })
+        expect(result).toEqual({ emittedCount: 1, ports: [{ ephemeraId: 'OBJECT#Rope', portId: 'PORT-abcd123' }] })
     })
 
 })

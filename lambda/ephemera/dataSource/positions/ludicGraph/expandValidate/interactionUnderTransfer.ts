@@ -53,7 +53,7 @@ export function boundaryEdgeOutcomes(
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
-        // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but the mover is
+        // `edge.from`/`.to` are widened to `EphemeraLudicNodeTerminal`, but the mover is
         // Object-only: `applyDeparture.ts` calls in here only for an object. See
         // `ludicGraph/AGENT.md`'s "Character-relation widening" note.
         const fromIsMover = edge.from === moverId

@@ -1,5 +1,5 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -39,7 +39,7 @@ const defaultGetGraph = (hostId: EphemeraMembershipHostId): Promise<EphemeraLudi
 export const dryRunStepSequence = async (
     steps: readonly MutationKernelStep[],
     deps: {
-        getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
+        getCurrentHost: (id: EphemeraLudicNodeTerminal) => EphemeraMembershipHostId | undefined
         getGraph?: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
         getRoomCharacters?: Parameters<typeof resolveCaptureOccupants>[1]
     }
