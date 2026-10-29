@@ -300,6 +300,30 @@ export type EphemeraLudicTerminalId =
 export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudicTerminalId =>
     isEphemeraLudicTerminalPrimitive(value) || isEphemeraLudicPortAddress(value)
 
+/** One handler per terminal arm. **Discriminate terminal arms only through
+ * `matchEphemeraLudicTerminal`, never `typeof terminal === 'string'` or `'owner' in terminal`:**
+ * adding an arm to `EphemeraLudicTerminalId` then adds a key here, and every caller that passes an
+ * arms literal stops compiling until it says what it does with the new arm. */
+export type EphemeraLudicTerminalArms<R> = {
+    component: (terminal: EphemeraLudicTerminalPrimitive) => R;
+    port: (address: EphemeraLudicPortAddress) => R;
+}
+
+export const matchEphemeraLudicTerminal = <R>(terminal: EphemeraLudicTerminalId, arms: EphemeraLudicTerminalArms<R>): R =>
+    typeof terminal === 'string' ? arms.component(terminal) : arms.port(terminal)
+
+/** A string identifying a terminal: the id itself for a component, `owner#port` for a port address.
+ * Stub port ids and edge identity hashes are built from it, so the output is persisted-compatible. */
+export const ephemeraLudicTerminalKey = (terminal: EphemeraLudicTerminalId): string =>
+    matchEphemeraLudicTerminal(terminal, {
+        component: (id) => id,
+        port: (address) => `${address.owner}#${address.port}`
+    })
+
+/** The type of a graph's `rootId`. Today any terminal; the edge arm (edgeTerminals Slice 2) is
+ * excluded from it, because a root is always a component or a port on one. */
+export type EphemeraLudicRootId = EphemeraLudicTerminalId
+
 /** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified.
  * Overloaded so a call site already narrowed to a port address (which can only ever name a real
  * component, PN-4) gets `EphemeraMembershipHostId` back rather than the wider terminal-primitive
@@ -307,7 +331,7 @@ export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudi
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicPortAddress): EphemeraMembershipHostId
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive {
-    return typeof terminal === 'string' ? terminal : terminal.owner
+    return matchEphemeraLudicTerminal(terminal, { component: (id) => id, port: (address) => address.owner })
 }
 
 /** Full terminal equality --- a primitive and a port address on the same owner are NOT equal,
@@ -328,14 +352,18 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so this is a plain equality; do NOT reintroduce a `PRESENCE#${...}` reconstruction here, which
  * is what this comparison looked like while `.port` was bare and would now double-prefix. */
 export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId, bareOwner?: string): boolean => {
-    if (typeof a === 'string' && typeof b === 'string') {
-        return a === b
-    }
-    if (typeof a === 'string' || typeof b === 'string') {
-        const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
-        return isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
-    }
-    return a.owner === b.owner && a.port === b.port
+    const mixed = (primitive: EphemeraLudicTerminalPrimitive, address: EphemeraLudicPortAddress): boolean =>
+        isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
+    return matchEphemeraLudicTerminal(a, {
+        component: (aId) => matchEphemeraLudicTerminal(b, {
+            component: (bId) => aId === bId,
+            port: (bAddress) => mixed(aId, bAddress)
+        }),
+        port: (aAddress) => matchEphemeraLudicTerminal(b, {
+            component: (bId) => mixed(bId, aAddress),
+            port: (bAddress) => aAddress.owner === bAddress.owner && aAddress.port === bAddress.port
+        })
+    })
 }
 
 /**
@@ -725,7 +753,7 @@ export type EphemeraLudicGraphPort = EphemeraCrossingPort
 export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
     /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see `positions/ludicGraph/AGENT.md`. */
-    rootId: EphemeraLudicTerminalId;
+    rootId: EphemeraLudicRootId;
     nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
     edges?: EphemeraLudicRelationalEdgeData[];

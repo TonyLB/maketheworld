@@ -16,6 +16,8 @@ import {
     ephemeraLudicTerminalOwner,
     ephemeraLudicTerminalsEqual,
     ephemeraLudicTerminalRefersTo,
+    ephemeraLudicTerminalKey,
+    matchEphemeraLudicTerminal,
     HOSTING_KINDS,
     hostingFamily,
     isEphemeraHostingKind,
@@ -272,6 +274,26 @@ describe('ephemeraLudicTerminalOwner', () => {
 
     it('returns .owner for a port-qualified terminal', () => {
         expect(ephemeraLudicTerminalOwner({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe('OBJECT#BOX')
+    })
+})
+
+describe('matchEphemeraLudicTerminal / ephemeraLudicTerminalKey', () => {
+    it('dispatches a bare terminal to the component arm and an address to the port arm', () => {
+        const arms = { component: (id: string) => `component:${id}`, port: (address: { owner: string; port: string }) => `port:${address.owner}/${address.port}` }
+        expect(matchEphemeraLudicTerminal('OBJECT#BOX', arms)).toBe('component:OBJECT#BOX')
+        expect(matchEphemeraLudicTerminal({ owner: 'OBJECT#BOX', port: 'ab' }, arms)).toBe('port:OBJECT#BOX/ab')
+    })
+
+    it('requires every arm to be handled', () => {
+        // @ts-expect-error the port arm is missing
+        const missingPort = () => matchEphemeraLudicTerminal('OBJECT#BOX', { component: () => 1 })
+        expect(typeof missingPort).toBe('function')
+    })
+
+    it('keys a component as itself and a port address as owner#port', () => {
+        expect(ephemeraLudicTerminalKey('OBJECT#BOX')).toBe('OBJECT#BOX')
+        expect(ephemeraLudicTerminalKey({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe('OBJECT#BOX#ab6129d')
+        expect(ephemeraLudicTerminalKey({ owner: 'ROOM#A', port: 'PRESENCE#abc' })).toBe('ROOM#A#PRESENCE#abc')
     })
 })
 

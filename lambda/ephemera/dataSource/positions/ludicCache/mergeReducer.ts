@@ -21,7 +21,7 @@
  * its findings live on in PR-8 and PR-12 above.
  */
 import type { EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from '../ludicGraph'
@@ -113,10 +113,8 @@ const outerTerminal = (
  * `owner` stopped being redundant information.)
  */
 export const collapsedEdgeIdentityKey = (edge: EphemeraLudicCacheEdge): string => {
-    const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
-        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
     // `ConnectedTo` is symmetric: sort the endpoint keys so either order hashes alike.
-    const endpointKeys = [terminalKey(edge.from), terminalKey(edge.to)]
+    const endpointKeys = [ephemeraLudicTerminalKey(edge.from), ephemeraLudicTerminalKey(edge.to)]
     if (edge.kind === 'ConnectedTo') {
         endpointKeys.sort()
     }

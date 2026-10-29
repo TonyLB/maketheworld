@@ -26,7 +26,7 @@
  */
 import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
@@ -142,10 +142,8 @@ const stubPortIdFromEdge = (edge: HostRelationalEdge): string => {
     if (edge.chainId) {
         return `STUB-${edge.chainId}`
     }
-    const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
-        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
     // `ConnectedTo` is symmetric: sort the endpoint keys so either order mints the same stub.
-    const endpointKeys = [terminalKey(edge.from), terminalKey(edge.to)]
+    const endpointKeys = [ephemeraLudicTerminalKey(edge.from), ephemeraLudicTerminalKey(edge.to)]
     if (edge.kind === 'ConnectedTo') {
         endpointKeys.sort()
     }

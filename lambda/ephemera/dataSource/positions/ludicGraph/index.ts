@@ -20,6 +20,7 @@ import type {
     EphemeraLudicTerminalPrimitive,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicRootId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
@@ -121,7 +122,7 @@ const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges']
 export class EphemeraLudicGraph {
     readonly hostId: EphemeraMembershipHostId
     /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see this directory's `AGENT.md`. */
-    readonly rootId: EphemeraLudicTerminalId
+    readonly rootId: EphemeraLudicRootId
 
     private readonly _nodes: EphemeraLudicGraphNode[]
     private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
@@ -131,7 +132,7 @@ export class EphemeraLudicGraph {
 
     private constructor(
         hostId: EphemeraMembershipHostId,
-        rootId: EphemeraLudicTerminalId,
+        rootId: EphemeraLudicRootId,
         nodes: EphemeraLudicGraphNode[],
         edges: EphemeraLudicRelationalEdgeData[] | undefined,
         playOnlyEdges: PlayLudicGraph['edges'] | undefined = undefined,

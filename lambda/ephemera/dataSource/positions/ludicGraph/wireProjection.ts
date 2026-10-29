@@ -26,6 +26,7 @@ import type {
     EphemeraPresenceCover,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { matchEphemeraLudicTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -70,12 +71,12 @@ const referenceDataToEphemeraComponentId = (data: StandardReferenceData): Epheme
 //
 
 const ephemeraTerminalToWire = (terminal: EphemeraLudicTerminalId): StandardLudicTerminalData => {
-    if (typeof terminal === 'string') {
-        return isEphemeraPresenceNodeId(terminal)
-            ? { presence: terminal }
-            : ephemeraComponentIdToReferenceData(terminal)
-    }
-    return { owner: ephemeraComponentIdToReferenceData(terminal.owner), port: terminal.port }
+    return matchEphemeraLudicTerminal<StandardLudicTerminalData>(terminal, {
+        component: (id) => isEphemeraPresenceNodeId(id)
+            ? { presence: id }
+            : ephemeraComponentIdToReferenceData(id),
+        port: (address) => ({ owner: ephemeraComponentIdToReferenceData(address.owner), port: address.port })
+    })
 }
 
 const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicTerminalId => {
