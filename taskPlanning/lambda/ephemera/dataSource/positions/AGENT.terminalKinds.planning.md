@@ -1,6 +1,6 @@
 # Terminal kinds: name every kind a ludic terminal can be
 
-**Status:** opened 2026-10-29. TK-1 and TK-2 decided 2026-10-29. Slice 0 (inventory) done 2026-10-29. Slice 1 (named kinds and guards) done 2026-10-29. Slice 2 (sites ask by name) done 2026-10-29. TK-3 decided 2026-10-29. Slice 2b (crossing port id prefix) done 2026-10-29; dev-data reset after deploy is pending (user). **Next step: Slice 3.** [`AGENT.edgeTerminals.planning.md`](AGENT.edgeTerminals.planning.md) is paused on this plan. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+**Status:** opened 2026-10-29. TK-1 and TK-2 decided 2026-10-29. Slice 0 (inventory) done 2026-10-29. Slice 1 (named kinds and guards) done 2026-10-29. Slice 2 (sites ask by name) done 2026-10-29. TK-3 decided 2026-10-29. Slice 2b (crossing port id prefix) done 2026-10-29; dev-data reset after deploy is pending (user). Slice 3 (cache terminal type) done 2026-10-29. **Next step: Slice 4.** [`AGENT.edgeTerminals.planning.md`](AGENT.edgeTerminals.planning.md) is paused on this plan. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Goal
 
@@ -25,7 +25,7 @@ Consequences:
 
 - **The address arm's two kinds were unnamed until Slice 1.** The PN-24 comment says the tag "is on the value rather than on a record", because `port` is an opaque `string`. `EphemeraLudicPortAddress` is now the union of the two named kinds, and since Slice 2 every site asks by name. Until Slice 2b, `port` was an unbranded `string`, so a binding address was structurally a crossing port address and a failed crossing check narrowed the binding kind away. Slice 2b (TK-3) made crossing port ids `PORT-`/`STUB-`-prefixed, so the two kinds are disjoint and guard order no longer matters.
 - **Cross-kind equality was done by casting until Slice 2.** `ephemeraLudicTerminalsEqual` treats an own binding and a binding address with the same port as equal, scoped by `bareOwner` because `PRESENCE#Base` and `PRESENCE#Unplaced` are not globally unique. It now states that rule as cases over the named kinds, with no casts.
-- **The cache's rule is runtime-only.** [`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) says a bare `PRESENCE#` terminal on a cache edge is corruption. Yet `EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData` ([`ludicCache/types.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/types.ts)), so the type admits it. `isNotBarePresenceTerminal` (the guard) and `liftPresenceTerminal` ([`mergeReducer.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/mergeReducer.ts), the lift at mint time) enforce the rule with `typeof` plus a prefix test.
+- **The cache's rule is in the type (Slice 3).** The contract makes a bare `PRESENCE#` terminal on a cache edge corruption. `EphemeraLudicCacheEdge` is now `EphemeraLudicRelationalEdgeData<EphemeraLudicCacheTerminalId>` ([`ludicCache/types.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/types.ts)), which excludes the own-binding kind, so a bare presence id there is a compile error. `isEphemeraLudicCacheEdge` keeps the runtime check for stored rows, and `liftPresenceTerminal` ([`mergeReducer.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/mergeReducer.ts)) returns the cache terminal type.
 - **Representation tests across the packages** were listed in the [Slice 0 inventory](#slice-0-inventory-plan-only) and replaced in Slice 2.
 - **The wire already names the own-binding kind** (`{ presence }`, `mtw-wml` `StandardLudicTerminalData`). Its address arm is as opaque as the ephemera one.
 
@@ -56,15 +56,13 @@ Consequences:
 4. **The rule being typed:** [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path), the bullet "Every reference to a binding names its owner, and exterior addressing carries a `PRESENCE#` tag", and the "Base and Unplaced" rules that make fixed ids non-unique.
 5. **Immer trap:** `MultiKeyUpdate` reducers run under `produce()`; anything retained past the reducer's return must be a plain copy.
 6. **Testing (command authority):** [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). Run from `lambda/ephemera/` with `npm run test` (not `npm test`). `npx tsc --noEmit` is not sufficient, because `*.integration.test.ts` sit outside `tsconfig`. Ephemera's ts-jest type-checks tests. `mtw-interfaces`' `tsc -p .` does not include test files, so check any `@ts-expect-error` written there with a standalone `tsc`. Other packages: `npm --prefix packages/mtw-interfaces run test`, `npm --prefix packages/mtw-gateways run test`, `npm --prefix lambda/diagnostics run test`.
-7. **Baseline (must pass before edits):** from `lambda/ephemera/`, `npm run test -- --watchAll=false`, plus the three package suites. As of 2026-10-29: ephemera 4026 (9 skipped), interfaces 805, gateways 308, diagnostics 161 (after Slice 2b).
+7. **Baseline (must pass before edits):** from `lambda/ephemera/`, `npm run test -- --watchAll=false`, plus the three package suites. As of 2026-10-29: ephemera 4027 (9 skipped), interfaces 805, gateways 308, diagnostics 161 (after Slice 3).
 
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
 
-| ID | Decision | Blocks slice | Status |
-| --- | --- | --- | --- |
-| TK-2 | **Whether the cache's terminal type excludes the own-binding kind.** The contract makes a bare presence terminal on a cache edge corruption, but the type admits it. Options: (a) `EphemeraLudicCacheTerminalId` (every kind except own binding), with `EphemeraLudicCacheEdge` built on it, `liftPresenceTerminal` returning it, and the runtime guard kept for stored data; (b) keep one terminal type and the runtime guard only. (a) puts the rule in the type; its cost is making the edge types generic over the terminal type, with the full terminal union as the default (`EphemeraLudicRelationalEdgeData<T = EphemeraLudicTerminalId>`). | 3 | **Decided 2026-10-29: (a).** `EphemeraLudicCacheTerminalId` excludes the own-binding kind; the edge types take the terminal type as a generic parameter, defaulting to the full union; `EphemeraLudicCacheEdge` instantiates it with the cache terminal type; `liftPresenceTerminal` returns it; the runtime guard stays for stored data. |
+No open rows. TK-2 shipped in Slice 3 and is recorded in the contract ("Every reference to a binding names its owner") and `positions/AGENT.implementation.md`.
 
 ## Slice 0 inventory (plan only)
 
@@ -130,7 +128,7 @@ The remaining terminal-typed files carry types only:
     - `HostRelationalEdge` (`ludicGraph/baseClasses.ts`), the third copy of the edge shape
     - `toStoredRelationalEdge`, through which every collapse builds its output
     - the local `rewrite` and `outerTerminal` helpers, which return `EphemeraLudicTerminalId`
-- **The type will expose two producers that do not lift (finding 4).**
+- **The type exposed two producers that did not lift (finding 4), fixed in Slice 3.**
 
 **Findings.**
 
@@ -151,7 +149,7 @@ The remaining terminal-typed files carry types only:
     - `collapseCrossingPorts` lifts the child leg's outer end, but passes the parent leg's other end through unchanged. If that end is the parent's own binding spelled bare, it reaches the cache bare. Today only the runtime guard catches that.
     - `collapseSameHostStubs` (a test-only probe; production uses `mergeSameHostBucket` through `foldSameHostBuckets`) lifts neither end.
 
-   Under TK-2 (a), both become compile errors. Slice 3 lifts the parent end with the parent's host as owner, and either lifts in `collapseSameHostStubs` or deletes that function if it has no remaining caller. This is a forkless consequence of TK-2.
+   Under TK-2 (a), both become compile errors. Slice 3 lifts the parent end with the parent's host as owner, and either lifts in `collapseSameHostStubs` or deletes that function if it has no remaining caller. This is a forkless consequence of TK-2. **Resolved in Slice 3:** `collapseCrossingPorts` lifts the parent leg's other end (owner `parentGraph.hostId`), with a test that fails on the old code. `collapseSameHostStubs` had only test callers and was deleted; its disagreeing-legs and unmatched-stub cases moved to `mergeSameHostBucket`'s tests.
 
 ## Progress
 
@@ -161,7 +159,7 @@ The remaining terminal-typed files carry types only:
 | 1. Named kinds and guards (types only, no site changes) | Done 2026-10-29. `EphemeraLudicNodeTerminal` / `isEphemeraLudicNodeTerminal`, `EphemeraLudicCrossingPortAddress` / `isEphemeraLudicCrossingPortAddress`, `EphemeraLudicBindingAddress` / `isEphemeraLudicBindingAddress`; `EphemeraLudicPortAddress` is their union. Interfaces 776 → 805 (guard tests and a partition test); ephemera, gateways and diagnostics unchanged. TK-1 shipped. |
 | 2. Sites ask by name; equality as cases | Done 2026-10-29. Every R row migrated; equality and owner are cases over the kinds; `endpointViolation` follows its rule (finding 3); `EphemeraLudicTerminalPrimitive` renamed at every site and deleted; address-ended challenge ids now use `ephemeraLudicTerminalKey`. Ephemera 4018 → 4023 (9 skipped; `endpointViolation`, `connectedToPairsOf` and challenge-key tests); interfaces 805 → 797 (a duplicate node-guard describe merged); gateways 308 and diagnostics 161 unchanged (diagnostics' existing test gained a crossing-port edge). |
 | 2b. Crossing port id prefix (TK-3) | Done 2026-10-29; **dev-data reset after deploy pending (user)**. `EphemeraCrossingPortId` and `isEphemeraCrossingPortId`; `isEphemeraLudicPortAddress` is exactly crossing or binding, so an unprefixed port id is no terminal; `buildCrossingLegs` mints `PORT-${uuid}`; `wireProjection.ts` sorts wire port ids and throws on any other kind; `removeCrossingPort.portId` and `removePort` take the new type. The type caught one real mistyping: `resolvePresenceMoves` built binding addresses from `ConnectedToPair`'s plain strings, so the contraction types in mtw-gateways `siblingContraction.ts` became generic over the binding key (`string` default). Ephemera 4023 → 4026 (wire bare-port test, type-level disjointness tests); interfaces 797 → 805 (legacy-shape, `isEphemeraCrossingPortId` and port-record tests); gateways 308 and diagnostics 161 unchanged. About 230 fixture literals moved to `PORT-…`. |
-| 3. Cache terminal type (TK-2) | |
+| 3. Cache terminal type (TK-2) | Done 2026-10-29. `EphemeraLudicCacheTerminalId` / `isEphemeraLudicCacheTerminalId`; `EphemeraLudicRelationalEdgeData<T>` and `HostRelationalEdge<T>` generic over the terminal type (default: every kind), `toStoredRelationalEdge` generic; `EphemeraLudicCacheEdge` on the cache terminal type; `liftPresenceTerminal` returns it; `isNotBarePresenceTerminal` deleted. Finding 4 fixed: `collapseCrossingPorts` lifts the parent leg's other end. `collapseSameHostStubs` deleted (test-only caller); two of its cases ported to `mergeSameHostBucket`. Compile-time test (`@ts-expect-error`) that a bare presence id is refused on a cache edge. Ephemera 4026 → 4027 (5 removed with `collapseSameHostStubs`, 6 added); interfaces 805, gateways 308 and diagnostics 161 unchanged. |
 | 4. Durable docs; edgeTerminals resumes; plan deleted | |
 
 ## Recommended order
@@ -187,7 +185,12 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
     - [X] Test fixtures: fake crossing ids become `PORT-...` (string edits, no helper or cast).
     - [X] Contract line ~642 and the PN-24 comment: a crossing port carries a `PORT-`-prefixed minted uuid; TK-1's "unbranded `string`" wording becomes the pattern type.
     - [ ] After deploy: reset dev data (no migration). The user does this; until then, legacy bare-uuid rows fail the payload guard.
-- [ ] **Slice 3. Cache terminal type** (TK-2). `EphemeraLudicCacheTerminalId`; `EphemeraLudicCacheEdge` on it; `liftPresenceTerminal` returns it; `HostRelationalEdge` and `toStoredRelationalEdge` take the generic; lift the parent leg's other end in `collapseCrossingPorts`, and lift in or delete `collapseSameHostStubs` (finding 4); add a compile-time test (in ephemera, whose tests are type-checked) that a bare presence id is refused on a cache edge.
+- [X] **Slice 3. Cache terminal type** (TK-2).
+    - [X] `EphemeraLudicCacheTerminalId` and its guard; `EphemeraLudicCacheEdge` on it; the edge types and `toStoredRelationalEdge` generic over the terminal type; `liftPresenceTerminal` returns it.
+    - [X] Lift the parent leg's other end in `collapseCrossingPorts` (finding 4), with a test.
+    - [X] Delete `collapseSameHostStubs` (test-only caller), porting its uncovered cases to `mergeSameHostBucket`.
+    - [X] Compile-time test (in ephemera, whose tests are type-checked) that a bare presence id is refused on a cache edge.
+    - [X] Contract bullet, `positions/AGENT.implementation.md` and `ludicGraph/AGENT.md` updated.
 - [ ] **Slice 4. Durable docs, then delete this plan.**
     - [ ] Update the terminal comment block in `ephemeraMeta.ts` to describe the four named kinds.
     - [ ] Add a rule to `positions/AGENT.contract.md`: discriminate terminals only through the named guards.

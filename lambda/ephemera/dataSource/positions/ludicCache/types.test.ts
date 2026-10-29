@@ -2,11 +2,14 @@ import {
     SemanticEmbedding,
     SEMANTIC_EMBEDDING_V1_DIMENSIONS,
 } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
+import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraLudicCacheEdge } from './types'
 import {
     isEphemeraLudicCacheData,
     isEphemeraLudicCacheEdge,
     isEphemeraLudicCacheNode,
     isEphemeraLudicCachePresenceNode,
+    isEphemeraLudicCacheTerminalId,
 } from './types'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
@@ -229,6 +232,35 @@ describe('isEphemeraLudicCacheEdge', () => {
             to: 'OBJECT#rope',
             kind: 'NotAKind',
         })).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicCacheTerminalId', () => {
+    it('accepts a component, a binding address and a crossing port address', () => {
+        expect(isEphemeraLudicCacheTerminalId('OBJECT#boulder')).toBe(true)
+        expect(isEphemeraLudicCacheTerminalId({ owner: 'OBJECT#boulder', port: 'PRESENCE#b1' })).toBe(true)
+        expect(isEphemeraLudicCacheTerminalId({ owner: 'OBJECT#boulder', port: 'PORT-p1' })).toBe(true)
+    })
+
+    it('rejects a bare own binding, whether or not it is a legal terminal elsewhere', () => {
+        expect(isEphemeraLudicCacheTerminalId('PRESENCE#b1')).toBe(false)
+        expect(isEphemeraLudicCacheTerminalId('PRESENCE#Base')).toBe(false)
+    })
+})
+
+// The cache's rule lives in the type (terminalKinds TK-2): the own-binding kind is not a cache
+// terminal. `@ts-expect-error` makes ts-jest fail this file if a bare presence id is ever accepted.
+describe('EphemeraLudicCacheEdge terminals (compile-time)', () => {
+    const room = 'ROOM#Test' as EphemeraRoomId
+    const boulder = 'OBJECT#boulder' as EphemeraObjectId
+    const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
+
+    it('refuses a bare presence id and accepts the owner-qualified form', () => {
+        // @ts-expect-error a bare own-binding id is not a cache terminal
+        const bare: EphemeraLudicCacheEdge = { tag: 'Relational', from: boulder, to: binding, kind: 'ConnectedTo' }
+        const lifted: EphemeraLudicCacheEdge = { tag: 'Relational', from: boulder, to: { owner: room, port: binding }, kind: 'ConnectedTo' }
+        expect(isEphemeraLudicCacheEdge(bare)).toBe(false)
+        expect(isEphemeraLudicCacheEdge(lifted)).toBe(true)
     })
 })
 

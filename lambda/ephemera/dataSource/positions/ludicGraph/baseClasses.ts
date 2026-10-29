@@ -27,9 +27,9 @@ import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys
  * chain membership, which `edgesMatch` below *does* consult. The reasoning for both shapes, and
  * for what they deliberately are not, lives on `EphemeraLudicRelationalEdgeBase`.
  */
-type HostRelationalEdgeBase = {
-    from: EphemeraLudicTerminalId
-    to: EphemeraLudicTerminalId
+type HostRelationalEdgeBase<T extends EphemeraLudicTerminalId> = {
+    from: T
+    to: T
     edgeId?: string
     chainId?: string
 }
@@ -39,14 +39,16 @@ type HostRelationalEdgeBase = {
  * same partition the stored type draws. This mirrors `EphemeraLudicRelationalEdgeData` minus
  * its `tag`; the duplication with `manipulation/types.ts` is pre-existing and deliberately not
  * consolidated here (see `ludicGraph/AGENT.md`'s "Relational edge names" table).
+ *
+ * `T` is the terminal type, defaulting to every kind, as on `EphemeraLudicRelationalEdgeData`.
  */
-export type HostRelationalEdge =
-    | (HostRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
-    | (HostRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
+export type HostRelationalEdge<T extends EphemeraLudicTerminalId = EphemeraLudicTerminalId> =
+    | (HostRelationalEdgeBase<T> & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (HostRelationalEdgeBase<T> & { kind: 'Custom'; relationLabel: string })
 
-export const toStoredRelationalEdge = (
-    edge: HostRelationalEdge
-): EphemeraLudicRelationalEdgeData => {
+export const toStoredRelationalEdge = <T extends EphemeraLudicTerminalId = EphemeraLudicTerminalId>(
+    edge: HostRelationalEdge<T>
+): EphemeraLudicRelationalEdgeData<T> => {
     // Spread-when-present rather than `edgeId: edge.edgeId`, matching `toStored()`/`toJSON()` in
     // `index.ts`: an absent id must stay *absent*, not become an explicit `undefined` key that a
     // round trip through storage would then have to strip again. `chainId` is carried the same

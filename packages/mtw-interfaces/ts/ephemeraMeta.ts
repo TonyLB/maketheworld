@@ -658,10 +658,10 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
  * presence for edges. Nothing mints or strips a `chainId` yet; the operations that will are
  * specified but gated on that storage.
  */
-type EphemeraLudicRelationalEdgeBase = {
+type EphemeraLudicRelationalEdgeBase<T extends EphemeraLudicTerminalId = EphemeraLudicTerminalId> = {
     tag: 'Relational';
-    from: EphemeraLudicTerminalId;
-    to: EphemeraLudicTerminalId;
+    from: T;
+    to: T;
     edgeId?: string;
     chainId?: string;
 }
@@ -672,10 +672,14 @@ type EphemeraLudicRelationalEdgeBase = {
  * **The union sits at the top level and the base is intersected into each arm, deliberately.**
  * `Base & (A | B)` does narrow in current TypeScript, but the arms-as-union form is what the
  * guard, the storage adapters and the comparison helpers were all verified against; keep it.
+ *
+ * **`T` narrows the terminal kinds an edge may carry.** The default is every kind. The ludicCache
+ * instantiates it with a terminal type that excludes the own-binding kind
+ * (`EphemeraLudicCacheTerminalId`), so a bare `PRESENCE#` terminal on a cache edge is a compile error.
  */
-export type EphemeraLudicRelationalEdgeData =
-    | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
-    | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
+export type EphemeraLudicRelationalEdgeData<T extends EphemeraLudicTerminalId = EphemeraLudicTerminalId> =
+    | (EphemeraLudicRelationalEdgeBase<T> & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (EphemeraLudicRelationalEdgeBase<T> & { kind: 'Custom'; relationLabel: string })
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {

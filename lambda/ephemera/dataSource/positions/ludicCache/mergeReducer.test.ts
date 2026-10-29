@@ -9,7 +9,7 @@ import type { EphemeraCrossingPortId, EphemeraLudicGraphComponentNode, EphemeraL
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { collapseCrossingPorts, collapsedEdgeIdentityKey, collapseSameHostStubs, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
+import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
 import { isEphemeraLudicCacheEdge } from './types'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
@@ -157,6 +157,28 @@ describe('collapseCrossingPorts', () => {
         expect(result[0]).toMatchObject({ from: boulder, to: { owner: boxId, port: binding }, kind: 'ConnectedTo' })
     })
 
+    // Slice 3 (terminalKinds TK-2): the parent leg's other end is cache-bound too. A bare
+    // `PRESENCE#` there is legal in the parent's own graph, but would reach the cache bare, so it
+    // is lifted to the exterior form with the parent's host as owner.
+    it("lifts a parent leg's bare presence end to the parent's exterior form", () => {
+        const parentBinding = 'PRESENCE#p1' as EphemeraPresenceNodeId
+        const parentGraph = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, presenceNode('p1', enumeratedCover(boulder))],
+            edges: [{ tag: 'Relational', from: parentBinding, to: { owner: boxId, port: 'PORT-port_1' }, kind: 'ConnectedTo' }],
+        })
+        const childGraph = testLudicGraph(boxId, {
+            nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
+            edges: [childLeg('PORT-port_1', pebble)],
+            ports: [crossingPort('PORT-port_1')],
+        })
+
+        const result = collapseCrossingPorts(parentGraph, childGraph)
+        expect(result).toEqual([
+            { tag: 'Relational', from: { owner: roomId, port: parentBinding }, to: pebble, kind: 'ConnectedTo' },
+        ])
+        expect(result.every((edge) => isEphemeraLudicCacheEdge(edge))).toBe(true)
+    })
+
     it('does not collapse two edges that only coincidentally reach the same identity if their kinds disagree', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
@@ -201,105 +223,6 @@ describe('collapseCrossingPorts', () => {
         })
 
         expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
-    })
-})
-
-describe('collapseSameHostStubs', () => {
-    it('reconstructs an interior edge between two nodes exclusive to different same-host buckets, cut separately', () => {
-        const graph = testLudicGraph(roomId, {
-            nodes: [
-                { tag: 'Room', universalKey: roomId },
-                { tag: 'Character', universalKey: charA },
-                { tag: 'Character', universalKey: charB },
-                { tag: 'Object', universalKey: objC },
-                { tag: 'Object', universalKey: objD },
-                presenceNode('port_1', enumeratedCover(charA, objC)),
-                presenceNode('port_2', enumeratedCover(charB, objD)),
-            ],
-            edges: [
-                { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
-            ],
-        })
-
-        // The naive fold move: cut each bucket alone (rather than unioning first), producing
-        // two independently stub-ported halves of the same interior edge --- the case
-        // `nodesFromPresenceBindings`'s own doc comment names as needing "its own reconciliation
-        // step". Confirmed target behavior (union-then-cut needs no such step) is already
-        // covered by presenceSubGraph.test.ts's "feeding the union into subGraphFromNodes"
-        // case; this is the separate-cuts path a fold would actually produce.
-        const bucketA = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_1'))
-        const bucketB = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_2'))
-
-        expect(bucketA.ports).toHaveLength(1)
-        expect(bucketB.ports).toHaveLength(1)
-
-        expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([
-            { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
-        ])
-    })
-
-    it('does not collapse two stub ports that only coincidentally share an id if their legs disagree', () => {
-        const bucketA = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Custom', relationLabel: 'under' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Custom', exteriorRelationLabel: 'under' }],
-        })
-        const bucketB = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
-            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Custom', relationLabel: 'against' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'against' }],
-        })
-
-        expect(() => collapseSameHostStubs(bucketA, bucketB)).toThrow(/disagree/)
-    })
-
-    it('skips a stub port present in only one bucket', () => {
-        const bucketA = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Custom', relationLabel: 'under' }],
-            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Custom', exteriorRelationLabel: 'under' }],
-        })
-        const bucketB = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objE2 }],
-            edges: [],
-            ports: [],
-        })
-
-        expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([])
-    })
-
-    //
-    // The failure this exists to prevent, and it would have been silent: a port-to-port transit
-    // leg (LC10's shape) is kept by every bucket, and `subGraphFromNodes` now carries the authored
-    // ports it names alongside it --- so the *same real* boundary is present on both sides with a
-    // leg touching it on both sides. Matched as a stub, it splices to itself into
-    // `cross_1 -[RopedTo]-> cross_1`, and `legsAgree` cannot object, because the two legs are the
-    // same leg. Only the minted-vs-authored distinction rules it out.
-    //
-    it('does not splice an authored crossing port present in both buckets', () => {
-        const transitLeg = {
-            tag: 'Relational' as const,
-            from: { owner: roomId, port: 'PORT-cross_1' as const },
-            to: { owner: roomId, port: 'PORT-cross_2' as const },
-            kind: 'Custom' as const,
-            relationLabel: 'RopedTo',
-        }
-        const authored = [
-            { portId: 'PORT-cross_1' as const, fromHostId: objC, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
-            { portId: 'PORT-cross_2' as const, fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'RopedTo' },
-        ]
-        const bucketA = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
-            edges: [transitLeg],
-            ports: authored,
-        })
-        const bucketB = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
-            edges: [transitLeg],
-            ports: authored,
-        })
-
-        expect(collapseSameHostStubs(bucketA, bucketB)).toEqual([])
     })
 })
 
@@ -370,11 +293,45 @@ describe('mergeSameHostBucket', () => {
         expect(merged.relationalEdges).toEqual([{ from: objC, to: objD, kind: 'Custom', relationLabel: 'under' }])
         expect(merged.ports).toEqual([])
     })
+
+    it('does not consume two stub ports that only coincidentally share an id if their legs disagree', () => {
+        const bucketA = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'STUB-1' }, kind: 'Custom', relationLabel: 'under' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objD, kind: 'Custom', exteriorRelationLabel: 'under' }],
+        })
+        const bucketB = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objD }],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'STUB-1' }, to: objD, kind: 'Custom', relationLabel: 'against' }],
+            ports: [{ portId: 'STUB-1', fromHostId: objC, kind: 'Custom', exteriorRelationLabel: 'against' }],
+        })
+
+        expect(() => mergeSameHostBucket(bucketA, bucketB)).toThrow(/disagree/)
+    })
+
+    it('carries a stub port present in only one bucket forward, unresolved', () => {
+        const stubLeg = { tag: 'Relational' as const, from: objC, to: { owner: roomId, port: 'STUB-1' as const }, kind: 'Custom' as const, relationLabel: 'under' }
+        const stubPort = { portId: 'STUB-1' as const, fromHostId: objD, kind: 'Custom' as const, exteriorRelationLabel: 'under' }
+        const bucketA = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objC }],
+            edges: [stubLeg],
+            ports: [stubPort],
+        })
+        const bucketB = testLudicGraph(roomId, {
+            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: objE2 }],
+            edges: [],
+            ports: [],
+        })
+
+        const merged = mergeSameHostBucket(bucketA, bucketB)
+        expect(merged.relationalEdges).toEqual([{ from: stubLeg.from, to: stubLeg.to, kind: 'Custom', relationLabel: 'under' }])
+        expect(merged.ports).toEqual([stubPort])
+    })
 })
 
 describe('foldSameHostBuckets', () => {
     // Three presence buckets on one host. `objC -[Custom: under]-> objD` straddles the adjacent pair
-    // (bucket 1/bucket 2), same as `collapseSameHostStubs`'s own test above. `objE
+    // (bucket 1/bucket 2). `objE
     // -[Custom: against]-> objF` straddles bucket 1 and bucket 3 with bucket 2 contributing nothing to
     // it at all --- the case that forces a real walk to carry bucket 1's unmatched stub *through*
     // bucket 2 (which cannot resolve it) rather than only comparing each bucket to its immediate
@@ -404,22 +361,7 @@ describe('foldSameHostBuckets', () => {
         { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
     ]
 
-    it('reconstructs both interior edges via the existing pairwise primitive, cutting every bucket up front (two-pass baseline, using only shipped code)', () => {
-        const bucketA = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_1'))
-        const bucketB = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_2'))
-        const bucketC = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, 'port_3'))
-
-        const result = [
-            ...collapseSameHostStubs(bucketA, bucketB),
-            ...collapseSameHostStubs(bucketB, bucketC),
-            ...collapseSameHostStubs(bucketA, bucketC),
-        ]
-
-        expect(result).toHaveLength(2)
-        expect(result).toEqual(expect.arrayContaining(expectedEdges))
-    })
-
-    it('reconstructs the same two edges via a single accumulating fold walk, cutting one bucket at a time', () => {
+    it('reconstructs both interior edges via a single accumulating fold walk, cutting one bucket at a time', () => {
         const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
 
         expect(result.edges).toHaveLength(2)

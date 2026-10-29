@@ -3,14 +3,16 @@ import type {
     EphemeraHostingKind,
     EphemeraLudicGraphComponentNodeBase,
     EphemeraLudicGraphStructureNode,
+    EphemeraLudicNodeTerminal,
+    EphemeraLudicPortAddress,
     EphemeraLudicRelationalEdgeData,
-    EphemeraLudicTerminalId,
     EphemeraPresenceCoverEntry,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import {
     isEphemeraHostingKind,
     isEphemeraLudicGraphComponentNode,
     isEphemeraLudicRelationalEdgeData,
+    isEphemeraLudicTerminalId,
     isEphemeraLudicNodeTerminal,
     isEphemeraPresenceParentPointerList,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -101,12 +103,26 @@ export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'pre
 }
 
 /**
- * Cache edge: a plain relational edge. The cache keeps no maintenance state (which routes
+ * A terminal on a cache edge: every kind of terminal except the own binding (a bare
+ * `PRESENCE#...`). Nesting makes a binding's lookup in the cache a path --- the owner's node, then
+ * that binding on it --- so a cache edge ending at a binding names it through its binding address,
+ * which carries the owner. `liftPresenceTerminal` (`mergeReducer.ts`) rewrites an own binding to that
+ * form at the point each cache edge is minted.
+ */
+export type EphemeraLudicCacheTerminalId =
+    | Exclude<EphemeraLudicNodeTerminal, EphemeraPresenceNodeId>
+    | EphemeraLudicPortAddress
+
+export const isEphemeraLudicCacheTerminalId = (value: unknown): value is EphemeraLudicCacheTerminalId =>
+    isEphemeraLudicTerminalId(value) && !(isEphemeraLudicNodeTerminal(value) && isEphemeraPresenceNodeId(value))
+
+/**
+ * Cache edge: a plain relational edge, on cache terminals. The cache keeps no maintenance state (which routes
  * justify a composed edge, which buckets were pulled): a stale cache is rebuilt whole. The
  * shelved design for incremental maintenance lives in `AGENT.implementation.md`, "Shelved:
  * incremental `ludicCache` maintenance".
  */
-export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData
+export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData<EphemeraLudicCacheTerminalId>
 
 export type EphemeraLudicCacheData = {
     hostId: EphemeraMembershipHostId;
@@ -165,20 +181,17 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
     return true
 }
 
-// A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): nesting made a
-// binding's lookup in the cache a path --- the owner's node, then that binding on it --- so every
-// reference to a binding must carry the owner alongside the port id. `foldSameHostBuckets` and
-// `collapseCrossingPorts` lift every such terminal at mint time; a bare one reaching this guard is
-// corruption, not an unpulled-binding case (that case is an owner-qualified terminal whose binding
-// is simply absent from `nodes`, which the referential-integrity pass below already permits).
-const isNotBarePresenceTerminal = (terminal: EphemeraLudicTerminalId): boolean =>
-    !(isEphemeraLudicNodeTerminal(terminal) && isEphemeraPresenceNodeId(terminal))
-
+// A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): the type
+// (`EphemeraLudicCacheTerminalId`) refuses it at compile time, and this guard refuses it in stored
+// rows. `foldSameHostBuckets` and `collapseCrossingPorts` lift every such terminal at mint time; a
+// bare one reaching this guard is corruption, not an unpulled-binding case (that case is an
+// owner-qualified terminal whose binding is simply absent from `nodes`, which the
+// referential-integrity pass below already permits).
 export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudicCacheEdge => {
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
-    return isNotBarePresenceTerminal(value.from) && isNotBarePresenceTerminal(value.to)
+    return isEphemeraLudicCacheTerminalId(value.from) && isEphemeraLudicCacheTerminalId(value.to)
 }
 
 export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudicCacheData => {

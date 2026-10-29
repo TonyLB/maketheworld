@@ -15,7 +15,7 @@ Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts
 | Name | Layer | Role |
 | --- | --- | --- |
 | **`EphemeraLudicRelationalEdgeData`** | `mtw-interfaces` JSON | Stored/wire envelope (`tag: 'Relational'`, ...) on `ludicGraph.edges`. `from`/`to` are `EphemeraLudicTerminalId` (a node of any legal host kind, not only Object, or a port address) |
-| **`HostRelationalEdge`** | `baseClasses.ts` | Parsed in-memory view (`from`, `to`, `kind`, optional `relationLabel`) --- class API, legality, kernel simulation. **Duplicated** (not consolidated) in `manipulation/types.ts`, widened in lockstep --- a pre-existing split, not new to the terminal widening |
+| **`HostRelationalEdge<T>`** | `baseClasses.ts` | Parsed in-memory view (`from`, `to`, `kind`, optional `relationLabel`; `T` is the terminal type, defaulting to every kind, and the cache instantiates it without the own-binding kind) --- class API, legality, kernel simulation. **Duplicated** (not consolidated) in `manipulation/types.ts`, widened in lockstep --- a pre-existing split, not new to the terminal widening |
 | **`HostRelationalEdgeKind`** | `mtw-interfaces` | Stored edge and port kinds (`Custom`, `ConnectedTo`) |
 
 ## Module map
@@ -77,7 +77,7 @@ Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.
 
 - `relationalEdges` getter returns **`HostRelationalEdge[]`** (Exit-tolerant parse from raw `edges`)
 - `addRelationalEdge`, `removeRelationalEdge`, `bothObjectsOnGraph`, `nodeHasRelationalEdge`
-- Module helpers in `baseClasses.ts`: `edgesMatch`, `toStoredRelationalEdge`, `extractRelationalEdgesFromStored`, `nodeHasRelationalEdge`, `edgeReferencesObjectId`
+- Module helpers in `baseClasses.ts`: `edgesMatch`, `toStoredRelationalEdge` (generic over the terminal type), `extractRelationalEdgesFromStored`, `nodeHasRelationalEdge`, `edgeReferencesObjectId`
 
 Stored JSON remains **`EphemeraLudicRelationalEdgeData`** on `ludicGraph.edges`.
 
