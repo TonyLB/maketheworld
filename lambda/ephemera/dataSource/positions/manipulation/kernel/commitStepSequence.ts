@@ -2,7 +2,7 @@ import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSou
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { buildPositionAdjacencyDataCategory } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { ephemeraDB, exponentialBackoffWrapper } from '@tonylb/mtw-utilities/ts/dynamoDB'
 
@@ -32,7 +32,7 @@ import type { MutationKernelCaptures, MutationKernelCommitResult } from './types
 export type CommitStepSequenceDeps = {
     messageBus: MessageBus
     streamEvent: StreamEventFunction<PositionsPublishedPayload>
-    getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
+    getCurrentHost: (id: EphemeraLudicNodeTerminal) => EphemeraMembershipHostId | undefined
     transactWrite?: typeof ephemeraDB.transactWrite
     /** The room's present characters, for `capture` steps (default: the room's characters row). */
     getRoomCharacters?: Parameters<typeof resolveCaptureOccupants>[1]

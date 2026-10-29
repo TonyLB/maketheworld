@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraLudicTerminalId, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraCrossingPortId, EphemeraLudicTerminalId, HostRelationalEdgeKind, RelationalKindAndLabel } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { edgeKindAndLabelFrom, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 /** A crossing leg's kind/label pairing. No longer narrowed via `Exclude<HostRelationalEdgeKind,
@@ -82,7 +82,7 @@ export const buildCrossingLegs = (
     const chain: RelationalChainStep[] = []
 
     const mintPortAt = (hostId: EphemeraMembershipHostId, fromHostId: EphemeraMembershipHostId): EphemeraLudicTerminalId => {
-        const portId = uuidv4()
+        const portId: EphemeraCrossingPortId = `PORT-${uuidv4()}`
         const port: EphemeraCrossingPort = { portId, fromHostId, ...portFieldsFrom(kindAndLabel) }
         chain.push({ type: 'port', hostId, port })
         return { owner: hostId, port: portId }

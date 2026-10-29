@@ -95,7 +95,7 @@ const survivorRank = (kept: ReadonlySet<string>) => (key: string): number => (
     key === BASE_PRESENCE_ID ? 0 : kept.has(key) ? 1 : 2
 )
 
-const connectedToStep = (kind: 'establishRelation' | 'dissolveRelation', hostId: EphemeraMembershipHostId, [from, to]: ConnectedToPair): MutationKernelStep => ({
+const connectedToStep = (kind: 'establishRelation' | 'dissolveRelation', hostId: EphemeraMembershipHostId, [from, to]: ConnectedToPair<EphemeraPresenceNodeId>): MutationKernelStep => ({
     kind,
     hostId,
     subjectId: { owner: hostId, port: from },
@@ -121,7 +121,7 @@ const contractionSteps = async (
     getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>,
     hostId: EphemeraMembershipHostId,
     scope: readonly EphemeraLudicGraphStructureNode[],
-    connectedTo: readonly ConnectedToPair[],
+    connectedTo: readonly ConnectedToPair<EphemeraPresenceNodeId>[],
     rank: (key: string) => number
 ): Promise<MutationKernelStep[]> => {
     const { contractions } = contractionsOf(scope, connectedTo, rank)

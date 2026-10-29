@@ -132,14 +132,14 @@ describe('planRelationalEdgeTransfer', () => {
             getMembershipContainersMock.mockImplementation(async (id) => (containers[id] ?? []) as never)
             getLudicGraphMock.mockImplementation(async (hostId) => graphs[hostId] ?? testLudicGraph(hostId))
         }
-        const tablePort = { owner: TABLE, port: 'port-table' }
+        const tablePort = { owner: TABLE, port: 'PORT-port-table' }
 
         it('dissolves a one-sided crossing: a leg on each host, and the port it crossed through', async () => {
             // The string sits in the room (the common ancestor); the cup sits on the table.
             withGraphs({ [STRING]: [ROOM], [CUP]: [TABLE], [TABLE]: [ROOM] }, {
                 [ROOM]: EphemeraLudicGraph.empty(ROOM).addObject(STRING, 'In').addObject(TABLE, 'In').addRelationalEdge(tied(STRING, tablePort)),
                 [TABLE]: EphemeraLudicGraph.empty(TABLE).addObject(CUP, 'In')
-                    .addPort({ portId: 'port-table', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
+                    .addPort({ portId: 'PORT-port-table', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                     .addRelationalEdge(tied(tablePort, CUP)),
             })
 
@@ -149,7 +149,7 @@ describe('planRelationalEdgeTransfer', () => {
                 ok: true,
                 steps: [
                     { kind: 'dissolveRelation', subjectId: STRING, targetId: tablePort, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is tied to' },
-                    { kind: 'removeCrossingPort', hostId: TABLE, portId: 'port-table' },
+                    { kind: 'removeCrossingPort', hostId: TABLE, portId: 'PORT-port-table' },
                     { kind: 'dissolveRelation', subjectId: tablePort, targetId: CUP, hostId: TABLE, relationKind: 'Custom', relationLabel: 'is tied to' },
                 ],
             })
@@ -158,14 +158,14 @@ describe('planRelationalEdgeTransfer', () => {
         it('dissolves a two-sided crossing, whose middle leg sits in a common ancestor neither end is directly in', async () => {
             // The string is in a box, the cup on a table; both sit in the room, which holds the
             // middle leg between the two ports.
-            const boxPort = { owner: BOX, port: 'port-box' }
+            const boxPort = { owner: BOX, port: 'PORT-port-box' }
             withGraphs({ [STRING]: [BOX], [CUP]: [TABLE], [BOX]: [ROOM], [TABLE]: [ROOM] }, {
                 [ROOM]: EphemeraLudicGraph.empty(ROOM).addObject(BOX, 'In').addObject(TABLE, 'In').addRelationalEdge(tied(boxPort, tablePort)),
                 [BOX]: EphemeraLudicGraph.empty(BOX).addObject(STRING, 'In')
-                    .addPort({ portId: 'port-box', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
+                    .addPort({ portId: 'PORT-port-box', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                     .addRelationalEdge(tied(STRING, boxPort)),
                 [TABLE]: EphemeraLudicGraph.empty(TABLE).addObject(CUP, 'In')
-                    .addPort({ portId: 'port-table', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
+                    .addPort({ portId: 'PORT-port-table', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                     .addRelationalEdge(tied(tablePort, CUP)),
             })
 
@@ -175,9 +175,9 @@ describe('planRelationalEdgeTransfer', () => {
                 ok: true,
                 steps: [
                     { kind: 'dissolveRelation', subjectId: STRING, targetId: boxPort, hostId: BOX, relationKind: 'Custom', relationLabel: 'is tied to' },
-                    { kind: 'removeCrossingPort', hostId: BOX, portId: 'port-box' },
+                    { kind: 'removeCrossingPort', hostId: BOX, portId: 'PORT-port-box' },
                     { kind: 'dissolveRelation', subjectId: boxPort, targetId: tablePort, hostId: ROOM, relationKind: 'Custom', relationLabel: 'is tied to' },
-                    { kind: 'removeCrossingPort', hostId: TABLE, portId: 'port-table' },
+                    { kind: 'removeCrossingPort', hostId: TABLE, portId: 'PORT-port-table' },
                     { kind: 'dissolveRelation', subjectId: tablePort, targetId: CUP, hostId: TABLE, relationKind: 'Custom', relationLabel: 'is tied to' },
                 ],
             })

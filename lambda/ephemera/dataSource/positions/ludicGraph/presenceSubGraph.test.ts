@@ -6,9 +6,10 @@
  * that would fail if the mechanism were wrong.
  */
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPortId, EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { testLudicGraph } from './testFixtures'
+import { mergeSameHostBucket } from '../ludicCache/mergeReducer'
 import { nodesFromPresenceBinding, nodesFromPresenceBindings, subGraphFromNodes } from './presenceSubGraph'
 import { parentRemainderKey } from './testFixtures'
 
@@ -20,7 +21,7 @@ const objD = 'OBJECT#D' as EphemeraObjectId
 const objE = 'OBJECT#E' as EphemeraObjectId
 
 /** An *authored* boundary of the whole, as distinct from a stub minted by a cut. */
-const crossingPort = (portId: string): EphemeraLudicGraphPort => ({
+const crossingPort = (portId: EphemeraCrossingPortId): EphemeraLudicGraphPort => ({
     portId,
     fromHostId: objE,
     kind: 'Custom', exteriorRelationLabel: 'under',
@@ -250,7 +251,7 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objE },
             ],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'PORT-ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
         })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.ports).toHaveLength(1)
@@ -267,7 +268,7 @@ describe('subGraphFromNodes', () => {
         const holdingTo = subGraphFromNodes(graph, new Set([roomId, objE]))
         expect(holdingTo.ports[0].portId).toEqual(port.portId)
         expect(holdingTo.relationalEdges).toEqual([
-            { from: { owner: roomId, port: port.portId }, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' },
+            { from: { owner: roomId, port: port.portId }, to: { owner: objE, port: 'PORT-ext1' }, kind: 'Custom', relationLabel: 'TiedTo' },
         ])
     })
 
@@ -277,7 +278,7 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Object', universalKey: objC },
             ],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: objE, port: 'PORT-ext1' }, kind: 'Custom', relationLabel: 'TiedTo' }],
         })
         expect(() => subGraphFromNodes(graph, bucket)).toThrow(/neither the root nor a node/)
     })
@@ -309,8 +310,8 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
             ],
-            ports: [crossingPort('cross_1')],
-            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'cross_1' }, to: objD, kind: 'Custom', relationLabel: 'under' }],
+            ports: [crossingPort('PORT-cross_1')],
+            edges: [{ tag: 'Relational', from: { owner: roomId, port: 'PORT-cross_1' }, to: objD, kind: 'Custom', relationLabel: 'under' }],
         })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.relationalEdges).toEqual([])
@@ -323,18 +324,18 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Object', universalKey: objC },
             ],
-            ports: [crossingPort('cross_1')],
+            ports: [crossingPort('PORT-cross_1')],
             edges: [
                 { tag: 'Relational', from: objC, to: roomId, kind: 'ConnectedTo' },
-                { tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Custom', relationLabel: 'under' },
+                { tag: 'Relational', from: objC, to: { owner: roomId, port: 'PORT-cross_1' }, kind: 'Custom', relationLabel: 'under' },
             ],
         })
         const result = subGraphFromNodes(graph, bucket)
         expect(result.relationalEdges).toEqual([
             { from: objC, to: roomId, kind: 'ConnectedTo' },
-            { from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Custom', relationLabel: 'under' },
+            { from: objC, to: { owner: roomId, port: 'PORT-cross_1' }, kind: 'Custom', relationLabel: 'under' },
         ])
-        expect(result.ports).toEqual([crossingPort('cross_1')])
+        expect(result.ports).toEqual([crossingPort('PORT-cross_1')])
     })
 
     //
@@ -350,26 +351,26 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
             ],
-            ports: [crossingPort('cross_1'), crossingPort('cross_2')],
+            ports: [crossingPort('PORT-cross_1'), crossingPort('PORT-cross_2')],
             edges: [{
                 tag: 'Relational',
-                from: { owner: roomId, port: 'cross_1' },
-                to: { owner: roomId, port: 'cross_2' },
+                from: { owner: roomId, port: 'PORT-cross_1' },
+                to: { owner: roomId, port: 'PORT-cross_2' },
                 kind: 'Custom',
                 relationLabel: 'RopedTo',
             }],
         })
         const transitLeg = {
-            from: { owner: roomId, port: 'cross_1' },
-            to: { owner: roomId, port: 'cross_2' },
+            from: { owner: roomId, port: 'PORT-cross_1' },
+            to: { owner: roomId, port: 'PORT-cross_2' },
             kind: 'Custom',
             relationLabel: 'RopedTo',
         }
         expect(subGraphFromNodes(graph, bucket).relationalEdges).toEqual([transitLeg])
         expect(subGraphFromNodes(graph, new Set([roomId, objD])).relationalEdges).toEqual([transitLeg])
         expect(subGraphFromNodes(graph, bucket).ports).toEqual([
-            crossingPort('cross_1'),
-            crossingPort('cross_2'),
+            crossingPort('PORT-cross_1'),
+            crossingPort('PORT-cross_2'),
         ])
     })
 
@@ -379,11 +380,11 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Room', universalKey: roomId },
                 { tag: 'Object', universalKey: objC },
             ],
-            ports: [crossingPort('cross_1')],
-            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Custom', relationLabel: 'under' }],
+            ports: [crossingPort('PORT-cross_1')],
+            edges: [{ tag: 'Relational', from: objC, to: { owner: roomId, port: 'PORT-cross_1' }, kind: 'Custom', relationLabel: 'under' }],
         })
         const result = subGraphFromNodes(graph, bucket)
-        expect(result.ports).toEqual([crossingPort('cross_1')])
+        expect(result.ports).toEqual([crossingPort('PORT-cross_1')])
     })
 
     //
@@ -398,14 +399,14 @@ describe('subGraphFromNodes', () => {
                 { tag: 'Object', universalKey: objC },
                 { tag: 'Object', universalKey: objD },
             ],
-            ports: [crossingPort('cross_1'), crossingPort('cross_2')],
+            ports: [crossingPort('PORT-cross_1'), crossingPort('PORT-cross_2')],
             edges: [
-                { tag: 'Relational', from: objC, to: { owner: roomId, port: 'cross_1' }, kind: 'Custom', relationLabel: 'under' },
-                { tag: 'Relational', from: objD, to: { owner: roomId, port: 'cross_2' }, kind: 'Custom', relationLabel: 'under' },
+                { tag: 'Relational', from: objC, to: { owner: roomId, port: 'PORT-cross_1' }, kind: 'Custom', relationLabel: 'under' },
+                { tag: 'Relational', from: objD, to: { owner: roomId, port: 'PORT-cross_2' }, kind: 'Custom', relationLabel: 'under' },
             ],
         })
         const result = subGraphFromNodes(graph, bucket)
-        expect(result.ports).toEqual([crossingPort('cross_1')])
+        expect(result.ports).toEqual([crossingPort('PORT-cross_1')])
     })
 
     it("mints a stub port for PR-C1's intra-graph straddle (bare id, no port at the cut)", () => {
@@ -651,5 +652,67 @@ describe('nodesFromPresenceBindings', () => {
         expect(typeof straddleEdge?.to).not.toBe('string')
         // Exactly one minted port --- the genuine straddle to objE, not the charA/objD edge.
         expect(result.ports).toHaveLength(1)
+    })
+})
+
+describe('subGraphFromNodes with edge terminals', () => {
+    const justifies = { tag: 'Relational' as const, kind: 'Justifies' as const, from: { edgeId: 'edge-b' }, to: { edgeId: 'edge-a' } }
+    const edgeA = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-a', from: objC, to: objD }
+    const edgeB = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-b', from: objC, to: objD }
+    const nodes = [
+        { tag: 'Room' as const, universalKey: roomId },
+        { tag: 'Object' as const, universalKey: objC },
+        { tag: 'Object' as const, universalKey: objD },
+    ]
+
+    it('keeps a referrer with the edges it names when they are anchored in the bucket', () => {
+        const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, edgeB, justifies] })
+        const result = subGraphFromNodes(graph, new Set([roomId, objC, objD]))
+        const strip = ({ tag, ...edge }: { tag: 'Relational' }) => edge
+        expect(result.relationalEdges).toEqual([edgeA, edgeB, justifies].map(strip))
+    })
+
+    it('drops a referrer whose named edges are cut away entirely', () => {
+        const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, edgeB, justifies] })
+        const result = subGraphFromNodes(graph, new Set([roomId]))
+        expect(result.relationalEdges).toEqual([])
+    })
+
+    describe('a referrer travels with the edges it names', () => {
+        const strip = ({ tag, ...edge }: { tag: 'Relational' } & Record<string, unknown>) => edge
+        const bucketC = new Set([roomId, objC] as const)
+        const bucketD = new Set([roomId, objD] as const)
+
+        it('keeps a referrer whole in each bucket that anchors either named edge, and the fold holds it once', () => {
+            const supportC = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-c', from: objC, to: roomId }
+            const securedD = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-d', from: objD, to: roomId }
+            const referrer = { tag: 'Relational' as const, kind: 'Justifies' as const, from: { edgeId: 'edge-c' }, to: { edgeId: 'edge-d' } }
+            const graph = testLudicGraph(roomId, { nodes, edges: [supportC, securedD, referrer] })
+            const inC = subGraphFromNodes(graph, bucketC)
+            const inD = subGraphFromNodes(graph, bucketD)
+            expect(inC.relationalEdges).toEqual([supportC, referrer].map(strip))
+            expect(inD.relationalEdges).toEqual([securedD, referrer].map(strip))
+            const merged = mergeSameHostBucket(inC, inD)
+            expect(merged.relationalEdges).toHaveLength(3)
+            expect(merged.relationalEdges).toEqual(expect.arrayContaining([supportC, securedD, referrer].map(strip)))
+        })
+
+        it('survives cut then fold unchanged when a named edge straddles the buckets', () => {
+            const secured = { ...edgeB, from: objC, to: roomId }
+            const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, secured, justifies] })
+            const inC = subGraphFromNodes(graph, bucketC)
+            const inD = subGraphFromNodes(graph, bucketD)
+            // edge-a (objC -> objD) is cut into a stub leg on each side; each leg keeps its edgeId.
+            expect(inC.relationalEdges.find(({ edgeId }) => edgeId === 'edge-a')).toBeDefined()
+            const merged = mergeSameHostBucket(inC, inD)
+            expect(merged.relationalEdges.filter(({ kind }) => kind === 'Justifies')).toEqual([strip(justifies)])
+            expect(merged.relationalEdges.find(({ edgeId }) => edgeId === 'edge-a')).toMatchObject({ from: objC, to: objD })
+            expect(merged.ports).toEqual([])
+        })
+    })
+
+    it('throws on a referrer naming an edge the graph does not hold', () => {
+        const graph = testLudicGraph(roomId, { nodes, edges: [edgeB, justifies] })
+        expect(() => subGraphFromNodes(graph, new Set([roomId, objC, objD]))).toThrow(/edge-a/)
     })
 })

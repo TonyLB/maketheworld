@@ -265,7 +265,7 @@ describe('mtw.ephemera.positions subscribedEvents', () => {
             getContent: () => Promise.resolve({
                 type: 'Ludic Graph Port Mismatch Finding' as const,
                 ephemeraId: 'OBJECT#Rope' as const,
-                portId: 'abcd123',
+                portId: 'PORT-abcd123',
                 diagnosticRunId: 'diag-2',
                 timestamp: '2026-08-23T10:00:00.000Z',
             }),

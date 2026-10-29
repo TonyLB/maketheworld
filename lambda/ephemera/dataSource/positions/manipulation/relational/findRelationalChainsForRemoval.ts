@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalRefersTo, isEphemeraLudicPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -68,7 +68,7 @@ export const fetchRelationalReachability = async (
             }
             for (const edge of graph.relationalEdges) {
                 for (const terminal of [edge.from, edge.to]) {
-                    if (!isEphemeraLudicTerminalPrimitive(terminal) && !visited.has(terminal.owner)) {
+                    if (isEphemeraLudicPortAddress(terminal) && !visited.has(terminal.owner)) {
                         next.add(terminal.owner)
                     }
                 }
@@ -112,7 +112,7 @@ export const findRelationalChainsTouching = (
             // port must be dissolved when the owner itself is removed, even though the edge's own
             // endpoint value is the port address, not the owner id directly.
             const touchesRemovalSet = [edge.from, edge.to].some(
-                (terminal) => entityIds.has(ephemeraLudicTerminalOwner(terminal) as EphemeraObjectId)
+                (terminal) => [...entityIds].some((entityId) => ephemeraLudicTerminalRefersTo(terminal, entityId))
             )
             if (!touchesRemovalSet) {
                 continue

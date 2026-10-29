@@ -1,6 +1,6 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { isBystanderMove } from './bystander'
 import type { MutationKernelStep } from './kernelStep'
@@ -25,7 +25,7 @@ import type { StepSequenceFootprint } from './types'
  */
 export const computeStepSequenceFootprint = (
     steps: readonly MutationKernelStep[],
-    getCurrentHost: (id: EphemeraLudicTerminalPrimitive) => EphemeraMembershipHostId | undefined
+    getCurrentHost: (id: EphemeraLudicNodeTerminal) => EphemeraMembershipHostId | undefined
 ): StepSequenceFootprint => {
     const hosts = new Set<EphemeraMembershipHostId>()
     // A bystander's room is indexed by the characters row, not the room's graph: it is neither fetched
@@ -86,19 +86,18 @@ export const computeStepSequenceFootprint = (
             hosts.add(step.hostId)
             continue
         }
-        // a crossing leg's port-address endpoint (EphemeraLudicPortAddress) names no host
-        // of its own to resolve or lock here --- whatever host stores that port record is locked
-        // by the step that writes it (addCrossingPort/removeCrossingPort), not by this leg. Only
-        // the primitive endpoint(s) need resolving. A leg with none (a two-sided crossing's middle
-        // leg, port to port) locks the host it is stored on, its own `hostId`.
-        const subjectIsPrimitive = isEphemeraLudicTerminalPrimitive(step.subjectId)
-        const targetIsPrimitive = isEphemeraLudicTerminalPrimitive(step.targetId)
-        const subjectHost = subjectIsPrimitive ? getCurrentHost(step.subjectId as EphemeraLudicTerminalPrimitive) : undefined
-        const targetHost = targetIsPrimitive ? getCurrentHost(step.targetId as EphemeraLudicTerminalPrimitive) : undefined
-        if (subjectIsPrimitive && subjectHost === undefined) {
+        // An address end (a crossing port or a binding address, EphemeraLudicPortAddress) names no
+        // host to resolve or lock here --- whatever host stores that port record is locked by the
+        // step that writes it (addCrossingPort/removeCrossingPort), and a binding address's owner is
+        // the step's own `hostId`. Only node ends need resolving. A step with none (a two-sided
+        // crossing's middle leg, port to port; a ConnectedTo between two bindings) locks the host it
+        // is stored on, its own `hostId`.
+        const subjectHost = isEphemeraLudicNodeTerminal(step.subjectId) ? getCurrentHost(step.subjectId) : undefined
+        const targetHost = isEphemeraLudicNodeTerminal(step.targetId) ? getCurrentHost(step.targetId) : undefined
+        if (isEphemeraLudicNodeTerminal(step.subjectId) && subjectHost === undefined) {
             throw new Error(`computeStepSequenceFootprint: cannot resolve current host for ${step.subjectId}`)
         }
-        if (targetIsPrimitive && targetHost === undefined) {
+        if (isEphemeraLudicNodeTerminal(step.targetId) && targetHost === undefined) {
             throw new Error(`computeStepSequenceFootprint: cannot resolve current host for ${step.targetId}`)
         }
         if (subjectHost === undefined && targetHost === undefined) {

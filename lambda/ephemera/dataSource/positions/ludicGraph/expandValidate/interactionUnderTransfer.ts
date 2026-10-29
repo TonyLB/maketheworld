@@ -33,6 +33,10 @@ export function classifyInteractionUnderTransfer(
             // which tears the whole apart: an interaction for the adjudicator, as a peer edge is,
             // as a first iteration.
             return 'defer'
+        case 'Justifies':
+            // Both terminals are edges of one graph, so a part's move never sees one as a
+            // boundary edge: its legs are not incident to any component.
+            return 'defer'
     }
 }
 
@@ -53,7 +57,7 @@ export function boundaryEdgeOutcomes(
 ): BoundaryEdgeOutcome[] {
     const results: BoundaryEdgeOutcome[] = []
     for (const edge of graph.relationalEdges) {
-        // `edge.from`/`.to` are widened to `EphemeraLudicTerminalPrimitive`, but the mover is
+        // `edge.from`/`.to` are widened to `EphemeraLudicNodeTerminal`, but the mover is
         // Object-only: `applyDeparture.ts` calls in here only for an object. See
         // `ludicGraph/AGENT.md`'s "Character-relation widening" note.
         const fromIsMover = edge.from === moverId

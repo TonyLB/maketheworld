@@ -59,7 +59,7 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **Licenses nothing new.** Node abstraction with multi-hosted members is already shipped structure. **Not licensed, by anything in this file:**
 - an Arrangement component kind or `Meta::Arrangement` row;
-- an edge-reference arm of `EphemeraLudicTerminalId` (**licensed in part 2026-10-28**: see [Reopened in part](#reopened-in-part-support-between-edges-2026-10-28));
+- an edge-reference arm of `EphemeraLudicTerminalId` (**licensed in part 2026-10-28, shipped 2026-10-29**: see [Reopened in part](#reopened-in-part-support-between-edges-2026-10-28));
 - port-to-port summary edges, or a `kind` marker for them;
 - a `JustifiedBy` link or any other stored coarse-to-fine justification (**licensed in part 2026-10-28**, as `Justifies` between sibling edges; same section);
 - storing one edge in more than one graph.
@@ -88,7 +88,7 @@ A first sketch stored support as a list of AND sets on the dependent edge. **Tha
 
 ### What is licensed now, and only in this scope
 
-Id minting shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape)); `SecuredTo` v1 builds the rest:
+Id minting shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape)); the edge-terminal arm and the `Justifies` kind shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape) and its terminal rule; the same-graph, single-leg, both-ends-edges legality is v1 scope); `SecuredTo` v1 builds the rest:
 
 - **Minting an `edgeId` on one edge in one graph, on demand**, with no Edge record. This is CE2-local, split from [CE2](AGENT.abstractionLayers.planning.md#recommended-order) on 2026-10-28. Most edges still carry no id, per [EA-8](#settled-register).
 - **An edge-reference arm of `EphemeraLudicTerminalId`**, for one producer: `Justifies`, with both terminals edges in the same graph.

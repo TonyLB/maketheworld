@@ -1,5 +1,6 @@
 import {
     ephemeraLudicTerminalsEqual,
+    isEphemeraCrossingPortId,
     isEphemeraLudicGraphFieldPayload,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type {
@@ -71,7 +72,8 @@ export const edgesReferringToPort = (args: {
     // guard is already `ludicGraphStaleStructureSweep`'s finding, not a second one here. That
     // orders the two sweeps rather than duplicating them --- structure is healed first, and the
     // comparison then runs against a row that parses.
-    if (!isEphemeraLudicGraphFieldPayload(args.referrerLudicGraph)) {
+    // A port id that is not a crossing port id names no slot an edge can cross into.
+    if (!isEphemeraLudicGraphFieldPayload(args.referrerLudicGraph) || !isEphemeraCrossingPortId(args.portId)) {
         return []
     }
     const portAddress = { owner: args.hostId, port: args.portId }

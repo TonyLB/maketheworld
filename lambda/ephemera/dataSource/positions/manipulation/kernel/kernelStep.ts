@@ -1,6 +1,6 @@
 import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import type { EphemeraCrossingPort, EphemeraHostingKind, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPort, EphemeraCrossingPortId, EphemeraHostingKind, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { HostRelationalEdge } from '../../ludicGraph/baseClasses'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
@@ -204,7 +204,7 @@ export type MutationKernelAddCrossingPortStep = {
 export type MutationKernelRemoveCrossingPortStep = {
     kind: 'removeCrossingPort'
     hostId: EphemeraMembershipHostId
-    portId: string
+    portId: EphemeraCrossingPortId
 }
 
 /**

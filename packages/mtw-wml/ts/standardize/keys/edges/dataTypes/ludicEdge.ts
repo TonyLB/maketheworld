@@ -15,16 +15,21 @@ import { ExitEdgePayloadData, isExitEdgePayloadData } from "./exitEdge"
 export const LUDIC_EDGE_TOPOLOGY_KINDS = ['Navigation', 'Bearing', 'ConnectedTo'] as const
 export const LUDIC_EDGE_MEMBERSHIP_KINDS = ['In', 'On', 'PartOf'] as const
 export const LUDIC_EDGE_PEER_KINDS = ['Custom'] as const
+/** One edge justifying another. What may stand at its ends is a limit of the first producer, enforced where
+ * edges are written (AGENT.edgeAbstractions.planning.md, "Owed by the capable version"), not part of this kind. */
+export const LUDIC_EDGE_JUSTIFICATION_KINDS = ['Justifies'] as const
 
 export type LudicEdgeTopologyKind = typeof LUDIC_EDGE_TOPOLOGY_KINDS[number]
 export type LudicEdgeMembershipKind = typeof LUDIC_EDGE_MEMBERSHIP_KINDS[number]
 export type LudicEdgePeerKind = typeof LUDIC_EDGE_PEER_KINDS[number]
-export type LudicEdgeKind = LudicEdgeTopologyKind | LudicEdgeMembershipKind | LudicEdgePeerKind
+export type LudicEdgeJustificationKind = typeof LUDIC_EDGE_JUSTIFICATION_KINDS[number]
+export type LudicEdgeKind = LudicEdgeTopologyKind | LudicEdgeMembershipKind | LudicEdgePeerKind | LudicEdgeJustificationKind
 
 const LUDIC_EDGE_KIND_SET = new Set<string>([
     ...LUDIC_EDGE_TOPOLOGY_KINDS,
     ...LUDIC_EDGE_MEMBERSHIP_KINDS,
     ...LUDIC_EDGE_PEER_KINDS,
+    ...LUDIC_EDGE_JUSTIFICATION_KINDS,
 ])
 
 export const isLudicEdgeKind = (value: unknown): value is LudicEdgeKind =>
@@ -84,6 +89,19 @@ export type StandardLudicTerminalData =
     | StandardReferenceData
     | { owner: StandardReferenceData; port: string }
     | { presence: string }
+    | { edgeId: string }
+
+/** The wire terminal kinds, told apart only here: a presence self-reference, a port-qualified
+ * address and an edge reference. Anything else is a `StandardReferenceData`. Callers narrow with these, never with
+ * `'presence' in` / `'owner' in`. */
+export const isStandardLudicPresenceTerminalData = (data: StandardLudicTerminalData): data is { presence: string } =>
+    typeof data === 'object' && data !== null && 'presence' in data
+
+export const isStandardLudicEdgeTerminalData = (data: StandardLudicTerminalData): data is { edgeId: string } =>
+    typeof data === 'object' && data !== null && 'edgeId' in data
+
+export const isStandardLudicPortTerminalData = (data: StandardLudicTerminalData): data is { owner: StandardReferenceData; port: string } =>
+    typeof data === 'object' && data !== null && 'owner' in data
 
 export const isStandardLudicTerminalData = (arg: unknown): arg is StandardLudicTerminalData => {
     if (isStandardReferenceData(arg)) {
@@ -95,6 +113,10 @@ export const isStandardLudicTerminalData = (arg: unknown): arg is StandardLudicT
     if ('presence' in arg) {
         const entry = arg as { presence: unknown }
         return typeof entry.presence === 'string' && entry.presence.length > 0
+    }
+    if ('edgeId' in arg) {
+        const entry = arg as { edgeId: unknown }
+        return typeof entry.edgeId === 'string' && entry.edgeId.length > 0
     }
     const address = arg as { owner: unknown; port: unknown }
     return isStandardReferenceData(address.owner) && typeof address.port === 'string' && address.port.length > 0
@@ -121,6 +143,7 @@ export type StandardLudicRelationalEdgeData =
 const LUDIC_RELATIONAL_EDGE_KIND_SET = new Set<string>([
     ...LUDIC_EDGE_MEMBERSHIP_KINDS,
     ...LUDIC_EDGE_PEER_KINDS,
+    ...LUDIC_EDGE_JUSTIFICATION_KINDS,
     'Bearing',
     'ConnectedTo',
 ])

@@ -5,7 +5,7 @@ import { classifyLudicGraphPortMismatch } from './classifyLudicGraphPortMismatch
 
 const HOST_ID = 'OBJECT#Rope' as EphemeraObjectId
 const REFERRER_ID = 'ROOM#Kitchen' as EphemeraRoomId
-const PORT_ID = 'abcd123'
+const PORT_ID = 'PORT-abcd123'
 
 // Crossing ports only, as of presenceNodes Slice 3 (PN-9 item (c)): a presence port is a node
 // now, not a mismatch candidate, and this function's own `port` parameter is typed
@@ -174,7 +174,7 @@ describe('classifyLudicGraphPortMismatch', () => {
             expect(classifyLudicGraphPortMismatch({
                 hostId: HOST_ID,
                 port: port({ kind: 'ConnectedTo' }),
-                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo', portId: 'someOtherPort' }]),
+                referrerLudicGraph: referrerGraph([{ kind: 'ConnectedTo', portId: 'PORT-someOtherPort' }]),
             })).toEqual({ mismatch: true })
         })
 

@@ -5,7 +5,7 @@ import { ludicGraphPortMismatchSweep } from './index'
 
 const ROOM_ID = 'ROOM#Kitchen' as EphemeraRoomId
 const OBJECT_ID = 'OBJECT#Rope' as EphemeraObjectId
-const PORT_ID = 'abcd123'
+const PORT_ID = 'PORT-abcd123'
 
 const objectRow = (ports: { portId: string; fromHostId: string; kind: HostRelationalEdgeKind; exteriorRelationLabel?: string }[]) => ({
     EphemeraId: OBJECT_ID,
@@ -153,10 +153,10 @@ describe('ludicGraphPortMismatchSweep', () => {
             {
                 listCandidateRows: async () => [
                     objectRow([
-                        { portId: 'zzz999', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'against' },
+                        { portId: 'PORT-zzz999', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'against' },
                         { portId: PORT_ID, fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'under' },
                     ]),
-                    roomRow([{ kind: 'ConnectedTo' }, { kind: 'Custom', relationLabel: 'under', portId: 'zzz999' }]),
+                    roomRow([{ kind: 'ConnectedTo' }, { kind: 'Custom', relationLabel: 'under', portId: 'PORT-zzz999' }]),
                 ],
                 emitFinding,
             }
@@ -165,7 +165,7 @@ describe('ludicGraphPortMismatchSweep', () => {
         expect(result.emittedCount).toBe(2)
         expect(result.ports).toEqual([
             { ephemeraId: OBJECT_ID, portId: PORT_ID },
-            { ephemeraId: OBJECT_ID, portId: 'zzz999' },
+            { ephemeraId: OBJECT_ID, portId: 'PORT-zzz999' },
         ])
         expect(emitFinding).toHaveBeenCalledTimes(2)
     })

@@ -30,15 +30,15 @@ describe('fetchRelationalReachability', () => {
     })
 
     it('follows a port address terminal found in a fetched graph to the port-owning graph', async () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(STRING_ID, 'In')
             .addObject(TABLE_ID, 'In')
-            .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
+            .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'to' })
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
             .addObject(CUP_ID, 'In')
             .addPort(port)
-            .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
+            .addRelationalEdge({ from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
             if (hostId === ROOM_ID) return roomGraph
             if (hostId === TABLE_ID) return tableGraph
@@ -54,15 +54,15 @@ describe('fetchRelationalReachability', () => {
     })
 
     it('follows a port record\'s fromHostId to the exterior graph, discovering it from the interior side', async () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
             .addObject(STRING_ID, 'In')
             .addObject(TABLE_ID, 'In')
-            .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom', relationLabel: 'to' })
+            .addRelationalEdge({ from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' }, kind: 'Custom', relationLabel: 'to' })
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID)
             .addObject(CUP_ID, 'In')
             .addPort(port)
-            .addRelationalEdge({ from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
+            .addRelationalEdge({ from: { owner: TABLE_ID, port: 'PORT-port-1' }, to: CUP_ID, kind: 'Custom', relationLabel: 'to' })
         const getGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => {
             if (hostId === ROOM_ID) return roomGraph
             if (hostId === TABLE_ID) return tableGraph
@@ -90,10 +90,23 @@ describe('findRelationalChainsTouching', () => {
         expect(chains).toEqual([[{ type: 'edge', hostId: ROOM_ID, edge }]])
     })
 
+    it('does not treat an edge-terminal referrer as touching a component, and does not walk into it', () => {
+        const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Custom' as const, relationLabel: 'under', edgeId: 'edge-a' }
+        const other = { from: HOOK_ID, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-b' }
+        const justifies = { from: { edgeId: 'edge-b' }, to: { edgeId: 'edge-a' }, kind: 'Justifies' as const }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+            .addObject(BROOM_ID, 'In').addObject(HOOK_ID, 'In').addObject(CUP_ID, 'In')
+            .addRelationalEdge(edge).addRelationalEdge(other).addRelationalEdge(justifies)
+
+        const chains = findRelationalChainsTouching(new Set([BROOM_ID]), new Map([[ROOM_ID, roomGraph]]))
+
+        expect(chains).toEqual([[{ type: 'edge', hostId: ROOM_ID, edge }]])
+    })
+
     it('finds the full crossing chain regardless of which side is in the removal set, and dedupes when both sides are', () => {
-        const port: EphemeraCrossingPort = { portId: 'port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
-        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'port-1' }, kind: 'Custom' as const, relationLabel: 'to' }
-        const interiorEdge = { from: { owner: TABLE_ID, port: 'port-1' }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
+        const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
+        const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }
+        const interiorEdge = { from: { owner: TABLE_ID, port: 'PORT-port-1' as const }, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'to' }
         const roomGraph = EphemeraLudicGraph.empty(ROOM_ID).addObject(STRING_ID, 'In').addObject(TABLE_ID, 'In').addRelationalEdge(exteriorEdge)
         const tableGraph = EphemeraLudicGraph.empty(TABLE_ID).addObject(CUP_ID, 'In').addPort(port).addRelationalEdge(interiorEdge)
         const graphs = new Map([[ROOM_ID, roomGraph], [TABLE_ID, tableGraph]])

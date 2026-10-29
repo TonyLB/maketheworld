@@ -10,6 +10,7 @@ describe('presenceGraphViewOf', () => {
                 { tag: 'Relational', kind: 'ConnectedTo', from: { owner: 'OBJECT#Rope', port: 'PRESENCE#Base' }, to: { owner: 'OBJECT#Rope', port: 'PRESENCE#r2' } },
                 { tag: 'Relational', kind: 'ConnectedTo', from: 'OBJECT#Rope', to: 'OBJECT#Part' },
                 { tag: 'Relational', kind: 'ConnectedTo', from: { owner: 'OBJECT#Other', port: 'PRESENCE#Base' }, to: { owner: 'OBJECT#Rope', port: 'PRESENCE#r2' } },
+                { tag: 'Relational', kind: 'ConnectedTo', from: { owner: 'OBJECT#Rope', port: 'PORT-ab6129d' }, to: { owner: 'OBJECT#Rope', port: 'PRESENCE#r2' } },
                 { tag: 'Relational', kind: 'Custom', relationLabel: 'tied to', from: { owner: 'OBJECT#Rope', port: 'PRESENCE#Base' }, to: { owner: 'OBJECT#Rope', port: 'PRESENCE#r2' } },
             ],
         })

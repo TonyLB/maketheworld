@@ -228,20 +228,30 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 }
 
 //
-// Ludic graph edge/port terminals. A terminal is either a bare component id (the
-// EphemeraLudicTerminalPrimitive branch) or a structured port address on that component
-// (EphemeraLudicPortAddress). The parsed shape IS the stored shape --- no string form, no
+// Ludic graph edge/port terminals. A terminal is one of five named kinds (the fifth, an edge named
+// by `edgeId`, is defined below `EphemeraLudicOwnedTerminal`; it has no owner):
+//   - a component (`EphemeraMembershipHostId`, bare) and an own binding (`EphemeraPresenceNodeId`,
+//     bare: a binding named from inside its own graph) --- together `EphemeraLudicNodeTerminal`;
+//   - a crossing port address and a binding address (`{ owner, port }`: a slot named through its
+//     owner) --- together `EphemeraLudicPortAddress`.
+// Each kind has its own guard below. Representation tests (`typeof`, `'owner' in`, a
+// `PRESENCE#`/`PORT-` prefix test) live only inside these guards: every other site asks for a kind
+// by name and narrows without casts. The parsed shape IS the stored shape --- no string form, no
 // separator parsing, in the domain layer (PQ-9, in the abstraction-layers proposals plan). The
 // serde/Dynamo string boundary is deferred to a later slice, gated on a port address needing
 // to stand free of an edge.
 //
 
-export type EphemeraLudicTerminalPrimitive =
+/** A terminal that names a node directly: a component (`EphemeraMembershipHostId`) or an own
+ * binding (`EphemeraPresenceNodeId`, a binding named from inside its own graph). The other arm,
+ * `EphemeraLudicPortAddress`, names a slot through its owner. Tell the two kinds of node apart
+ * with `isEphemeraMembershipHostId` / `isEphemeraPresenceNodeId` once this guard has narrowed. */
+export type EphemeraLudicNodeTerminal =
     | EphemeraRoomId | EphemeraCharacterId
     | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
     | EphemeraPresenceNodeId
 
-export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is EphemeraLudicTerminalPrimitive =>
+export const isEphemeraLudicNodeTerminal = (value: unknown): value is EphemeraLudicNodeTerminal =>
     typeof value === 'string' && (
         isEphemeraRoomId(value) || isEphemeraCharacterId(value) ||
         isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value) ||
@@ -252,13 +262,13 @@ export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is Ephem
  * means two other things in this file (a graph's owner, and a port's exterior `fromHostId`). A
  * presence node never allocates a port (that would reintroduce the port-based mechanism the
  * presenceNodes plan retires), so `owner` stays over the pre-widening domain (PN-4): only a
- * bare terminal --- `EphemeraLudicTerminalPrimitive` --- may itself resolve to a presence node.
+ * bare terminal --- `EphemeraLudicNodeTerminal` --- may itself resolve to a presence node.
  *
- * **`port` is TAGGED or BARE, and which one says what kind of thing it names (presenceNodes
- * PN-24).** A crossing port carries a **bare** minted uuid (`buildCrossingLegs.ts`'s `uuidv4()`),
- * backed by a record in `graph.ports`. A presence binding's **exterior address** carries the
- * **prefixed** `PRESENCE#{uuid}` --- the binding's own node id --- and is backed by a record in
- * `graph.presenceNodes`, never in `ports`. Test with `isEphemeraPresenceNodeId(port)`.
+ * **`port`'s prefix says what kind of thing it names (presenceNodes PN-24).** A crossing port
+ * carries an `EphemeraCrossingPortId`, backed by a record in `graph.ports`. A presence binding's
+ * **exterior address** carries `PRESENCE#{uuid}` --- the binding's own node id --- and is backed by a record in
+ * `graph.presenceNodes`, never in `ports`. The two are the kinds `EphemeraLudicCrossingPortAddress`
+ * and `EphemeraLudicBindingAddress`; tell them apart with their guards.
  *
  * **Why the tag is on the value rather than on a record:** it used to be on the record. A presence
  * binding was a port with `kind: 'Present'`, so one lookup in `graph.ports` answered both *what
@@ -268,72 +278,143 @@ export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is Ephem
  * the binding was not pulled into this cut) from a dangling crossing port (corruption). Tagging
  * the value restores the discriminator the record used to carry, and keeps the two questions
  * separate: the tag says where to look, the lookup still confirms existence. */
-export type EphemeraLudicPortAddress = {
+export type EphemeraLudicPortAddress = EphemeraLudicCrossingPortAddress | EphemeraLudicBindingAddress
+
+export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLudicPortAddress =>
+    isEphemeraLudicCrossingPortAddress(value) || isEphemeraLudicBindingAddress(value)
+
+/** A crossing port's id: `PORT-${uuid}` when minted for a chain (`buildCrossingLegs.ts`), or
+ * `STUB-...` when minted for a same-host straddle (`presenceSubGraph.ts`). The prefix keeps it
+ * disjoint from a binding's `PRESENCE#` id, as a type and at runtime (`positions/AGENT.contract.md`). */
+export type EphemeraCrossingPortId = `PORT-${string}` | `STUB-${string}`
+
+/** Total over the port-id domain, like `isPresenceTaggedPortId`. */
+export const isEphemeraCrossingPortId = (portId: string): portId is EphemeraCrossingPortId =>
+    portId.startsWith('PORT-') || portId.startsWith('STUB-')
+
+/** A crossing port: a slot in `graph.ports` that a leg crosses. Its `EphemeraCrossingPortId`
+ * makes it disjoint from `EphemeraLudicBindingAddress`, so a failed check for either kind narrows
+ * to the other. */
+export type EphemeraLudicCrossingPortAddress = {
     owner: EphemeraMembershipHostId;
-    port: string;
+    port: EphemeraCrossingPortId;
 }
 
-export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLudicPortAddress => {
+/** A binding named from outside its own graph: the owner's `PRESENCE#` node, backed by a record in
+ * the owner's `graph.presenceNodes`. Equal to the own binding with the same id (see
+ * `ephemeraLudicTerminalsEqual`). */
+export type EphemeraLudicBindingAddress = {
+    owner: EphemeraMembershipHostId;
+    port: EphemeraPresenceNodeId;
+}
+
+const hasPortAddressShape = (value: unknown): value is { owner: EphemeraMembershipHostId; port: string } => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const address = value as EphemeraLudicPortAddress
-    return isEphemeraMembershipHostId(address.owner) && typeof address.port === 'string' && address.port.length > 0
+    const address = value as Record<string, unknown>
+    return typeof address.owner === 'string' && isEphemeraMembershipHostId(address.owner) && typeof address.port === 'string'
 }
+
+export const isEphemeraLudicCrossingPortAddress = (value: unknown): value is EphemeraLudicCrossingPortAddress =>
+    hasPortAddressShape(value) && isEphemeraCrossingPortId(value.port)
+
+export const isEphemeraLudicBindingAddress = (value: unknown): value is EphemeraLudicBindingAddress =>
+    hasPortAddressShape(value) && isPresenceTaggedPortId(value.port)
 
 /** Whether a port id carries the presence tag --- i.e. whether this address names a binding in
  * `graph.presenceNodes` rather than a crossing port in `graph.ports` (PN-24).
  *
  * **Use this rather than `isEphemeraPresenceNodeId` on a port id.** That guard is built for the
  * EphemeraId domain and THROWS (`Illegal nested EphemeraId`) on any value containing more than one
- * `#`. Port ids are not EphemeraIds --- `EphemeraCrossingPort.portId` is deliberately an opaque
- * `string` --- and a minted stub id embeds component ids, e.g.
+ * `#`. Port ids are not EphemeraIds --- `EphemeraCrossingPort.portId` is an
+ * `EphemeraCrossingPortId` --- and a minted stub id embeds component ids, e.g.
  * `STUB-["OBJECT#C","OBJECT#D","On",""]`, so an EphemeraId guard is a category error here that
  * throws on ordinary same-host traffic. This predicate is total over the port-id domain. */
 export const isPresenceTaggedPortId = (portId: string): portId is EphemeraPresenceNodeId =>
     portId.startsWith('PRESENCE#')
 
-export type EphemeraLudicTerminalId =
-    | EphemeraLudicTerminalPrimitive
+/** A terminal with an owning component: a component, an own binding, or a port address. The
+ * edge kind (`EphemeraLudicEdgeTerminal`) is not one, so readers that need an
+ * owner take this type rather than `EphemeraLudicTerminalId`, and the compiler finds the callers
+ * that must state an edge case. */
+export type EphemeraLudicOwnedTerminal =
+    | EphemeraLudicNodeTerminal
     | EphemeraLudicPortAddress
 
+export const isEphemeraLudicOwnedTerminal = (value: unknown): value is EphemeraLudicOwnedTerminal =>
+    isEphemeraLudicNodeTerminal(value) || isEphemeraLudicPortAddress(value)
+
+/** The fifth terminal kind: another edge in the same graph, named by its `edgeId` (the
+ * relationship, not a route or leg of it). It has no owning component, so it is not an
+ * `EphemeraLudicOwnedTerminal`. Only a `Justifies` edge carries it, **as v1 policy** (see the
+ * guard in `isEphemeraLudicRelationalEdgeData`): the kind of terminal is a settled shape, the
+ * restriction on who may carry it and on both ends being edges is not. */
+export type EphemeraLudicEdgeTerminal = { edgeId: string }
+
+export const isEphemeraLudicEdgeTerminal = (value: unknown): value is EphemeraLudicEdgeTerminal => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false
+    }
+    const keys = Object.keys(value)
+    const { edgeId } = value as { edgeId?: unknown }
+    return keys.length === 1 && keys[0] === 'edgeId' && typeof edgeId === 'string' && edgeId.length > 0
+}
+
+export type EphemeraLudicTerminalId = EphemeraLudicOwnedTerminal | EphemeraLudicEdgeTerminal
+
 export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudicTerminalId =>
-    isEphemeraLudicTerminalPrimitive(value) || isEphemeraLudicPortAddress(value)
+    isEphemeraLudicNodeTerminal(value) || isEphemeraLudicPortAddress(value) || isEphemeraLudicEdgeTerminal(value)
+
+/** A string identifying a terminal: the id itself for a component, `owner#port` for a port address,
+ * `edge:<edgeId>` for an edge. Stub port ids and edge identity hashes are built from it, so the
+ * output for the first two is persisted-compatible. */
+export const ephemeraLudicTerminalKey = (terminal: EphemeraLudicTerminalId): string => {
+    if (isEphemeraLudicEdgeTerminal(terminal)) {
+        return `edge:${terminal.edgeId}`
+    }
+    return isEphemeraLudicNodeTerminal(terminal) ? terminal : `${terminal.owner}#${terminal.port}`
+}
+
+/** The type of a graph's `rootId`. The edge arm is excluded from it,
+ * because a root is always a component or a port on one. */
+export type EphemeraLudicRootId = EphemeraLudicOwnedTerminal
 
 /** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified.
  * Overloaded so a call site already narrowed to a port address (which can only ever name a real
  * component, PN-4) gets `EphemeraMembershipHostId` back rather than the wider terminal-primitive
  * type a bare terminal could resolve to. */
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicPortAddress): EphemeraMembershipHostId
-export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive
-export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive {
-    return typeof terminal === 'string' ? terminal : terminal.owner
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicOwnedTerminal): EphemeraLudicNodeTerminal
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicOwnedTerminal): EphemeraLudicNodeTerminal {
+    return isEphemeraLudicNodeTerminal(terminal) ? terminal : terminal.owner
 }
 
-/** Full terminal equality --- a primitive and a port address on the same owner are NOT equal,
- * with one presence-scoped exception (presenceNodes Slice 5 item 3, re-mechanized by PN-24): a
- * presence node id and a presence-tagged port address naming that same binding DO refer to the
- * same terminal --- clause 1's exterior address form. PN-5's `PRESENCE#{uuid}` is globally unique,
- * so the qualifying `owner` on that address carries no information the id does not, and identity
- * may drop it.
+/** The one cross-kind equality: an own binding and a binding address with the same id. The
+ * address's owner is ignored unless `bareOwner` is given. */
+const ownBindingMatchesAddress = (node: EphemeraLudicNodeTerminal, address: EphemeraLudicPortAddress, bareOwner?: string): boolean =>
+    isEphemeraPresenceNodeId(node) && isEphemeraLudicBindingAddress(address) && node === address.port
+        && (bareOwner === undefined || address.owner === bareOwner)
+
+/** Full terminal equality, by kind. Two terminals of the same kind are equal when their fields
+ * are. An own binding equals a binding address naming the same binding (clause 1's exterior
+ * address form), and no other pair of kinds is ever equal --- so a component never equals a port
+ * address on itself.
  *
- * **Fixed ids break that uniqueness** (contract, *Base and Unplaced*): every host holds a `PRESENCE#Base`,
+ * **Fixed ids are not unique** (contract, *Base and Unplaced*): every host holds a `PRESENCE#Base`,
  * so a bare presence id names a binding only on the graph it sits in. A caller comparing terminals of
- * one graph passes that graph's host as `bareOwner`, and the exception then also requires the address
- * to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are still unique.
- *
- * Scoped by the port address's DECLARED TAG (`isPresenceTaggedPortId`), which under PN-24 is
- * carried on the value itself --- a crossing port's id is bare, so it can never satisfy this test
- * and every non-presence pair is unaffected, including same-owner ones. Both sides carry the tag,
- * so this is a plain equality; do NOT reintroduce a `PRESENCE#${...}` reconstruction here, which
- * is what this comparison looked like while `.port` was bare and would now double-prefix. */
+ * one graph passes that graph's host as `bareOwner`, and the cross-kind case then also requires the
+ * address to be owned by it. Omitted, the owner is ignored, which is sound only for ids that are
+ * still unique (PN-5's `PRESENCE#{uuid}`). */
 export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId, bareOwner?: string): boolean => {
-    if (typeof a === 'string' && typeof b === 'string') {
-        return a === b
+    if (isEphemeraLudicEdgeTerminal(a) || isEphemeraLudicEdgeTerminal(b)) {
+        return isEphemeraLudicEdgeTerminal(a) && isEphemeraLudicEdgeTerminal(b) && a.edgeId === b.edgeId
     }
-    if (typeof a === 'string' || typeof b === 'string') {
-        const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
-        return isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
+    if (isEphemeraLudicNodeTerminal(a)) {
+        return isEphemeraLudicNodeTerminal(b) ? a === b : ownBindingMatchesAddress(a, b, bareOwner)
+    }
+    if (isEphemeraLudicNodeTerminal(b)) {
+        return ownBindingMatchesAddress(b, a, bareOwner)
     }
     return a.owner === b.owner && a.port === b.port
 }
@@ -354,9 +435,10 @@ export const ephemeraEdgeEndpointsEqual = (
     || (a.kind === 'ConnectedTo' && ephemeraLudicTerminalsEqual(a.from, b.to, bareOwner) && ephemeraLudicTerminalsEqual(a.to, b.from, bareOwner))
 )
 
-/** True when a terminal (qualified or not) resolves to the given component id. */
-export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicTerminalPrimitive): boolean =>
-    ephemeraLudicTerminalOwner(terminal) === id
+/** True when a terminal (qualified or not) resolves to the given component id. An edge terminal
+ * names no component, so it refers to none. */
+export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicNodeTerminal): boolean =>
+    !isEphemeraLudicEdgeTerminal(terminal) && ephemeraLudicTerminalOwner(terminal) === id
 
 /**
  * Slice 2 v1 shipped Character nodes; Phase 4 shipped Object nodes; CC0b shipped Room nodes
@@ -521,7 +603,8 @@ export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraL
 export type HostRelationalEdgeKind =
     | 'Custom'                                  // peer kind (AB-54): a label says which relation
     | 'ConnectedTo'                             // topology within ONE whole (symmetric); never decides shard placement
-export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
+    | 'Justifies'                               // support between two edges of one graph (directional); the only kind whose terminals are edges
+export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo', 'Justifies'])
 
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge
@@ -601,9 +684,9 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
  * in one graph (no Edge record, no reverse index), and no comparison consults one ---
  * `edgesMatch` is still purely structural, so a
  * mixed population of id-bearing and id-less edges behaves today exactly as an all-id-less one
- * does. It is a bare `string` following `EphemeraCrossingPort.portId`, deliberately *not* a new
- * arm of `EphemeraId`: whether an edge may stand where a *terminal* stands is a separate
- * question (EA-10), and a port-style record layered over this id is how it would be answered.
+ * does. It is a bare `string`, deliberately *not* a new arm of `EphemeraId`: whether an edge may
+ * stand where a *terminal* stands is a separate question (EA-10), and a port-style record layered
+ * over this id is how it would be answered.
  *
  * `chainId` is **the leg's statement of which chain it belongs to**, and unlike `edgeId` it is
  * consulted: `edgesMatch` compares it ahead of structure (P8 iteration 1, a **Prototype** ---
@@ -616,10 +699,10 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
  * presence for edges. Nothing mints or strips a `chainId` yet; the operations that will are
  * specified but gated on that storage.
  */
-type EphemeraLudicRelationalEdgeBase = {
+type EphemeraLudicRelationalEdgeBase<T extends EphemeraLudicTerminalId = EphemeraLudicTerminalId> = {
     tag: 'Relational';
-    from: EphemeraLudicTerminalId;
-    to: EphemeraLudicTerminalId;
+    from: T;
+    to: T;
     edgeId?: string;
     chainId?: string;
 }
@@ -630,10 +713,14 @@ type EphemeraLudicRelationalEdgeBase = {
  * **The union sits at the top level and the base is intersected into each arm, deliberately.**
  * `Base & (A | B)` does narrow in current TypeScript, but the arms-as-union form is what the
  * guard, the storage adapters and the comparison helpers were all verified against; keep it.
+ *
+ * **`T` narrows the terminal kinds an edge may carry.** The default is every kind. The ludicCache
+ * instantiates it with a terminal type that excludes the own-binding kind
+ * (`EphemeraLudicCacheTerminalId`), so a bare `PRESENCE#` terminal on a cache edge is a compile error.
  */
-export type EphemeraLudicRelationalEdgeData =
-    | (EphemeraLudicRelationalEdgeBase & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
-    | (EphemeraLudicRelationalEdgeBase & { kind: 'Custom'; relationLabel: string })
+export type EphemeraLudicRelationalEdgeData<T extends EphemeraLudicTerminalId = EphemeraLudicTerminalId> =
+    | (EphemeraLudicRelationalEdgeBase<T> & { kind: Exclude<HostRelationalEdgeKind, 'Custom'> })
+    | (EphemeraLudicRelationalEdgeBase<T> & { kind: 'Custom'; relationLabel: string })
 
 export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is EphemeraLudicRelationalEdgeData => {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -651,6 +738,24 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
     }
     if (typeof edge.kind !== 'string' || !STORED_RELATIONAL_EDGE_KINDS.has(edge.kind)) {
         return false
+    }
+    // The edge arm is carried by `Justifies` and by nothing else, and a `Justifies` edge has an
+    // edge on both ends. An edge may not name itself; cycles between edges are fine.
+    // **Contingent on v1 (one producer: SecuredTo's support between sibling edges).** The
+    // both-ends-edges rule is NOT a statement of what `Justifies` means: the capable version has an
+    // abstraction (a component) justify an edge, so its source may be a node. Lifting it changes
+    // this check and `assertEdgeTerminalsLegal`; see "Owed by the capable version" in
+    // `AGENT.edgeAbstractions.planning.md`.
+    const fromIsEdge = isEphemeraLudicEdgeTerminal(edge.from)
+    const toIsEdge = isEphemeraLudicEdgeTerminal(edge.to)
+    if ((edge.kind === 'Justifies') !== (fromIsEdge && toIsEdge) || fromIsEdge !== toIsEdge) {
+        return false
+    }
+    if (isEphemeraLudicEdgeTerminal(edge.from) && isEphemeraLudicEdgeTerminal(edge.to)) {
+        const ids = [edge.from.edgeId, edge.to.edgeId]
+        if (ids[0] === ids[1] || (edge.edgeId !== undefined && ids.includes(edge.edgeId as string))) {
+            return false
+        }
     }
     // Absent is the common case and stays legal --- identity is optional per edge (EA-8). A
     // *present* id must be a usable one, on the same reasoning as `relationLabel` below: a guard
@@ -691,7 +796,7 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
  * record.
  */
 export type EphemeraCrossingPort = {
-    portId: string;
+    portId: EphemeraCrossingPortId;
     /**
      * The exterior host that refers to this port --- almost always a component id, but a stub
      * port minted for a same-host straddle (`presenceSubGraph.ts`'s `subGraphFromNodes`) can name
@@ -725,7 +830,7 @@ export type EphemeraLudicGraphPort = EphemeraCrossingPort
 export type EphemeraLudicGraphData = {
     hostId: EphemeraMembershipHostId;
     /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see `positions/ludicGraph/AGENT.md`. */
-    rootId: EphemeraLudicTerminalId;
+    rootId: EphemeraLudicRootId;
     nodes: EphemeraLudicGraphNode[];
     /** Phase B: in-host relational edges on room host graphs; absent or [] when none. */
     edges?: EphemeraLudicRelationalEdgeData[];
@@ -838,6 +943,7 @@ export const isEphemeraLudicGraphPort = (value: unknown): value is EphemeraLudic
     const entry = value as Record<string, unknown>
     if (!(
         typeof entry.portId === 'string' &&
+        isEphemeraCrossingPortId(entry.portId) &&
         (
             isEphemeraMembershipHostId(entry.fromHostId as EphemeraMembershipHostId) ||
             isEphemeraPresenceNodeId(entry.fromHostId as string)
@@ -867,7 +973,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         return false
     }
     const graph = value as EphemeraLudicGraphFieldPayload
-    if (!isEphemeraLudicTerminalId(graph.rootId)) {
+    if (!isEphemeraLudicOwnedTerminal(graph.rootId)) {
         return false
     }
     if (!Array.isArray(graph.nodes)) {
@@ -906,6 +1012,13 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     if ('edges' in graph) {
         const edges = graph.edges
         if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
+            return false
+        }
+        // An edge terminal naming an `edgeId` no edge of the graph carries is corruption (AGENT.contract.md "Edge persist shape").
+        // Checked on the stored graph only: a cache holds the buckets it pulled, so a referrer there
+        // may legitimately name an edge in a bucket that was not pulled.
+        const ids = new Set(edges.map((entry) => entry.edgeId).filter((id) => id !== undefined))
+        if (!edges.every((entry) => [entry.from, entry.to].every((terminal) => !isEphemeraLudicEdgeTerminal(terminal) || ids.has(terminal.edgeId)))) {
             return false
         }
     }

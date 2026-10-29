@@ -26,6 +26,7 @@ import { assetDB, ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
 import { IMPROVISATION_ASSET_ID } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraCrossingPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import internalCache from '../internalCache'
@@ -50,7 +51,7 @@ const WALL_ID = 'OBJECT#Wall' as EphemeraObjectId
 const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
 
 const tied = (from: unknown, to: unknown) => ({ from, to, kind: 'Custom' as const, relationLabel: 'is tied to' }) as never
-const crossingPort = (portId: string, fromHostId: EphemeraRoomId) => ({ portId, fromHostId, kind: 'Custom' as const, exteriorRelationLabel: 'is tied to' })
+const crossingPort = (portId: EphemeraCrossingPortId, fromHostId: EphemeraRoomId) => ({ portId, fromHostId, kind: 'Custom' as const, exteriorRelationLabel: 'is tied to' })
 /** The entries a binding lists, each naming the member's own binding (a member without one is listed under `PRESENCE#Base`). */
 const covering = (...members: ([EphemeraCharacterId | EphemeraObjectId, string?])[]) => ({
     members: members.map(([host, presence]) => ({ host, presence: (presence ?? 'PRESENCE#Base') as EphemeraPresenceNodeId })),
@@ -175,7 +176,7 @@ describe('crossing take payoff (integration)', () => {
     it('"get cup" tied across the table to the string in the room: unties both legs and the port, then takes the cup, narrating the untying first', async () => {
         // The string sits in the room; the cup on the table, which is bound into the room. The
         // room holds `string -> port`; the table holds the port and `port -> cup`.
-        const tablePort = { owner: TABLE_ID, port: 'port-table' }
+        const tablePort = { owner: TABLE_ID, port: 'PORT-port-table' }
         seed({
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
@@ -186,7 +187,7 @@ describe('crossing take payoff (integration)', () => {
                     .addRelationalEdge(tied(STRING_ID, tablePort)),
                 [TABLE_ID]: EphemeraLudicGraph.empty(TABLE_ID)
                     .addObject(CUP_ID, 'On')
-                    .addPort(crossingPort('port-table', ROOM_ID))
+                    .addPort(crossingPort('PORT-port-table', ROOM_ID))
                     .addPresenceNode(fullBinding('PRESENCE#table-in-bridge', ROOM_ID, undefined, covering([CUP_ID, 'PRESENCE#cup-on-table'])))
                     .addRelationalEdge(tied(tablePort, CUP_ID)),
                 [CHARACTER_ID]: EphemeraLudicGraph.empty(CHARACTER_ID).addPresenceNode(rootBinding('PRESENCE#Base')),
@@ -220,7 +221,7 @@ describe('crossing take payoff (integration)', () => {
         // The wall is bound into both rooms; the hook sits in the wall's own interior. The far
         // end's room comes from the wall's shard (where the hook's leg is), not from the room
         // the string is taken from.
-        const wallPort = { owner: WALL_ID, port: 'port-wall' }
+        const wallPort = { owner: WALL_ID, port: 'PORT-port-wall' }
         seed({
             graphs: {
                 [ROOM_ID]: EphemeraLudicGraph.empty(ROOM_ID)
@@ -235,7 +236,7 @@ describe('crossing take payoff (integration)', () => {
                     .addObject(WALL_ID, 'In'),
                 [WALL_ID]: EphemeraLudicGraph.empty(WALL_ID)
                     .addObject(HOOK_ID, 'In')
-                    .addPort(crossingPort('port-wall', ROOM_ID))
+                    .addPort(crossingPort('PORT-port-wall', ROOM_ID))
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-bridge', ROOM_ID, undefined, covering([HOOK_ID])))
                     .addPresenceNode(fullBinding('PRESENCE#wall-in-galley', OTHER_ROOM_ID, undefined, covering([HOOK_ID])))
                     .addRelationalEdge(tied(wallPort, HOOK_ID)),

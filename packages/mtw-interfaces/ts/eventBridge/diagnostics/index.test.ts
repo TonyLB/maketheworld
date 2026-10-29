@@ -309,7 +309,7 @@ describe('DiagnosticsEventSerializer', () => {
             const internalEvent: DiagnosticsEventUpdate = {
                 type: 'Ludic Graph Port Mismatch Finding',
                 ephemeraId: 'OBJECT#Rope',
-                portId: 'abcd123',
+                portId: 'PORT-abcd123',
                 diagnosticRunId: 'run-lgpm-ser',
                 timestamp: '2025-10-18T17:30:00.000Z'
             }
@@ -322,7 +322,7 @@ describe('DiagnosticsEventSerializer', () => {
             expect(external).toEqual({
                 type: 'Ludic Graph Port Mismatch Finding',
                 ephemeraId: 'OBJECT#Rope',
-                portId: 'abcd123',
+                portId: 'PORT-abcd123',
                 diagnosticRunId: 'run-lgpm-ser',
                 timestamp: '2025-10-18T17:30:00.000Z'
             })
@@ -882,7 +882,7 @@ describe('DiagnosticsEventSerializer', () => {
             const externalEvent: any = {
                 type: 'Ludic Graph Port Mismatch Finding',
                 ephemeraId: 'OBJECT#Rope',
-                portId: 'abcd123',
+                portId: 'PORT-abcd123',
                 diagnosticRunId: 'run-lgpm-des',
                 timestamp: '2025-10-18T17:36:00.000Z'
             }
@@ -895,7 +895,7 @@ describe('DiagnosticsEventSerializer', () => {
             expect(internal).toEqual({
                 type: 'Ludic Graph Port Mismatch Finding',
                 ephemeraId: 'OBJECT#Rope',
-                portId: 'abcd123',
+                portId: 'PORT-abcd123',
                 diagnosticRunId: 'run-lgpm-des',
                 timestamp: '2025-10-18T17:36:00.000Z'
             })
@@ -1186,7 +1186,7 @@ describe('DiagnosticsEventSerializer', () => {
                 const event = {
                     type: 'Ludic Graph Port Mismatch Finding',
                     ephemeraId: 'FEATURE#Wall',
-                    portId: 'abcd123',
+                    portId: 'PORT-abcd123',
                     diagnosticRunId: 'run-1',
                     timestamp: '2025-10-18T12:00:00.000Z'
                 }
@@ -1196,7 +1196,7 @@ describe('DiagnosticsEventSerializer', () => {
             it('should return false for invalid ephemeraId, missing or empty portId, or bad payloads', () => {
                 expect(isLudicGraphPortMismatchFindingEvent(null)).toBe(false)
                 expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding' })).toBe(false)
-                expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'BOGUS#x', portId: 'abcd123' })).toBe(false)
+                expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'BOGUS#x', portId: 'PORT-abcd123' })).toBe(false)
                 expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'FEATURE#Wall' })).toBe(false)
                 expect(isLudicGraphPortMismatchFindingEvent({ type: 'Ludic Graph Port Mismatch Finding', ephemeraId: 'FEATURE#Wall', portId: '' })).toBe(false)
             })
@@ -1438,7 +1438,7 @@ describe('DiagnosticsEventSerializer', () => {
             const original: DiagnosticsEventUpdate = {
                 type: 'Ludic Graph Port Mismatch Finding',
                 ephemeraId: 'AREA#Downtown',
-                portId: 'abcd123',
+                portId: 'PORT-abcd123',
                 diagnosticRunId: 'run-lgpm-rt',
                 timestamp: '2025-10-18T18:24:00.000Z'
             }

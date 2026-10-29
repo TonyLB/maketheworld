@@ -2061,12 +2061,12 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
         // A crossing: the string sits in the room, the cup on the table, and the tie crosses the
         // table's shard boundary through a port (the room holds `string -> port`, the table holds
         // the port and `port -> cup`).
-        const portAddress = { owner: TABLE, port: 'port-1' }
+        const portAddress = { owner: TABLE, port: 'PORT-port-1' as const }
         const crossingShards = () => ({
             [ROOM]: roomWith([STRING, TABLE], [{ tag: 'Relational', from: STRING, to: portAddress, kind: 'Custom', relationLabel: 'is tied to' }]),
             [TABLE]: EphemeraLudicGraph.empty(TABLE)
                 .addObject(CUP, 'On')
-                .addPort({ portId: 'port-1', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
+                .addPort({ portId: 'PORT-port-1', fromHostId: ROOM, kind: 'Custom', exteriorRelationLabel: 'is tied to' })
                 .addRelationalEdge({ from: portAddress, to: CUP, kind: 'Custom', relationLabel: 'is tied to' }),
         })
 

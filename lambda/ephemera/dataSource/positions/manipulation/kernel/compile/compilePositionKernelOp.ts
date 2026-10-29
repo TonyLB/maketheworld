@@ -1,5 +1,5 @@
-import type { EphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraLudicTerminalPrimitive, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraLudicNodeTerminal, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -51,21 +51,17 @@ const CAPTURE_ID_TO = 'capture:to'
  * creates one.
  */
 export const compilePositionKernelOp = (op: PositionKernelMoveOp): CompiledPositionKernelPlan => {
-    // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but a port-qualified edge is a
-    // crossing, which Expansion dissolves as its own
-    // attempt action, never here. So skip rather than assume. Each edge carries its own host.
+    // HostRelationalEdge.from/to is EphemeraLudicTerminalId-typed, but an edge with an address end
+    // is a crossing (which Expansion dissolves as its own attempt action) or a whole's own topology,
+    // never dissolved here. So skip rather than assume. Each edge carries its own host.
     const dissolveSteps: ExecutorDissolveRelationStep[] = (op.dissolvedEdges ?? [])
-        .filter(({ edge }) => isEphemeraLudicTerminalPrimitive(edge.from) && isEphemeraLudicTerminalPrimitive(edge.to))
-        .map(({ hostId, edge }) => ({
-            kind: 'dissolveRelation' as const,
-            // Safe: filtered to primitive endpoints above.
-            subjectId: edge.from as EphemeraLudicTerminalPrimitive,
-            targetId: edge.to as EphemeraLudicTerminalPrimitive,
-            hostId,
-            ...relationKindAndLabelOf(edge),
-        }))
+        .flatMap(({ hostId, edge }): ExecutorDissolveRelationStep[] => (
+            isEphemeraLudicNodeTerminal(edge.from) && isEphemeraLudicNodeTerminal(edge.to)
+                ? [{ kind: 'dissolveRelation', subjectId: edge.from, targetId: edge.to, hostId, ...relationKindAndLabelOf(edge) }]
+                : []
+        ))
 
-    const primaryMovedId: EphemeraLudicTerminalPrimitive = op.moved
+    const primaryMovedId: EphemeraLudicNodeTerminal = op.moved
 
     if (op.hostingKind && op.to === null) {
         throw new Error('compilePositionKernelOp: hostingKind set with no destination --- caller bug, not a legal "give to nobody" shape')

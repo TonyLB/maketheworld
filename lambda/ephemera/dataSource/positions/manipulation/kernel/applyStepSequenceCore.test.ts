@@ -240,6 +240,31 @@ describe('applyStepSequenceCore', () => {
         expect(nextGraph.objectIds).toEqual(new Set([trayId, tableId]))
     })
 
+    it('a dissolveRelation step also removes the edges that name the dissolved edge, transitively', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+                presenceBindingNode(parentRemainderKey(roomId)),
+            ],
+            edges: [
+                { tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to', edgeId: 'support1' },
+                { tag: 'Relational', from: tableId, to: trayId, kind: 'Custom', relationLabel: 'rests on', edgeId: 'secured1' },
+                { tag: 'Relational', from: { edgeId: 'support1' }, to: { edgeId: 'secured1' }, kind: 'Justifies', edgeId: 'justify1' },
+                { tag: 'Relational', from: { edgeId: 'justify1' }, to: { edgeId: 'secured1' }, kind: 'Justifies' },
+            ],
+        })
+        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' }]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([
+            { from: tableId, to: trayId, kind: 'Custom', relationLabel: 'rests on', edgeId: 'secured1' },
+        ])
+    })
+
     it('BD-33 structural throw: a carried hostId that neither endpoint actually shares throws (not a verdict)', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode(parentRemainderKey(roomId))] })
         const otherGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }, presenceBindingNode(parentRemainderKey(otherRoomId))] })
@@ -637,13 +662,13 @@ describe('applyStepSequenceCore', () => {
                     { tag: 'Object', universalKey: glassId },
                     presenceBindingNode(parentRemainderKey(tableId)),
                 ],
-                ports: [{ portId: 'crossing-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
+                ports: [{ portId: 'PORT-crossing-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
             })
             const steps: MutationKernelStep[] = [
                 {
                     kind: 'establishRelation',
                     subjectId: stringId,
-                    targetId: { owner: tableId, port: 'crossing-1' },
+                    targetId: { owner: tableId, port: 'PORT-crossing-1' },
                     hostId: roomId,
                     relationKind: 'Custom',
                     relationLabel: 'to',
@@ -655,7 +680,7 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([
-                { from: stringId, to: { owner: tableId, port: 'crossing-1' }, kind: 'Custom', relationLabel: 'to' },
+                { from: stringId, to: { owner: tableId, port: 'PORT-crossing-1' }, kind: 'Custom', relationLabel: 'to' },
             ])
         })
 
@@ -666,12 +691,12 @@ describe('applyStepSequenceCore', () => {
                     { tag: 'Object', universalKey: glassId },
                     presenceBindingNode(parentRemainderKey(tableId)),
                 ],
-                ports: [{ portId: 'crossing-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
+                ports: [{ portId: 'PORT-crossing-1', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' }],
             })
             const steps: MutationKernelStep[] = [
                 {
                     kind: 'establishRelation',
-                    subjectId: { owner: tableId, port: 'crossing-1' },
+                    subjectId: { owner: tableId, port: 'PORT-crossing-1' },
                     targetId: glassId,
                     hostId: tableId,
                     relationKind: 'Custom',
@@ -684,20 +709,20 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(tableId)!.relationalEdges).toEqual([
-                { from: { owner: tableId, port: 'crossing-1' }, to: glassId, kind: 'Custom', relationLabel: 'to' },
+                { from: { owner: tableId, port: 'PORT-crossing-1' }, to: glassId, kind: 'Custom', relationLabel: 'to' },
             ])
         })
 
         it('addCrossingPort adds a fresh port without disturbing an existing one (crossing ports are not at-most-one)', () => {
             const tableGraph = testLudicGraph(tableId, {
                 nodes: [],
-                ports: [{ portId: 'existing', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' }],
+                ports: [{ portId: 'PORT-existing', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' }],
             })
             const steps: MutationKernelStep[] = [
                 {
                     kind: 'addCrossingPort',
                     hostId: tableId,
-                    port: { portId: 'new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+                    port: { portId: 'PORT-new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
                 },
             ]
 
@@ -706,8 +731,8 @@ describe('applyStepSequenceCore', () => {
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
             expect(outcome.graphs.get(tableId)!.ports).toEqual([
-                { portId: 'existing', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' },
-                { portId: 'new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+                { portId: 'PORT-existing', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' },
+                { portId: 'PORT-new', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
             ])
         })
 
@@ -715,22 +740,22 @@ describe('applyStepSequenceCore', () => {
             const tableGraph = testLudicGraph(tableId, {
                 nodes: [],
                 ports: [
-                    { portId: 'keep', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' },
-                    { portId: 'gone', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
+                    { portId: 'PORT-keep', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' },
+                    { portId: 'PORT-gone', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' },
                 ],
             })
-            const steps: MutationKernelStep[] = [{ kind: 'removeCrossingPort', hostId: tableId, portId: 'gone' }]
+            const steps: MutationKernelStep[] = [{ kind: 'removeCrossingPort', hostId: tableId, portId: 'PORT-gone' }]
 
             const outcome = applyStepSequenceCore(steps, graphsMap([tableId, tableGraph]))
 
             expect(outcome.verdict).toBe('legal')
             if (outcome.verdict !== 'legal') return
-            expect(outcome.graphs.get(tableId)!.ports).toEqual([{ portId: 'keep', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' }])
+            expect(outcome.graphs.get(tableId)!.ports).toEqual([{ portId: 'PORT-keep', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'under' }])
         })
 
         it('addCrossingPort against a host absent from the footprint is illegal (hostNotInFootprint)', () => {
             const steps: MutationKernelStep[] = [
-                { kind: 'addCrossingPort', hostId: tableId, port: { portId: 'new', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' } },
+                { kind: 'addCrossingPort', hostId: tableId, port: { portId: 'PORT-new', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'to' } },
             ]
 
             expect(applyStepSequenceCore(steps, graphsMap([roomId, testLudicGraph(roomId, { nodes: [] })]))).toEqual({

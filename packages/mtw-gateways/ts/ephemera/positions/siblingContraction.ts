@@ -19,23 +19,24 @@
 
 export type ContractionParent = { host: string; presence: string }
 
-export type ContractionBinding = {
-    universalKey: string
+/** `Key` is the binding key's type: `string` for a raw stored row, a narrower id where the caller has one. */
+export type ContractionBinding<Key extends string = string> = {
+    universalKey: Key
     fromHostPresences: readonly ContractionParent[]
 }
 
 /** A `ConnectedTo` edge between two bindings of one host, as the binding keys at its ends (stored order). */
-export type ConnectedToPair = readonly [string, string]
+export type ConnectedToPair<Key extends string = string> = readonly [Key, Key]
 
-export type MergeablePair = {
+export type MergeablePair<Key extends string = string> = {
     parent: ContractionParent
-    bindings: readonly [string, string]
+    bindings: readonly [Key, Key]
     reason: 'bare' | 'adjacent'
 }
 
 const parentKey = ({ host, presence }: ContractionParent): string => `${host}|${presence}`
 
-const neighborsOf = (connectedTo: readonly ConnectedToPair[]): Map<string, Set<string>> => (
+const neighborsOf = <Key extends string>(connectedTo: readonly ConnectedToPair<Key>[]): Map<Key, Set<Key>> => (
     connectedTo.reduce((accumulator, [from, to]) => {
         if (from === to) {
             return accumulator
@@ -43,12 +44,12 @@ const neighborsOf = (connectedTo: readonly ConnectedToPair[]): Map<string, Set<s
         accumulator.set(from, new Set([...(accumulator.get(from) ?? []), to]))
         accumulator.set(to, new Set([...(accumulator.get(to) ?? []), from]))
         return accumulator
-    }, new Map<string, Set<string>>())
+    }, new Map<Key, Set<Key>>())
 )
 
-const reasonFor = (neighbors: Map<string, Set<string>>, a: string, b: string): MergeablePair['reason'] | undefined => {
-    const ofA = neighbors.get(a) ?? new Set<string>()
-    const ofB = neighbors.get(b) ?? new Set<string>()
+const reasonFor = <Key extends string>(neighbors: Map<Key, Set<Key>>, a: Key, b: Key): MergeablePair['reason'] | undefined => {
+    const ofA = neighbors.get(a) ?? new Set<Key>()
+    const ofB = neighbors.get(b) ?? new Set<Key>()
     if (ofA.size === 0 || ofB.size === 0) {
         return 'bare'
     }
@@ -60,11 +61,11 @@ const reasonFor = (neighbors: Map<string, Set<string>>, a: string, b: string): M
  * The first pair of `bindings` under `parent` that the rule merges, or `undefined`. Degrees count every
  * edge in `connectedTo`, so `bindings` may be a subset of the host's.
  */
-export const mergeablePairUnder = (
+export const mergeablePairUnder = <Key extends string>(
     parent: ContractionParent,
-    bindings: readonly ContractionBinding[],
-    connectedTo: readonly ConnectedToPair[]
-): MergeablePair | undefined => {
+    bindings: readonly ContractionBinding<Key>[],
+    connectedTo: readonly ConnectedToPair<Key>[]
+): MergeablePair<Key> | undefined => {
     const neighbors = neighborsOf(connectedTo)
     const under = [...new Set(bindings
         .filter(({ fromHostPresences }) => fromHostPresences.some((candidate) => parentKey(candidate) === parentKey(parent)))
@@ -81,22 +82,22 @@ export const mergeablePairUnder = (
 }
 
 /** The first pair of a host's bindings, under any parent binding, that the rule merges, or `undefined`. */
-export const mergeablePairOf = (
-    bindings: readonly ContractionBinding[],
-    connectedTo: readonly ConnectedToPair[]
-): MergeablePair | undefined => {
+export const mergeablePairOf = <Key extends string>(
+    bindings: readonly ContractionBinding<Key>[],
+    connectedTo: readonly ConnectedToPair<Key>[]
+): MergeablePair<Key> | undefined => {
     const parents = [...new Map(bindings.flatMap(({ fromHostPresences }) => fromHostPresences).map((parent) => [parentKey(parent), parent])).values()]
-    return parents.reduce<MergeablePair | undefined>((found, parent) => found ?? mergeablePairUnder(parent, bindings, connectedTo), undefined)
+    return parents.reduce<MergeablePair<Key> | undefined>((found, parent) => found ?? mergeablePairUnder(parent, bindings, connectedTo), undefined)
 }
 
-export type Contraction = {
-    survivor: string
-    absorbed: string
+export type Contraction<Key extends string = string> = {
+    survivor: Key
+    absorbed: Key
     reason: MergeablePair['reason']
     /** Every edge on the absorbed binding as it stands before this merge, to be dissolved first. */
-    dissolve: readonly ConnectedToPair[]
+    dissolve: readonly ConnectedToPair<Key>[]
     /** The absorbed binding's other edges, rewritten onto the survivor, to be established after the join. */
-    establish: readonly ConnectedToPair[]
+    establish: readonly ConnectedToPair<Key>[]
 }
 
 /**
@@ -106,14 +107,14 @@ export type Contraction = {
  * survivor of each pair, lowest first (the caller puts Base first, since Base is never dispensed with);
  * ties go to the binding listed first.
  */
-export const contractionsOf = (
-    bindings: readonly ContractionBinding[],
-    connectedTo: readonly ConnectedToPair[],
-    rank: (universalKey: string) => number
-): { contractions: Contraction[]; bindings: ContractionBinding[]; connectedTo: ConnectedToPair[] } => {
-    const order = (key: string) => bindings.findIndex(({ universalKey }) => universalKey === key)
+export const contractionsOf = <Key extends string>(
+    bindings: readonly ContractionBinding<Key>[],
+    connectedTo: readonly ConnectedToPair<Key>[],
+    rank: (universalKey: Key) => number
+): { contractions: Contraction<Key>[]; bindings: ContractionBinding<Key>[]; connectedTo: ConnectedToPair<Key>[] } => {
+    const order = (key: Key) => bindings.findIndex(({ universalKey }) => universalKey === key)
     const step = (
-        state: { contractions: Contraction[]; bindings: ContractionBinding[]; connectedTo: ConnectedToPair[] }
+        state: { contractions: Contraction<Key>[]; bindings: ContractionBinding<Key>[]; connectedTo: ConnectedToPair<Key>[] }
     ): typeof state => {
         const pair = mergeablePairOf(state.bindings, state.connectedTo)
         if (!pair) {
@@ -121,10 +122,10 @@ export const contractionsOf = (
         }
         const [survivor, absorbed] = [...pair.bindings].sort((a, b) => (rank(a) - rank(b)) || (order(a) - order(b)))
         const dissolve = state.connectedTo.filter(([from, to]) => from === absorbed || to === absorbed)
-        const already = neighborsOf(state.connectedTo).get(survivor) ?? new Set<string>()
+        const already = neighborsOf(state.connectedTo).get(survivor) ?? new Set<Key>()
         const establish = [...new Set(dissolve.map(([from, to]) => (from === absorbed ? to : from)))]
             .filter((neighbor) => neighbor !== survivor && neighbor !== absorbed && !already.has(neighbor))
-            .map((neighbor): ConnectedToPair => [survivor, neighbor])
+            .map((neighbor): ConnectedToPair<Key> => [survivor, neighbor])
         const absorbedParents = state.bindings.find(({ universalKey }) => universalKey === absorbed)?.fromHostPresences ?? []
         return step({
             contractions: [...state.contractions, { survivor, absorbed, reason: pair.reason, dissolve, establish }],

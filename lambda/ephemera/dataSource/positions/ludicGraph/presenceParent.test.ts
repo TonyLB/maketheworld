@@ -1,9 +1,9 @@
-import type { EphemeraAreaId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicGraphStructureNode } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicGraph } from './index'
-import { bindingHasParent, bindingHasParentOn, childParentBindingIdOf, parentBindingsOf, parentHostsOf, parentsOfBinding, parentOf, parentsOf, unpointedBindingOf } from './presenceParent'
+import { bindingHasParent, bindingHasParentOn, childParentBindingIdOf, connectedToPairsOf, parentBindingsOf, parentHostsOf, parentsOfBinding, parentOf, parentsOf, unpointedBindingOf } from './presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './testFixtures'
 
 const area = 'AREA#Town' as EphemeraAreaId
@@ -134,5 +134,30 @@ describe('parent sets', () => {
     it('unpointedBindingOf finds the binding with an empty parent set', () => {
         const graph = testLudicGraph(cup, { nodes: [shared, presenceBindingNode('die-hostless')] })
         expect(unpointedBindingOf(graph)?.universalKey).toEqual(presenceBindingNode('die-hostless').universalKey)
+    })
+})
+
+describe('connectedToPairsOf', () => {
+    const base = 'PRESENCE#Base' as EphemeraPresenceNodeId
+    const second = 'PRESENCE#r2' as EphemeraPresenceNodeId
+
+    it('reads ConnectedTo edges between two of the host\'s own binding addresses, and nothing else', () => {
+        const graph = testLudicGraph(shelf, {
+            nodes: [presenceBindingNode(base, roomA), presenceBindingNode(second, roomB)],
+            edges: [
+                { tag: 'Relational', kind: 'ConnectedTo', from: { owner: shelf, port: base }, to: { owner: shelf, port: second } },
+                { tag: 'Relational', kind: 'ConnectedTo', from: { owner: cup, port: base }, to: { owner: shelf, port: second } },
+                { tag: 'Relational', kind: 'Custom', relationLabel: 'tied to', from: { owner: shelf, port: base }, to: { owner: shelf, port: second } },
+            ],
+        })
+        expect(connectedToPairsOf(graph)).toEqual([[base, second]])
+    })
+
+    it('leaves out a ConnectedTo with a crossing-port end: a crossing port is not a binding', () => {
+        const graph = testLudicGraph(shelf, {
+            nodes: [presenceBindingNode(second, roomB)],
+            edges: [{ tag: 'Relational', kind: 'ConnectedTo', from: { owner: shelf, port: 'PORT-ab6129d' }, to: { owner: shelf, port: second } }],
+        })
+        expect(connectedToPairsOf(graph)).toEqual([])
     })
 })

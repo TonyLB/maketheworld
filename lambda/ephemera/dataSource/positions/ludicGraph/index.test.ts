@@ -460,7 +460,7 @@ describe('EphemeraLudicGraph', () => {
         it('equals treats two structurally-identical port-qualified edge terminals as equal', () => {
             const edge = {
                 tag: 'Relational' as const,
-                from: { owner: OBJECT_A, port: 'ab6129d' },
+                from: { owner: OBJECT_A, port: 'PORT-ab6129d' as const },
                 to: OBJECT_B,
                 kind: 'ConnectedTo' as const,
             }
@@ -480,7 +480,7 @@ describe('EphemeraLudicGraph', () => {
         // ports round-trips through fromFieldPayload/toStored/toJSON/fromJSON
         // exactly like nodes/edges --- the egress list is not a special case.
         it('ports round-trips through fromFieldPayload and toStored', () => {
-            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'ConnectedTo' as const }]
+            const ports = [{ portId: 'PORT-ab6129d' as const, fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'ConnectedTo' as const }]
             const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
                 rootId: OBJECT_HOST_ID,
                 nodes: [objectNode(OBJECT_HOST_ID)],
@@ -493,7 +493,7 @@ describe('EphemeraLudicGraph', () => {
         // A `Custom` port carries its exterior label, so the round trip must show both
         // new fields surviving --- not just the discriminator.
         it('ports round-trips through toJSON and fromJSON', () => {
-            const ports = [{ portId: 'ab6129d', fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Custom' as const, exteriorRelationLabel: 'threads into' }]
+            const ports = [{ portId: 'PORT-ab6129d' as const, fromHostId: 'ROOM#Kitchen' as EphemeraRoomId, kind: 'Custom' as const, exteriorRelationLabel: 'threads into' }]
             const graph = EphemeraLudicGraph.fromFieldPayload(OBJECT_HOST_ID, {
                 rootId: OBJECT_HOST_ID,
                 nodes: [objectNode(OBJECT_HOST_ID)],
@@ -614,7 +614,7 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: { owner: HOST_ID, port: 'ab6129d' }, to: OBJECT_A, kind: 'Present' },
+                    { tag: 'Relational', from: { owner: HOST_ID, port: 'PORT-ab6129d' }, to: OBJECT_A, kind: 'Present' },
                 ] as unknown as [],
             })
             expect(edges).toEqual([])
@@ -627,11 +627,11 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' },
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'PORT-ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' },
                     { to: 'ROOM#Elsewhere', from: OBJECT_A, description: 'north' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' }])
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'PORT-ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
         // Port-terminal regression, fallback path specifically. **The shape that reaches the fallback changed
@@ -646,10 +646,10 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo', relationLabel: 'balanced across' },
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'PORT-ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo', relationLabel: 'balanced across' },
                 ] as unknown as [],
             })
-            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' }])
+            expect(edges).toEqual([{ from: { owner: OBJECT_A, port: 'PORT-ab6129d' }, to: OBJECT_B, kind: 'ConnectedTo' }])
         })
 
         // The shape that used to reach the fallback, now dropped rather than recovered: there is
@@ -659,7 +659,7 @@ describe('EphemeraLudicGraph', () => {
             const edges = extractRelationalEdgesFromStored({
                 nodes: [],
                 edges: [
-                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'ab6129d' }, to: OBJECT_B, kind: 'Custom', relationLabel: '' },
+                    { tag: 'Relational', from: { owner: OBJECT_A, port: 'PORT-ab6129d' }, to: OBJECT_B, kind: 'Custom', relationLabel: '' },
                 ] as unknown as [],
             })
             expect(edges).toEqual([])
@@ -772,7 +772,7 @@ describe('EphemeraLudicGraph', () => {
         })
 
         // PQ-10 originally: `EphemeraLudicRelationalEdgeData.from`/`.to` were
-        // `EphemeraLudicTerminalPrimitive`-typed (no port-address terminals yet), and
+        // `EphemeraLudicNodeTerminal`-typed (no port-address terminals yet), and
         // `isEphemeraLudicRelationalEdgeData` correctly rejected a non-string terminal (fixed in
         // the same change -- it used to throw instead of returning `false`). A port-qualified
         // terminal could not reach a *stored-edge* read path (`removeObject`/`edgeReferencesObjectId`
@@ -784,19 +784,19 @@ describe('EphemeraLudicGraph', () => {
 
             it('bothObjectsOnGraph resolves a port-qualified terminal to its owner', () => {
                 const graph = graphWithObjects()
-                expect(graph.bothObjectsOnGraph(portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, OBJECT_B)).toBe(true)
-                expect(graph.bothObjectsOnGraph(portTerminal(OBJECT_C, 'ab6129d') as unknown as EphemeraObjectId, OBJECT_B)).toBe(false)
+                expect(graph.bothObjectsOnGraph(portTerminal(OBJECT_A, 'PORT-ab6129d') as unknown as EphemeraObjectId, OBJECT_B)).toBe(true)
+                expect(graph.bothObjectsOnGraph(portTerminal(OBJECT_C, 'PORT-ab6129d') as unknown as EphemeraObjectId, OBJECT_B)).toBe(false)
             })
 
             it('nodeHasRelationalEdge finds a port-qualified edge (the original vacuous-pass hazard, at the level reachable today)', () => {
-                const edges = [{ from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'ConnectedTo' as const }]
+                const edges = [{ from: portTerminal(OBJECT_A, 'PORT-ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'ConnectedTo' as const }]
                 expect(nodeHasRelationalEdge(OBJECT_A, edges)).toBe(true)
                 expect(nodeHasRelationalEdge(OBJECT_C, edges)).toBe(false)
             })
 
             it('edgesMatch distinguishes a port-qualified terminal from its bare owner', () => {
                 const bare = { from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' as const }
-                const portQualified = { from: portTerminal(OBJECT_A, 'ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'ConnectedTo' as const }
+                const portQualified = { from: portTerminal(OBJECT_A, 'PORT-ab6129d') as unknown as EphemeraObjectId, to: OBJECT_B, kind: 'ConnectedTo' as const }
                 expect(edgesMatch(bare, portQualified)).toBe(false)
                 expect(edgesMatch(portQualified, portQualified)).toBe(true)
             })
@@ -805,7 +805,7 @@ describe('EphemeraLudicGraph', () => {
                 // Before the 2026-08-22 widening, isEphemeraLudicRelationalEdgeData rejected a
                 // port-address terminal outright (a non-string .from), so this returned false rather
                 // than throwing. The schema now admits it, so the correct behavior is to find the owner.
-                const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'ab6129d'), to: OBJECT_B, kind: 'ConnectedTo' }
+                const rawEdge = { tag: 'Relational', from: portTerminal(OBJECT_A, 'PORT-ab6129d'), to: OBJECT_B, kind: 'ConnectedTo' }
                 expect(() => edgeReferencesObjectId(rawEdge, OBJECT_A)).not.toThrow()
                 expect(edgeReferencesObjectId(rawEdge, OBJECT_A)).toBe(true)
                 expect(edgeReferencesObjectId(rawEdge, OBJECT_C)).toBe(false)
@@ -834,29 +834,29 @@ describe('EphemeraLudicGraph', () => {
 
         describe('ports', () => {
             it('addPort appends the port', () => {
-                const next = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
-                expect(next.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' }])
+                const next = graphWithObjects().addPort({ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
+                expect(next.toStored().ports).toEqual([{ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' }])
             })
 
             it('addPort is idempotent for an existing portId', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
-                expect(graph.addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })).toBe(graph)
+                const graph = graphWithObjects().addPort({ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
+                expect(graph.addPort({ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })).toBe(graph)
             })
 
             it('removePort filters by portId', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
-                expect(graph.removePort('port-1').toStored().ports).toEqual([])
+                const graph = graphWithObjects().addPort({ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
+                expect(graph.removePort('PORT-port-1').toStored().ports).toEqual([])
             })
 
             it('removePort no-ops for a portId not present', () => {
                 const graph = graphWithObjects()
-                expect(graph.removePort('missing').toStored().ports).toEqual([])
+                expect(graph.removePort('PORT-missing').toStored().ports).toEqual([])
             })
 
             it('ports round-trip through fromJSON/toStored', () => {
-                const graph = graphWithObjects().addPort({ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
+                const graph = graphWithObjects().addPort({ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' })
                 const restored = EphemeraLudicGraph.fromJSON({ hostId: HOST_ID, ...graph.toStored() })
-                expect(restored.toStored().ports).toEqual([{ portId: 'port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' }])
+                expect(restored.toStored().ports).toEqual([{ portId: 'PORT-port-1', fromHostId: HOST_ID, kind: 'ConnectedTo' }])
             })
         })
 
@@ -954,6 +954,85 @@ describe('EphemeraLudicGraph', () => {
                     nodes: [],
                     edges: [{ tag: 'Relational', edgeId: '', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }] as unknown as [],
                 })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
+            })
+
+            describe('edge terminals (Justifies)', () => {
+                const base = () => graphWithThreeObjects()
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-a' })
+                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-b' })
+                const A = { edgeId: 'edge-a' }
+                const B = { edgeId: 'edge-b' }
+
+                it('stores a Justifies edge naming two edges of the graph, and it survives the stored round trip', () => {
+                    const next = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                    expect(next.relationalEdges).toContainEqual({ from: B, to: A, kind: 'Justifies' })
+                    const reread = EphemeraLudicGraph.fromFieldPayload(HOST_ID, next.toStored())
+                    expect(reread.relationalEdges).toContainEqual({ from: B, to: A, kind: 'Justifies' })
+                })
+
+                it('allows a cycle: A justifies B and B justifies A', () => {
+                    const next = base()
+                        .addRelationalEdge({ from: A, to: B, kind: 'Justifies' })
+                        .addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                    expect(next.relationalEdges.filter(({ kind }) => kind === 'Justifies')).toHaveLength(2)
+                })
+
+                it('refuses an id that names no edge of this graph', () => {
+                    expect(() => base().addRelationalEdge({ from: B, to: { edgeId: 'edge-z' }, kind: 'Justifies' })).toThrow(/edge-z/)
+                })
+
+                it('refuses an id naming a leg of a chain (the temporary v1 limit)', () => {
+                    const chained = graphWithThreeObjects()
+                        .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-a', chainId: 'chain-1' })
+                        .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-b' })
+                    expect(() => chained.addRelationalEdge({ from: B, to: A, kind: 'Justifies' })).toThrow(/edge-a/)
+                })
+
+                it('refuses self-reference', () => {
+                    expect(() => base().addRelationalEdge({ from: A, to: A, kind: 'Justifies' })).toThrow()
+                    expect(() => base().addRelationalEdge({ from: A, to: B, kind: 'Justifies', edgeId: 'edge-a' })).toThrow()
+                })
+
+                it('refuses another kind carrying an edge terminal, and Justifies carrying a component', () => {
+                    expect(() => base().addRelationalEdge({ from: OBJECT_A, to: A, kind: 'Custom', relationLabel: 'x' } as any)).toThrow(/Justifies/)
+                    expect(() => base().addRelationalEdge({ from: A, to: B, kind: 'ConnectedTo' } as any)).toThrow(/Justifies/)
+                    expect(() => base().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'Justifies' } as any)).toThrow(/Justifies/)
+                })
+
+                it('applyRelationalPatch applies the same legality', () => {
+                    expect(base().applyRelationalPatch({ hostId: HOST_ID, op: 'add', edge: { from: B, to: A, kind: 'Justifies' } }).relationalEdges).toContainEqual({ from: B, to: A, kind: 'Justifies' })
+                    expect(() => base().applyRelationalPatch({ hostId: HOST_ID, op: 'add', edge: { from: B, to: { edgeId: 'edge-z' }, kind: 'Justifies' } })).toThrow()
+                })
+
+                describe('withoutDanglingEdgeReferrers', () => {
+                    it('removes a referrer of a dissolved edge, and returns the same graph when nothing dangles', () => {
+                        const joined = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                        expect(joined.withoutDanglingEdgeReferrers()).toBe(joined)
+                        const dissolved = joined.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }).withoutDanglingEdgeReferrers()
+                        expect(dissolved.relationalEdges).toEqual([{ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-b' }])
+                    })
+
+                    it('follows referrers of referrers, and a cycle, to a fixpoint', () => {
+                        const chained = base()
+                            .addRelationalEdge({ from: B, to: A, kind: 'Justifies', edgeId: 'j1' })
+                            .addRelationalEdge({ from: { edgeId: 'j1' }, to: B, kind: 'Justifies', edgeId: 'j2' })
+                            .addRelationalEdge({ from: { edgeId: 'j2' }, to: A, kind: 'Justifies' })
+                        const dissolved = chained.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }).withoutDanglingEdgeReferrers()
+                        expect(dissolved.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+                    })
+
+                    it('leaves a referrer whose named edges both remain', () => {
+                        const joined = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                        expect(joined.removeRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo' }).withoutDanglingEdgeReferrers().relationalEdges).toHaveLength(1)
+                    })
+                })
+
+                it('an edge-terminal referrer does not make a component "still referenced"', () => {
+                    const next = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                    expect(next.nodeHasRelationalEdge(OBJECT_A)).toBe(true) // via edge-a itself
+                    const only = graphWithThreeObjects()
+                    expect(only.nodeHasRelationalEdge(OBJECT_C)).toBe(false)
+                })
             })
 
             describe('assignEdgeId', () => {

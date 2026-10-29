@@ -244,14 +244,14 @@ describe('executeMembershipTransfer', () => {
     })
 
     it("removing the interior (port-owning) side of a crossing dissolves both legs and the port in one transact --- the 'silent orphan' failure mode this row fixes", async () => {
-        const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
+        const port = { portId: 'PORT-port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
         })
         const tableGraph = testLudicGraph(TABLE_ID, {
             nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }, presenceBindingNode(parentRemainderKey(TABLE_ID))],
-            edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
+            edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'PORT-port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
             ports: [port],
         } as any);
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockImplementation(async (id: string) =>
@@ -281,14 +281,14 @@ describe('executeMembershipTransfer', () => {
     })
 
     it("removing the exterior (primitive-endpoint) side of a crossing dissolves both legs and the port too --- the fail-closed batch-breaking failure mode this row fixes", async () => {
-        const port = { portId: 'port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
+        const port = { portId: 'PORT-port-1', fromHostId: FROM_ROOM, kind: 'Custom' as const, exteriorRelationLabel: 'to' }
         const roomGraph = testLudicGraph(FROM_ROOM, {
             nodes: [{ tag: 'Object', universalKey: OBJECT_ID }, { tag: 'Object', universalKey: TABLE_ID }, presenceBindingNode(parentRemainderKey(FROM_ROOM))],
-            edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
+            edges: [{ tag: 'Relational', from: OBJECT_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' } as any, kind: 'Custom', relationLabel: 'to' }],
         })
         const tableGraph = testLudicGraph(TABLE_ID, {
             nodes: [{ tag: 'Object', universalKey: TABLE_ID }, { tag: 'Object', universalKey: 'OBJECT#Cup' as EphemeraObjectId }, presenceBindingNode(parentRemainderKey(TABLE_ID))],
-            edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
+            edges: [{ tag: 'Relational', from: { owner: TABLE_ID, port: 'PORT-port-1' } as any, to: 'OBJECT#Cup' as EphemeraObjectId, kind: 'Custom', relationLabel: 'to' }],
             ports: [port],
         } as any);
         (internalCache.Positions.getMembershipContainers as jest.Mock).mockImplementation(async (id: string) =>

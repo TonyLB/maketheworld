@@ -1,4 +1,4 @@
-import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom, isEphemeraLudicEdgeTerminal, isEphemeraLudicNodeTerminal, isEphemeraLudicPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { coverageViolationsOf, mergeablePairOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -37,8 +37,12 @@ const hostsOf = (
     id: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId[] => {
-    if (typeof id !== 'string') {
-        // A port address names its own host directly (owner) --- graph-local addressing, not
+    if (isEphemeraLudicEdgeTerminal(id)) {
+        // An edge terminal names no component, so no host (and no step carries one).
+        return []
+    }
+    if (isEphemeraLudicPortAddress(id)) {
+        // An address end names its own host directly (owner) --- graph-local addressing, not
         // membership search. This is a *candidate*, not a veto: the exterior side of a
         // crossing has no port record of its own, so its port-address endpoint's owner will not
         // match the edge's carried `hostId` --- `confirmCarriedHost` skips the membership check
@@ -86,12 +90,12 @@ const confirmCarriedHost = (
     if (subjectHosts.length === 0 || targetHosts.length === 0) {
         return { subjectHosts, targetHosts }
     }
-    if (typeof subjectId === 'string' && !subjectHosts.includes(hostId)) {
+    if (isEphemeraLudicNodeTerminal(subjectId) && !subjectHosts.includes(hostId)) {
         throw new Error(
             `${subjectId}/${targetId} do not share host ${hostId} --- structural invariant violated (a relational step reaching here should carry the host Expansion actually resolved)`
         )
     }
-    if (typeof targetId === 'string' && !targetHosts.includes(hostId)) {
+    if (isEphemeraLudicNodeTerminal(targetId) && !targetHosts.includes(hostId)) {
         throw new Error(
             `${subjectId}/${targetId} do not share host ${hostId} --- structural invariant violated (a relational step reaching here should carry the host Expansion actually resolved)`
         )
@@ -396,7 +400,8 @@ export const applyStepSequenceCore = (
             },
             op: step.kind === 'establishRelation' ? 'add' : 'remove',
         })
-        graphs.set(step.hostId, patched)
+        // A dissolved edge takes the edges that name it (AGENT.contract.md "Edge persist shape") in the same apply.
+        graphs.set(step.hostId, step.kind === 'dissolveRelation' ? patched.withoutDanglingEdgeReferrers() : patched)
     }
 
     // the fall-through and root rules at the run's end, before the checks below (a binding still parentless here is removed,

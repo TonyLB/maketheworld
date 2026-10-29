@@ -14,6 +14,9 @@ import {
     StandardLudicNavigationEdgeData,
     StandardLudicRelationalEdgeData,
     StandardLudicTerminalData,
+    isStandardLudicPresenceTerminalData,
+    isStandardLudicEdgeTerminalData,
+    isStandardLudicPortTerminalData,
 } from "./dataTypes/ludicEdge"
 
 //
@@ -161,7 +164,10 @@ export class StandardLudicNavigationEdge implements LudicEdgeListItem {
 /** LG-11: the class-side mirror of `StandardLudicTerminalData` -- a `StandardReference`, a
  * port-qualified address whose `owner` half is one, or a bare presence-node self-reference
  * (opaque id, no `StandardReference` involved -- a presence id is not a component). */
-type LudicEdgeTerminal = StandardReference | { owner: StandardReference; port: string } | { presence: string }
+type LudicEdgeTerminal = StandardReference | { owner: StandardReference; port: string } | { presence: string } | { edgeId: string }
+
+const isEdgeTerminal = (terminal: LudicEdgeTerminal): terminal is { edgeId: string } =>
+    !(terminal instanceof StandardReference) && 'edgeId' in terminal
 
 const isPortQualifiedTerminal = (terminal: LudicEdgeTerminal): terminal is { owner: StandardReference; port: string } =>
     !(terminal instanceof StandardReference) && 'owner' in terminal
@@ -170,10 +176,13 @@ const isPresenceTerminal = (terminal: LudicEdgeTerminal): terminal is { presence
     !(terminal instanceof StandardReference) && 'presence' in terminal
 
 const terminalFromJSON = (data: StandardLudicTerminalData): LudicEdgeTerminal => {
-    if (typeof data === 'object' && data !== null && 'presence' in data) {
+    if (isStandardLudicPresenceTerminalData(data)) {
         return { presence: data.presence }
     }
-    if (typeof data === 'object' && data !== null && 'owner' in data) {
+    if (isStandardLudicEdgeTerminalData(data)) {
+        return { edgeId: data.edgeId }
+    }
+    if (isStandardLudicPortTerminalData(data)) {
         return { owner: new StandardReference(data.owner), port: data.port }
     }
     return new StandardReference(data)
@@ -182,6 +191,9 @@ const terminalFromJSON = (data: StandardLudicTerminalData): LudicEdgeTerminal =>
 const terminalToJSON = (terminal: LudicEdgeTerminal): StandardLudicTerminalData => {
     if (isPresenceTerminal(terminal)) {
         return { presence: terminal.presence }
+    }
+    if (isEdgeTerminal(terminal)) {
+        return { edgeId: terminal.edgeId }
     }
     if (isPortQualifiedTerminal(terminal)) {
         return { owner: terminal.owner.toJSON(), port: terminal.port }
@@ -193,6 +205,9 @@ const terminalClone = (terminal: LudicEdgeTerminal): LudicEdgeTerminal => {
     if (isPresenceTerminal(terminal)) {
         return { presence: terminal.presence }
     }
+    if (isEdgeTerminal(terminal)) {
+        return { edgeId: terminal.edgeId }
+    }
     if (isPortQualifiedTerminal(terminal)) {
         return { owner: terminal.owner.clone(), port: terminal.port }
     }
@@ -202,6 +217,9 @@ const terminalClone = (terminal: LudicEdgeTerminal): LudicEdgeTerminal => {
 const terminalSameKey = (a: LudicEdgeTerminal, b: LudicEdgeTerminal): boolean => {
     if (isPresenceTerminal(a) || isPresenceTerminal(b)) {
         return isPresenceTerminal(a) && isPresenceTerminal(b) && a.presence === b.presence
+    }
+    if (isEdgeTerminal(a) || isEdgeTerminal(b)) {
+        return isEdgeTerminal(a) && isEdgeTerminal(b) && a.edgeId === b.edgeId
     }
     if (isPortQualifiedTerminal(a) || isPortQualifiedTerminal(b)) {
         return isPortQualifiedTerminal(a) && isPortQualifiedTerminal(b) &&
@@ -213,7 +231,7 @@ const terminalSameKey = (a: LudicEdgeTerminal, b: LudicEdgeTerminal): boolean =>
 /** The presence arm passes through unchanged -- a presence id embeds a uuid, not a component
  * key/universalKey pair, so there is nothing for a format change or a key lookup to remap. */
 const terminalToFormat = (terminal: LudicEdgeTerminal, format: ReferenceFormat): LudicEdgeTerminal => {
-    if (isPresenceTerminal(terminal)) {
+    if (isPresenceTerminal(terminal) || isEdgeTerminal(terminal)) {
         return terminal
     }
     if (isPortQualifiedTerminal(terminal)) {
@@ -223,7 +241,7 @@ const terminalToFormat = (terminal: LudicEdgeTerminal, format: ReferenceFormat):
 }
 
 const terminalLookup = (terminal: LudicEdgeTerminal, mappings: LookupMappings): LudicEdgeTerminal => {
-    if (isPresenceTerminal(terminal)) {
+    if (isPresenceTerminal(terminal) || isEdgeTerminal(terminal)) {
         return terminal
     }
     if (isPortQualifiedTerminal(terminal)) {

@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraLudicTerminalsEqual, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalsEqual, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
@@ -21,8 +21,6 @@ import type { NarrationUnit } from './narrationUnit'
  * mints the same ids in any module instance, which is what lets a stored answer find its challenge.
  * Each id is scoped by the primary action's id (Plan-minted, so stable across reruns of a frozen root).
  */
-const terminalKey = (terminal: unknown): string => typeof terminal === 'string' ? terminal : JSON.stringify(terminal)
-
 const exitEdgeChallengeId = (primaryActionId: string): string => `exitEdge:${primaryActionId}`
 
 /**
@@ -33,7 +31,7 @@ const exitEdgeChallengeId = (primaryActionId: string): string => `exitEdge:${pri
 export const customEdgeStructuralChallengeId = (
     primaryActionId: string,
     edge: Extract<HostRelationalEdge, { kind: 'Custom' }>
-): string => `customEdge:${primaryActionId}:${[terminalKey(edge.from), terminalKey(edge.to), edge.kind, edge.relationLabel].join('|')}`
+): string => `customEdge:${primaryActionId}:${[ephemeraLudicTerminalKey(edge.from), ephemeraLudicTerminalKey(edge.to), edge.kind, edge.relationLabel].join('|')}`
 
 const customEdgeChallengeId = (
     primaryActionId: string,

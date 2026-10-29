@@ -17,10 +17,12 @@ import type {
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
     EphemeraLudicTerminalId,
-    EphemeraLudicTerminalPrimitive,
+    EphemeraLudicEdgeTerminal,
+    EphemeraLudicNodeTerminal,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraCrossingPortId, EphemeraLudicRootId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicEdgeTerminal, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -67,7 +69,7 @@ export const areaNode = (universalKey: EphemeraAreaId): EphemeraLudicGraphCompon
  * these five kinds for a host-bound graph (`rootId === hostId`), so every fresh-construction
  * factory below uses this to seed the root's own node alongside whatever else it builds.
  */
-export const nodeFromId = (id: EphemeraLudicTerminalPrimitive): EphemeraLudicGraphNode => {
+export const nodeFromId = (id: EphemeraLudicNodeTerminal): EphemeraLudicGraphNode => {
     if (isEphemeraCharacterId(id)) return characterNode(id)
     if (isEphemeraObjectId(id)) return objectNode(id)
     if (isEphemeraRoomId(id)) return roomNode(id)
@@ -121,7 +123,7 @@ const extractPlayOnlyEdges = (envelope: PlayLudicGraph): PlayLudicGraph['edges']
 export class EphemeraLudicGraph {
     readonly hostId: EphemeraMembershipHostId
     /** The graph's designated root node, present in `nodes` (concepts clause 3). Recorded, never derived --- see this directory's `AGENT.md`. */
-    readonly rootId: EphemeraLudicTerminalId
+    readonly rootId: EphemeraLudicRootId
 
     private readonly _nodes: EphemeraLudicGraphNode[]
     private readonly _edges: EphemeraLudicRelationalEdgeData[] | undefined
@@ -131,7 +133,7 @@ export class EphemeraLudicGraph {
 
     private constructor(
         hostId: EphemeraMembershipHostId,
-        rootId: EphemeraLudicTerminalId,
+        rootId: EphemeraLudicRootId,
         nodes: EphemeraLudicGraphNode[],
         edges: EphemeraLudicRelationalEdgeData[] | undefined,
         playOnlyEdges: PlayLudicGraph['edges'] | undefined = undefined,
@@ -281,7 +283,7 @@ export class EphemeraLudicGraph {
      * `nodeIds` also admits Room/Area, which `EphemeraThingId` (a catalog/Identify-layer type,
      * not a graph-node type) does not.
      */
-    get nodeIds(): Set<EphemeraLudicTerminalPrimitive> {
+    get nodeIds(): Set<EphemeraLudicNodeTerminal> {
         return new Set(this._nodes.map((node) => node.universalKey))
     }
 
@@ -420,7 +422,7 @@ export class EphemeraLudicGraph {
      * A member's hosting kind in this host's graph: `undefined` for the root, a presence
      * node, or an absent id; every other member carries one.
      */
-    hostingKindOf(id: EphemeraLudicTerminalPrimitive): EphemeraHostingKind | undefined {
+    hostingKindOf(id: EphemeraLudicNodeTerminal): EphemeraHostingKind | undefined {
         const node = this._nodes.find((entry) => entry.tag !== 'Presence' && entry.universalKey === id)
         return node && node.tag !== 'Presence' ? node.hostingKind : undefined
     }
@@ -452,7 +454,7 @@ export class EphemeraLudicGraph {
     }
 
     /** Throws unless `hostingKind` may be carried by `memberId` in this host (not the root; legal on the root's tag). */
-    private assertHostingKindLegal(memberId: EphemeraLudicTerminalPrimitive, hostingKind: EphemeraHostingKind): void {
+    private assertHostingKindLegal(memberId: EphemeraLudicNodeTerminal, hostingKind: EphemeraHostingKind): void {
         if (memberId === ephemeraLudicTerminalOwner(this.rootId)) {
             throw new Error(`${memberId} is the root of ${this.hostId} and carries no hosting kind`)
         }
@@ -568,7 +570,7 @@ export class EphemeraLudicGraph {
      * collapsed to one loop over `nodeIds`/`addNode`/`removeNode` instead of kept as four to spell
      * out a distinction nothing downstream needed spelled out. Typed to
      * `EphemeraPositionAdjacencyContainedId` (Character/Object/Feature/Room) rather than the wider
-     * `EphemeraLudicTerminalPrimitive` --- Area is a host only and never itself a member, so it has
+     * `EphemeraLudicNodeTerminal` --- Area is a host only and never itself a member, so it has
      * no add/remove case here (see that type's own doc comment).
      */
     addNode(id: EphemeraPositionAdjacencyContainedId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
@@ -599,7 +601,41 @@ export class EphemeraLudicGraph {
         return this.withPlayOnlyEdges(filtered.length > 0 ? filtered : undefined)
     }
 
+    /**
+     * The one v1 legality check for an edge terminal (AGENT.contract.md "Edge persist shape"): only a `Justifies`
+     * edge carries one, on both ends; each names a stored edge of THIS graph that has an `edgeId`
+     * and is a single leg (no `chainId`); an edge may not name itself or the same edge twice.
+     * Cycles between edges are allowed. **Two v1 limits, both temporary.** "Same graph, single
+     * leg" lives in `namesSingleLegEdge`. "Both ends are edges" lives here and in the shape guard:
+     * the capable version lets a component (an abstraction) justify an edge, under a membership
+     * rule (both endpoints of the justified edge belong to the abstraction). Do not read this method
+     * as the meaning of `Justifies`.
+     */
+    private assertEdgeTerminalsLegal(edge: HostRelationalEdge): void {
+        const fromIsEdge = isEphemeraLudicEdgeTerminal(edge.from)
+        const toIsEdge = isEphemeraLudicEdgeTerminal(edge.to)
+        if (!fromIsEdge && !toIsEdge && edge.kind !== 'Justifies') {
+            return
+        }
+        if (edge.kind !== 'Justifies' || !isEphemeraLudicEdgeTerminal(edge.from) || !isEphemeraLudicEdgeTerminal(edge.to)) {
+            throw new Error(`Only a Justifies edge carries edge terminals, and it carries them on both ends (${edge.kind} on ${this.hostId})`)
+        }
+        if (edge.from.edgeId === edge.to.edgeId || edge.edgeId === edge.from.edgeId || edge.edgeId === edge.to.edgeId) {
+            throw new Error(`An edge may not name itself or the same edge twice (${edge.from.edgeId} -> ${edge.to.edgeId} on ${this.hostId})`)
+        }
+        for (const terminal of [edge.from, edge.to]) {
+            if (!this.namesSingleLegEdge(terminal)) {
+                throw new Error(`Edge terminal ${terminal.edgeId} names no single-leg edge with that id on ${this.hostId}`)
+            }
+        }
+    }
+
+    private namesSingleLegEdge(terminal: EphemeraLudicEdgeTerminal): boolean {
+        return this.storedRelationalEdges().some((candidate) => candidate.edgeId === terminal.edgeId && candidate.chainId === undefined)
+    }
+
     addRelationalEdge(edge: HostRelationalEdge): EphemeraLudicGraph {
+        this.assertEdgeTerminalsLegal(edge)
         const stored = this.storedRelationalEdges()
         if (stored.some((candidate) => edgesMatch(candidate, edge))) {
             return this
@@ -613,6 +649,26 @@ export class EphemeraLudicGraph {
                 .filter((existing) => !edgesMatch(existing, edge))
                 .map(toStoredRelationalEdge)
         )
+    }
+
+    /**
+     * Removes every edge naming an `edgeId` that no edge of this graph carries, to a fixpoint
+     * (see AGENT.contract.md "Edge persist shape"): a referrer of a dissolved edge goes in the
+     * same apply, and so does a referrer of that referrer. `removeRelationalEdge` stays a leaf; the `dissolveRelation` step calls this
+     * after it. Returns `this` when nothing dangles.
+     */
+    withoutDanglingEdgeReferrers(): EphemeraLudicGraph {
+        let edges = this.storedRelationalEdges()
+        for (;;) {
+            const ids = new Set(edges.map((edge) => edge.edgeId).filter((id): id is string => id !== undefined))
+            const kept = edges.filter((edge) => (
+                [edge.from, edge.to].every((terminal) => !isEphemeraLudicEdgeTerminal(terminal) || ids.has(terminal.edgeId))
+            ))
+            if (kept.length === edges.length) {
+                return kept.length === this.storedRelationalEdges().length ? this : this.withEdges(kept.map(toStoredRelationalEdge))
+            }
+            edges = kept
+        }
     }
 
     /**
@@ -650,7 +706,7 @@ export class EphemeraLudicGraph {
         return this.withPorts([...this._ports, port])
     }
 
-    removePort(portId: string): EphemeraLudicGraph {
+    removePort(portId: EphemeraCrossingPortId): EphemeraLudicGraph {
         return this.withPorts(this._ports.filter((port) => port.portId !== portId))
     }
 
@@ -693,11 +749,15 @@ export class EphemeraLudicGraph {
      * non-Object terminal can appear.
      */
     bothObjectsOnGraph(from: EphemeraLudicTerminalId, to: EphemeraLudicTerminalId): boolean {
+        if (isEphemeraLudicEdgeTerminal(from) || isEphemeraLudicEdgeTerminal(to)) {
+            return isEphemeraLudicEdgeTerminal(from) && isEphemeraLudicEdgeTerminal(to)
+                && this.namesSingleLegEdge(from) && this.namesSingleLegEdge(to)
+        }
         const nodeIds = this.nodeIds
         return nodeIds.has(ephemeraLudicTerminalOwner(from)) && nodeIds.has(ephemeraLudicTerminalOwner(to))
     }
 
-    nodeHasRelationalEdge(nodeId: EphemeraLudicTerminalPrimitive): boolean {
+    nodeHasRelationalEdge(nodeId: EphemeraLudicNodeTerminal): boolean {
         return nodeHasRelationalEdge(nodeId, this.relationalEdges)
     }
 

@@ -178,7 +178,7 @@ describe('healLudicGraphStructure', () => {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
                 nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
-                ports: [{ portId: 'ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' }],
+                ports: [{ portId: 'PORT-ab6129d', fromHostId: 'ASSET#bogus', kind: 'ConnectedTo' }],
             }),
             writeHealedLudicGraph,
         })
@@ -191,7 +191,7 @@ describe('healLudicGraphStructure', () => {
 
     it('preserves an already-well-formed ports array untouched', async () => {
         const writeHealedLudicGraph = jest.fn(async () => undefined)
-        const ports = [{ portId: 'ab6129d', fromHostId: 'OBJECT#box', kind: 'ConnectedTo' }]
+        const ports = [{ portId: 'PORT-ab6129d', fromHostId: 'OBJECT#box', kind: 'ConnectedTo' }]
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({
                 rootId: ROOM_ID,
@@ -242,6 +242,21 @@ describe('healLudicGraphStructure', () => {
             const outcome = await heal([{ tag: 'Presence', universalKey: 'PRESENCE#a', fromHostPresence: { host: 'AREA#Town' }, cover: { members: [] } }])
             expect(outcome).toEqual({ stale: true, healable: false, applied: false })
         })
+    })
+
+    it('reports a referrer naming a missing edge id as unhealable corruption, writing nothing', async () => {
+        const writeHealedLudicGraph = jest.fn()
+        const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
+            getStoredLudicGraph: async () => ({
+                rootId: ROOM_ID,
+                nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                ports: [],
+                edges: [{ tag: 'Relational', kind: 'Justifies', from: { edgeId: 'gone-a' }, to: { edgeId: 'gone-b' } }],
+            }),
+            writeHealedLudicGraph,
+        })
+        expect(outcome).toEqual({ stale: true, healable: false, applied: false })
+        expect(writeHealedLudicGraph).not.toHaveBeenCalled()
     })
 
     it('reports healable: false for a non-object stored value', async () => {

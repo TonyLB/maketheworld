@@ -53,6 +53,20 @@ describe('connectedToViolation', () => {
         expect(connectedToViolation(partlessRope, rope, port(rope, 'pA'), port(cup, 'pA'))).toMatch(/OBJECT#Cup/)
     })
 
+    it('refuses a crossing port address the whole owns: a crossing port is not a binding', () => {
+        expect(connectedToViolation(partedRope, rope, { owner: rope, port: 'PORT-ab6129d' }, port(rope, 'pA'))).toMatch(/crossing port of OBJECT#Rope/)
+    })
+
+    it('allows an own binding spelled bare, to a binding address or to a part', () => {
+        const ownBinding = 'PRESENCE#pA' as EphemeraPresenceNodeId
+        expect(connectedToViolation(partlessRope, rope, ownBinding, port(rope, 'pB'))).toBeUndefined()
+        expect(connectedToViolation(partedRope, rope, strandA, ownBinding)).toBeUndefined()
+    })
+
+    it('refuses an edge terminal: only Justifies carries one', () => {
+        expect(connectedToViolation(partedRope, rope, { edgeId: 'edge-a' }, port(rope, 'pA'))).toMatch(/edge:edge-a.*Justifies/)
+    })
+
     it('refuses a part of a part, which lives in the part\'s own graph rather than the whole\'s', () => {
         const nested = 'OBJECT#Fibre' as EphemeraObjectId
         expect(connectedToViolation(partedRope, rope, strandA, nested)).toMatch(/OBJECT#Fibre/)

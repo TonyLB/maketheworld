@@ -24,9 +24,9 @@
  * Built under a since-deleted implementation plan (AGENT.ludicCacheReducer.planning.md);
  * its findings live on in PR-8 and PR-12 above.
  */
-import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphPort, EphemeraLudicPortAddress, EphemeraLudicTerminalId, EphemeraLudicTerminalPrimitive, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphPort, EphemeraLudicTerminalId, EphemeraLudicNodeTerminal, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner, isEphemeraLudicCrossingPortAddress, isEphemeraLudicEdgeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
@@ -64,16 +64,16 @@ import { EphemeraLudicGraph, toStoredRelationalEdge } from './index'
 export const nodesFromPresenceBinding = (
     graph: EphemeraLudicGraph,
     presenceUuid: string
-): Set<EphemeraLudicTerminalPrimitive> => {
+): Set<EphemeraLudicNodeTerminal> => {
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const presenceNodeId: EphemeraLudicTerminalPrimitive = PresenceKey(presenceUuid)
+    const presenceNodeId: EphemeraLudicNodeTerminal = PresenceKey(presenceUuid)
     const presenceNode = graph.presenceNodes.find((node) => node.universalKey === presenceNodeId)
     if (!presenceNode) {
         const componentNodeIds = [...graph.nodeIds].filter((id) => !isEphemeraPresenceNodeId(id))
         return new Set([...componentNodeIds, root])
     }
     const listed = presenceNode.cover.members.map((entry) => entry.host)
-    return new Set<EphemeraLudicTerminalPrimitive>([...listed, root, presenceNodeId])
+    return new Set<EphemeraLudicNodeTerminal>([...listed, root, presenceNodeId])
 }
 
 /**
@@ -93,10 +93,10 @@ export const nodesFromPresenceBinding = (
 export const nodesFromPresenceBindings = (
     graph: EphemeraLudicGraph,
     presenceUuids: string[]
-): Set<EphemeraLudicTerminalPrimitive> =>
+): Set<EphemeraLudicNodeTerminal> =>
     presenceUuids.reduce(
         (acc, presenceUuid) => new Set([...acc, ...nodesFromPresenceBinding(graph, presenceUuid)]),
-        new Set<EphemeraLudicTerminalPrimitive>()
+        new Set<EphemeraLudicNodeTerminal>()
     )
 
 /**
@@ -138,14 +138,12 @@ export const nodesFromPresenceBindings = (
  * form that only arises addressing a binding from OUTSIDE its host. `terminalKey` here has no
  * presence-collision case to close, unlike `mergeReducer.ts`'s `collapsedEdgeIdentityKey`.
  */
-const stubPortIdFromEdge = (edge: HostRelationalEdge): string => {
+const stubPortIdFromEdge = (edge: HostRelationalEdge): `STUB-${string}` => {
     if (edge.chainId) {
         return `STUB-${edge.chainId}`
     }
-    const terminalKey = (terminal: EphemeraLudicTerminalId): string =>
-        typeof terminal === 'string' ? terminal : `${terminal.owner}#${terminal.port}`
     // `ConnectedTo` is symmetric: sort the endpoint keys so either order mints the same stub.
-    const endpointKeys = [terminalKey(edge.from), terminalKey(edge.to)]
+    const endpointKeys = [ephemeraLudicTerminalKey(edge.from), ephemeraLudicTerminalKey(edge.to)]
     if (edge.kind === 'ConnectedTo') {
         endpointKeys.sort()
     }
@@ -250,7 +248,7 @@ type EndpointStatus = 'qualified' | 'disqualified' | 'neutral'
  */
 export const subGraphFromNodes = (
     graph: EphemeraLudicGraph,
-    nodes: Set<EphemeraLudicTerminalPrimitive>
+    nodes: Set<EphemeraLudicNodeTerminal>
 ): EphemeraLudicGraph => {
     // Component nodes are cut by bucket membership as before; presence/structure nodes are
     // carried into every bucket unconditionally instead (PN-6: a presence node is a member of no
@@ -269,7 +267,25 @@ export const subGraphFromNodes = (
     const contentEdges = graph.relationalEdges
 
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const endpointStatus = (terminal: EphemeraLudicTerminalId): EndpointStatus => {
+    const endpointStatus = (terminal: EphemeraLudicTerminalId, referencing: ReadonlySet<string> = new Set()): EndpointStatus => {
+        if (isEphemeraLudicEdgeTerminal(terminal)) {
+            // An edge terminal's status follows the edge it names, resolved by `edgeId` alone (so
+            // however a route was chopped into legs does not matter): qualified where that edge is
+            // anchored, neutral where it is a transit leg, disqualified where it is cut away. A
+            // cycle of references contributes nothing.
+            const referenced = contentEdges.find((candidate) => candidate.edgeId === terminal.edgeId)
+            if (!referenced) {
+                throw new Error(`Edge terminal ${terminal.edgeId} on ${graph.hostId} names no edge of the graph`)
+            }
+            if (referencing.has(terminal.edgeId)) {
+                return 'neutral'
+            }
+            const seen = new Set(referencing).add(terminal.edgeId)
+            const statuses = [endpointStatus(referenced.from, seen), endpointStatus(referenced.to, seen)]
+            return statuses.includes('qualified')
+                ? 'qualified'
+                : statuses.every((status) => status === 'neutral') ? 'neutral' : 'disqualified'
+        }
         const owner = ephemeraLudicTerminalOwner(terminal)
         // `rootId === hostId` for a host-bound graph (see `EphemeraLudicGraph`), but both are
         // tested rather than assumed --- `fromFieldPayload` does not enforce it, and it is
@@ -306,6 +322,13 @@ export const subGraphFromNodes = (
             // Exactly one of each by elimination: the branch above caught "no qualified", this
             // one caught "no disqualified".
             const outsideTerminal = fromStatus === 'disqualified' ? edge.from : edge.to
+            if (isEphemeraLudicEdgeTerminal(outsideTerminal)) {
+                // A referrer names a relationship by `edgeId`, not a place a cut could land on, so
+                // there is nothing to stub: keep it whole in every bucket that anchors either named
+                // edge. The bucket may hold it without the other named edge; the fold
+                // dedupes the copies and the merged graph holds both.
+                return { ...acc, edges: [...acc.edges, edge] }
+            }
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,
@@ -358,7 +381,7 @@ export const subGraphFromNodes = (
     const referencedPortIds = new Set(
         edges
             .flatMap((edge) => [edge.from, edge.to])
-            .filter((terminal): terminal is EphemeraLudicPortAddress => typeof terminal !== 'string')
+            .filter(isEphemeraLudicCrossingPortAddress)
             .filter(({ owner }) => owner === graph.hostId)
             .map(({ port }) => port)
     )
@@ -383,7 +406,7 @@ const presenceUuidFromKey = stripTypedKey('PRESENCE')
  */
 export const presencesHolding = (
     graph: EphemeraLudicGraph,
-    nodeId: EphemeraLudicTerminalPrimitive
+    nodeId: EphemeraLudicNodeTerminal
 ): GroundedPresence[] | undefined => {
     if (graph.presenceNodes.length === 0) {
         return isEphemeraRoomId(graph.hostId) ? [graph.hostId] : undefined
