@@ -228,9 +228,14 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 }
 
 //
-// Ludic graph edge/port terminals. A terminal is either a bare component id (the
-// EphemeraLudicNodeTerminal branch) or a structured port address on that component
-// (EphemeraLudicPortAddress). The parsed shape IS the stored shape --- no string form, no
+// Ludic graph edge/port terminals. A terminal is one of four named kinds:
+//   - a component (`EphemeraMembershipHostId`, bare) and an own binding (`EphemeraPresenceNodeId`,
+//     bare: a binding named from inside its own graph) --- together `EphemeraLudicNodeTerminal`;
+//   - a crossing port address and a binding address (`{ owner, port }`: a slot named through its
+//     owner) --- together `EphemeraLudicPortAddress`.
+// Each kind has its own guard below. Representation tests (`typeof`, `'owner' in`, a
+// `PRESENCE#`/`PORT-` prefix test) live only inside these guards: every other site asks for a kind
+// by name and narrows without casts. The parsed shape IS the stored shape --- no string form, no
 // separator parsing, in the domain layer (PQ-9, in the abstraction-layers proposals plan). The
 // serde/Dynamo string boundary is deferred to a later slice, gated on a port address needing
 // to stand free of an edge.

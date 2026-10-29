@@ -157,7 +157,7 @@ describe('collapseCrossingPorts', () => {
         expect(result[0]).toMatchObject({ from: boulder, to: { owner: boxId, port: binding }, kind: 'ConnectedTo' })
     })
 
-    // Slice 3 (terminalKinds TK-2): the parent leg's other end is cache-bound too. A bare
+    // The parent leg's other end is cache-bound too (contract: "Every reference to a binding names its owner"). A bare
     // `PRESENCE#` there is legal in the parent's own graph, but would reach the cache bare, so it
     // is lifted to the exterior form with the parent's host as owner.
     it("lifts a parent leg's bare presence end to the parent's exterior form", () => {

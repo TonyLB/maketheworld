@@ -81,7 +81,7 @@ Where this is normative: [`AGENT.contract.md` --- Host storage](AGENT.contract.m
 
 ## 2. External addressing: ports and legs
 
-A graph may only name nodes in its own shard --- except through a **port-qualified terminal**. A relational edge's `from`/`to` is an [`EphemeraLudicTerminalId`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts): either a bare component id, or a **port address**
+A graph may only name nodes in its own shard --- except through a **port-qualified terminal**. A relational edge's `from`/`to` is an [`EphemeraLudicTerminalId`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts): one of four named kinds. Two name a node directly and are written bare: a **component** (`OBJECT#x`) and an **own binding** (`PRESENCE#x`, a binding named from inside its own graph). Two name a slot through its owner, and are a **port address**
 
 ```text
 { owner: <host id>, port: <port id> }
@@ -251,7 +251,7 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 | **Whole / part** | Roles, not kinds: a thing is a whole of its interior and a part of its containers, at once | same |
 | **Membership** | X is in H iff X is a node in H's graph; mirrored by an adjacency row | [Graph apply](AGENT.contract.md#graph-apply-end-state) |
 | **Hosting kind / peer kind** | `On`/`In`/`Held`/`PartOf`/`SectionOf` are a field of the member's node in its host's graph; `Custom`/`ConnectedTo` are edges relating two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
-| **Terminal** | An edge endpoint: bare component id, or a port address `{ owner, port }` | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
+| **Terminal** | An edge endpoint, one of four kinds: component, own binding (both bare ids), crossing port address, binding address (both `{ owner, port }`) | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), [terminal rule](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
 | **Port** | A single-use boundary slot a host publishes; either a crossing port or a presence binding | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |
 | **Leg / chain** | A relation across boundaries is stored as legs, one per graph; the chain is their shared identity | [`AGENT.edges.md`](../../../../packages/mtw-wml/ts/standardize/keys/edges/AGENT.edges.md) |

@@ -248,7 +248,7 @@ describe('isEphemeraLudicCacheTerminalId', () => {
     })
 })
 
-// The cache's rule lives in the type (terminalKinds TK-2): the own-binding kind is not a cache
+// The cache's rule lives in the type (positions/AGENT.contract.md, "Every reference to a binding names its owner"): the own-binding kind is not a cache
 // terminal. `@ts-expect-error` makes ts-jest fail this file if a bare presence id is ever accepted.
 describe('EphemeraLudicCacheEdge terminals (compile-time)', () => {
     const room = 'ROOM#Test' as EphemeraRoomId

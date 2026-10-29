@@ -144,6 +144,12 @@ Bystanders write only the room's characters row, never a cover. `unpointedBindin
 
 **Shelved: the tug read.** `ConnectedTo` exists for a deterministic retrieval read: tugging a rope extends the `ludicCache` to the rooms it reaches, selecting edges by kind because retrieval cannot ask the adjudicator. It also needs a cache read rooted at several rooms. Not built. **Trigger:** the next plan that wants a tug to reach the far end.
 
+### Shelved: dev-data reset for crossing port ids
+
+Crossing port ids carry a `PORT-` prefix (`EphemeraCrossingPortId`), and rows minted with bare uuids are not migrated: an unprefixed port id is no terminal, so legacy rows fail the payload guard. **Owed (the user's action):** reset dev data after the prefix deploys. **Trigger:** the deploy; until the reset, reads of old room and object graphs fail.
+
+**Terminal-kind side effects worth knowing.** `wireProjection.ts` sorts a wire port id by its prefix and throws on any other kind, rather than guessing. The contraction types in mtw-gateways `siblingContraction.ts` are generic over the binding key (`string` by default), because `resolvePresenceMoves` builds binding addresses from `ConnectedToPair`'s plain strings and the typed address kinds exposed that.
+
 **Shelved: wholes with named parts.** Every extended whole today is partless, so extend writes the `ConnectedTo` and nothing reads it to decide which named parts belong in which binding's cover (the carve-out walk, including edges joining a part to a binding). Re-partitioning a split whole's own contents is PR-12 obligation A, above. **Trigger:** the first extended whole with named parts.
 
 **Shelved: a departure leaves `ConnectedTo` edges dangling.** A binding left with no parent is removed at the run's end (`settleParentless`), and its `ConnectedTo` edges stay, naming a binding that is gone. No player route removes an extended whole's piece outright yet. **Trigger:** a destroy, disconnect or scrub of an extended whole.

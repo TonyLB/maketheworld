@@ -81,7 +81,7 @@ Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.
 
 Stored JSON remains **`EphemeraLudicRelationalEdgeData`** on `ludicGraph.edges`.
 
-**Terminal key.** `ephemeraLudicTerminalKey` (`mtw-interfaces` `ephemeraMeta.ts`) is the one string key for a terminal: the id for a bare terminal, `owner#port` for a port address. Stub port ids (`presenceSubGraph.ts`) and edge identity hashes (`mergeReducer.ts` `collapsedEdgeIdentityKey`) use it, so its output must not change.
+**Terminal key.** `ephemeraLudicTerminalKey` (`mtw-interfaces` `ephemeraMeta.ts`) is the one string key for a terminal: the id for a bare terminal, `owner#port` for a port address. Stub port ids (`presenceSubGraph.ts`) and edge identity hashes (`mergeReducer.ts` `collapsedEdgeIdentityKey`) use it, so its output must not change. **Telling terminal kinds apart goes through the named guards** (`isEphemeraLudicNodeTerminal`, `isEphemeraLudicCrossingPortAddress`, `isEphemeraLudicBindingAddress`, and the id guards for component and own binding), never `typeof`, `'owner' in`, a prefix test or a cast; see the [terminal rule](../AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path).
 
 ### Kernel simulation (no Dynamo)
 
