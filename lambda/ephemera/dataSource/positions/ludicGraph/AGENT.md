@@ -14,9 +14,9 @@ Type vocabulary (five-type contrast): [`../AGENT.concepts.md`](../AGENT.concepts
 
 | Name | Layer | Role |
 | --- | --- | --- |
-| **`EphemeraLudicRelationalEdgeData`** | `mtw-interfaces` JSON | Stored/wire envelope (`tag: 'Relational'`, ...) on `ludicGraph.edges`. `from`/`to` are `EphemeraLudicTerminalId` (a node of any legal host kind, not only Object, or a port address) |
+| **`EphemeraLudicRelationalEdgeData`** | `mtw-interfaces` JSON | Stored/wire envelope (`tag: 'Relational'`, ...) on `ludicGraph.edges`. `from`/`to` are `EphemeraLudicTerminalId` (a node of any legal host kind, not only Object, a port address, or, for `Justifies` only, an edge by `{ edgeId }`) |
 | **`HostRelationalEdge<T>`** | `baseClasses.ts` | Parsed in-memory view (`from`, `to`, `kind`, optional `relationLabel`; `T` is the terminal type, defaulting to every kind, and the cache instantiates it without the own-binding kind) --- class API, legality, kernel simulation. **Duplicated** (not consolidated) in `manipulation/types.ts`, widened in lockstep --- a pre-existing split, not new to the terminal widening |
-| **`HostRelationalEdgeKind`** | `mtw-interfaces` | Stored edge and port kinds (`Custom`, `ConnectedTo`) |
+| **`HostRelationalEdgeKind`** | `mtw-interfaces` | Stored edge and port kinds (`Custom`, `ConnectedTo`, `Justifies`) |
 
 ## Module map
 
@@ -81,7 +81,9 @@ Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.
 
 Stored JSON remains **`EphemeraLudicRelationalEdgeData`** on `ludicGraph.edges`.
 
-**Terminal key.** `ephemeraLudicTerminalKey` (`mtw-interfaces` `ephemeraMeta.ts`) is the one string key for a terminal: the id for a bare terminal, `owner#port` for a port address. Stub port ids (`presenceSubGraph.ts`) and edge identity hashes (`mergeReducer.ts` `collapsedEdgeIdentityKey`) use it, so its output must not change. **Telling terminal kinds apart goes through the named guards** (`isEphemeraLudicNodeTerminal`, `isEphemeraLudicCrossingPortAddress`, `isEphemeraLudicBindingAddress`, and the id guards for component and own binding), never `typeof`, `'owner' in`, a prefix test or a cast (the wire side has `isStandardLudicPresenceTerminalData`/`isStandardLudicPortTerminalData`). Owner readers (`ephemeraLudicTerminalOwner`, `ephemeraLudicTerminalRefersTo`, `rootId`) take `EphemeraLudicOwnedTerminal`; see the [terminal rule](../AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path).
+**Edges naming edges.** Only a `Justifies` edge carries edge terminals (both ends). `addRelationalEdge` refuses an illegal one (`assertEdgeTerminalsLegal`: the id must name a stored single-leg edge of this graph; no self or duplicate reference; cycles allowed), and `bothObjectsOnGraph` answers true for an edge terminal that does. `withoutDanglingEdgeReferrers` removes edges naming a removed `edgeId`, to a fixpoint. **That legality is v1 scope, not the meaning of `Justifies`** (see the [contract](../AGENT.contract.md#edge-persist-shape) and [Owed by the capable version](../../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.edgeAbstractions.planning.md#owed-by-the-capable-version)).
+
+**Terminal key.** `ephemeraLudicTerminalKey` (`mtw-interfaces` `ephemeraMeta.ts`) is the one string key for a terminal: the id for a bare terminal, `owner#port` for a port address, `edge:<id>` for an edge terminal. Stub port ids (`presenceSubGraph.ts`) and edge identity hashes (`mergeReducer.ts` `collapsedEdgeIdentityKey`) use it, so its output must not change. **Telling terminal kinds apart goes through the named guards** (`isEphemeraLudicNodeTerminal`, `isEphemeraLudicCrossingPortAddress`, `isEphemeraLudicBindingAddress`, and the id guards for component and own binding), never `typeof`, `'owner' in`, a prefix test or a cast (the wire side has `isStandardLudicPresenceTerminalData`/`isStandardLudicPortTerminalData`). Owner readers (`ephemeraLudicTerminalOwner`, `ephemeraLudicTerminalRefersTo`, `rootId`) take `EphemeraLudicOwnedTerminal`; see the [terminal rule](../AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path).
 
 ### Kernel simulation (no Dynamo)
 

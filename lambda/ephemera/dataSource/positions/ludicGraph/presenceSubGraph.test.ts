@@ -678,7 +678,7 @@ describe('subGraphFromNodes with edge terminals', () => {
         expect(result.relationalEdges).toEqual([])
     })
 
-    describe('a referrer travels with the edges it names (ET-8)', () => {
+    describe('a referrer travels with the edges it names', () => {
         const strip = ({ tag, ...edge }: { tag: 'Relational' } & Record<string, unknown>) => edge
         const bucketC = new Set([roomId, objC] as const)
         const bucketD = new Set([roomId, objD] as const)

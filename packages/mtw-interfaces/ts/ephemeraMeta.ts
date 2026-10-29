@@ -376,7 +376,7 @@ export const ephemeraLudicTerminalKey = (terminal: EphemeraLudicTerminalId): str
     return isEphemeraLudicNodeTerminal(terminal) ? terminal : `${terminal.owner}#${terminal.port}`
 }
 
-/** The type of a graph's `rootId`. The edge arm (edgeTerminals Slice 2) is excluded from it,
+/** The type of a graph's `rootId`. The edge arm is excluded from it,
  * because a root is always a component or a port on one. */
 export type EphemeraLudicRootId = EphemeraLudicOwnedTerminal
 
@@ -436,7 +436,7 @@ export const ephemeraEdgeEndpointsEqual = (
 )
 
 /** True when a terminal (qualified or not) resolves to the given component id. An edge terminal
- * names no component, so it refers to none (ET-2). */
+ * names no component, so it refers to none. */
 export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicNodeTerminal): boolean =>
     !isEphemeraLudicEdgeTerminal(terminal) && ephemeraLudicTerminalOwner(terminal) === id
 
@@ -740,7 +740,7 @@ export const isEphemeraLudicRelationalEdgeData = (value: unknown): value is Ephe
         return false
     }
     // The edge arm is carried by `Justifies` and by nothing else, and a `Justifies` edge has an
-    // edge on both ends (ET-4). An edge may not name itself (ET-5); cycles between edges are fine.
+    // edge on both ends. An edge may not name itself; cycles between edges are fine.
     // **Contingent on v1 (one producer: SecuredTo's support between sibling edges).** The
     // both-ends-edges rule is NOT a statement of what `Justifies` means: the capable version has an
     // abstraction (a component) justify an edge, so its source may be a node. Lifting it changes
@@ -1014,7 +1014,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
             return false
         }
-        // An edge terminal naming an `edgeId` no edge of the graph carries is corruption (ET-3).
+        // An edge terminal naming an `edgeId` no edge of the graph carries is corruption (AGENT.contract.md "Edge persist shape").
         // Checked on the stored graph only: a cache holds the buckets it pulled, so a referrer there
         // may legitimately name an edge in a bucket that was not pulled.
         const ids = new Set(edges.map((entry) => entry.edgeId).filter((id) => id !== undefined))

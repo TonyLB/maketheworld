@@ -244,7 +244,7 @@ describe('healLudicGraphStructure', () => {
         })
     })
 
-    it('reports a referrer naming a missing edge id as unhealable corruption, writing nothing (ET-3)', async () => {
+    it('reports a referrer naming a missing edge id as unhealable corruption, writing nothing', async () => {
         const writeHealedLudicGraph = jest.fn()
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
             getStoredLudicGraph: async () => ({

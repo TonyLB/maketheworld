@@ -35,7 +35,7 @@ export function classifyInteractionUnderTransfer(
             return 'defer'
         case 'Justifies':
             // Both terminals are edges of one graph, so a part's move never sees one as a
-            // boundary edge: its legs are not incident to any component (ET-2).
+            // boundary edge: its legs are not incident to any component.
             return 'defer'
     }
 }

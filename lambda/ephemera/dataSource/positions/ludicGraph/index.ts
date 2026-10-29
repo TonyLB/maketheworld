@@ -602,7 +602,7 @@ export class EphemeraLudicGraph {
     }
 
     /**
-     * The one v1 legality check for an edge terminal (edgeTerminals ET-4/ET-5): only a `Justifies`
+     * The one v1 legality check for an edge terminal (AGENT.contract.md "Edge persist shape"): only a `Justifies`
      * edge carries one, on both ends; each names a stored edge of THIS graph that has an `edgeId`
      * and is a single leg (no `chainId`); an edge may not name itself or the same edge twice.
      * Cycles between edges are allowed. **Two v1 limits, both temporary.** "Same graph, single
@@ -653,8 +653,8 @@ export class EphemeraLudicGraph {
 
     /**
      * Removes every edge naming an `edgeId` that no edge of this graph carries, to a fixpoint
-     * (ET-3): a referrer of a dissolved edge goes in the same apply, and so does a referrer of
-     * that referrer. `removeRelationalEdge` stays a leaf; the `dissolveRelation` step calls this
+     * (see AGENT.contract.md "Edge persist shape"): a referrer of a dissolved edge goes in the
+     * same apply, and so does a referrer of that referrer. `removeRelationalEdge` stays a leaf; the `dissolveRelation` step calls this
      * after it. Returns `this` when nothing dangles.
      */
     withoutDanglingEdgeReferrers(): EphemeraLudicGraph {

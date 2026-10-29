@@ -400,7 +400,7 @@ export const applyStepSequenceCore = (
             },
             op: step.kind === 'establishRelation' ? 'add' : 'remove',
         })
-        // A dissolved edge takes the edges that name it (edgeTerminals ET-3) in the same apply.
+        // A dissolved edge takes the edges that name it (AGENT.contract.md "Edge persist shape") in the same apply.
         graphs.set(step.hostId, step.kind === 'dissolveRelation' ? patched.withoutDanglingEdgeReferrers() : patched)
     }
 

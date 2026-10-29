@@ -682,7 +682,7 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
-    it('rejects an edge terminal naming an id no edge of the graph carries (ET-3), and accepts it once the edge is there', () => {
+    it('rejects an edge terminal naming an id no edge of the graph carries, and accepts it once the edge is there', () => {
         const payload = (edges: unknown[]) => ({
             rootId: 'ROOM#Kitchen',
             ports: [],

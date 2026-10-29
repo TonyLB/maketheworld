@@ -354,7 +354,7 @@ Containment (`put X in Y`, `put X on Y`) is the only relational parse that stays
 
 ### Edge persist shape
 
-A hosting kind is **never** an edge or a port: it persists on the member's node. The kinds a stored edge or crossing port may carry are `STORED_RELATIONAL_EDGE_KINDS` (`Custom`, `ConnectedTo`); the payload guard refuses a stored hosting-kind edge or port, and recovery (`extractRelationalEdgesFromStored`) drops one.
+A hosting kind is **never** an edge or a port: it persists on the member's node. The kinds a stored edge or crossing port may carry are `STORED_RELATIONAL_EDGE_KINDS` (`Custom`, `ConnectedTo`, `Justifies`); the payload guard refuses a stored hosting-kind edge or port, and recovery (`extractRelationalEdgesFromStored`) drops one.
 
 Relational mutations **must** persist on a **fixed host** --- the host's own **`Meta::<Kind>.ludicGraph`** forward graph only. `RelationalIngressArgs.hostId` is an `EphemeraMembershipHostId`, so **any** of the five host kinds is a legal persist target and all five dispatch through storage. **Room and Character are the kinds production ingress is confirmed to produce today** (a Character host arises when subject and target already share the acting character's inventory graph); Object / Feature / Area are storage-supported and grounding-reachable but have no confirmed production ingress path yet, so **absence of one is not evidence the host kind is illegal**. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch)).
 
@@ -362,7 +362,7 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 
 ```typescript
 type HostRelationalEdgeKind =
-    | 'Custom' | 'ConnectedTo'
+    | 'Custom' | 'ConnectedTo' | 'Justifies'
 
 /** The kind/label pairing, shared by every type that carries one. */
 type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
@@ -389,6 +389,11 @@ type HostRelationalPatch = {
 - **`isEphemeraLudicRelationalEdgeData` must reject a non-`Custom` edge carrying a label**, since such a value is unrepresentable and a guard accepting it would lie about what it narrows. A stored row in that shape is recovered by [`extractRelationalEdgesFromStored`](ludicGraph/baseClasses.ts)'s fallback **with the stray label stripped** --- sound and lossless. A `Custom` row with no usable label is **not** recoverable there and is dropped.
 - **An edge may carry an optional `edgeId`; most never do.** `EphemeraLudicGraph.assignEdgeId(edge, edgeId)` is the one constructor: it finds the stored edge by structure (`edgesMatch`, which ignores `edgeId`) and puts a **caller-minted** uuid on it in place, keeping its position in the edge list, so a later step in the same sequence can name the id. **Single legs only**: an edge with a `chainId` throws (a programming error, not a stale read). Re-assigning the same id is a no-op; an **absent edge is `stale` (`edgeMissing`)** and **a different id already present is `stale` (`edgeIdConflict`)**. The step publishes no fact. A `dissolveRelation` that names the edge by structure alone removes it, id included; nothing strips an id from a surviving edge.
 - **A stored challenge answer under a Custom edge's structural key still answers once the edge gains an id.** `applyChallengeAnswers` resolves each stored key to a live challenge's canonical id up front, matching the structural key (`customEdgeStructuralChallengeId`) as a run-local alias; when both forms are present the canonical id wins. The alias is not a field on the challenge and never reaches the wire.
+- **`Justifies` is the one kind whose terminals are edges (an edge naming another edge by `edgeId`).** Directional, no label. **The legality below is v1 scope, not the meaning of `Justifies`:** the only producer is SecuredTo's support between sibling edges, and the capable version (a component as the source, edges across graphs, crossing supports) is booked in [Owed by the capable version](../../../../taskPlanning/lambda/ephemera/dataSource/positions/AGENT.edgeAbstractions.planning.md#owed-by-the-capable-version); the both-ends-edges, same-graph and single-leg checks are the lines to move then. The legality itself is stated in [Discriminate a terminal only through the named guards](#presence-nodes-cover-consolidation-and-the-single-write-path). Lifecycle:
+    - **Dissolving an edge takes its referrers in the same apply.** A `dissolveRelation` step removes every edge naming the dissolved `edgeId`, to a fixpoint; `removeRelationalEdge` stays a leaf and `removeObject` still refuses rather than prunes.
+    - **A referrer naming a missing id is corruption.** `isEphemeraLudicGraphFieldPayload` refuses it, so `healLudicGraphStructure` reports such a row `healable: false`. The cache guard deliberately does not check, because a cache holds only the buckets it pulled.
+    - **Cut and fold keep a referrer whole.** `subGraphFromNodes` keeps it in each bucket that anchors either named edge, with no stub; the fold dedupes it. A terminal resolves by `edgeId` alone, never by how a route was split into legs.
+    - **The wire carries the arm as `{ edgeId }` and the kind `Justifies`** (`mtw-wml` `dataTypes/ludicEdge.ts`, `wireProjection.ts`). Authoring one in WML is out of scope.
 - **`setHostingKind`** is not an edge patch: it sets the `hostingKind` field of one member's node (`EphemeraLudicGraph.setHostingKind`), is legality-checked against the host, and writes no edge.
 - **`establishRelation`** ingress **must** map to **`op: 'add'`**; **`dissolveRelation`** **must** map to **`op: 'remove'`** matching **`from`**, **`to`**, **`kind`**, and **`relationLabel`** (when **`Custom`**).
 

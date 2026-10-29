@@ -1004,7 +1004,7 @@ describe('EphemeraLudicGraph', () => {
                     expect(() => base().applyRelationalPatch({ hostId: HOST_ID, op: 'add', edge: { from: B, to: { edgeId: 'edge-z' }, kind: 'Justifies' } })).toThrow()
                 })
 
-                describe('withoutDanglingEdgeReferrers (ET-3)', () => {
+                describe('withoutDanglingEdgeReferrers', () => {
                     it('removes a referrer of a dissolved edge, and returns the same graph when nothing dangles', () => {
                         const joined = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
                         expect(joined.withoutDanglingEdgeReferrers()).toBe(joined)

@@ -79,7 +79,7 @@ const resolveEndpoint = (
     visitedPortIds: ReadonlySet<string>
 ): ResolveEndpointResult => {
     if (isEphemeraLudicEdgeTerminal(terminal)) {
-        // An edge terminal names a relationship, never a place a chain can start or end (ET-2).
+        // An edge terminal names a relationship, never a place a chain can start or end.
         return { declined: true, reason: `edge terminal ${terminal.edgeId} is not a chain endpoint` }
     }
     if (isEphemeraLudicNodeTerminal(terminal)) {

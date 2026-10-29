@@ -240,7 +240,7 @@ describe('applyStepSequenceCore', () => {
         expect(nextGraph.objectIds).toEqual(new Set([trayId, tableId]))
     })
 
-    it('a dissolveRelation step also removes the edges that name the dissolved edge, transitively (ET-3)', () => {
+    it('a dissolveRelation step also removes the edges that name the dissolved edge, transitively', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
