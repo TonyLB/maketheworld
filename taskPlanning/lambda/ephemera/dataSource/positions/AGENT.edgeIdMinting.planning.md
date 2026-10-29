@@ -1,6 +1,6 @@
 # Minting an `edgeId` within one graph
 
-**Status:** opened 2026-10-28. Nothing is built. **Next step: Slice 0** (inventory, no code). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+**Status:** opened 2026-10-28. Nothing is built. **Next step: Slice 1** (Slice 0 inventory done). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Goal
 
@@ -15,7 +15,7 @@ This is **CE2-local**, split on 2026-10-28 from [CE2](AGENT.abstractionLayers.pl
 - `edgeId?: string` exists on `EphemeraLudicRelationalEdgeBase` ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)) and on `HostRelationalEdgeBase` ([`ludicGraph/baseClasses.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/baseClasses.ts)). It survives the stored round trip, `removeRelationalEdge`'s re-serialisation, and the wire projection. **Nothing mints one.**
 - `edgesMatch` ignores `edgeId` and vetoes on `chainId` (CE1). `addRelationalEdge` dedupes structurally, so **re-adding an edge with an id is a no-op**: there is no way today to put an id on an edge that is already stored. Both facts are pinned by the EA-8 tests in [`ludicGraph/index.test.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicGraph/index.test.ts) (`optional edge identity (EA-8)`).
 - The cache's `mergeReducer` refuses to merge legs whose `edgeId` differs (Slice 3f). Only multi-leg chains reach that check, and this plan never writes one.
-- **Template: `setHostingKind`**, the most recent single-host step that rewrites part of a graph in place. Its sites: the type and `mutationKernelStepKinds` record and `isKernelMutationStep` in [`kernelStep.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/kernelStep.ts); the apply in [`applyStepSequenceCore.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/applyStepSequenceCore.ts); the footprint in [`computeStepSequenceFootprint.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/computeStepSequenceFootprint.ts); no fact in [`factsForStep.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/factsForStep.ts); a case in [`invalidationCompleteness.integration.test.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/invalidationCompleteness.integration.test.ts), which the step-kinds record forces at compile time.
+- **Template: `setHostingKind`**, the most recent single-host step that rewrites part of a graph in place. Its sites: the type and `mutationKernelStepKinds` record and `isKernelMutationStep` in [`kernelStep.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/kernelStep.ts); the apply in [`applyStepSequenceCore.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/applyStepSequenceCore.ts); the footprint in [`computeStepSequenceFootprint.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/computeStepSequenceFootprint.ts) (**the footprint's step-kind test is a hand-written `||` chain at line 85, `addCrossingPort || removeCrossingPort || setHostingKind`; the compiler does not force a new kind into it, and a kind left out falls through to the relational-leg code that reads `step.subjectId`**); no fact in [`factsForStep.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/kernel/factsForStep.ts); a case in [`invalidationCompleteness.integration.test.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/invalidationCompleteness.integration.test.ts), which the step-kinds record forces at compile time.
 
 ## Design
 
@@ -49,13 +49,14 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| EM-1 | **What the step does when the edge is missing, or already carries a different id.** Proposed: both return a `stale` verdict (`edgeMissing`, `edgeIdConflict`), not a throw. The producer reads the graph before planning the step, so either state means a concurrent writer got there first, which is what `stale` is for (as `presenceBindingMoved` is). The same id already present is a no-op. | 1 | Open |
+| EM-1 | **What the step does when the edge is missing, or already carries a different id.** Proposed: both return a `stale` verdict (`edgeMissing`, `edgeIdConflict`), not a throw. The producer reads the graph before planning the step, so either state means a concurrent writer got there first, which is what `stale` is for (as `presenceBindingMoved` is). The same id already present is a no-op. **Decided 2026-10-28 (user agreed):** both are `stale` verdicts, matching the `setHostingKind` apply's `{ verdict: 'stale', reasonCode }` shape. | 1 | Decided |
+| EM-2 | **An id changes a Custom edge's boundary-challenge id.** `customEdgeChallengeId` in [`expandBoundaryChallenges.ts`](../../../../../lambda/ephemera/dataSource/actions/commandAttempt/expandBoundaryChallenges.ts) keys on `edge.edgeId ?? <structural key>`, so assigning an id re-keys that edge's challenge and an answer stored under the old key is silently ignored (one re-ask). **Decided 2026-10-28 (user): alias-matched, built in Slice 1.** The canonical id is unchanged; `applyChallengeAnswers` resolves a stored key against each live challenge's canonical id or its structural alias, then proceeds under the canonical id. The alias is run-local: derived from the live edge at match time, never stored. Structural keys (endpoints, `\|`) and edge ids (bare uuids) cannot collide. Derisking sweep and its sites: see Slice 1. | 1 | Decided |
 
 ## Progress
 
 | Slice | State |
 | --- | --- |
-| 0. Inventory (no code) | |
+| 0. Inventory (no code) | Done 2026-10-28 (EM-1, EM-2 decided) |
 | 1. Graph method and kernel step | |
 | 2. Round-trip payoff | |
 | 3. Durable docs; plan deleted | |
@@ -64,14 +65,19 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as it is done.
 
-- [ ] **Slice 0. Inventory, no code.**
-    - [ ] Confirm the `setHostingKind` site list above is complete (grep `'setHostingKind'` across `lambda/ephemera` and `packages`), and note any site that lists step kinds by hand.
-    - [ ] Confirm nothing outside the cache's `mergeReducer` reads `edgeId` in a way a single-graph id could disturb (`grep -rn "edgeId" --include='*.ts' lambda/ephemera/dataSource packages/mtw-interfaces/ts packages/mtw-gateways/ts`).
-    - [ ] Settle EM-1 with the user.
+- [X] **Slice 0. Inventory, no code.**
+    - [X] Confirm the `setHostingKind` site list above is complete (grep `'setHostingKind'` across `lambda/ephemera` and `packages`), and note any site that lists step kinds by hand.
+    - [X] (one reader found: `customEdgeChallengeId`, now EM-2) Confirm nothing outside the cache's `mergeReducer` reads `edgeId` in a way a single-graph id could disturb (`grep -rn "edgeId" --include='*.ts' lambda/ephemera/dataSource packages/mtw-interfaces/ts packages/mtw-gateways/ts`).
+    - [X] Settle EM-1 with the user (2026-10-28: `stale`, reason codes `edgeMissing` / `edgeIdConflict`).
 - [ ] **Slice 1. Graph method and kernel step.**
     - [ ] `EphemeraLudicGraph.assignEdgeId`, with unit tests: assigns in place; same id is a no-op; missing edge and differing id per EM-1; a `chainId` leg throws.
     - [ ] `assignEdgeId` in `MutationKernelStep`, `mutationKernelStepKinds`, `isKernelMutationStep`; the apply, footprint and `factsForStep` sites.
+    - [ ] Add `assignEdgeId` to the footprint's hand-written `||` chain (`computeStepSequenceFootprint.ts:85`).
     - [ ] The `invalidationCompleteness` case.
+    - [ ] **EM-2 alias matching** (sweep done 2026-10-28; sites below). Export the structural half of `customEdgeChallengeId` as its own helper. `applyChallengeAnswers` computes a `CustomEdgeChallenge`'s alias at match time from `challenge.edge` and the primary action id (`primaryActionIdOf`), so the challenge class gains no field. It ([`resumeAnswers.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resumeAnswers.ts)) resolves each stored key to a live challenge's canonical id once, up front, so `recordVerdict`, the owner lookup and the `askedAs` filter all keep working on exact ids. Unit tests: structural answer + id-bearing edge matches; id answer matches; id-less edge unchanged; unknown key still ignored; both forms present for one challenge (canonical wins).
+        - **The alias is run-local; the answer key is persistent.** Checked 2026-10-28: the persisted `root` holds Plan's attempts, and each resume re-expands boundary challenges fresh (`expandAndAdjudicateCandidates`, then `applyChallengeAnswers`, in `compileAttemptsFromSkeleton.ts`). The only cross-run identifier is the `challengeAnswers` key. The alias is read once per run, before any verdict, so it needs no field, no `withVerdict` threading and no `toJSON`. Judged challenges *are* serialized afterwards, in the `ludicNetworkChangeRequested` event to `commitAttempt`, which does no answer matching; keeping the alias out of `ChallengeData` keeps it out of that wire shape and `isChallengeData`.
+        - **No change needed, checked:** `recordVerdict` (`commandAttempt/index.ts:159`) and `adjudicate.ts:37` act on live challenges' canonical ids; `askedAs` is an opaque string re-added verbatim (its `ask:<challengeKey>` convention is documented in `persistentCommand/payload.ts`, not computed anywhere), so it stays self-consistent when the key was the old form.
+        - **Finding, no production writer:** nothing outside tests and `testFixtures.ts` writes a `challengeAnswers` entry or an `askedAs` yet (`answer.ts`, `selectQuestion.ts` and `rowStore.ts` only pass the record through). Alias matching is therefore built ahead of its first writer; when that writer lands it should store the challenge's canonical `id`. Existing id assertions to keep green: `expandBoundaryChallenges.test.ts:133,149`, `persistentCommand/payoff.test.ts:49`.
     - [ ] EA-8 pinning tests pass unaltered.
 - [ ] **Slice 2. Round-trip payoff.** One integration test through `commitStepSequence`: assign an id to a stored `Custom` edge; read it back from the stored row, the room's `ludicCache`, and the wire projection; then dissolve it by structure alone and confirm it is gone.
 - [ ] **Slice 3. Durable docs, then delete this plan.**
