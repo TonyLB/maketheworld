@@ -85,6 +85,15 @@ export type StandardLudicTerminalData =
     | { owner: StandardReferenceData; port: string }
     | { presence: string }
 
+/** The wire terminal kinds, told apart only here: a presence self-reference, and a port-qualified
+ * address. Anything else is a `StandardReferenceData`. Callers narrow with these, never with
+ * `'presence' in` / `'owner' in`. */
+export const isStandardLudicPresenceTerminalData = (data: StandardLudicTerminalData): data is { presence: string } =>
+    typeof data === 'object' && data !== null && 'presence' in data
+
+export const isStandardLudicPortTerminalData = (data: StandardLudicTerminalData): data is { owner: StandardReferenceData; port: string } =>
+    typeof data === 'object' && data !== null && 'owner' in data
+
 export const isStandardLudicTerminalData = (arg: unknown): arg is StandardLudicTerminalData => {
     if (isStandardReferenceData(arg)) {
         return true

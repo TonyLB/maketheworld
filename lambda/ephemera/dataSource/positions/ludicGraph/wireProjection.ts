@@ -47,7 +47,7 @@ import type {
     StandardLudicRelationalEdgeData,
     StandardLudicTerminalData,
 } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
-import { isStandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
+import { isStandardLudicNavigationEdgeData, isStandardLudicPortTerminalData, isStandardLudicPresenceTerminalData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge, type HostRelationalEdge } from './index'
 import { nodesFromPresenceBinding, subGraphFromNodes } from './presenceSubGraph'
@@ -89,10 +89,10 @@ const wirePortIdToCrossingPortId = (portId: string): EphemeraCrossingPortId => {
 }
 
 const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicTerminalId => {
-    if (typeof data === 'object' && data !== null && 'presence' in data) {
+    if (isStandardLudicPresenceTerminalData(data)) {
         return data.presence as EphemeraPresenceNodeId
     }
-    if (typeof data === 'object' && data !== null && 'owner' in data) {
+    if (isStandardLudicPortTerminalData(data)) {
         const owner = referenceDataToEphemeraComponentId(data.owner)
         return isPresenceTaggedPortId(data.port)
             ? { owner, port: data.port }

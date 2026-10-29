@@ -333,9 +333,15 @@ export const isEphemeraLudicBindingAddress = (value: unknown): value is Ephemera
 export const isPresenceTaggedPortId = (portId: string): portId is EphemeraPresenceNodeId =>
     portId.startsWith('PRESENCE#')
 
-export type EphemeraLudicTerminalId =
+/** A terminal with an owning component: a component, an own binding, or a port address. Every
+ * terminal is one today; the edge kind (edgeTerminals Slice 2) is not, so readers that need an
+ * owner take this type rather than `EphemeraLudicTerminalId`, and the compiler finds the callers
+ * that must state an edge case. */
+export type EphemeraLudicOwnedTerminal =
     | EphemeraLudicNodeTerminal
     | EphemeraLudicPortAddress
+
+export type EphemeraLudicTerminalId = EphemeraLudicOwnedTerminal
 
 export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudicTerminalId =>
     isEphemeraLudicNodeTerminal(value) || isEphemeraLudicPortAddress(value)
@@ -345,17 +351,17 @@ export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudi
 export const ephemeraLudicTerminalKey = (terminal: EphemeraLudicTerminalId): string =>
     isEphemeraLudicNodeTerminal(terminal) ? terminal : `${terminal.owner}#${terminal.port}`
 
-/** The type of a graph's `rootId`. Today any terminal; the edge arm (edgeTerminals Slice 2) is
- * excluded from it, because a root is always a component or a port on one. */
-export type EphemeraLudicRootId = EphemeraLudicTerminalId
+/** The type of a graph's `rootId`. The edge arm (edgeTerminals Slice 2) is excluded from it,
+ * because a root is always a component or a port on one. */
+export type EphemeraLudicRootId = EphemeraLudicOwnedTerminal
 
 /** The base component a terminal names --- itself if unqualified, `.owner` if port-qualified.
  * Overloaded so a call site already narrowed to a port address (which can only ever name a real
  * component, PN-4) gets `EphemeraMembershipHostId` back rather than the wider terminal-primitive
  * type a bare terminal could resolve to. */
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicPortAddress): EphemeraMembershipHostId
-export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicNodeTerminal
-export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicNodeTerminal {
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicOwnedTerminal): EphemeraLudicNodeTerminal
+export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicOwnedTerminal): EphemeraLudicNodeTerminal {
     return isEphemeraLudicNodeTerminal(terminal) ? terminal : terminal.owner
 }
 
@@ -402,7 +408,7 @@ export const ephemeraEdgeEndpointsEqual = (
 )
 
 /** True when a terminal (qualified or not) resolves to the given component id. */
-export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicTerminalId, id: EphemeraLudicNodeTerminal): boolean =>
+export const ephemeraLudicTerminalRefersTo = (terminal: EphemeraLudicOwnedTerminal, id: EphemeraLudicNodeTerminal): boolean =>
     ephemeraLudicTerminalOwner(terminal) === id
 
 /**

@@ -14,6 +14,8 @@ import {
     StandardLudicNavigationEdgeData,
     StandardLudicRelationalEdgeData,
     StandardLudicTerminalData,
+    isStandardLudicPresenceTerminalData,
+    isStandardLudicPortTerminalData,
 } from "./dataTypes/ludicEdge"
 
 //
@@ -170,10 +172,10 @@ const isPresenceTerminal = (terminal: LudicEdgeTerminal): terminal is { presence
     !(terminal instanceof StandardReference) && 'presence' in terminal
 
 const terminalFromJSON = (data: StandardLudicTerminalData): LudicEdgeTerminal => {
-    if (typeof data === 'object' && data !== null && 'presence' in data) {
+    if (isStandardLudicPresenceTerminalData(data)) {
         return { presence: data.presence }
     }
-    if (typeof data === 'object' && data !== null && 'owner' in data) {
+    if (isStandardLudicPortTerminalData(data)) {
         return { owner: new StandardReference(data.owner), port: data.port }
     }
     return new StandardReference(data)

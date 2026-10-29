@@ -1,6 +1,6 @@
 # Edges as terminals: an edge-reference arm of `EphemeraLudicTerminalId`
 
-**Status:** opened 2026-10-29. Nothing of the arm is built. ET-1 to ET-5 decided with the user 2026-10-29. Slice 0 (inventory) done 2026-10-29; Slice 1's fold was built and reverted the same day (see Progress). (ET-6 decided 2026-10-29; ET-7 retired 2026-10-29). Resumed 2026-10-29: the terminal representation is settled (four named kinds, see [Terminal representation](#terminal-representation-settled)). **Next step: re-derive Slice 1 on the named kinds.** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+**Status:** opened 2026-10-29. Nothing of the arm is built. ET-1 to ET-5 decided with the user 2026-10-29. Slice 0 (inventory) done 2026-10-29; Slice 1's fold was built and reverted the same day (see Progress). (ET-6 decided 2026-10-29; ET-7 retired 2026-10-29). Resumed 2026-10-29: the terminal representation is settled (four named kinds, see [Terminal representation](#terminal-representation-settled)). Slice 1 re-derived and done 2026-10-29. **Next step: Slice 2 (the arm).** An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Goal
 
@@ -18,7 +18,7 @@ An earlier `matchEphemeraLudicTerminal` fold was built and **reverted 2026-10-29
 
 ## What exists today (checked 2026-10-29)
 
-- **The union has four named kinds, and sites ask for a kind by guard.** `EphemeraLudicTerminalId = EphemeraLudicNodeTerminal | EphemeraLudicPortAddress` ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), where the node arm is a component or an own binding and the address arm is a crossing port address or a binding address. `ephemeraLudicTerminalOwner` and `ephemeraLudicTerminalsEqual` are cases over the named kinds, with no casts. A fifth object kind makes the else-branches that read `.owner`/`.port` stop compiling, so the compiler finds the sites that must change (see [Terminal representation](#terminal-representation-settled)). Slice 0 made the list exact: 14 sites must change and about 12 need no change ([Slice 0 inventory](#slice-0-inventory-plan-only), written before the terminal kinds were named, so re-check each row against the guards); `mtw-wml`'s wire terminal type is a fourth place the arm must reach.
+- **The union has four named kinds, and sites ask for a kind by guard.** `EphemeraLudicTerminalId = EphemeraLudicNodeTerminal | EphemeraLudicPortAddress` ([`ephemeraMeta.ts`](../../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts)), where the node arm is a component or an own binding and the address arm is a crossing port address or a binding address. `ephemeraLudicTerminalOwner` and `ephemeraLudicTerminalRefersTo` take `EphemeraLudicOwnedTerminal` (the same union today; Slice 2 widens only `EphemeraLudicTerminalId`), and `rootId` is `EphemeraLudicRootId = EphemeraLudicOwnedTerminal`. A fifth object kind makes the else-branches that read `.owner`/`.port` stop compiling, so the compiler finds the sites that must change (see [Terminal representation](#terminal-representation-settled)). Slice 0 made the list exact: 14 sites must change and about 12 need no change ([Slice 0 inventory](#slice-0-inventory-plan-only), written before the terminal kinds were named, so re-check each row against the guards); `mtw-wml`'s wire terminal type is a fourth place the arm must reach.
 - **Every terminal has an owner component today.** `ephemeraLudicTerminalOwner` and `ephemeraLudicTerminalRefersTo` are total. Readers that rely on it include the incident-edge guards (`removeObject` refuses rather than prunes; dissolving happens in the removal steps), `presenceSubGraph`'s cut, `connectedToLegality` and the wire projection. The footprint and published events filter steps by `isEphemeraLudicNodeTerminal` and are unaffected. An edge has no owning component, so each of these must say what it does with one (ET-2).
 - **`edgeId` minting has shipped** (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape)): caller-minted, single legs only, survives the row, the cache and the wire. `edgesMatch` ignores `edgeId`, and nothing yet looks an edge up *by* id.
 - **The `ephemeraMeta.ts` comment already states the shape constraint:** `edgeId` is deliberately not an arm of `EphemeraId`, and "whether an edge may stand where a terminal stands is a separate question (EA-10)". This plan answers that question for one producer.
@@ -79,7 +79,7 @@ Checked 2026-10-29 by grep over `lambda/ephemera`, `lambda/diagnostics`, `packag
 | `ephemeraMeta.ts` `ephemeraLudicTerminalsEqual` | casts the non-string side to a port address | equal iff ids equal; never equal to component or port |
 | `ephemeraMeta.ts` `ephemeraLudicTerminalRefersTo` | owner compare | return false |
 | `ephemeraMeta.ts` `isEphemeraLudicTerminalId`, `isEphemeraLudicRelationalEdgeData` | accept two arms | accept the third; `Justifies` only (ET-4) |
-| `presenceSubGraph.ts:145` and `mergeReducer.ts:116` `terminalKey` (two copies) | string, else `owner#port` | key `edge:<id>`. **Unfixed it yields `undefined#undefined` and every edge terminal collides.** Slice 1 collapses the two copies into one helper |
+| `presenceSubGraph.ts:145` and `mergeReducer.ts:116` `terminalKey` (two copies) | string, else `owner#port` | key `edge:<id>`. **Unfixed it yields `undefined#undefined` and every edge terminal collides.** Slice 1 collapsed the two copies into `ephemeraLudicTerminalKey`, which still needs its edge case |
 | `presenceSubGraph.ts:272-318` `endpointStatus` and `:360` | `ephemeraLudicTerminalOwner` then node-membership, **throws** if owner is not a node | status follows the referenced edge (see B) |
 | `connectedToLegality.ts:7,17` | `describeTerminal` and `endpointViolation` read `.owner` | refuse: only `Justifies` carries the arm |
 | `ludicGraph/index.ts:589`, `baseClasses.ts:203,212` (`assertNoRelationalEdgesReferencing`, `nodeHasRelationalEdge`, `edgeReferencesObjectId`) | `RefersTo` on both terminals | false (an edge terminal references no node) |
@@ -108,7 +108,7 @@ Checked 2026-10-29 by grep over `lambda/ephemera`, `lambda/diagnostics`, `packag
 | Slice | State |
 | --- | --- |
 | 0. Inventory (no code) | **Done 2026-10-29.** Inventory above; baseline re-run green (ephemera 4018, interfaces 775, gateways 308, diagnostics 161). One new row, ET-6 (decided). |
-| 1. Exhaustive terminal discrimination (refactor, no behavior change) | **Reopened 2026-10-29; unblocked.** The `matchEphemeraLudicTerminal` fold landed in `fe476218e` and was reverted; kept: `ephemeraLudicTerminalKey` (both `terminalKey` copies collapsed) and the `EphemeraLudicRootId` alias. Re-derive on the four named kinds. |
+| 1. Exhaustive terminal discrimination (refactor, no behavior change) | **Done 2026-10-29.** `EphemeraLudicOwnedTerminal` added; owner readers and `rootId` take it; the `findRelationalChainsForRemoval` cast removed; wire guards in `mtw-wml`. Probe (`| { edgeId: string }` added to the union, reverted) made `tsc` flag every ephemera list A site. Suites green: ephemera 4027 (9 skipped), interfaces 805, gateways 308, diagnostics 161, mtw-wml 2095 (15 skipped). |
 | 2. The arm: type, guards, equality, same-graph legality | |
 | 3. Lifecycle: dissolve, cut, merge, fold, wire; payoff | |
 | 4. Durable docs; plan deleted | |
@@ -122,10 +122,13 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
     - [X] Which readers need an owner (ET-2), and which could treat an edge terminal as "not a component".
     - [X] Where a referenced edge and its referrer could be separated: `presenceSubGraph`, `mergeReducer`, the cache fold, `removeObject` pruning, `removeRelationalEdge`, `findRelationalChain`.
     - [X] Settle ET-1 to ET-5 with the user (2026-10-29).
-- [ ] **Slice 1. Exhaustive terminal discrimination.** Re-derive on the four named kinds ([Terminal representation](#terminal-representation-settled)).
+- [X] **Slice 1. Exhaustive terminal discrimination.** Re-derive on the four named kinds ([Terminal representation](#terminal-representation-settled)).
     - [X] Collapse the two `terminalKey` copies into `ephemeraLudicTerminalKey` (`ephemeraMeta.ts`), output unchanged (2026-10-29).
     - [X] `EphemeraLudicRootId` alias on `rootId` (`ephemeraMeta.ts`, `ludicGraph/index.ts`); Slice 2 redefines it as component | port (2026-10-29).
-    - [ ] The remaining discrimination work, on the settled representation. (A `matchEphemeraLudicTerminal` fold was built and reverted 2026-10-29.)
+    - [X] `EphemeraLudicOwnedTerminal`; `ephemeraLudicTerminalOwner`, `ephemeraLudicTerminalRefersTo` and `EphemeraLudicRootId` take it (2026-10-29). (A `matchEphemeraLudicTerminal` fold was built and reverted.)
+    - [X] `findRelationalChainsForRemoval` touches-removal-set uses `ephemeraLudicTerminalRefersTo`, no cast (2026-10-29).
+    - [X] `mtw-wml` named wire guards `isStandardLudicPresenceTerminalData` / `isStandardLudicPortTerminalData`, used by `terminalFromJSON` and `wireTerminalToEphemera` (2026-10-29). The wire edge arm stays Slice 3.
+    - [X] Probe: the compiler flags the list A sites in ephemera once an edge kind joins the union (2026-10-29). Not flagged, by design: `mtw-wml` (its own wire type, Slice 3) and the step-id filters (list B).
     - **`mtw-wml` wire arms:** the class already isolates each arm in small helpers in `keys/edges/ludicEdge.ts` (`terminalFromJSON/ToJSON/Clone/SameKey/ToFormat/Lookup`); adding an arm there is Slice 3 work.
 - [ ] **Slice 2. The arm.**
     - [ ] The type and guard (ET-1); `isEphemeraLudicTerminalId` and the edge payload guard accept it.
