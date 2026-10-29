@@ -1,6 +1,6 @@
 # Edge abstractions: what one edge means at another scale
 
-**Status (restated 2026-10-15): design stage, and this plan's central construct is superseded. Read [Reassessment against shipped multi-hosting](#reassessment-against-shipped-multi-hosting-2026-10-15) before anything else in this file.** The Arrangement as its own component kind, the coarse edge as a construct, and port-to-port summary edges are **not** live designs, and **nothing in this file licenses Arrangement, coarse-edge, summary-edge or edge-as-terminal code**. Five rows settled (EA-1, EA-2, EA-8, EA-11, and EA-12, a `ConnectedTo` kind opened after the reassessment, which it does not govern; built and graduated 2026-10-22); PH3 not started. ~~**Status (restated 2026-09-23): design stage; PH0--PH2 started and PH3 not; four rows settled (EA-1, EA-2, EA-8, EA-11). No longer a stub.**~~ ~~**Status: STUB, opened 2026-08-24 from conversation. Design stage, Phase 0 not started.** Nothing below is decided.~~ Opened 2026-08-24 from conversation. **No code is in scope**, and unlike its sibling on presence this plan has no near-term reason to reach for one --- it exists to make a question *askable*, not to unblock a caller. Code is licensed by tier; see [Graduation tiers](../../../../AGENT.designVariant.md#graduation-tiers-when-a-decision-licenses-code).
+**Amended 2026-10-28: the justification link is reopened in part, and edge-terminals are licensed for one producer.** Read [Reopened in part](#reopened-in-part-support-between-edges-2026-10-28) right after the reassessment. **Status (restated 2026-10-15): design stage, and this plan's central construct is superseded. Read [Reassessment against shipped multi-hosting](#reassessment-against-shipped-multi-hosting-2026-10-15) before anything else in this file.** The Arrangement as its own component kind, the coarse edge as a construct, and port-to-port summary edges are **not** live designs, and **nothing in this file licenses Arrangement, coarse-edge, summary-edge or edge-as-terminal code**. Five rows settled (EA-1, EA-2, EA-8, EA-11, and EA-12, a `ConnectedTo` kind opened after the reassessment, which it does not govern; built and graduated 2026-10-22); PH3 not started. ~~**Status (restated 2026-09-23): design stage; PH0--PH2 started and PH3 not; four rows settled (EA-1, EA-2, EA-8, EA-11). No longer a stub.**~~ ~~**Status: STUB, opened 2026-08-24 from conversation. Design stage, Phase 0 not started.** Nothing below is decided.~~ Opened 2026-08-24 from conversation. **No code is in scope**, and unlike its sibling on presence this plan has no near-term reason to reach for one --- it exists to make a question *askable*, not to unblock a caller. Code is licensed by tier; see [Graduation tiers](../../../../AGENT.designVariant.md#graduation-tiers-when-a-decision-licenses-code).
 
 **Read [Two scales of one edge](#two-scales-of-one-edge) before the rows.** It is a working formulation, not a settled one, but every row below is phrased in its vocabulary.
 
@@ -59,18 +59,60 @@ This document is task-scoped and follows [`taskPlanning/AGENT.md`](../../../../A
 
 **Licenses nothing new.** Node abstraction with multi-hosted members is already shipped structure. **Not licensed, by anything in this file:**
 - an Arrangement component kind or `Meta::Arrangement` row;
-- an edge-reference arm of `EphemeraLudicTerminalId`;
+- an edge-reference arm of `EphemeraLudicTerminalId` (**licensed in part 2026-10-28**: see [Reopened in part](#reopened-in-part-support-between-edges-2026-10-28));
 - port-to-port summary edges, or a `kind` marker for them;
-- a `JustifiedBy` link or any other stored coarse-to-fine justification;
+- a `JustifiedBy` link or any other stored coarse-to-fine justification (**licensed in part 2026-10-28**, as `Justifies` between sibling edges; same section);
 - storing one edge in more than one graph.
 
 **Not to be read as covered by this list:** [EA-12](#settled-register) (whether topology within one whole earns a `ConnectedTo` kind) was opened after this section and is not an Arrangement construct. It was answered the same day, built, and graduated 2026-10-22; its rules are in [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md), not in this section.
 
 A row body, a proposal clause or a corpus case below that argues for any of these was written before this reassessment. **It is history, and it is not authority.** Reviving any of them needs a new decision made against this section and its re-open triggers.
 
-**Re-open triggers, in full:** (1) the character case above; (2) a consumer that must detect a stale coarse edge from its fine edges, which reopens the justification link; (3) a reader that needs one shard complete without the cache, which reopens multi-home edges and requires P8's entity half.
+**Re-open triggers, in full:** (1) the character case above; (2) a consumer that must detect a stale coarse edge from its fine edges, which reopens the justification link; (3) a reader that needs one shard complete without the cache, which reopens multi-home edges and requires P8's entity half. **Trigger (2) fired 2026-10-28**; see [Reopened in part](#reopened-in-part-support-between-edges-2026-10-28).
 
 **Standing.** These verdicts rest on shipped structure and on rows that had already narrowed (EA-1, EA-2, EA-4's 2026-08-28 narrowing, EA-6's repair, P8's settled *may omit*). They do not rest on a corpus case, so [EA-C5](AGENT.edgeAbstractions.corpus.planning.md#ea-c5-the-place-setting-read-on-both-axes) is now a confirmation, not the deciding case. **The rows are not yet individually re-argued or graduated.** Each one's Status now opens with its disposition under this section, and its older derivation follows as history.
+
+## Reopened in part: support between edges (2026-10-28)
+
+**Decided with the user, in conversation on 2026-10-28, while redesigning [`SecuredTo`](AGENT.securedTo.planning.md).** This amends [the reassessment](#reassessment-against-shipped-multi-hosting-2026-10-15) in three places and leaves the rest of it standing. The Arrangement component kind, port-to-port summary edges, and storing one edge in more than one graph stay unlicensed.
+
+### What fired
+
+**Re-open trigger (2)**, the justification link. The trigger is worded coarse-from-fine (*a consumer that must detect a stale coarse edge from its fine edges*). The consumer that fired it is the same need at one scale: a `SecuredTo` edge must lapse when the edges that justify it are dissolved. Untie the rope and it is no longer secured to the pole. [EA-C2](AGENT.edgeAbstractions.corpus.planning.md#ea-c2-the-clamp-and-the-second-contact-point) supplies the cross-scale form, and its re-grade pointer is in the corpus.
+
+### Support and grouping are one structure
+
+A first sketch stored support as a list of AND sets on the dependent edge. **That was grouping with the name stripped off**, and the user caught it. The AND/OR over supports is **graph connectivity**: supports in series are AND (the solder secures the cord only through the cord's own `ConnectedTo`), and parallel routes are OR (solder or clamp). So full-strength support is a **meaning of the reassessment's node abstraction**: a whole such as `HowCordIsSecured`, whose graph holds the load-bearing edges, supports an edge between two of its members by keeping a path between them. What deterministic code reads is whether that path survives. The abstraction's gloss says how the arrangement works, for reasoning.
+
+**Side conditions recurse rather than adding a construct.** A clamp that holds only while its screw is tight is a support of the `Clamp -[Secures]-> Cord` edge itself, so that edge is justified in turn.
+
+### What is licensed now, and only in this scope
+
+Built by [`AGENT.edgeIdMinting.planning.md`](AGENT.edgeIdMinting.planning.md) and `SecuredTo` v1:
+
+- **Minting an `edgeId` on one edge in one graph, on demand**, with no Edge record. This is CE2-local, split from [CE2](AGENT.abstractionLayers.planning.md#recommended-order) on 2026-10-28. Most edges still carry no id, per [EA-8](#settled-register).
+- **An edge-reference arm of `EphemeraLudicTerminalId`**, for one producer: `Justifies`, with both terminals edges in the same graph.
+- **A stored support relation between sibling edges**: `Custom(tied to) -[Justifies]-> SecuredTo`. OR only, single legs only, and the lapse is applied when a support is dissolved.
+
+### Owed by the capable version
+
+These are obligations, not Open rows, and none of them gates `SecuredTo` v1. They are listed in the order they would be built.
+
+1. **Edge occurrences across graphs.** This is already booked: [CE2a, CE2 and CE3](AGENT.abstractionLayers.planning.md#recommended-order) (the Edge record and the reverse index), gated on electing P8 iteration 2. Three additions are owed there:
+   - the record also lists the edge-terminal references that point *at* the edge, which the top-down walk below reads;
+   - dissolve removes every occurrence, so `findRelationalChain`'s `ambiguous` decline becomes find-all;
+   - the cache collapses occurrences by `edgeId` across differing `chainId`s.
+
+   A WML edge uuid is unique only within one Area, so an edge that occurs across assets needs a qualified id.
+2. **An abstraction justifies an edge**: `HowCordIsSecured -[Justifies]-> SecuredTo`. This is the same terminal arm with a node at the source. Legality: both endpoints of the justified edge are members of the abstraction.
+3. **Lapse by path.** A justified edge holds while a path between its endpoints survives through the abstraction's edges. The gloss describes the arrangement as built and is not rewritten. When the path is gone, the abstraction dissolves instead of being re-glossed. **This must be argued against [EA-C3](AGENT.edgeAbstractions.corpus.planning.md#ea-c3-cutting-the-thread) target 2**, which falsifies automatic fine-to-coarse propagation. The expectation is that a lapse is determined by the fine state where a re-rendering is not, but that is a claim to check, not a result.
+4. **Both walks.**
+   - **Bottom-up:** a support is dissolved → its occurrences → the abstractions holding them → `Justifies` → the lapse check.
+   - **Top-down, in Expansion at plan time:** a secured edge → its justifiers → the dissolves that break every path. This raises **one challenge per abstraction**, carrying its gloss and subgraph, and that challenge covers the per-edge dissolves.
+5. **A consumer.** The deferred LLM adjudicator (`adjudicateDeferred`, a stub today) reads that challenge.
+6. **Crossing supports.** `Justifies` across ports: the `SecuredTo` plan's rope end tied to the pole across a `SectionOf` boundary.
+
+**Kept open, with no row:** a friction fit (*wedged in tight*) secures with no edge to put on a path. One or two more fictions are needed before the path reading is trusted as general.
 
 ## Getting Started
 
