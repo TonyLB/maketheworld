@@ -956,6 +956,48 @@ describe('EphemeraLudicGraph', () => {
                     edges: [{ tag: 'Relational', edgeId: '', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }] as unknown as [],
                 })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
             })
+
+            describe('assignEdgeId', () => {
+                const graphWithEdges = () => graphWithThreeObjects()
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' })
+                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under' })
+
+                it('puts the id on the matching edge, keeping its place and leaving the others alone', () => {
+                    const next = graphWithEdges().assignEdgeId({ from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' }, 'edge-1')
+                    expect(next.toStored().edges).toStrictEqual([
+                        { tag: 'Relational', from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' },
+                        { tag: 'Relational', edgeId: 'edge-1', from: OBJECT_A, to: OBJECT_C, kind: 'Custom', relationLabel: 'leaning' },
+                        { tag: 'Relational', from: OBJECT_B, to: OBJECT_C, kind: 'Custom', relationLabel: 'under' },
+                    ])
+                })
+
+                it('does not alter the graph it was called on', () => {
+                    const graph = graphWithEdges()
+                    graph.assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }, 'edge-1')
+                    expect(graph.relationalEdges[0].edgeId).toBeUndefined()
+                })
+
+                it('assigning the id the edge already carries returns the same graph', () => {
+                    const once = graphWithEdges().assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }, 'edge-1')
+                    expect(once.assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }, 'edge-1')).toBe(once)
+                })
+
+                it('the id survives the stored round trip', () => {
+                    const once = graphWithEdges().assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }, 'edge-1')
+                    const reread = EphemeraLudicGraph.fromFieldPayload(HOST_ID, once.toStored())
+                    expect(reread.relationalEdges[0].edgeId).toBe('edge-1')
+                })
+
+                it('throws on a missing edge, a different id already present, and a chain leg', () => {
+                    const graph = graphWithEdges()
+                    expect(() => graph.assignEdgeId({ from: OBJECT_C, to: OBJECT_A, kind: 'ConnectedTo' }, 'edge-1')).toThrow()
+                    const tagged = graph.assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }, 'edge-1')
+                    expect(() => tagged.assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }, 'edge-2')).toThrow()
+                    const chained = graphWithThreeObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' })
+                    expect(() => chained.assignEdgeId({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', chainId: 'chain-1' }, 'edge-1')).toThrow()
+                })
+            })
         })
 
         // P8 iteration 1, a Prototype: a leg carries the chain it belongs to, and comparison

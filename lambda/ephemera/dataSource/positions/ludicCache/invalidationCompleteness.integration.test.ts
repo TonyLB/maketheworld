@@ -506,6 +506,18 @@ const cases: Case[] = [
         act: () => commit([{ kind: 'setHostingKind', hostId: R1, memberId: BOX, hostingKind: 'On' }]),
     },
     {
+        name: 'a stored edge in a room is given an id',
+        kinds: ['assignEdgeId'],
+        world: () => {
+            const base = freshWorld()
+            base.graphs.set(R1, cafeGraph([{ tag: 'Relational', from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }]))
+            return base
+        },
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([{ kind: 'assignEdgeId', hostId: R1, edge: { from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }, edgeId: 'edge-1' }]),
+    },
+    {
         name: 'a crossing port is added to a nested host, then removed',
         kinds: ['addCrossingPort', 'removeCrossingPort'],
         rooms: [R1],

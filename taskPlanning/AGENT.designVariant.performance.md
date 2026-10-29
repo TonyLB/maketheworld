@@ -138,6 +138,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-10-23 | `framing-inherited` | qualifiedReferents' 'Dropped: ContainedByAssertion' bullet said an assertion differs only by checking at step time; the user pointed out its primary value is the dry run (removing candidates, disambiguating), which the plan's own QR-2 principle relies on. |
 | 2026-10-23 | `framing-inherited` | qualifiedReferents Slice 2 put qualifier attachment inside the membership template (where the verb was known); the user asked why `take X off Y` isn't a take of a qualified span parsed from "X off Y", which moved attachment to one grouping step returning readings (QR-8). |
 | 2026-10-27 | `proxy-read` | spanEmbeddings plan rejected `DeferredCache` as "earns its keep by batching", read off internalCache/AGENT.md's summary bullet; the user pointed out its main property is in-flight sharing, the exact thing the plan then hand-built as a promise memo. |
+| 2026-10-28 | `stale-premise` | edgeIdMinting EM-2 sweep called "`withVerdict` drops the alias" the main implementation risk without checking whether a challenge outlives its run; the user asked whether the alias was persistent or run-local; it is run-local (challenges re-expanded each resume), so the risk was imagined. |
 
 ## Patterns
 

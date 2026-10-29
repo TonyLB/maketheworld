@@ -88,6 +88,11 @@ export const factsForStep = (
         return []
     }
 
+    // an id is not a change to what relates to what.
+    if (step.kind === 'assignEdgeId') {
+        return []
+    }
+
     // a crossing leg names a port, not the edge's real pair, so it yields no fact; the edge's
     // one fact comes from `factForRelationalEdge`, when the caller supplies the edge.
     if (!isEphemeraLudicTerminalPrimitive(step.subjectId) || !isEphemeraLudicTerminalPrimitive(step.targetId)) {

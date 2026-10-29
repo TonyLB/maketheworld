@@ -615,6 +615,34 @@ export class EphemeraLudicGraph {
         )
     }
 
+    /**
+     * Gives the stored edge that `edgesMatch`es `edge` the id `edgeId`, keeping its place in the edge
+     * list: the one way to put an id on an edge already stored, since `addRelationalEdge` dedupes
+     * structurally. It is the apply of the `assignEdgeId` kernel step, which checks for a missing
+     * edge or a different id first and answers `stale`; the throws here are for a caller that skipped
+     * that check. Assigning the id the edge already carries returns `this`. Throws if the edge is
+     * absent, already carries a different id, or is a leg of a chain (an id on every leg of a chain
+     * is not minted here).
+     */
+    assignEdgeId(edge: HostRelationalEdge, edgeId: string): EphemeraLudicGraph {
+        const stored = this.storedRelationalEdges()
+        const index = stored.findIndex((candidate) => edgesMatch(candidate, edge))
+        if (index < 0) {
+            throw new Error(`Cannot assign edgeId ${edgeId}: no such edge in ${this.hostId}`)
+        }
+        const existing = stored[index]
+        if (existing.chainId !== undefined) {
+            throw new Error(`Cannot assign edgeId ${edgeId}: the edge in ${this.hostId} is a leg of chain ${existing.chainId}`)
+        }
+        if (existing.edgeId === edgeId) {
+            return this
+        }
+        if (existing.edgeId !== undefined) {
+            throw new Error(`Cannot assign edgeId ${edgeId}: the edge in ${this.hostId} already carries ${existing.edgeId}`)
+        }
+        return this.withEdges(stored.map((entry, entryIndex) => toStoredRelationalEdge(entryIndex === index ? { ...entry, edgeId } : entry)))
+    }
+
     addPort(port: EphemeraLudicGraphPort): EphemeraLudicGraph {
         if (this._ports.some((existing) => existing.portId === port.portId)) {
             return this

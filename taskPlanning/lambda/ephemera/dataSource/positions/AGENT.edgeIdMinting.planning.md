@@ -1,6 +1,6 @@
 # Minting an `edgeId` within one graph
 
-**Status:** opened 2026-10-28. Nothing is built. **Next step: Slice 1** (Slice 0 inventory done). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+**Status:** opened 2026-10-28. Slice 1 built 2026-10-29 (`assignEdgeId` method and step, EM-2 alias matching). **Next step: Slice 2** (round-trip payoff). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Goal
 
@@ -49,15 +49,13 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| EM-1 | **What the step does when the edge is missing, or already carries a different id.** Proposed: both return a `stale` verdict (`edgeMissing`, `edgeIdConflict`), not a throw. The producer reads the graph before planning the step, so either state means a concurrent writer got there first, which is what `stale` is for (as `presenceBindingMoved` is). The same id already present is a no-op. **Decided 2026-10-28 (user agreed):** both are `stale` verdicts, matching the `setHostingKind` apply's `{ verdict: 'stale', reasonCode }` shape. | 1 | Decided |
-| EM-2 | **An id changes a Custom edge's boundary-challenge id.** `customEdgeChallengeId` in [`expandBoundaryChallenges.ts`](../../../../../lambda/ephemera/dataSource/actions/commandAttempt/expandBoundaryChallenges.ts) keys on `edge.edgeId ?? <structural key>`, so assigning an id re-keys that edge's challenge and an answer stored under the old key is silently ignored (one re-ask). **Decided 2026-10-28 (user): alias-matched, built in Slice 1.** The canonical id is unchanged; `applyChallengeAnswers` resolves a stored key against each live challenge's canonical id or its structural alias, then proceeds under the canonical id. The alias is run-local: derived from the live edge at match time, never stored. Structural keys (endpoints, `\|`) and edge ids (bare uuids) cannot collide. Derisking sweep and its sites: see Slice 1. | 1 | Decided |
 
 ## Progress
 
 | Slice | State |
 | --- | --- |
 | 0. Inventory (no code) | Done 2026-10-28 (EM-1, EM-2 decided) |
-| 1. Graph method and kernel step | |
+| 1. Graph method and kernel step | Done 2026-10-29 (EM-1, EM-2 shipped; their rules go to the durable docs in Slice 3) |
 | 2. Round-trip payoff | |
 | 3. Durable docs; plan deleted | |
 
@@ -69,20 +67,20 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
     - [X] Confirm the `setHostingKind` site list above is complete (grep `'setHostingKind'` across `lambda/ephemera` and `packages`), and note any site that lists step kinds by hand.
     - [X] (one reader found: `customEdgeChallengeId`, now EM-2) Confirm nothing outside the cache's `mergeReducer` reads `edgeId` in a way a single-graph id could disturb (`grep -rn "edgeId" --include='*.ts' lambda/ephemera/dataSource packages/mtw-interfaces/ts packages/mtw-gateways/ts`).
     - [X] Settle EM-1 with the user (2026-10-28: `stale`, reason codes `edgeMissing` / `edgeIdConflict`).
-- [ ] **Slice 1. Graph method and kernel step.**
-    - [ ] `EphemeraLudicGraph.assignEdgeId`, with unit tests: assigns in place; same id is a no-op; missing edge and differing id per EM-1; a `chainId` leg throws.
-    - [ ] `assignEdgeId` in `MutationKernelStep`, `mutationKernelStepKinds`, `isKernelMutationStep`; the apply, footprint and `factsForStep` sites.
-    - [ ] Add `assignEdgeId` to the footprint's hand-written `||` chain (`computeStepSequenceFootprint.ts:85`).
-    - [ ] The `invalidationCompleteness` case.
-    - [ ] **EM-2 alias matching** (sweep done 2026-10-28; sites below). Export the structural half of `customEdgeChallengeId` as its own helper. `applyChallengeAnswers` computes a `CustomEdgeChallenge`'s alias at match time from `challenge.edge` and the primary action id (`primaryActionIdOf`), so the challenge class gains no field. It ([`resumeAnswers.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resumeAnswers.ts)) resolves each stored key to a live challenge's canonical id once, up front, so `recordVerdict`, the owner lookup and the `askedAs` filter all keep working on exact ids. Unit tests: structural answer + id-bearing edge matches; id answer matches; id-less edge unchanged; unknown key still ignored; both forms present for one challenge (canonical wins).
+- [X] **Slice 1. Graph method and kernel step.**
+    - [X] `EphemeraLudicGraph.assignEdgeId`, with unit tests: assigns in place; same id is a no-op; missing edge and differing id per EM-1; a `chainId` leg throws.
+    - [X] `assignEdgeId` in `MutationKernelStep`, `mutationKernelStepKinds`, `isKernelMutationStep`; the apply, footprint and `factsForStep` sites.
+    - [X] Add `assignEdgeId` to the footprint's hand-written `||` chain (`computeStepSequenceFootprint.ts:85`).
+    - [X] The `invalidationCompleteness` case.
+    - [X] **EM-2 alias matching** (sweep done 2026-10-28; sites below). Export the structural half of `customEdgeChallengeId` as its own helper. `applyChallengeAnswers` computes a `CustomEdgeChallenge`'s alias at match time from `challenge.edge` and the primary action id (`primaryActionIdOf`), so the challenge class gains no field. It ([`resumeAnswers.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/resumeAnswers.ts)) resolves each stored key to a live challenge's canonical id once, up front, so `recordVerdict`, the owner lookup and the `askedAs` filter all keep working on exact ids. Unit tests: structural answer + id-bearing edge matches; id answer matches; id-less edge unchanged; unknown key still ignored; both forms present for one challenge (canonical wins).
         - **The alias is run-local; the answer key is persistent.** Checked 2026-10-28: the persisted `root` holds Plan's attempts, and each resume re-expands boundary challenges fresh (`expandAndAdjudicateCandidates`, then `applyChallengeAnswers`, in `compileAttemptsFromSkeleton.ts`). The only cross-run identifier is the `challengeAnswers` key. The alias is read once per run, before any verdict, so it needs no field, no `withVerdict` threading and no `toJSON`. Judged challenges *are* serialized afterwards, in the `ludicNetworkChangeRequested` event to `commitAttempt`, which does no answer matching; keeping the alias out of `ChallengeData` keeps it out of that wire shape and `isChallengeData`.
         - **No change needed, checked:** `recordVerdict` (`commandAttempt/index.ts:159`) and `adjudicate.ts:37` act on live challenges' canonical ids; `askedAs` is an opaque string re-added verbatim (its `ask:<challengeKey>` convention is documented in `persistentCommand/payload.ts`, not computed anywhere), so it stays self-consistent when the key was the old form.
         - **Finding, no production writer:** nothing outside tests and `testFixtures.ts` writes a `challengeAnswers` entry or an `askedAs` yet (`answer.ts`, `selectQuestion.ts` and `rowStore.ts` only pass the record through). Alias matching is therefore built ahead of its first writer; when that writer lands it should store the challenge's canonical `id`. Existing id assertions to keep green: `expandBoundaryChallenges.test.ts:133,149`, `persistentCommand/payoff.test.ts:49`.
-    - [ ] EA-8 pinning tests pass unaltered.
+    - [X] EA-8 pinning tests pass unaltered.
 - [ ] **Slice 2. Round-trip payoff.** One integration test through `commitStepSequence`: assign an id to a stored `Custom` edge; read it back from the stored row, the room's `ludicCache`, and the wire projection; then dissolve it by structure alone and confirm it is gone.
 - [ ] **Slice 3. Durable docs, then delete this plan.**
     - [ ] The `edgeId` comment in `ephemeraMeta.ts` (*no constructor mints one*) and `edgesMatch`'s comment.
-    - [ ] `positions/AGENT.contract.md` (*Edge persist shape*): one id-bearing edge per graph, single legs only, ids caller-minted.
+    - [ ] `positions/AGENT.contract.md` (*Edge persist shape*): one id-bearing edge per graph, single legs only, ids caller-minted. Also the two shipped decisions: a missing edge or a different id is `stale` (`edgeMissing`, `edgeIdConflict`); a stored challenge answer under a Custom edge's structural key is matched to its id-keyed challenge by run-local alias (`applyChallengeAnswers`, `customEdgeStructuralChallengeId`), canonical id winning.
     - [ ] `positions/AGENT.implementation.md` and `ludicGraph/AGENT.md`: the step and the method.
     - [ ] Check `AGENT.concepts.md`'s port paragraph, which says every leg of a crossing *shares one `edgeId`*; that reads like `chainId` and may already be stale.
     - [ ] Update CE2's split note in the abstraction-layers plan to say CE2-local shipped. Grep inbound links to this file, then delete it.
