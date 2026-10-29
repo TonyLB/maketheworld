@@ -596,8 +596,10 @@ export const edgeKindAndLabelOf = (edge: RelationalEdgeKindAndLabel): Relational
  * `from`/`to` are `EphemeraLudicTerminalId` --- any legal host-kind component or a
  * port-qualified reference on one, matching the terminals the type union above already admits.
  *
- * `edgeId` is **an optional label an edge may carry, and nothing more** (EA-8). No constructor
- * mints one, and no comparison consults one --- `edgesMatch` is still purely structural, so a
+ * `edgeId` is **an optional label an edge may carry, and nothing more** (EA-8). The one
+ * constructor, `EphemeraLudicGraph.assignEdgeId`, puts a caller-minted id on a single-leg edge
+ * in one graph (no Edge record, no reverse index), and no comparison consults one ---
+ * `edgesMatch` is still purely structural, so a
  * mixed population of id-bearing and id-less edges behaves today exactly as an all-id-less one
  * does. It is a bare `string` following `EphemeraCrossingPort.portId`, deliberately *not* a new
  * arm of `EphemeraId`: whether an edge may stand where a *terminal* stands is a separate

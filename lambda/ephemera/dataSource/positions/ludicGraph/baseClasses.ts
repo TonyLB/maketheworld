@@ -152,7 +152,8 @@ export function extractRelationalEdgesFromStored(
 
 /**
  * **`edgeId` is still deliberately not consulted here** (EA-8): it remains a label an edge may
- * carry, and nothing more.
+ * carry, and nothing more. That is why `assignEdgeId` finds its edge by structure: one graph
+ * cannot hold two structurally identical edges, so structure already names exactly one.
  *
  * **`chainId` is consulted, and it is a veto rather than an authority** (P8 iteration 1, a
  * Prototype). Agreement on chain does not make two legs the same --- two legs of one chain share

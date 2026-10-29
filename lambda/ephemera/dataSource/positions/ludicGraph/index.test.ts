@@ -872,8 +872,7 @@ describe('EphemeraLudicGraph', () => {
                 })
 
             // The pinning test. edgesMatch is deliberately blind to edgeId, and that blindness is
-            // what makes a mixed population safe to introduce ahead of any constructor: nothing's
-            // behavior changes.
+            // what makes a mixed population safe: an id-bearing edge behaves as an id-less one does.
             //
             // The forcing function this comment used to describe has since fired, and it fired
             // beside this field rather than on it: the authority question was answered for
