@@ -236,17 +236,26 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 // to stand free of an edge.
 //
 
-export type EphemeraLudicTerminalPrimitive =
+/** A terminal that names a node directly: a component (`EphemeraMembershipHostId`) or an own
+ * binding (`EphemeraPresenceNodeId`, a binding named from inside its own graph). The other arm,
+ * `EphemeraLudicPortAddress`, names a slot through its owner. Tell the two kinds of node apart
+ * with `isEphemeraMembershipHostId` / `isEphemeraPresenceNodeId` once this guard has narrowed. */
+export type EphemeraLudicNodeTerminal =
     | EphemeraRoomId | EphemeraCharacterId
     | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
     | EphemeraPresenceNodeId
 
-export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is EphemeraLudicTerminalPrimitive =>
+export const isEphemeraLudicNodeTerminal = (value: unknown): value is EphemeraLudicNodeTerminal =>
     typeof value === 'string' && (
         isEphemeraRoomId(value) || isEphemeraCharacterId(value) ||
         isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value) ||
         isEphemeraPresenceNodeId(value)
     )
+
+/** The node arm under its old name, which describes a spelling (bare) rather than a kind.
+ * terminalKinds Slice 2 moves every site to `EphemeraLudicNodeTerminal` and deletes these. */
+export type EphemeraLudicTerminalPrimitive = EphemeraLudicNodeTerminal
+export const isEphemeraLudicTerminalPrimitive = isEphemeraLudicNodeTerminal
 
 /** owner is the whole that ALLOCATED this port --- deliberately not named `host`, which already
  * means two other things in this file (a graph's owner, and a port's exterior `fromHostId`). A
@@ -258,7 +267,8 @@ export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is Ephem
  * PN-24).** A crossing port carries a **bare** minted uuid (`buildCrossingLegs.ts`'s `uuidv4()`),
  * backed by a record in `graph.ports`. A presence binding's **exterior address** carries the
  * **prefixed** `PRESENCE#{uuid}` --- the binding's own node id --- and is backed by a record in
- * `graph.presenceNodes`, never in `ports`. Test with `isEphemeraPresenceNodeId(port)`.
+ * `graph.presenceNodes`, never in `ports`. The two are the kinds `EphemeraLudicCrossingPortAddress`
+ * and `EphemeraLudicBindingAddress`; tell them apart with their guards.
  *
  * **Why the tag is on the value rather than on a record:** it used to be on the record. A presence
  * binding was a port with `kind: 'Present'`, so one lookup in `graph.ports` answered both *what
@@ -268,18 +278,39 @@ export const isEphemeraLudicTerminalPrimitive = (value: unknown): value is Ephem
  * the binding was not pulled into this cut) from a dangling crossing port (corruption). Tagging
  * the value restores the discriminator the record used to carry, and keeps the two questions
  * separate: the tag says where to look, the lookup still confirms existence. */
-export type EphemeraLudicPortAddress = {
-    owner: EphemeraMembershipHostId;
-    port: string;
-}
+export type EphemeraLudicPortAddress = EphemeraLudicCrossingPortAddress | EphemeraLudicBindingAddress
 
 export const isEphemeraLudicPortAddress = (value: unknown): value is EphemeraLudicPortAddress => {
     if (!value || typeof value !== 'object') {
         return false
     }
-    const address = value as EphemeraLudicPortAddress
-    return isEphemeraMembershipHostId(address.owner) && typeof address.port === 'string' && address.port.length > 0
+    const address = value as Record<string, unknown>
+    return typeof address.owner === 'string' && isEphemeraMembershipHostId(address.owner) && typeof address.port === 'string' && address.port.length > 0
 }
+
+/** A crossing port: a slot in `graph.ports` that a leg crosses, its id a bare minted uuid or a
+ * `STUB-...` id. `port` is deliberately an unbranded `string`, so this type also admits a tagged id;
+ * the two address kinds are told apart by `isEphemeraLudicCrossingPortAddress` and
+ * `isEphemeraLudicBindingAddress`, which every reading site goes through (terminalKinds TK-1). A
+ * brand would only guard the few mint points; add one if a write-side mix-up ever shows up. */
+export type EphemeraLudicCrossingPortAddress = {
+    owner: EphemeraMembershipHostId;
+    port: string;
+}
+
+/** A binding named from outside its own graph: the owner's `PRESENCE#` node, backed by a record in
+ * the owner's `graph.presenceNodes`. Equal to the own binding with the same id (see
+ * `ephemeraLudicTerminalsEqual`). */
+export type EphemeraLudicBindingAddress = {
+    owner: EphemeraMembershipHostId;
+    port: EphemeraPresenceNodeId;
+}
+
+export const isEphemeraLudicCrossingPortAddress = (value: unknown): value is EphemeraLudicCrossingPortAddress =>
+    isEphemeraLudicPortAddress(value) && !isPresenceTaggedPortId(value.port)
+
+export const isEphemeraLudicBindingAddress = (value: unknown): value is EphemeraLudicBindingAddress =>
+    isEphemeraLudicPortAddress(value) && isPresenceTaggedPortId(value.port)
 
 /** Whether a port id carries the presence tag --- i.e. whether this address names a binding in
  * `graph.presenceNodes` rather than a crossing port in `graph.ports` (PN-24).
@@ -298,27 +329,12 @@ export type EphemeraLudicTerminalId =
     | EphemeraLudicPortAddress
 
 export const isEphemeraLudicTerminalId = (value: unknown): value is EphemeraLudicTerminalId =>
-    isEphemeraLudicTerminalPrimitive(value) || isEphemeraLudicPortAddress(value)
-
-/** One handler per terminal arm. **Discriminate terminal arms only through
- * `matchEphemeraLudicTerminal`, never `typeof terminal === 'string'` or `'owner' in terminal`:**
- * adding an arm to `EphemeraLudicTerminalId` then adds a key here, and every caller that passes an
- * arms literal stops compiling until it says what it does with the new arm. */
-export type EphemeraLudicTerminalArms<R> = {
-    component: (terminal: EphemeraLudicTerminalPrimitive) => R;
-    port: (address: EphemeraLudicPortAddress) => R;
-}
-
-export const matchEphemeraLudicTerminal = <R>(terminal: EphemeraLudicTerminalId, arms: EphemeraLudicTerminalArms<R>): R =>
-    typeof terminal === 'string' ? arms.component(terminal) : arms.port(terminal)
+    isEphemeraLudicNodeTerminal(value) || isEphemeraLudicPortAddress(value)
 
 /** A string identifying a terminal: the id itself for a component, `owner#port` for a port address.
  * Stub port ids and edge identity hashes are built from it, so the output is persisted-compatible. */
 export const ephemeraLudicTerminalKey = (terminal: EphemeraLudicTerminalId): string =>
-    matchEphemeraLudicTerminal(terminal, {
-        component: (id) => id,
-        port: (address) => `${address.owner}#${address.port}`
-    })
+    isEphemeraLudicTerminalPrimitive(terminal) ? terminal : `${terminal.owner}#${terminal.port}`
 
 /** The type of a graph's `rootId`. Today any terminal; the edge arm (edgeTerminals Slice 2) is
  * excluded from it, because a root is always a component or a port on one. */
@@ -331,7 +347,7 @@ export type EphemeraLudicRootId = EphemeraLudicTerminalId
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicPortAddress): EphemeraMembershipHostId
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive
 export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): EphemeraLudicTerminalPrimitive {
-    return matchEphemeraLudicTerminal(terminal, { component: (id) => id, port: (address) => address.owner })
+    return typeof terminal === 'string' ? terminal : terminal.owner
 }
 
 /** Full terminal equality --- a primitive and a port address on the same owner are NOT equal,
@@ -352,18 +368,14 @@ export function ephemeraLudicTerminalOwner(terminal: EphemeraLudicTerminalId): E
  * so this is a plain equality; do NOT reintroduce a `PRESENCE#${...}` reconstruction here, which
  * is what this comparison looked like while `.port` was bare and would now double-prefix. */
 export const ephemeraLudicTerminalsEqual = (a: EphemeraLudicTerminalId, b: EphemeraLudicTerminalId, bareOwner?: string): boolean => {
-    const mixed = (primitive: EphemeraLudicTerminalPrimitive, address: EphemeraLudicPortAddress): boolean =>
-        isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
-    return matchEphemeraLudicTerminal(a, {
-        component: (aId) => matchEphemeraLudicTerminal(b, {
-            component: (bId) => aId === bId,
-            port: (bAddress) => mixed(aId, bAddress)
-        }),
-        port: (aAddress) => matchEphemeraLudicTerminal(b, {
-            component: (bId) => mixed(bId, aAddress),
-            port: (bAddress) => aAddress.owner === bAddress.owner && aAddress.port === bAddress.port
-        })
-    })
+    if (typeof a === 'string' && typeof b === 'string') {
+        return a === b
+    }
+    if (typeof a === 'string' || typeof b === 'string') {
+        const [primitive, address] = typeof a === 'string' ? [a, b as EphemeraLudicPortAddress] : [b as EphemeraLudicTerminalPrimitive, a as EphemeraLudicPortAddress]
+        return isPresenceTaggedPortId(address.port) && primitive === address.port && (bareOwner === undefined || address.owner === bareOwner)
+    }
+    return a.owner === b.owner && a.port === b.port
 }
 
 /**

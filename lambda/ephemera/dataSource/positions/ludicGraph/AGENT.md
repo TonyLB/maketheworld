@@ -81,7 +81,7 @@ Host alignment: `applyMembershipEffect` / `applyRelationalPatch` assert `effect.
 
 Stored JSON remains **`EphemeraLudicRelationalEdgeData`** on `ludicGraph.edges`.
 
-**Terminal arms.** Discriminate an `EphemeraLudicTerminalId` only through `matchEphemeraLudicTerminal` (`mtw-interfaces` `ephemeraMeta.ts`; handlers `component` and `port`), or the helpers built on it (`ephemeraLudicTerminalOwner`, `ephemeraLudicTerminalsEqual`, `ephemeraLudicTerminalRefersTo`, `ephemeraLudicTerminalKey`), never `typeof terminal === 'string'` or `'owner' in terminal`. A new arm then fails to compile at each fold caller. `ephemeraLudicTerminalKey` is the one string key for a terminal (stub port ids and edge identity hashes use it).
+**Terminal key.** `ephemeraLudicTerminalKey` (`mtw-interfaces` `ephemeraMeta.ts`) is the one string key for a terminal: the id for a bare terminal, `owner#port` for a port address. Stub port ids (`presenceSubGraph.ts`) and edge identity hashes (`mergeReducer.ts` `collapsedEdgeIdentityKey`) use it, so its output must not change.
 
 ### Kernel simulation (no Dynamo)
 

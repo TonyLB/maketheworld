@@ -13,16 +13,20 @@ import {
     isEphemeraLudicTerminalPrimitive,
     isEphemeraLudicPortAddress,
     isEphemeraLudicTerminalId,
+    isEphemeraLudicNodeTerminal,
+    isEphemeraLudicCrossingPortAddress,
+    isEphemeraLudicBindingAddress,
     ephemeraLudicTerminalOwner,
     ephemeraLudicTerminalsEqual,
     ephemeraLudicTerminalRefersTo,
     ephemeraLudicTerminalKey,
-    matchEphemeraLudicTerminal,
     HOSTING_KINDS,
     hostingFamily,
     isEphemeraHostingKind,
     isHostingKindLegalOnHost,
 } from './ephemeraMeta'
+import { isEphemeraPresenceNodeId } from './baseClasses'
+import { isEphemeraMembershipHostId } from './ephemeraPositionAdjacency'
 
 const baseRow = {
     uuid: 'OBJECT#helmet' as const,
@@ -240,6 +244,102 @@ describe('isEphemeraLudicPortAddress', () => {
     it('rejects a presence node as owner (PN-4: a presence node never allocates a port)', () => {
         expect(isEphemeraLudicPortAddress({ owner: 'PRESENCE#abc123', port: 'ab6129d' })).toBe(false)
     })
+
+    it('rejects a non-string owner without throwing', () => {
+        expect(() => isEphemeraLudicPortAddress({ owner: 5, port: 'ab6129d' })).not.toThrow()
+        expect(isEphemeraLudicPortAddress({ owner: 5, port: 'ab6129d' })).toBe(false)
+    })
+})
+
+const STUB_PORT = 'STUB-["OBJECT#C","OBJECT#D","On",""]'
+
+describe('isEphemeraLudicNodeTerminal', () => {
+    it.each(['ROOM#A', 'CHARACTER#Alpha', 'OBJECT#helmet', 'FEATURE#Wall', 'AREA#Test'])('accepts the component %s', (id) => {
+        expect(isEphemeraLudicNodeTerminal(id)).toBe(true)
+    })
+
+    it.each(['PRESENCE#abc123', 'PRESENCE#Base', 'PRESENCE#Unplaced'])('accepts the own binding %s', (id) => {
+        expect(isEphemeraLudicNodeTerminal(id)).toBe(true)
+    })
+
+    it('rejects both address kinds', () => {
+        expect(isEphemeraLudicNodeTerminal({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(false)
+        expect(isEphemeraLudicNodeTerminal({ owner: 'OBJECT#BOX', port: 'PRESENCE#abc123' })).toBe(false)
+    })
+
+    it('rejects a bogus tagged id and non-terminal values', () => {
+        expect(isEphemeraLudicNodeTerminal('BOGUS#X')).toBe(false)
+        expect(isEphemeraLudicNodeTerminal(null)).toBe(false)
+        expect(isEphemeraLudicNodeTerminal(42)).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicBindingAddress', () => {
+    it('accepts an address whose port is a presence id', () => {
+        expect(isEphemeraLudicBindingAddress({ owner: 'OBJECT#BOX', port: 'PRESENCE#abc123' })).toBe(true)
+    })
+
+    it('accepts an address whose port is a fixed presence id', () => {
+        expect(isEphemeraLudicBindingAddress({ owner: 'ROOM#A', port: 'PRESENCE#Base' })).toBe(true)
+    })
+
+    it('rejects a crossing port address (uuid port)', () => {
+        expect(isEphemeraLudicBindingAddress({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(false)
+    })
+
+    it('rejects a stub port without throwing', () => {
+        expect(() => isEphemeraLudicBindingAddress({ owner: 'ROOM#A', port: STUB_PORT })).not.toThrow()
+        expect(isEphemeraLudicBindingAddress({ owner: 'ROOM#A', port: STUB_PORT })).toBe(false)
+    })
+
+    it('rejects a malformed address', () => {
+        expect(isEphemeraLudicBindingAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+        expect(isEphemeraLudicBindingAddress({ owner: 'BOGUS#X', port: 'PRESENCE#abc123' })).toBe(false)
+        expect(isEphemeraLudicBindingAddress({ owner: 'PRESENCE#abc123', port: 'PRESENCE#def456' })).toBe(false)
+        expect(isEphemeraLudicBindingAddress({ owner: 5, port: 'PRESENCE#abc123' })).toBe(false)
+    })
+
+    it('rejects an own binding spelled bare', () => {
+        expect(isEphemeraLudicBindingAddress('PRESENCE#abc123')).toBe(false)
+    })
+})
+
+describe('isEphemeraLudicCrossingPortAddress', () => {
+    it('accepts an address whose port is a minted uuid', () => {
+        expect(isEphemeraLudicCrossingPortAddress({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe(true)
+    })
+
+    it('accepts a stub port without throwing', () => {
+        expect(() => isEphemeraLudicCrossingPortAddress({ owner: 'ROOM#A', port: STUB_PORT })).not.toThrow()
+        expect(isEphemeraLudicCrossingPortAddress({ owner: 'ROOM#A', port: STUB_PORT })).toBe(true)
+    })
+
+    it('rejects a binding address', () => {
+        expect(isEphemeraLudicCrossingPortAddress({ owner: 'OBJECT#BOX', port: 'PRESENCE#abc123' })).toBe(false)
+        expect(isEphemeraLudicCrossingPortAddress({ owner: 'ROOM#A', port: 'PRESENCE#Base' })).toBe(false)
+    })
+
+    it('rejects a malformed address and a bare id', () => {
+        expect(isEphemeraLudicCrossingPortAddress({ owner: 'OBJECT#BOX', port: '' })).toBe(false)
+        expect(isEphemeraLudicCrossingPortAddress('OBJECT#BOX')).toBe(false)
+    })
+})
+
+// The four kinds partition the terminal union: every terminal is exactly one of them.
+describe('terminal kinds partition EphemeraLudicTerminalId', () => {
+    const terminals: unknown[] = [
+        'OBJECT#helmet', 'ROOM#A', 'PRESENCE#abc123', 'PRESENCE#Base',
+        { owner: 'OBJECT#BOX', port: 'ab6129d' }, { owner: 'ROOM#A', port: STUB_PORT },
+        { owner: 'OBJECT#BOX', port: 'PRESENCE#abc123' }, { owner: 'ROOM#A', port: 'PRESENCE#Unplaced' },
+    ]
+
+    it.each(terminals)('%p is exactly one kind', (terminal) => {
+        expect(isEphemeraLudicTerminalId(terminal)).toBe(true)
+        const component = isEphemeraLudicNodeTerminal(terminal) && isEphemeraMembershipHostId(terminal)
+        const ownBinding = isEphemeraLudicNodeTerminal(terminal) && isEphemeraPresenceNodeId(terminal)
+        const kinds = [component, ownBinding, isEphemeraLudicCrossingPortAddress(terminal), isEphemeraLudicBindingAddress(terminal)]
+        expect(kinds.filter(Boolean)).toHaveLength(1)
+    })
 })
 
 // The union guard: the type was declared well before any guard for it shipped.
@@ -277,19 +377,7 @@ describe('ephemeraLudicTerminalOwner', () => {
     })
 })
 
-describe('matchEphemeraLudicTerminal / ephemeraLudicTerminalKey', () => {
-    it('dispatches a bare terminal to the component arm and an address to the port arm', () => {
-        const arms = { component: (id: string) => `component:${id}`, port: (address: { owner: string; port: string }) => `port:${address.owner}/${address.port}` }
-        expect(matchEphemeraLudicTerminal('OBJECT#BOX', arms)).toBe('component:OBJECT#BOX')
-        expect(matchEphemeraLudicTerminal({ owner: 'OBJECT#BOX', port: 'ab' }, arms)).toBe('port:OBJECT#BOX/ab')
-    })
-
-    it('requires every arm to be handled', () => {
-        // @ts-expect-error the port arm is missing
-        const missingPort = () => matchEphemeraLudicTerminal('OBJECT#BOX', { component: () => 1 })
-        expect(typeof missingPort).toBe('function')
-    })
-
+describe('ephemeraLudicTerminalKey', () => {
     it('keys a component as itself and a port address as owner#port', () => {
         expect(ephemeraLudicTerminalKey('OBJECT#BOX')).toBe('OBJECT#BOX')
         expect(ephemeraLudicTerminalKey({ owner: 'OBJECT#BOX', port: 'ab6129d' })).toBe('OBJECT#BOX#ab6129d')

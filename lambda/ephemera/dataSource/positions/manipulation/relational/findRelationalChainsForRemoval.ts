@@ -1,7 +1,7 @@
 import type { EphemeraObjectId, EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalOwner, matchEphemeraLudicTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, isEphemeraLudicTerminalPrimitive } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import internalCache from '../../../../internalCache'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
@@ -68,14 +68,9 @@ export const fetchRelationalReachability = async (
             }
             for (const edge of graph.relationalEdges) {
                 for (const terminal of [edge.from, edge.to]) {
-                    matchEphemeraLudicTerminal(terminal, {
-                        component: () => undefined,
-                        port: (address) => {
-                            if (!visited.has(address.owner)) {
-                                next.add(address.owner)
-                            }
-                        }
-                    })
+                    if (!isEphemeraLudicTerminalPrimitive(terminal) && !visited.has(terminal.owner)) {
+                        next.add(terminal.owner)
+                    }
                 }
             }
         }))
