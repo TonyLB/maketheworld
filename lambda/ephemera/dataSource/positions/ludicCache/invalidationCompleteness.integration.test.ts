@@ -43,7 +43,7 @@ import messageBus from '../../../messageBus'
 import { ephemeraDataSource } from '../../index'
 import { EphemeraLudicGraph, graphFromMeta } from '../ludicGraph'
 import { healLudicGraphStructure } from '../ludicGraph/healLudicGraphStructure'
-import { toWireLudicGraphFull } from '../ludicGraph/wireProjection'
+import { fromWireLudicGraph, toWireLudicGraphFull } from '../ludicGraph/wireProjection'
 import { parentHostsOf } from '../ludicGraph/presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
@@ -778,6 +778,40 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         expect(world.graphs.get(R1)!.relationalEdges.map((edge: any) => edge.relationLabel)).toEqual(['leans on'])
         expect((await stored(R1)).cache.edges.map((edge: any) => edge.relationLabel)).toEqual(['leans on'])
         expect((toWireLudicGraphFull(world.graphs.get(R1)!).edges ?? []).map((edge: any) => edge.relationLabel)).toEqual(['leans on'])
+    })
+
+    it('an edge naming another edge by id reaches the stored row, the cache and the wire graph, and dissolving the named edge takes it along', async () => {
+        const SUPPORT = { from: BOX, to: TABLE, kind: 'Custom' as const, relationLabel: 'tied to', edgeId: 'support-1' }
+        const SECURED = { from: TABLE, to: BOX, kind: 'Custom' as const, relationLabel: 'leans on', edgeId: 'secured-1' }
+        const JUSTIFIES = { from: { edgeId: 'support-1' }, to: { edgeId: 'secured-1' }, kind: 'Justifies' as const }
+        world.graphs.set(R1, cafeGraph([SUPPORT, SECURED, JUSTIFIES].map((edge) => ({ tag: 'Relational', ...edge }))))
+        await stored(R1)
+
+        const justifiesIn = (edges: any[]) => edges.filter((edge) => edge.kind === 'Justifies')
+        const danglingIn = (edges: any[]) => {
+            const ids = new Set(edges.map((edge) => edge.edgeId).filter((id) => id !== undefined))
+            return edges.flatMap((edge) => [edge.from, edge.to]).filter((terminal) => typeof terminal === 'object' && 'edgeId' in terminal && !ids.has(terminal.edgeId))
+        }
+        const wireEdges = () => (toWireLudicGraphFull(world.graphs.get(R1)!).edges ?? []) as any[]
+
+        // intact in the stored row, the cache (a hit, and equal to a cold build) and the wire graph
+        expect(justifiesIn(world.graphs.get(R1)!.relationalEdges)).toEqual([JUSTIFIES])
+        const read = await stored(R1)
+        expect(read.cache).toEqual(await cold(R1))
+        expect(justifiesIn(read.cache.edges)).toEqual([expect.objectContaining(JUSTIFIES)])
+        expect(justifiesIn(wireEdges())).toEqual([expect.objectContaining(JUSTIFIES)])
+        expect(fromWireLudicGraph(R1, toWireLudicGraphFull(world.graphs.get(R1)!)).edges).toEqual(world.graphs.get(R1)!.toStored().edges)
+
+        // a dissolve that names the supporting edge by structure alone takes the edge that names it
+        await commit([{ kind: 'dissolveRelation', subjectId: BOX, targetId: TABLE, hostId: R1, relationKind: 'Custom', relationLabel: 'tied to' }])
+        const rowEdges = world.graphs.get(R1)!.relationalEdges as any[]
+        const cacheEdges = (await stored(R1)).cache.edges as any[]
+        for (const edges of [rowEdges, cacheEdges, wireEdges()]) {
+            expect(edges.map((edge) => edge.relationLabel)).toEqual(['leans on'])
+            expect(justifiesIn(edges)).toEqual([])
+            expect(danglingIn(edges)).toEqual([])
+        }
+        expect((await stored(R1)).cache).toEqual(await cold(R1))
     })
 
     it('exercises every structural step kind (a new kind without a case here fails)', () => {

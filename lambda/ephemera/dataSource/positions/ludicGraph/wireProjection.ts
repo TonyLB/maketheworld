@@ -47,7 +47,7 @@ import type {
     StandardLudicRelationalEdgeData,
     StandardLudicTerminalData,
 } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
-import { isStandardLudicNavigationEdgeData, isStandardLudicPortTerminalData, isStandardLudicPresenceTerminalData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
+import { isStandardLudicEdgeTerminalData, isStandardLudicNavigationEdgeData, isStandardLudicPortTerminalData, isStandardLudicPresenceTerminalData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
 
 import { EphemeraLudicGraph, nodeFromId, toStoredRelationalEdge, type HostRelationalEdge } from './index'
 import { nodesFromPresenceBinding, subGraphFromNodes } from './presenceSubGraph'
@@ -72,9 +72,7 @@ const referenceDataToEphemeraComponentId = (data: StandardReferenceData): Epheme
 
 const ephemeraTerminalToWire = (terminal: EphemeraLudicTerminalId): StandardLudicTerminalData => {
     if (isEphemeraLudicEdgeTerminal(terminal)) {
-        // The wire has no edge arm yet (edgeTerminals Slice 3, ET-6); throw rather than drop the
-        // terminal, which would silently turn a Justifies edge into a different edge.
-        throw new Error(`toWireLudicGraph: edge terminal ${terminal.edgeId} has no wire arm yet`)
+        return { edgeId: terminal.edgeId }
     }
     if (isEphemeraLudicPortAddress(terminal)) {
         return { owner: ephemeraComponentIdToReferenceData(terminal.owner), port: terminal.port }
@@ -94,6 +92,9 @@ const wirePortIdToCrossingPortId = (portId: string): EphemeraCrossingPortId => {
 }
 
 const wireTerminalToEphemera = (data: StandardLudicTerminalData): EphemeraLudicTerminalId => {
+    if (isStandardLudicEdgeTerminalData(data)) {
+        return { edgeId: data.edgeId }
+    }
     if (isStandardLudicPresenceTerminalData(data)) {
         return data.presence as EphemeraPresenceNodeId
     }

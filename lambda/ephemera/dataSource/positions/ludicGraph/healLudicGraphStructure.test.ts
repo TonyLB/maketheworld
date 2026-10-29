@@ -244,6 +244,21 @@ describe('healLudicGraphStructure', () => {
         })
     })
 
+    it('reports a referrer naming a missing edge id as unhealable corruption, writing nothing (ET-3)', async () => {
+        const writeHealedLudicGraph = jest.fn()
+        const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {
+            getStoredLudicGraph: async () => ({
+                rootId: ROOM_ID,
+                nodes: [{ tag: 'Room', universalKey: ROOM_ID }],
+                ports: [],
+                edges: [{ tag: 'Relational', kind: 'Justifies', from: { edgeId: 'gone-a' }, to: { edgeId: 'gone-b' } }],
+            }),
+            writeHealedLudicGraph,
+        })
+        expect(outcome).toEqual({ stale: true, healable: false, applied: false })
+        expect(writeHealedLudicGraph).not.toHaveBeenCalled()
+    })
+
     it('reports healable: false for a non-object stored value', async () => {
         const writeHealedLudicGraph = jest.fn()
         const outcome = await healLudicGraphStructure(ROOM_ID, { dryRun: false }, {

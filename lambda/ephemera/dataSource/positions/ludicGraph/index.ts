@@ -652,6 +652,26 @@ export class EphemeraLudicGraph {
     }
 
     /**
+     * Removes every edge naming an `edgeId` that no edge of this graph carries, to a fixpoint
+     * (ET-3): a referrer of a dissolved edge goes in the same apply, and so does a referrer of
+     * that referrer. `removeRelationalEdge` stays a leaf; the `dissolveRelation` step calls this
+     * after it. Returns `this` when nothing dangles.
+     */
+    withoutDanglingEdgeReferrers(): EphemeraLudicGraph {
+        let edges = this.storedRelationalEdges()
+        for (;;) {
+            const ids = new Set(edges.map((edge) => edge.edgeId).filter((id): id is string => id !== undefined))
+            const kept = edges.filter((edge) => (
+                [edge.from, edge.to].every((terminal) => !isEphemeraLudicEdgeTerminal(terminal) || ids.has(terminal.edgeId))
+            ))
+            if (kept.length === edges.length) {
+                return kept.length === this.storedRelationalEdges().length ? this : this.withEdges(kept.map(toStoredRelationalEdge))
+            }
+            edges = kept
+        }
+    }
+
+    /**
      * Gives the stored edge that `edgesMatch`es `edge` the id `edgeId`, keeping its place in the edge
      * list: the one way to put an id on an edge already stored, since `addRelationalEdge` dedupes
      * structurally. It is the apply of the `assignEdgeId` kernel step, which checks for a missing

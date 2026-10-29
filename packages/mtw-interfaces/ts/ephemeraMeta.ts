@@ -1014,6 +1014,13 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
         if (!Array.isArray(edges) || !edges.every((entry) => isEphemeraLudicRelationalEdgeData(entry))) {
             return false
         }
+        // An edge terminal naming an `edgeId` no edge of the graph carries is corruption (ET-3).
+        // Checked on the stored graph only: a cache holds the buckets it pulled, so a referrer there
+        // may legitimately name an edge in a bucket that was not pulled.
+        const ids = new Set(edges.map((entry) => entry.edgeId).filter((id) => id !== undefined))
+        if (!edges.every((entry) => [entry.from, entry.to].every((terminal) => !isEphemeraLudicEdgeTerminal(terminal) || ids.has(terminal.edgeId)))) {
+            return false
+        }
     }
     // The egress list is required and possibly empty, not optional like `edges`
     // --- see `rootId`'s precedent above for why no `??= []` belongs at this boundary.

@@ -682,6 +682,23 @@ describe('isEphemeraLudicGraphFieldPayload', () => {
         })).toBe(true)
     })
 
+    it('rejects an edge terminal naming an id no edge of the graph carries (ET-3), and accepts it once the edge is there', () => {
+        const payload = (edges: unknown[]) => ({
+            rootId: 'ROOM#Kitchen',
+            ports: [],
+            nodes: [
+                { tag: 'Room', universalKey: 'ROOM#Kitchen' },
+                { tag: 'Object', universalKey: 'OBJECT#a', hostingKind: 'In' },
+            ],
+            edges,
+        })
+        const supported = { tag: 'Relational', kind: 'Custom', relationLabel: 'x', from: 'OBJECT#a', to: 'ROOM#Kitchen', edgeId: 'edge-a' }
+        const secured = { tag: 'Relational', kind: 'Custom', relationLabel: 'y', from: 'ROOM#Kitchen', to: 'OBJECT#a', edgeId: 'edge-b' }
+        const justifies = { tag: 'Relational', kind: 'Justifies', from: { edgeId: 'edge-a' }, to: { edgeId: 'edge-b' } }
+        expect(isEphemeraLudicGraphFieldPayload(payload([supported, secured, justifies]))).toBe(true)
+        expect(isEphemeraLudicGraphFieldPayload(payload([supported, justifies]))).toBe(false)
+    })
+
     it('accepts mixed character and object nodes', () => {
         expect(isEphemeraLudicGraphFieldPayload({
             rootId: 'CHARACTER#Alpha',

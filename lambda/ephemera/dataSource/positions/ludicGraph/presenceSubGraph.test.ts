@@ -9,6 +9,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 import type { EphemeraCrossingPortId, EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { testLudicGraph } from './testFixtures'
+import { mergeSameHostBucket } from '../ludicCache/mergeReducer'
 import { nodesFromPresenceBinding, nodesFromPresenceBindings, subGraphFromNodes } from './presenceSubGraph'
 import { parentRemainderKey } from './testFixtures'
 
@@ -675,6 +676,39 @@ describe('subGraphFromNodes with edge terminals', () => {
         const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, edgeB, justifies] })
         const result = subGraphFromNodes(graph, new Set([roomId]))
         expect(result.relationalEdges).toEqual([])
+    })
+
+    describe('a referrer travels with the edges it names (ET-8)', () => {
+        const strip = ({ tag, ...edge }: { tag: 'Relational' } & Record<string, unknown>) => edge
+        const bucketC = new Set([roomId, objC] as const)
+        const bucketD = new Set([roomId, objD] as const)
+
+        it('keeps a referrer whole in each bucket that anchors either named edge, and the fold holds it once', () => {
+            const supportC = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-c', from: objC, to: roomId }
+            const securedD = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-d', from: objD, to: roomId }
+            const referrer = { tag: 'Relational' as const, kind: 'Justifies' as const, from: { edgeId: 'edge-c' }, to: { edgeId: 'edge-d' } }
+            const graph = testLudicGraph(roomId, { nodes, edges: [supportC, securedD, referrer] })
+            const inC = subGraphFromNodes(graph, bucketC)
+            const inD = subGraphFromNodes(graph, bucketD)
+            expect(inC.relationalEdges).toEqual([supportC, referrer].map(strip))
+            expect(inD.relationalEdges).toEqual([securedD, referrer].map(strip))
+            const merged = mergeSameHostBucket(inC, inD)
+            expect(merged.relationalEdges).toHaveLength(3)
+            expect(merged.relationalEdges).toEqual(expect.arrayContaining([supportC, securedD, referrer].map(strip)))
+        })
+
+        it('survives cut then fold unchanged when a named edge straddles the buckets', () => {
+            const secured = { ...edgeB, from: objC, to: roomId }
+            const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, secured, justifies] })
+            const inC = subGraphFromNodes(graph, bucketC)
+            const inD = subGraphFromNodes(graph, bucketD)
+            // edge-a (objC -> objD) is cut into a stub leg on each side; each leg keeps its edgeId.
+            expect(inC.relationalEdges.find(({ edgeId }) => edgeId === 'edge-a')).toBeDefined()
+            const merged = mergeSameHostBucket(inC, inD)
+            expect(merged.relationalEdges.filter(({ kind }) => kind === 'Justifies')).toEqual([strip(justifies)])
+            expect(merged.relationalEdges.find(({ edgeId }) => edgeId === 'edge-a')).toMatchObject({ from: objC, to: objD })
+            expect(merged.ports).toEqual([])
+        })
     })
 
     it('throws on a referrer naming an edge the graph does not hold', () => {

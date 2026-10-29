@@ -323,9 +323,11 @@ export const subGraphFromNodes = (
             // one caught "no disqualified".
             const outsideTerminal = fromStatus === 'disqualified' ? edge.from : edge.to
             if (isEphemeraLudicEdgeTerminal(outsideTerminal)) {
-                // Owed by edgeTerminals Slice 3: a referrer whose two named edges land in different
-                // buckets needs a way to travel with both. No producer reaches this yet.
-                throw new Error(`Edge ${edge.edgeId ?? ''} on ${graph.hostId} names edges that straddle buckets: not yet supported`)
+                // A referrer names a relationship by `edgeId`, not a place a cut could land on, so
+                // there is nothing to stub: keep it whole in every bucket that anchors either named
+                // edge (ET-8). The bucket may hold it without the other named edge; the fold
+                // dedupes the copies and the merged graph holds both.
+                return { ...acc, edges: [...acc.edges, edge] }
             }
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {

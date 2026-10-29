@@ -400,7 +400,8 @@ export const applyStepSequenceCore = (
             },
             op: step.kind === 'establishRelation' ? 'add' : 'remove',
         })
-        graphs.set(step.hostId, patched)
+        // A dissolved edge takes the edges that name it (edgeTerminals ET-3) in the same apply.
+        graphs.set(step.hostId, step.kind === 'dissolveRelation' ? patched.withoutDanglingEdgeReferrers() : patched)
     }
 
     // the fall-through and root rules at the run's end, before the checks below (a binding still parentless here is removed,

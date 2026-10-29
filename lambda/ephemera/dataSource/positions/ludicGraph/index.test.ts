@@ -1004,6 +1004,29 @@ describe('EphemeraLudicGraph', () => {
                     expect(() => base().applyRelationalPatch({ hostId: HOST_ID, op: 'add', edge: { from: B, to: { edgeId: 'edge-z' }, kind: 'Justifies' } })).toThrow()
                 })
 
+                describe('withoutDanglingEdgeReferrers (ET-3)', () => {
+                    it('removes a referrer of a dissolved edge, and returns the same graph when nothing dangles', () => {
+                        const joined = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                        expect(joined.withoutDanglingEdgeReferrers()).toBe(joined)
+                        const dissolved = joined.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }).withoutDanglingEdgeReferrers()
+                        expect(dissolved.relationalEdges).toEqual([{ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-b' }])
+                    })
+
+                    it('follows referrers of referrers, and a cycle, to a fixpoint', () => {
+                        const chained = base()
+                            .addRelationalEdge({ from: B, to: A, kind: 'Justifies', edgeId: 'j1' })
+                            .addRelationalEdge({ from: { edgeId: 'j1' }, to: B, kind: 'Justifies', edgeId: 'j2' })
+                            .addRelationalEdge({ from: { edgeId: 'j2' }, to: A, kind: 'Justifies' })
+                        const dissolved = chained.removeRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }).withoutDanglingEdgeReferrers()
+                        expect(dissolved.relationalEdges.map(({ kind }) => kind)).toEqual(['ConnectedTo'])
+                    })
+
+                    it('leaves a referrer whose named edges both remain', () => {
+                        const joined = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                        expect(joined.removeRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo' }).withoutDanglingEdgeReferrers().relationalEdges).toHaveLength(1)
+                    })
+                })
+
                 it('an edge-terminal referrer does not make a component "still referenced"', () => {
                     const next = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
                     expect(next.nodeHasRelationalEdge(OBJECT_A)).toBe(true) // via edge-a itself

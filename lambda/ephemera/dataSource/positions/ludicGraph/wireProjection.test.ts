@@ -81,6 +81,28 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
         })
     })
 
+    describe('edge terminals', () => {
+        it('carries a Justifies edge naming two edges through the wire and back', () => {
+            const bindingUuid = 'binding1'
+            const graph = testLudicGraph(tableId, {
+                nodes: [
+                    { tag: 'Object', universalKey: tableId },
+                    { tag: 'Object', universalKey: boxId },
+                    { tag: 'Character', universalKey: charId },
+                    presenceBindingNode(bindingUuid, [roomId]),
+                ],
+                edges: [
+                    { tag: 'Relational', kind: 'Custom', relationLabel: 'under', from: charId, to: boxId, edgeId: 'support1' },
+                    { tag: 'Relational', kind: 'Custom', relationLabel: 'over', from: boxId, to: charId, edgeId: 'secured1' },
+                    { tag: 'Relational', kind: 'Justifies', from: { edgeId: 'support1' }, to: { edgeId: 'secured1' } },
+                ],
+            })
+            const wire = toWireLudicGraph(graph, bindingUuid)
+            expect(wire.edges).toContainEqual(expect.objectContaining({ kind: 'Justifies', from: { edgeId: 'support1' }, to: { edgeId: 'secured1' } }))
+            expect(fromWireLudicGraph(tableId, wire)).toEqual(graph.toStored())
+        })
+    })
+
     describe('shared binding', () => {
         it('carries every parent through the wire and back', () => {
             const uuid = 'shared1'
@@ -150,19 +172,6 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
             expect(() => fromWireLudicGraph(tableId, {
                 edges: [{ kind: 'Navigation', uuid: 'e1', payload: {} } as any],
             })).toThrow(/Navigation/)
-        })
-
-        // The wire has no edge arm until edgeTerminals Slice 3 (ET-6).
-        it('rejects an edge terminal on the way out rather than dropping it', () => {
-            const graph = testLudicGraph(tableId, {
-                nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: boxId }],
-                edges: [
-                    { tag: 'Relational', kind: 'ConnectedTo', edgeId: 'edge-a', from: tableId, to: boxId },
-                    { tag: 'Relational', kind: 'ConnectedTo', edgeId: 'edge-b', from: boxId, to: tableId },
-                    { tag: 'Relational', kind: 'Justifies', from: { edgeId: 'edge-b' }, to: { edgeId: 'edge-a' } },
-                ],
-            })
-            expect(() => toWireLudicGraphFull(graph)).toThrow(/edge-/)
         })
 
         // A wire port id is sorted into a crossing id or a binding id; nothing else is stored.

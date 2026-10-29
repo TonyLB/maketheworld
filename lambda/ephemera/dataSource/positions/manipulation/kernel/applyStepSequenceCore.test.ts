@@ -240,6 +240,31 @@ describe('applyStepSequenceCore', () => {
         expect(nextGraph.objectIds).toEqual(new Set([trayId, tableId]))
     })
 
+    it('a dissolveRelation step also removes the edges that name the dissolved edge, transitively (ET-3)', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+                presenceBindingNode(parentRemainderKey(roomId)),
+            ],
+            edges: [
+                { tag: 'Relational', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to', edgeId: 'support1' },
+                { tag: 'Relational', from: tableId, to: trayId, kind: 'Custom', relationLabel: 'rests on', edgeId: 'secured1' },
+                { tag: 'Relational', from: { edgeId: 'support1' }, to: { edgeId: 'secured1' }, kind: 'Justifies', edgeId: 'justify1' },
+                { tag: 'Relational', from: { edgeId: 'justify1' }, to: { edgeId: 'secured1' }, kind: 'Justifies' },
+            ],
+        })
+        const steps: MutationKernelStep[] = [{ kind: 'dissolveRelation', subjectId: trayId, targetId: tableId, hostId: roomId, relationKind: 'Custom', relationLabel: 'tied to' }]
+
+        const outcome = applyStepSequenceCore(steps, graphsMap([roomId, graph]))
+
+        expect(outcome.verdict).toBe('legal')
+        if (outcome.verdict !== 'legal') return
+        expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([
+            { from: tableId, to: trayId, kind: 'Custom', relationLabel: 'rests on', edgeId: 'secured1' },
+        ])
+    })
+
     it('BD-33 structural throw: a carried hostId that neither endpoint actually shares throws (not a verdict)', () => {
         const sourceGraph = testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId }, presenceBindingNode(parentRemainderKey(roomId))] })
         const otherGraph = testLudicGraph(otherRoomId, { nodes: [{ tag: 'Object', universalKey: glassId }, presenceBindingNode(parentRemainderKey(otherRoomId))] })
