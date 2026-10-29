@@ -136,6 +136,8 @@ Two edges are added to EA-C1's four. Both are expressible now; neither is the di
 
 **Re-grade pointer (rule 5), 2026-08-26.** This is the strongest discriminating case in the label-across-ports displacement sweep over clause (ii) (that plan since disposed) --- the many-to-one, opposite-direction fusion (`SolderedTo` / `Secures`) that one label per port cannot cover, which is that sweep's requirement Y. See [EA-10](AGENT.edgeAbstractions.planning.md#ea-10) for the argument; not restated here.
 
+**Re-grade pointer (rule 5), 2026-10-28.** This case is the cross-scale evidence for the justification link's reopening. Target 2's *pull the cord out must fail, or first oblige unclamping* is a secured edge whose support is the two contacts. The severed-cord contrast is that support's AND: the solder secures the cord only through the interior `ConnectedTo`. See [Reopened in part](AGENT.edgeAbstractions.planning.md#reopened-in-part-support-between-edges-2026-10-28) for the argument; not restated here.
+
 ---
 
 ## EA-C3: cutting the thread
