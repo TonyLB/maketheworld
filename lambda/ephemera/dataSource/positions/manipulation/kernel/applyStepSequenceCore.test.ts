@@ -101,6 +101,53 @@ describe('applyStepSequenceCore', () => {
         expect(nextDest.relationalEdges).toEqual([])
     })
 
+    describe('assignEdgeId', () => {
+        const tiedEdge = { from: trayId, to: tableId, kind: 'Custom' as const, relationLabel: 'tied to' }
+        const roomWithEdge = (edgeId?: string) => testLudicGraph(roomId, {
+            nodes: [object(trayId), object(tableId), presenceBindingNode(parentRemainderKey(roomId))],
+            edges: [{ tag: 'Relational', ...(edgeId ? { edgeId } : {}), ...tiedEdge }],
+        })
+
+        it('puts the id on the stored edge, and a later step in the sequence sees it', () => {
+            const outcome = applyStepSequenceCore(
+                [{ kind: 'assignEdgeId', hostId: roomId, edge: tiedEdge, edgeId: 'edge-1' }],
+                graphsMap([roomId, roomWithEdge()])
+            )
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([{ ...tiedEdge, edgeId: 'edge-1' }])
+        })
+
+        it('is a no-op when the edge already carries that id', () => {
+            const outcome = applyStepSequenceCore(
+                [{ kind: 'assignEdgeId', hostId: roomId, edge: tiedEdge, edgeId: 'edge-1' }],
+                graphsMap([roomId, roomWithEdge('edge-1')])
+            )
+            expect(outcome.verdict).toBe('legal')
+        })
+
+        it('is stale when the edge is missing, the id differs, or the host is outside the footprint', () => {
+            const step: MutationKernelStep = { kind: 'assignEdgeId', hostId: roomId, edge: tiedEdge, edgeId: 'edge-1' }
+            expect(applyStepSequenceCore([step], graphsMap([roomId, hostHolding(roomId, object(trayId), object(tableId))])))
+                .toMatchObject({ verdict: 'stale', reasonCode: 'edgeMissing' })
+            expect(applyStepSequenceCore([step], graphsMap([roomId, roomWithEdge('edge-0')])))
+                .toMatchObject({ verdict: 'stale', reasonCode: 'edgeIdConflict' })
+            expect(applyStepSequenceCore([step], graphsMap()))
+                .toMatchObject({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
+        })
+
+        it('throws on a leg of a chain', () => {
+            const chained = testLudicGraph(roomId, {
+                nodes: [object(trayId), object(tableId), presenceBindingNode(parentRemainderKey(roomId))],
+                edges: [{ tag: 'Relational', chainId: 'chain-1', ...tiedEdge }],
+            })
+            expect(() => applyStepSequenceCore(
+                [{ kind: 'assignEdgeId', hostId: roomId, edge: { ...tiedEdge, chainId: 'chain-1' }, edgeId: 'edge-1' }],
+                graphsMap([roomId, chained])
+            )).toThrow()
+        })
+    })
+
     it('a move alone gives the arriving object its default kind: Held in a character, In elsewhere (take and drop write no establish)', () => {
         const roomGraph = hostHolding(roomId, object(trayId))
         const taken = applyStepSequenceCore(

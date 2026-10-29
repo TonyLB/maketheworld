@@ -177,6 +177,11 @@ describe('factsForStep', () => {
         expect(factsForStep(step, graphsMap([roomId, testLudicGraph(roomId, { nodes: [{ tag: 'Object', universalKey: trayId, hostingKind: 'On' }] })]), beatAnchorTime)).toEqual([])
     })
 
+    it('an assignEdgeId step yields no facts: an id is not a change to what relates to what', () => {
+        const step: MutationKernelStep = { kind: 'assignEdgeId', hostId: roomId, edge: { from: trayId, to: glassId, kind: 'ConnectedTo' }, edgeId: 'edge-1' }
+        expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])
+    })
+
     it('a capture step yields no facts --- it is not a world event', () => {
         const step: MutationKernelStep = { kind: 'capture', hostId: roomId, captureId: 'before' }
         expect(factsForStep(step, graphsMap(), beatAnchorTime)).toEqual([])

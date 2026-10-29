@@ -43,6 +43,7 @@ import messageBus from '../../../messageBus'
 import { ephemeraDataSource } from '../../index'
 import { EphemeraLudicGraph, graphFromMeta } from '../ludicGraph'
 import { healLudicGraphStructure } from '../ludicGraph/healLudicGraphStructure'
+import { toWireLudicGraphFull } from '../ludicGraph/wireProjection'
 import { parentHostsOf } from '../ludicGraph/presenceParent'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 import { commitStepSequence } from '../manipulation/kernel/commitStepSequence'
@@ -506,6 +507,18 @@ const cases: Case[] = [
         act: () => commit([{ kind: 'setHostingKind', hostId: R1, memberId: BOX, hostingKind: 'On' }]),
     },
     {
+        name: 'a stored edge in a room is given an id',
+        kinds: ['assignEdgeId'],
+        world: () => {
+            const base = freshWorld()
+            base.graphs.set(R1, cafeGraph([{ tag: 'Relational', from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }]))
+            return base
+        },
+        rooms: [R1],
+        changesCache: true,
+        act: () => commit([{ kind: 'assignEdgeId', hostId: R1, edge: { from: BOX, to: TABLE, kind: 'Custom', relationLabel: 'tied to' }, edgeId: 'edge-1' }]),
+    },
+    {
         name: 'a crossing port is added to a nested host, then removed',
         kinds: ['addCrossingPort', 'removeCrossingPort'],
         rooms: [R1],
@@ -738,6 +751,33 @@ describe('invalidation completeness: a read after any change equals a cold rebui
         const read = await stored(R1)
         expect(read.outcome).toBe('hit')
         expect(read.cache).toEqual(await cold(R1))
+    })
+
+    it('an assigned edge id reaches the stored row, the cache and the wire graph, and a dissolve by structure removes the edge', async () => {
+        const TIED = { from: BOX, to: TABLE, kind: 'Custom' as const, relationLabel: 'tied to' }
+        const PLAIN = { from: TABLE, to: BOX, kind: 'Custom' as const, relationLabel: 'leans on' }
+        world.graphs.set(R1, cafeGraph([{ tag: 'Relational', ...TIED }, { tag: 'Relational', ...PLAIN }]))
+        await stored(R1)
+
+        await commit([{ kind: 'assignEdgeId', hostId: R1, edge: TIED, edgeId: 'edge-1' }])
+
+        const idsOf = (edges: { relationLabel?: string; edgeId?: string }[]) => Object.fromEntries(edges.map(({ relationLabel, edgeId }) => [relationLabel, edgeId]))
+        // stored row: same position, id on the one edge only (identity is optional, per edge)
+        expect(world.graphs.get(R1)!.relationalEdges.map((edge: any) => edge.relationLabel)).toEqual(['tied to', 'leans on'])
+        expect(idsOf(world.graphs.get(R1)!.relationalEdges as any)).toEqual({ 'tied to': 'edge-1', 'leans on': undefined })
+        // cache: stale, rebuilt, equal to a cold build, and carrying the id
+        const read = await stored(R1)
+        expect(read.outcome).toBe<LudicCacheReadOutcome>('stale')
+        expect(read.cache).toEqual(await cold(R1))
+        expect(idsOf(read.cache.edges as any)).toEqual({ 'tied to': 'edge-1', 'leans on': undefined })
+        // wire graph
+        expect(idsOf(toWireLudicGraphFull(world.graphs.get(R1)!).edges as any)).toEqual({ 'tied to': 'edge-1', 'leans on': undefined })
+
+        // a dissolve that names the edge by structure alone takes the id with it
+        await commit([{ kind: 'dissolveRelation', subjectId: BOX, targetId: TABLE, hostId: R1, relationKind: 'Custom', relationLabel: 'tied to' }])
+        expect(world.graphs.get(R1)!.relationalEdges.map((edge: any) => edge.relationLabel)).toEqual(['leans on'])
+        expect((await stored(R1)).cache.edges.map((edge: any) => edge.relationLabel)).toEqual(['leans on'])
+        expect((toWireLudicGraphFull(world.graphs.get(R1)!).edges ?? []).map((edge: any) => edge.relationLabel)).toEqual(['leans on'])
     })
 
     it('exercises every structural step kind (a new kind without a case here fails)', () => {

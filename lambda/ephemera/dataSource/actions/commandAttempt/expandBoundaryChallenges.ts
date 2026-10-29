@@ -25,10 +25,22 @@ const terminalKey = (terminal: unknown): string => typeof terminal === 'string' 
 
 const exitEdgeChallengeId = (primaryActionId: string): string => `exitEdge:${primaryActionId}`
 
+/**
+ * The key a Custom edge's challenge has by structure alone. An edge that later gains an `edgeId` is
+ * keyed by it instead, so this is also the alias a stored answer under the old key is matched by
+ * (`applyChallengeAnswers`). Structural keys contain `|` and edge ids are bare uuids, so the two forms cannot collide.
+ */
+export const customEdgeStructuralChallengeId = (
+    primaryActionId: string,
+    edge: Extract<HostRelationalEdge, { kind: 'Custom' }>
+): string => `customEdge:${primaryActionId}:${[terminalKey(edge.from), terminalKey(edge.to), edge.kind, edge.relationLabel].join('|')}`
+
 const customEdgeChallengeId = (
     primaryActionId: string,
     edge: Extract<HostRelationalEdge, { kind: 'Custom' }>
-): string => `customEdge:${primaryActionId}:${edge.edgeId ?? [terminalKey(edge.from), terminalKey(edge.to), edge.kind, edge.relationLabel].join('|')}`
+): string => edge.edgeId === undefined
+    ? customEdgeStructuralChallengeId(primaryActionId, edge)
+    : `customEdge:${primaryActionId}:${edge.edgeId}`
 
 const describeCustomEdgeChallenge = (edge: Extract<HostRelationalEdge, { kind: 'Custom' }>): string =>
     `Boundary relation to dissolve: ${edge.relationLabel}.`

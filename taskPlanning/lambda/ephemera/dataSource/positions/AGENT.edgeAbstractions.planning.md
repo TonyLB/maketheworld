@@ -88,7 +88,7 @@ A first sketch stored support as a list of AND sets on the dependent edge. **Tha
 
 ### What is licensed now, and only in this scope
 
-Built by [`AGENT.edgeIdMinting.planning.md`](AGENT.edgeIdMinting.planning.md) and `SecuredTo` v1:
+Id minting shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape)); `SecuredTo` v1 builds the rest:
 
 - **Minting an `edgeId` on one edge in one graph, on demand**, with no Edge record. This is CE2-local, split from [CE2](AGENT.abstractionLayers.planning.md#recommended-order) on 2026-10-28. Most edges still carry no id, per [EA-8](#settled-register).
 - **An edge-reference arm of `EphemeraLudicTerminalId`**, for one producer: `Justifies`, with both terminals edges in the same graph.

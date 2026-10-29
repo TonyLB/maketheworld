@@ -6,7 +6,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-import { graphFromMeta } from '../../ludicGraph'
+import { edgesMatch, graphFromMeta } from '../../ludicGraph'
 import { connectedToPairsOf, parentsOf } from '../../ludicGraph/presenceParent'
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import type { EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -347,6 +347,24 @@ export const applyStepSequenceCore = (
                 return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
             }
             graphs.set(step.hostId, graph.setHostingKind(step.memberId, step.hostingKind))
+            continue
+        }
+
+        // an id on one stored edge. A missing edge or a different id means a concurrent writer got
+        // there first (stale); a chain leg is a programming error, and `assignEdgeId` throws.
+        if (step.kind === 'assignEdgeId') {
+            const graph = graphs.get(step.hostId)
+            if (!graph) {
+                return { verdict: 'stale', reasonCode: 'hostNotInFootprint' }
+            }
+            const stored = graph.relationalEdges.find((edge) => edgesMatch(edge, step.edge))
+            if (!stored) {
+                return { verdict: 'stale', reasonCode: 'edgeMissing' }
+            }
+            if (stored.edgeId !== undefined && stored.edgeId !== step.edgeId) {
+                return { verdict: 'stale', reasonCode: 'edgeIdConflict' }
+            }
+            graphs.set(step.hostId, graph.assignEdgeId(step.edge, step.edgeId))
             continue
         }
 

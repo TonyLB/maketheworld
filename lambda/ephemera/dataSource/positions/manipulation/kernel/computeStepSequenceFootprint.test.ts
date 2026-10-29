@@ -45,6 +45,11 @@ describe('computeStepSequenceFootprint', () => {
         expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
     })
 
+    it('an assignEdgeId step contributes its hostId and resolves no endpoint host', () => {
+        const step: MutationKernelStep = { kind: 'assignEdgeId', hostId: roomId, edge: { from: trayId, to: glassId, kind: 'ConnectedTo' }, edgeId: 'edge-1' }
+        expect(computeStepSequenceFootprint([step], () => undefined)).toEqual(new Set([roomId]))
+    })
+
     it('addCrossingPort/removeCrossingPort steps contribute their hostId directly', () => {
         const steps: MutationKernelStep[] = [
             { kind: 'addCrossingPort', hostId: roomId, port: { portId: 'p1', fromHostId: otherRoomId, kind: 'Custom', exteriorRelationLabel: 'to' } },

@@ -2,6 +2,7 @@ import type { EphemeraObjectId, EphemeraPresenceNodeId } from '@tonylb/mtw-inter
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraHostingKind, EphemeraMetaObject, EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
+import type { HostRelationalEdge } from '../../ludicGraph/baseClasses'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type {
     ExecutorDescribeStep,
@@ -220,6 +221,20 @@ export type MutationKernelSetHostingKindStep = {
     hostingKind: EphemeraHostingKind
 }
 
+/**
+ * Gives one stored single-leg relational edge in `hostId`'s graph an `edgeId`, so a later edge can
+ * name it. The caller mints the id (as `addPresenceBinding` carries `presenceUuid`), so a later step
+ * in the same sequence can name it before the commit. A missing edge, or one already carrying a
+ * different id, is `stale` (`edgeMissing`, `edgeIdConflict`); the same id is a no-op; a leg of a
+ * chain throws. It emits no published fact. `hostId` is the host written, so it is the footprint.
+ */
+export type MutationKernelAssignEdgeIdStep = {
+    kind: 'assignEdgeId'
+    hostId: EphemeraMembershipHostId
+    edge: HostRelationalEdge
+    edgeId: string
+}
+
 export type MutationKernelStep =
     | ExecutorEstablishRelationStep
     | ExecutorDissolveRelationStep
@@ -234,6 +249,7 @@ export type MutationKernelStep =
     | MutationKernelAddCrossingPortStep
     | MutationKernelRemoveCrossingPortStep
     | MutationKernelSetHostingKindStep
+    | MutationKernelAssignEdgeIdStep
 
 /**
  * Every `MutationKernelStep` kind, as a record so adding a kind to the union without listing it here
@@ -254,6 +270,7 @@ export const mutationKernelStepKinds = {
     addCrossingPort: true,
     removeCrossingPort: true,
     setHostingKind: true,
+    assignEdgeId: true,
 } as const satisfies Record<MutationKernelStep['kind'], true>
 
 /**
@@ -418,7 +435,8 @@ export const isKernelMutationStep = (step: KernelStep): step is MutationKernelSt
     step.kind === 'repairPresenceBinding' ||
     step.kind === 'addCrossingPort' ||
     step.kind === 'removeCrossingPort' ||
-    step.kind === 'setHostingKind'
+    step.kind === 'setHostingKind' ||
+    step.kind === 'assignEdgeId'
 
 /**
  * The presentation kernel's own type-guard filter (mirrors `isKernelMutationStep` above):
