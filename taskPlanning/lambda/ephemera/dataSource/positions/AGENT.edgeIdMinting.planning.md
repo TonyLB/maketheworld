@@ -1,6 +1,6 @@
 # Minting an `edgeId` within one graph
 
-**Status:** opened 2026-10-28. Slice 1 built 2026-10-29 (`assignEdgeId` method and step, EM-2 alias matching). **Next step: Slice 2** (round-trip payoff). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+**Status:** opened 2026-10-28. Slice 1 built 2026-10-29 (`assignEdgeId` method and step, EM-2 alias matching). Slice 2 built 2026-10-29 (round-trip payoff). **Next step: Slice 3** (durable docs, delete this plan). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md).
 
 ## Goal
 
@@ -56,7 +56,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- |
 | 0. Inventory (no code) | Done 2026-10-28 (EM-1, EM-2 decided) |
 | 1. Graph method and kernel step | Done 2026-10-29 (EM-1, EM-2 shipped; their rules go to the durable docs in Slice 3) |
-| 2. Round-trip payoff | |
+| 2. Round-trip payoff | Done 2026-10-29 (id reaches stored row, cache and wire graph; structural dissolve removes it; no source fix needed) |
 | 3. Durable docs; plan deleted | |
 
 ## Recommended order
@@ -77,7 +77,7 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
         - **No change needed, checked:** `recordVerdict` (`commandAttempt/index.ts:159`) and `adjudicate.ts:37` act on live challenges' canonical ids; `askedAs` is an opaque string re-added verbatim (its `ask:<challengeKey>` convention is documented in `persistentCommand/payload.ts`, not computed anywhere), so it stays self-consistent when the key was the old form.
         - **Finding, no production writer:** nothing outside tests and `testFixtures.ts` writes a `challengeAnswers` entry or an `askedAs` yet (`answer.ts`, `selectQuestion.ts` and `rowStore.ts` only pass the record through). Alias matching is therefore built ahead of its first writer; when that writer lands it should store the challenge's canonical `id`. Existing id assertions to keep green: `expandBoundaryChallenges.test.ts:133,149`, `persistentCommand/payoff.test.ts:49`.
     - [X] EA-8 pinning tests pass unaltered.
-- [ ] **Slice 2. Round-trip payoff.** One integration test through `commitStepSequence`: assign an id to a stored `Custom` edge; read it back from the stored row, the room's `ludicCache`, and the wire projection; then dissolve it by structure alone and confirm it is gone.
+- [X] **Slice 2. Round-trip payoff.** One integration test through `commitStepSequence` (an `it` in `invalidationCompleteness.integration.test.ts`, to reuse its in-memory DynamoDB harness): assign an id to a stored `Custom` edge; read it back from the stored row, the room's `ludicCache`, and the wire projection; then dissolve it by structure alone and confirm it is gone.
 - [ ] **Slice 3. Durable docs, then delete this plan.**
     - [ ] The `edgeId` comment in `ephemeraMeta.ts` (*no constructor mints one*) and `edgesMatch`'s comment.
     - [ ] `positions/AGENT.contract.md` (*Edge persist shape*): one id-bearing edge per graph, single legs only, ids caller-minted. Also the two shipped decisions: a missing edge or a different id is `stale` (`edgeMissing`, `edgeIdConflict`); a stored challenge answer under a Custom edge's structural key is matched to its id-keyed challenge by run-local alias (`applyChallengeAnswers`, `customEdgeStructuralChallengeId`), canonical id winning.
