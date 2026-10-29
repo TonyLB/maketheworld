@@ -1,4 +1,4 @@
-import { ephemeraLudicTerminalKey, hostingFamily, isEphemeraLudicBindingAddress, isEphemeraLudicCrossingPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, hostingFamily, isEphemeraLudicBindingAddress, isEphemeraLudicCrossingPortAddress, isEphemeraLudicEdgeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -13,6 +13,9 @@ import type { EphemeraLudicGraph } from '../../ludicGraph'
  * is not a binding. A part's own parts live in the part's graph, not this one.
  */
 const endpointViolation = (graph: EphemeraLudicGraph, hostId: EphemeraMembershipHostId, terminal: EphemeraLudicTerminalId): string | undefined => {
+    if (isEphemeraLudicEdgeTerminal(terminal)) {
+        return `${ephemeraLudicTerminalKey(terminal)} is an edge: only Justifies carries an edge terminal`
+    }
     if (isEphemeraLudicBindingAddress(terminal)) {
         return terminal.owner === hostId ? undefined : `${ephemeraLudicTerminalKey(terminal)} is a binding of ${terminal.owner}, not of ${hostId}`
     }

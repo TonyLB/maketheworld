@@ -1,4 +1,4 @@
-import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom, isEphemeraLudicNodeTerminal, isEphemeraLudicPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, UNPLACED_PRESENCE_ID, edgeKindAndLabelFrom, isEphemeraLudicEdgeTerminal, isEphemeraLudicNodeTerminal, isEphemeraLudicPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { coverageViolationsOf, mergeablePairOf } from '@tonylb/mtw-gateways/ts/ephemera/positions'
@@ -37,6 +37,10 @@ const hostsOf = (
     id: EphemeraLudicTerminalId,
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId[] => {
+    if (isEphemeraLudicEdgeTerminal(id)) {
+        // An edge terminal names no component, so no host (and no step carries one).
+        return []
+    }
     if (isEphemeraLudicPortAddress(id)) {
         // An address end names its own host directly (owner) --- graph-local addressing, not
         // membership search. This is a *candidate*, not a veto: the exterior side of a

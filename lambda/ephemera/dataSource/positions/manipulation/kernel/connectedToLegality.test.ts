@@ -63,6 +63,10 @@ describe('connectedToViolation', () => {
         expect(connectedToViolation(partedRope, rope, strandA, ownBinding)).toBeUndefined()
     })
 
+    it('refuses an edge terminal: only Justifies carries one', () => {
+        expect(connectedToViolation(partedRope, rope, { edgeId: 'edge-a' }, port(rope, 'pA'))).toMatch(/edge:edge-a.*Justifies/)
+    })
+
     it('refuses a part of a part, which lives in the part\'s own graph rather than the whole\'s', () => {
         const nested = 'OBJECT#Fibre' as EphemeraObjectId
         expect(connectedToViolation(partedRope, rope, strandA, nested)).toMatch(/OBJECT#Fibre/)

@@ -956,6 +956,62 @@ describe('EphemeraLudicGraph', () => {
                 })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
             })
 
+            describe('edge terminals (Justifies)', () => {
+                const base = () => graphWithThreeObjects()
+                    .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-a' })
+                    .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-b' })
+                const A = { edgeId: 'edge-a' }
+                const B = { edgeId: 'edge-b' }
+
+                it('stores a Justifies edge naming two edges of the graph, and it survives the stored round trip', () => {
+                    const next = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                    expect(next.relationalEdges).toContainEqual({ from: B, to: A, kind: 'Justifies' })
+                    const reread = EphemeraLudicGraph.fromFieldPayload(HOST_ID, next.toStored())
+                    expect(reread.relationalEdges).toContainEqual({ from: B, to: A, kind: 'Justifies' })
+                })
+
+                it('allows a cycle: A justifies B and B justifies A', () => {
+                    const next = base()
+                        .addRelationalEdge({ from: A, to: B, kind: 'Justifies' })
+                        .addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                    expect(next.relationalEdges.filter(({ kind }) => kind === 'Justifies')).toHaveLength(2)
+                })
+
+                it('refuses an id that names no edge of this graph', () => {
+                    expect(() => base().addRelationalEdge({ from: B, to: { edgeId: 'edge-z' }, kind: 'Justifies' })).toThrow(/edge-z/)
+                })
+
+                it('refuses an id naming a leg of a chain (the temporary v1 limit)', () => {
+                    const chained = graphWithThreeObjects()
+                        .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-a', chainId: 'chain-1' })
+                        .addRelationalEdge({ from: OBJECT_B, to: OBJECT_C, kind: 'ConnectedTo', edgeId: 'edge-b' })
+                    expect(() => chained.addRelationalEdge({ from: B, to: A, kind: 'Justifies' })).toThrow(/edge-a/)
+                })
+
+                it('refuses self-reference', () => {
+                    expect(() => base().addRelationalEdge({ from: A, to: A, kind: 'Justifies' })).toThrow()
+                    expect(() => base().addRelationalEdge({ from: A, to: B, kind: 'Justifies', edgeId: 'edge-a' })).toThrow()
+                })
+
+                it('refuses another kind carrying an edge terminal, and Justifies carrying a component', () => {
+                    expect(() => base().addRelationalEdge({ from: OBJECT_A, to: A, kind: 'Custom', relationLabel: 'x' } as any)).toThrow(/Justifies/)
+                    expect(() => base().addRelationalEdge({ from: A, to: B, kind: 'ConnectedTo' } as any)).toThrow(/Justifies/)
+                    expect(() => base().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'Justifies' } as any)).toThrow(/Justifies/)
+                })
+
+                it('applyRelationalPatch applies the same legality', () => {
+                    expect(base().applyRelationalPatch({ hostId: HOST_ID, op: 'add', edge: { from: B, to: A, kind: 'Justifies' } }).relationalEdges).toContainEqual({ from: B, to: A, kind: 'Justifies' })
+                    expect(() => base().applyRelationalPatch({ hostId: HOST_ID, op: 'add', edge: { from: B, to: { edgeId: 'edge-z' }, kind: 'Justifies' } })).toThrow()
+                })
+
+                it('an edge-terminal referrer does not make a component "still referenced"', () => {
+                    const next = base().addRelationalEdge({ from: B, to: A, kind: 'Justifies' })
+                    expect(next.nodeHasRelationalEdge(OBJECT_A)).toBe(true) // via edge-a itself
+                    const only = graphWithThreeObjects()
+                    expect(only.nodeHasRelationalEdge(OBJECT_C)).toBe(false)
+                })
+            })
+
             describe('assignEdgeId', () => {
                 const graphWithEdges = () => graphWithThreeObjects()
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' })

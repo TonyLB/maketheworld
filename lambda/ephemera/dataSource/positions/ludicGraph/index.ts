@@ -17,11 +17,12 @@ import type {
     EphemeraLudicGraphStructureNode,
     EphemeraLudicRelationalEdgeData,
     EphemeraLudicTerminalId,
+    EphemeraLudicEdgeTerminal,
     EphemeraLudicNodeTerminal,
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCrossingPortId, EphemeraLudicRootId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicEdgeTerminal, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -600,7 +601,41 @@ export class EphemeraLudicGraph {
         return this.withPlayOnlyEdges(filtered.length > 0 ? filtered : undefined)
     }
 
+    /**
+     * The one v1 legality check for an edge terminal (edgeTerminals ET-4/ET-5): only a `Justifies`
+     * edge carries one, on both ends; each names a stored edge of THIS graph that has an `edgeId`
+     * and is a single leg (no `chainId`); an edge may not name itself or the same edge twice.
+     * Cycles between edges are allowed. **Two v1 limits, both temporary.** "Same graph, single
+     * leg" lives in `namesSingleLegEdge`. "Both ends are edges" lives here and in the shape guard:
+     * the capable version lets a component (an abstraction) justify an edge, under a membership
+     * rule (both endpoints of the justified edge belong to the abstraction). Do not read this method
+     * as the meaning of `Justifies`.
+     */
+    private assertEdgeTerminalsLegal(edge: HostRelationalEdge): void {
+        const fromIsEdge = isEphemeraLudicEdgeTerminal(edge.from)
+        const toIsEdge = isEphemeraLudicEdgeTerminal(edge.to)
+        if (!fromIsEdge && !toIsEdge && edge.kind !== 'Justifies') {
+            return
+        }
+        if (edge.kind !== 'Justifies' || !isEphemeraLudicEdgeTerminal(edge.from) || !isEphemeraLudicEdgeTerminal(edge.to)) {
+            throw new Error(`Only a Justifies edge carries edge terminals, and it carries them on both ends (${edge.kind} on ${this.hostId})`)
+        }
+        if (edge.from.edgeId === edge.to.edgeId || edge.edgeId === edge.from.edgeId || edge.edgeId === edge.to.edgeId) {
+            throw new Error(`An edge may not name itself or the same edge twice (${edge.from.edgeId} -> ${edge.to.edgeId} on ${this.hostId})`)
+        }
+        for (const terminal of [edge.from, edge.to]) {
+            if (!this.namesSingleLegEdge(terminal)) {
+                throw new Error(`Edge terminal ${terminal.edgeId} names no single-leg edge with that id on ${this.hostId}`)
+            }
+        }
+    }
+
+    private namesSingleLegEdge(terminal: EphemeraLudicEdgeTerminal): boolean {
+        return this.storedRelationalEdges().some((candidate) => candidate.edgeId === terminal.edgeId && candidate.chainId === undefined)
+    }
+
     addRelationalEdge(edge: HostRelationalEdge): EphemeraLudicGraph {
+        this.assertEdgeTerminalsLegal(edge)
         const stored = this.storedRelationalEdges()
         if (stored.some((candidate) => edgesMatch(candidate, edge))) {
             return this
@@ -694,6 +729,10 @@ export class EphemeraLudicGraph {
      * non-Object terminal can appear.
      */
     bothObjectsOnGraph(from: EphemeraLudicTerminalId, to: EphemeraLudicTerminalId): boolean {
+        if (isEphemeraLudicEdgeTerminal(from) || isEphemeraLudicEdgeTerminal(to)) {
+            return isEphemeraLudicEdgeTerminal(from) && isEphemeraLudicEdgeTerminal(to)
+                && this.namesSingleLegEdge(from) && this.namesSingleLegEdge(to)
+        }
         const nodeIds = this.nodeIds
         return nodeIds.has(ephemeraLudicTerminalOwner(from)) && nodeIds.has(ephemeraLudicTerminalOwner(to))
     }

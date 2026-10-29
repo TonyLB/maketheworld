@@ -90,6 +90,19 @@ describe('findRelationalChainsTouching', () => {
         expect(chains).toEqual([[{ type: 'edge', hostId: ROOM_ID, edge }]])
     })
 
+    it('does not treat an edge-terminal referrer as touching a component, and does not walk into it', () => {
+        const edge = { from: BROOM_ID, to: HOOK_ID, kind: 'Custom' as const, relationLabel: 'under', edgeId: 'edge-a' }
+        const other = { from: HOOK_ID, to: CUP_ID, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-b' }
+        const justifies = { from: { edgeId: 'edge-b' }, to: { edgeId: 'edge-a' }, kind: 'Justifies' as const }
+        const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+            .addObject(BROOM_ID, 'In').addObject(HOOK_ID, 'In').addObject(CUP_ID, 'In')
+            .addRelationalEdge(edge).addRelationalEdge(other).addRelationalEdge(justifies)
+
+        const chains = findRelationalChainsTouching(new Set([BROOM_ID]), new Map([[ROOM_ID, roomGraph]]))
+
+        expect(chains).toEqual([[{ type: 'edge', hostId: ROOM_ID, edge }]])
+    })
+
     it('finds the full crossing chain regardless of which side is in the removal set, and dedupes when both sides are', () => {
         const port: EphemeraCrossingPort = { portId: 'PORT-port-1', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'to' }
         const exteriorEdge = { from: STRING_ID, to: { owner: TABLE_ID, port: 'PORT-port-1' as const }, kind: 'Custom' as const, relationLabel: 'to' }

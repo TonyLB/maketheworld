@@ -5,6 +5,7 @@ import type {
     EphemeraLudicGraphStructureNode,
     EphemeraLudicNodeTerminal,
     EphemeraLudicPortAddress,
+    EphemeraLudicEdgeTerminal,
     EphemeraLudicRelationalEdgeData,
     EphemeraPresenceCoverEntry,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
@@ -112,6 +113,7 @@ export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'pre
 export type EphemeraLudicCacheTerminalId =
     | Exclude<EphemeraLudicNodeTerminal, EphemeraPresenceNodeId>
     | EphemeraLudicPortAddress
+    | EphemeraLudicEdgeTerminal
 
 export const isEphemeraLudicCacheTerminalId = (value: unknown): value is EphemeraLudicCacheTerminalId =>
     isEphemeraLudicTerminalId(value) && !(isEphemeraLudicNodeTerminal(value) && isEphemeraPresenceNodeId(value))

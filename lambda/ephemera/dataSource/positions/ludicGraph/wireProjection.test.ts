@@ -152,6 +152,19 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
             })).toThrow(/Navigation/)
         })
 
+        // The wire has no edge arm until edgeTerminals Slice 3 (ET-6).
+        it('rejects an edge terminal on the way out rather than dropping it', () => {
+            const graph = testLudicGraph(tableId, {
+                nodes: [{ tag: 'Object', universalKey: tableId }, { tag: 'Object', universalKey: boxId }],
+                edges: [
+                    { tag: 'Relational', kind: 'ConnectedTo', edgeId: 'edge-a', from: tableId, to: boxId },
+                    { tag: 'Relational', kind: 'ConnectedTo', edgeId: 'edge-b', from: boxId, to: tableId },
+                    { tag: 'Relational', kind: 'Justifies', from: { edgeId: 'edge-b' }, to: { edgeId: 'edge-a' } },
+                ],
+            })
+            expect(() => toWireLudicGraphFull(graph)).toThrow(/edge-/)
+        })
+
         // A wire port id is sorted into a crossing id or a binding id; nothing else is stored.
         it('rejects a port id that is neither a crossing port id nor a binding id', () => {
             const wire = toWireLudicGraphFull(testLudicGraph(tableId, {

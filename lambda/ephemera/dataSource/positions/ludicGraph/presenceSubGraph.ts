@@ -26,7 +26,7 @@
  */
 import type { EphemeraPresenceCover, EphemeraPresenceCoverEntry, EphemeraLudicGraphPort, EphemeraLudicTerminalId, EphemeraLudicNodeTerminal, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner, isEphemeraLudicCrossingPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalOwner, isEphemeraLudicCrossingPortAddress, isEphemeraLudicEdgeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { PresenceKey, stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { HostRelationalEdge } from './index'
@@ -267,7 +267,25 @@ export const subGraphFromNodes = (
     const contentEdges = graph.relationalEdges
 
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    const endpointStatus = (terminal: EphemeraLudicTerminalId): EndpointStatus => {
+    const endpointStatus = (terminal: EphemeraLudicTerminalId, referencing: ReadonlySet<string> = new Set()): EndpointStatus => {
+        if (isEphemeraLudicEdgeTerminal(terminal)) {
+            // An edge terminal's status follows the edge it names, resolved by `edgeId` alone (so
+            // however a route was chopped into legs does not matter): qualified where that edge is
+            // anchored, neutral where it is a transit leg, disqualified where it is cut away. A
+            // cycle of references contributes nothing.
+            const referenced = contentEdges.find((candidate) => candidate.edgeId === terminal.edgeId)
+            if (!referenced) {
+                throw new Error(`Edge terminal ${terminal.edgeId} on ${graph.hostId} names no edge of the graph`)
+            }
+            if (referencing.has(terminal.edgeId)) {
+                return 'neutral'
+            }
+            const seen = new Set(referencing).add(terminal.edgeId)
+            const statuses = [endpointStatus(referenced.from, seen), endpointStatus(referenced.to, seen)]
+            return statuses.includes('qualified')
+                ? 'qualified'
+                : statuses.every((status) => status === 'neutral') ? 'neutral' : 'disqualified'
+        }
         const owner = ephemeraLudicTerminalOwner(terminal)
         // `rootId === hostId` for a host-bound graph (see `EphemeraLudicGraph`), but both are
         // tested rather than assumed --- `fromFieldPayload` does not enforce it, and it is
@@ -304,6 +322,11 @@ export const subGraphFromNodes = (
             // Exactly one of each by elimination: the branch above caught "no qualified", this
             // one caught "no disqualified".
             const outsideTerminal = fromStatus === 'disqualified' ? edge.from : edge.to
+            if (isEphemeraLudicEdgeTerminal(outsideTerminal)) {
+                // Owed by edgeTerminals Slice 3: a referrer whose two named edges land in different
+                // buckets needs a way to travel with both. No producer reaches this yet.
+                throw new Error(`Edge ${edge.edgeId ?? ''} on ${graph.hostId} names edges that straddle buckets: not yet supported`)
+            }
             const portId = stubPortIdFromEdge(edge)
             const port: EphemeraLudicGraphPort = {
                 portId,

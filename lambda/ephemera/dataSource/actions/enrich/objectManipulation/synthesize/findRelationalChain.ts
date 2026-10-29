@@ -2,7 +2,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraCrossingPort, EphemeraLudicTerminalId, EphemeraLudicNodeTerminal, HostRelationalEdgeKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicBindingAddress, isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalsEqual, isEphemeraLudicBindingAddress, isEphemeraLudicEdgeTerminal, isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { HostRelationalEdge } from '../../../../positions/ludicGraph'
 import type { ExpansionEnvironment } from './executorTypes'
@@ -78,6 +78,10 @@ const resolveEndpoint = (
     getGraph: ExpansionEnvironment['getGraph'],
     visitedPortIds: ReadonlySet<string>
 ): ResolveEndpointResult => {
+    if (isEphemeraLudicEdgeTerminal(terminal)) {
+        // An edge terminal names a relationship, never a place a chain can start or end (ET-2).
+        return { declined: true, reason: `edge terminal ${terminal.edgeId} is not a chain endpoint` }
+    }
     if (isEphemeraLudicNodeTerminal(terminal)) {
         return { declined: false, endpoint: terminal, steps: [] }
     }

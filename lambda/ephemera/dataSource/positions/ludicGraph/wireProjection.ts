@@ -26,7 +26,7 @@ import type {
     EphemeraPresenceCover,
     HostRelationalEdgeKind,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { isEphemeraCrossingPortId, isEphemeraLudicPortAddress, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { isEphemeraCrossingPortId, isEphemeraLudicEdgeTerminal, isEphemeraLudicPortAddress, isPresenceTaggedPortId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -71,6 +71,11 @@ const referenceDataToEphemeraComponentId = (data: StandardReferenceData): Epheme
 //
 
 const ephemeraTerminalToWire = (terminal: EphemeraLudicTerminalId): StandardLudicTerminalData => {
+    if (isEphemeraLudicEdgeTerminal(terminal)) {
+        // The wire has no edge arm yet (edgeTerminals Slice 3, ET-6); throw rather than drop the
+        // terminal, which would silently turn a Justifies edge into a different edge.
+        throw new Error(`toWireLudicGraph: edge terminal ${terminal.edgeId} has no wire arm yet`)
+    }
     if (isEphemeraLudicPortAddress(terminal)) {
         return { owner: ephemeraComponentIdToReferenceData(terminal.owner), port: terminal.port }
     }

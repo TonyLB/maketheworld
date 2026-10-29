@@ -653,3 +653,32 @@ describe('nodesFromPresenceBindings', () => {
         expect(result.ports).toHaveLength(1)
     })
 })
+
+describe('subGraphFromNodes with edge terminals', () => {
+    const justifies = { tag: 'Relational' as const, kind: 'Justifies' as const, from: { edgeId: 'edge-b' }, to: { edgeId: 'edge-a' } }
+    const edgeA = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-a', from: objC, to: objD }
+    const edgeB = { tag: 'Relational' as const, kind: 'Custom' as const, relationLabel: 'near', edgeId: 'edge-b', from: objC, to: objD }
+    const nodes = [
+        { tag: 'Room' as const, universalKey: roomId },
+        { tag: 'Object' as const, universalKey: objC },
+        { tag: 'Object' as const, universalKey: objD },
+    ]
+
+    it('keeps a referrer with the edges it names when they are anchored in the bucket', () => {
+        const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, edgeB, justifies] })
+        const result = subGraphFromNodes(graph, new Set([roomId, objC, objD]))
+        const strip = ({ tag, ...edge }: { tag: 'Relational' }) => edge
+        expect(result.relationalEdges).toEqual([edgeA, edgeB, justifies].map(strip))
+    })
+
+    it('drops a referrer whose named edges are cut away entirely', () => {
+        const graph = testLudicGraph(roomId, { nodes, edges: [edgeA, edgeB, justifies] })
+        const result = subGraphFromNodes(graph, new Set([roomId]))
+        expect(result.relationalEdges).toEqual([])
+    })
+
+    it('throws on a referrer naming an edge the graph does not hold', () => {
+        const graph = testLudicGraph(roomId, { nodes, edges: [edgeB, justifies] })
+        expect(() => subGraphFromNodes(graph, new Set([roomId, objC, objD]))).toThrow(/edge-a/)
+    })
+})

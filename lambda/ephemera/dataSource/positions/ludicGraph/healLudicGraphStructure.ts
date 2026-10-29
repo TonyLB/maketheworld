@@ -5,7 +5,7 @@ import {
     ephemeraLudicTerminalOwner,
     isEphemeraLudicGraphFieldPayload,
     isEphemeraLudicGraphPort,
-    isEphemeraLudicTerminalId,
+    isEphemeraLudicOwnedTerminal,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import { markHostsStale } from '../ludicCache/markStale'
@@ -80,7 +80,7 @@ const computeRepairedPayload = (
     ludicGraph: Record<string, unknown>
 ): EphemeraLudicGraphFieldPayload | undefined => {
     const storedRootId = ludicGraph.rootId
-    const rootId = isEphemeraLudicTerminalId(storedRootId) ? storedRootId : ephemeraId
+    const rootId = isEphemeraLudicOwnedTerminal(storedRootId) ? storedRootId : ephemeraId
     const rootOwner = ephemeraLudicTerminalOwner(rootId)
 
     const nodes = Array.isArray(ludicGraph.nodes) ? ludicGraph.nodes.map(withParentSet) : []

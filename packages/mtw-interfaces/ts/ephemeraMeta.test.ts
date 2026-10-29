@@ -14,6 +14,9 @@ import {
     isEphemeraLudicPortAddress,
     isEphemeraLudicTerminalId,
     isEphemeraLudicCrossingPortAddress,
+    isEphemeraLudicEdgeTerminal,
+    isEphemeraLudicOwnedTerminal,
+    STORED_RELATIONAL_EDGE_KINDS,
     isEphemeraLudicBindingAddress,
     isEphemeraCrossingPortId,
     ephemeraLudicTerminalOwner,
@@ -1475,5 +1478,85 @@ describe('hosting kind on the member node', () => {
             ports: [],
             nodes: [{ tag: 'Room', universalKey: 'ROOM#Kitchen', hostingKind: 'In' }],
         })).toBe(false)
+    })
+})
+
+describe('the edge terminal kind', () => {
+    const edgeA = { edgeId: 'edge-a' }
+    const edgeB = { edgeId: 'edge-b' }
+    const otherKinds: any[] = [
+        'OBJECT#helmet', 'PRESENCE#abc123',
+        { owner: 'OBJECT#BOX', port: 'PORT-ab6129d' }, { owner: 'OBJECT#BOX', port: 'PRESENCE#abc123' },
+    ]
+
+    it('is recognised by its guard, and only when it is exactly { edgeId: non-empty string }', () => {
+        expect(isEphemeraLudicEdgeTerminal(edgeA)).toBe(true)
+        expect(isEphemeraLudicTerminalId(edgeA)).toBe(true)
+        expect(isEphemeraLudicEdgeTerminal({ edgeId: '' })).toBe(false)
+        expect(isEphemeraLudicEdgeTerminal({ edgeId: 3 })).toBe(false)
+        expect(isEphemeraLudicEdgeTerminal({ edgeId: 'x', owner: 'ROOM#A' })).toBe(false)
+        expect(isEphemeraLudicEdgeTerminal({})).toBe(false)
+        expect(isEphemeraLudicEdgeTerminal(null)).toBe(false)
+        expect(isEphemeraLudicEdgeTerminal('edge-a')).toBe(false)
+        expect(isEphemeraLudicTerminalId({ edgeId: '' })).toBe(false)
+    })
+
+    it.each(otherKinds)('is disjoint from %p', (terminal) => {
+        expect(isEphemeraLudicEdgeTerminal(terminal)).toBe(false)
+        expect(isEphemeraLudicOwnedTerminal(terminal)).toBe(true)
+    })
+
+    it('is not an owned terminal and refers to no component', () => {
+        expect(isEphemeraLudicOwnedTerminal(edgeA)).toBe(false)
+        expect(ephemeraLudicTerminalRefersTo(edgeA, 'OBJECT#helmet')).toBe(false)
+    })
+
+    it('keys as edge:<id>', () => {
+        expect(ephemeraLudicTerminalKey(edgeA)).toBe('edge:edge-a')
+    })
+
+    it('equals only an edge terminal with the same id', () => {
+        expect(ephemeraLudicTerminalsEqual(edgeA, { edgeId: 'edge-a' })).toBe(true)
+        expect(ephemeraLudicTerminalsEqual(edgeA, edgeB)).toBe(false)
+        for (const other of otherKinds) {
+            expect(ephemeraLudicTerminalsEqual(edgeA, other)).toBe(false)
+            expect(ephemeraLudicTerminalsEqual(other, edgeA)).toBe(false)
+        }
+    })
+})
+
+describe('isEphemeraLudicRelationalEdgeData with edge terminals', () => {
+    const justifies = (from: unknown, to: unknown, extra: object = {}) => ({ tag: 'Relational', kind: 'Justifies', from, to, ...extra })
+    const A = { edgeId: 'edge-a' }
+    const B = { edgeId: 'edge-b' }
+
+    it('Justifies is a stored kind', () => {
+        expect(STORED_RELATIONAL_EDGE_KINDS.has('Justifies')).toBe(true)
+    })
+
+    it('accepts Justifies between two distinct edges, with or without its own id', () => {
+        expect(isEphemeraLudicRelationalEdgeData(justifies(B, A))).toBe(true)
+        expect(isEphemeraLudicRelationalEdgeData(justifies(B, A, { edgeId: 'edge-c' }))).toBe(true)
+    })
+
+    it('accepts a cycle (A justifies B, B justifies A)', () => {
+        expect(isEphemeraLudicRelationalEdgeData(justifies(A, B, { edgeId: 'edge-c' }))).toBe(true)
+        expect(isEphemeraLudicRelationalEdgeData(justifies(B, A, { edgeId: 'edge-d' }))).toBe(true)
+    })
+
+    it('refuses self-reference: the same edge twice, or the edge naming its own id', () => {
+        expect(isEphemeraLudicRelationalEdgeData(justifies(A, A))).toBe(false)
+        expect(isEphemeraLudicRelationalEdgeData(justifies(A, B, { edgeId: 'edge-a' }))).toBe(false)
+    })
+
+    it('refuses Justifies with a non-edge terminal on either end', () => {
+        expect(isEphemeraLudicRelationalEdgeData(justifies('OBJECT#a', A))).toBe(false)
+        expect(isEphemeraLudicRelationalEdgeData(justifies(A, 'OBJECT#a'))).toBe(false)
+        expect(isEphemeraLudicRelationalEdgeData(justifies('OBJECT#a', 'OBJECT#b'))).toBe(false)
+    })
+
+    it('refuses any other kind carrying an edge terminal', () => {
+        expect(isEphemeraLudicRelationalEdgeData({ tag: 'Relational', kind: 'ConnectedTo', from: A, to: B })).toBe(false)
+        expect(isEphemeraLudicRelationalEdgeData({ tag: 'Relational', kind: 'Custom', relationLabel: 'x', from: 'OBJECT#a', to: B })).toBe(false)
     })
 })
