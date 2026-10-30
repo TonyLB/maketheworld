@@ -1,0 +1,120 @@
+# Actor cache: one `ludicCache` for what an actor can reach, held inventory included
+
+**Status:** drafted 2026-10-30 (ISS8314). Nothing is built. **Next step: Slice 0** (evidence and the failing payoff test). AC-1 to AC-5 were decided 2026-10-30, and AC-6 for points 3 and 4; AC-6's points 2--4 were decided the same day, but its point 4 wording now conflicts with point 2; that and AC-7 stay open for Phase 2. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). Phase 1 (Slices 0--3) is cut; Phase 2 (planning on the cache) is a sketch, re-cut once AC-7 and AC-6's point 4 wording are decided.
+
+## Goal
+
+A command is read from one actor's point of view, but that view is assembled from two sources in two dialects today. The room is a `ludicCache` (the stored row), flattened to handles. The actor's held inventory is the character's own `ludicGraph`, read by hand. Nothing in the actor's hands is folded, so anything nested in a held thing is invisible, and the catalog code duplicates what the fold already computes.
+
+The aim is **one cache for each actor and command**: the room's stored row plus a fold seeded at the actor, assembled at read time. It is never stored, and never written into the room's row. Then:
+
+- **Phase 1:** the command's catalog is derived from that one cache, retiring the separate held catalog.
+- **Phase 2:** the cache becomes the **native language of planning** (Identify through selection). Planning's separate graph reads retire into reads of the actor's cache. The engine (kernel dry run and commit) keeps reading `ludicGraph` and never reads the cache.
+
+**Payoff, at the observable output:**
+- **Phase 1:** an actor holding a bag with a coin in it types `take coin from bag`. The command grounds the coin and reaches its egress (a `Ludic Network Change Requested` moving the coin), where today no candidate is found. Every existing held and half-held payoff test passes unchanged, and a live pick-up/drop smoke test passes.
+- **Phase 2:** each retired side read is deleted, with the producer's tests unchanged.
+
+## What exists today (checked 2026-10-30)
+
+- **Two catalogs, merged.** [`loadCommandWorld`](../../../../../lambda/ephemera/dataSource/actions/index.ts) fetches [`getRoomObjectCatalogForCharacter`](../../../../../lambda/ephemera/dataSource/actions/roomObjectCatalogForCharacter.ts) and [`getHeldInventoryCatalogForCharacter`](../../../../../lambda/ephemera/dataSource/actions/heldInventoryCatalogForCharacter.ts) in parallel. [`mergeObjectManipulationCatalogs`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/catalogMerge.ts) merges them: room entries win on a shared `objectId`, and each entry is tagged `catalogScope: 'room' | 'held'`.
+- **The held catalog sees direct members only.** It lists `ludicGraph.objectIds` of the character's graph. A coin in a held bag is a node of the bag's graph, so it is in neither catalog: the room walk never enters a character shard, and the held catalog never enters the bag's.
+- **The held catalog re-derives placement and drops gloss.** `heldPlacement` rebuilds by hand what `placementsByMember` ([`catalogHandles.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/catalogHandles.ts)) computes from a cache. Held entries never carry `gloss`. Names come from the character's asset stack, while the room catalog deliberately uses the room's Canon + Improvisation stack ([`resolveCanonAssetStackForRoom`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/store.ts), the stored row's rebuild).
+- **A character-seeded fold already exists, with no production caller.** `ludicCacheObjectHandles(seedHostId, assetStack)` (`catalogHandles.ts`) builds a cache for any seed on each request. [`enumerateShards.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/enumerateShards.ts) expands its seed unconditionally, and its header names "a held-inventory cache" as the use.
+- **The fold is per-host and independent.** [`fold.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/fold.ts): each walked host contributes its own folded buckets plus `collapseCrossingPorts` with each of its own walked children, then edges are deduped by identity. So a node-key union of two folds, with `dedupeEdgesByIdentity`, equals one fold over both walks, provided both read the same graph versions with the same asset stack. This is AC-1's premise, and Slice 0 tests it.
+- **The rule this must not break:** a room walk never enters a character's shard ([`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md), the bullet "A bystander is not in its room's graph or cache"). Breaking it once produced "pick up a cup, then can't drop it". Unit tests stayed green, and only a live smoke test caught it. The room row is shared by every viewer, so it must not depend on who is looking.
+- **The actor special case.** `readingsHere` / `atActorPosition` / `readingLabel` ([`objectViews.ts`](../../../../../lambda/ephemera/dataSource/actions/objectViews.ts)) take an `actorCharacter`: a binding under the actor is at the actor's position, because the room cache holds no character to walk through. In the actor's cache, a held binding's parent chain runs through the character's own binding to the room, so `rooms` resolves.
+- **Planning's side reads (Phase 2's inventory).** Besides the catalog, planning reads graphs directly:
+  - **The room graph:** `getLudicGraph(hostRoomId)`, in [`compileAttemptsFromSkeleton.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/compileAttemptsFromSkeleton.ts).
+  - **Membership ancestry:** `walkAncestryContainers` over `getMembershipContainers`, plus per-host graphs, in `buildAttemptEnvironment` ([`attemptCandidates.ts`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/attemptCandidates.ts)).
+  - **Relational reachability:** `fetchRelationalReachability`, with `findRelationalChain` and `findShardBoundary` over the resulting environment.
+
+  Each recomputes something the cache already folds: parent chains (`fromHostPresences`) and edges composed at crossing ports.
+- **A written rule Phase 2 revises.** P6 point 3, "a hit returns a handle, never a subgraph" ([primer section 5](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md#5-the-cache-stitching-shards-along-the-presence-axis); [proposal P6](../positions/AGENT.abstractionLayers.proposals.planning.md#proposal-p6-ludiccache-as-the-attention-scoped-reference-structure)). The `catalogHandles.ts` header enforces it. The rule's stated reason is "acting on the answer means traversing `ludicGraph`". Planning proposes and the dry run judges against truth, so point 5 ("derived, never authoritative") survives. Point 3's wording does not (AC-6).
+
+## Relationship to other plans and docs
+
+- **Not in scope: presence-bucket filtering (AB-9's read-path half).** The catalog is still exhaustive rather than filtered by what the viewer perceives (the "Known gap" paragraph in [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md); AB-9 in [`AGENT.abstractionLayers.planning.md`](../positions/AGENT.abstractionLayers.planning.md)). The actor's cache is where that filter would go. This plan builds the place, not the filter.
+- **stableRefs** ([`AGENT.stableRefs.planning.md`](../positions/AGENT.stableRefs.planning.md)): it binds refs to existing ids with a graph read. If Phase 2 lands first, that read may be a cache read. No ordering constraint.
+
+## Getting Started
+
+1. **Durability framework:** [`taskPlanning/AGENT.md`](../../../../AGENT.md).
+2. **The cache:** primer [`AGENT.ludicNetwork.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.ludicNetwork.md) sections 4--5. [`positions/AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md): the bystander bullet, and [Ludic cache staleness and rebuild](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#ludic-cache-staleness-and-rebuild). Then `fold.ts`, `enumerateShards.ts` and `catalogHandles.ts`.
+3. **The command's world:** [actions `AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.implementation.md), the in-room and held catalog items. Then `loadCommandWorld`, `catalogMerge.ts`, and the `catalogScope` consumers (`grep -rn catalogScope lambda/ephemera/dataSource`).
+4. **Planning (Phase 2):** `compileAttemptsFromSkeleton.ts` -> `attemptCandidates.ts` (`buildAttemptEnvironment`) -> `synthesize/`.
+5. **Testing (command authority):** [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). Run from `lambda/ephemera/` with `npm run test` (not `npm test`). `npx tsc --noEmit` is not sufficient on its own, because `*.integration.test.ts` files sit outside `tsconfig`.
+6. **Baseline (must pass before edits):** from `lambda/ephemera/`, `npm run test -- --watchAll=false`. Record the count at Slice 0.
+
+## Open decisions (implementation --- plan only)
+
+Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.
+
+| ID | Decision | Blocks slice | Status |
+| --- | --- | --- | --- |
+| AC-1 | **How the actor's cache is assembled.** **Decided 2026-10-30: (a)**. Read the stored room row, run `buildLudicCache(actor)`, and union them: nodes by `universalKey`, edges by `dedupeEdgesByIdentity`. The stored row, its staleness rules and the walk stay untouched. Slice 0's equivalence test (union = one fold over both walks) is the premise check; if it fails, reopen this row. | 1 | Decided |
+| AC-2 | **Which asset stack names the actor half.** **Decided 2026-10-30: the room's Canon stack** (`resolveCanonAssetStackForRoom` of the actor's room), the same as the stored row. A viewer's own assets do not rename things, and AC-1's union compares like with like. | 1 | Decided |
+| AC-3 | **What `catalogScope` means once there is one source.** **Decided 2026-10-30:** it comes from placement, not from which catalog an entry came from.<br>**(i) Nested in held is `held`, transitively:** an object whose ancestry reaches the actor (the coin in the held bag) is `held`; the dry run decides legality either way.<br>**(ii) Half-held stays `room`:** `held` only if every binding of the object is under the actor (directly or transitively), so the half-held case is unchanged.<br>Slice 0's consumer inventory checks that no consumer depends on `held` meaning *directly* held. | 2 | Decided |
+| AC-4 | **Freshness across the two halves.** **Decided 2026-10-30: no freshness mechanism.** The actor walk exists only inside one command's handling and is never persisted, so there is no context in which it could receive an invalidating update. The actor walk uses the ordinary command reads (`buildLudicCache`'s default deps). The only possible skew is a commit landing between the two reads in one request: the same read-then-commit race every command already accepts, judged by the dry run against truth. On a node-key collision the union keeps the actor half's node (a determinism rule, not a freshness claim). | 1 | Decided |
+| AC-5 | **What the actor's cache is, as a type.** **Decided 2026-10-30: a class**, for code clarity. It carries the actor and room, with accessors (handles, placement, ancestry, edges between two things) that planning reasons over. It is a boundary type, designed rather than forwarding the stored row's shape. Phase 1 uses only its handles accessor; Phase 2 adds accessors as side reads retire. | 1 | Decided |
+| AC-6 | **Amend P6.** **Decided 2026-10-30 (points 2--4):**<br>**Point 3** becomes "the cache never authorizes a change; acting traverses `ludicGraph`".<br>**Point 4 ("a miss is never no")** gains its planning meaning: a planner that does not find something in the cache falls through to the graphs rather than refusing.<br>The wording lands at Slice 4, in the primer (section 5) and `catalogHandles.ts`'s header, not before: contract text does not describe unshipped behaviour.<br>**Point 2 (depth follows attention), decided 2026-10-30:** initial planning and every deterministic template follow attention; they read only what the actor's cache holds. Whether the LLM planner gets a tool to dig deeper is a separate question (see Shelved).<br>**Open: point 4's fall-through conflicts with point 2.** As worded, a planner miss falls through to the graphs, which is the deeper dig point 2 withholds from initial planning. Reword point 4 for planning before Slice 4 lands the text. | 4 | Decided; point 4 vs point 2 wording Open |
+| AC-7 | **What planning still reads from truth.** A step grounds to legs, ports and edge ids. The cache composes legs into one edge at crossing ports. Do cache edges keep enough identity for planning to build steps (relationship = `edgeId`, route = `chainId`), or does grounding keep a graph read after Phase 2? This decides how many side reads can retire. *Evidence to gather: Phase 2's first slice, against `EphemeraLudicCacheEdge` and the step builders.* | 4 | Open |
+
+## Progress
+
+| Slice | State |
+| --- | --- |
+| 0. Evidence: AC-1's equivalence test, `catalogScope` consumer inventory, failing payoff test | Not started; can start |
+| 1. Build the actor's cache (AC-1, AC-2, AC-4, AC-5) | |
+| 2. Derive the catalog from it; retire the held catalog and the merge (AC-3) | |
+| 3. Phase 1 payoff, live smoke test, durable docs for Phase 1 | |
+| 4. Phase 2: decide AC-6, AC-7; re-cut the side-read slices | |
+| 5+. Phase 2: retire planning's side reads one at a time | |
+| last. Durable docs; plan deleted | |
+
+## Recommended order
+
+Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as it is done.
+
+- [ ] **Slice 0. Evidence; no production code.**
+    - [ ] Record the baseline test count.
+    - [ ] A test fixture: room, table, an actor holding a bag that contains a coin, plus a rope with one binding held and one tied to the table. On it, show that a node-key union of `buildLudicCache(room)` and `buildLudicCache(actor)` (edges via `dedupeEdgesByIdentity`) equals the fold over both walks. If not, record what differs under AC-1.
+    - [ ] In that fixture, confirm that the actor's bindings carry parents into the room, so `placementsByMember` resolves `rooms` for a held binding. Record the result under the actor special case above.
+    - [ ] Inventory the `catalogScope` consumers: what each does with `room` versus `held`, and what changes if nested-held and half-held entries change scope. Fill AC-3's evidence.
+    - [ ] Write the payoff test (`take coin from bag` while holding the bag) at the egress, and confirm it fails today for the stated reason (no candidate).
+    - [X] Settle AC-1, AC-2, AC-4, AC-5 with the user (2026-10-30; AC-3 and AC-6 settled the same day).
+- [ ] **Slice 1. Build the actor's cache** (per AC-1, AC-2, AC-4, AC-5).
+    - [ ] One function in `positions/ludicCache/`: read the room row (`readLudicCacheWithOutcome`), fold the actor, assemble per AC-1, and return AC-5's type. Instrument it like `ludicCacheRoomObjectHandles`, including the actor half's `shardFetchCount` and wall time.
+    - [ ] Tests: the union cases from Slice 0, the collision rule (AC-4: the actor half's node wins), and that the room row is never written with actor content (the read path writes only `rebuild`'s own output).
+- [ ] **Slice 2. One catalog** (per AC-3).
+    - [ ] `loadCommandWorld` builds the actor's cache once and derives one catalog from its handles. `catalogScope` comes from placement per AC-3.
+    - [ ] Delete `heldInventoryCatalogForCharacter.ts`, `heldPlacement`, and the room-wins merge in `catalogMerge.ts`. Thread one catalog through `parseCommand` instead of `roomObjectCatalog` + `heldInventoryCatalog`; there are no external consumers.
+    - [ ] Check whether `atActorPosition`'s `actorCharacter` clause is now redundant for reachability. Keep it for labels ("the cup you hold") if `readingLabel` still needs it. Remove it only where a test shows the cache answers.
+    - [ ] The full suite passes; held, half-held and qualified payoff tests pass unchanged.
+- [ ] **Slice 3. Phase 1 payoff and docs.**
+    - [ ] Slice 0's payoff test passes.
+    - [ ] Live smoke test on dev: pick up and drop a cup from a table; pick up a bag holding a coin, then `take coin from bag`; half-held rope take/drop.
+    - [ ] Durable docs. Positions contract: the actor's cache, a per-request read-time union that is never stored, and how it relates to the bystander bullet. Positions `AGENT.implementation.md`: the function. Actions `AGENT.implementation.md`: one catalog, items 1--2 rewritten. The `enumerateShards.ts` header now names a real caller. Concepts vocabulary only if "actor's cache" earns a term.
+- [ ] **Slice 4. Phase 2 decisions.**
+    - [ ] Amend P6's wording per AC-6 in the primer (section 5) and in `catalogHandles.ts`'s header; reconcile point 4's wording with point 2 with the user first.
+    - [ ] Gather AC-7's evidence (cache edge identity against what the step builders need), decide it, and re-cut Slices 5+ (one slice per retired read, smallest first).
+- [ ] **Slices 5+. Planning reads the actor's cache.** Sketch, to be re-cut at Slice 4.
+    - [ ] Membership ancestry from `fromHostPresences` instead of `walkAncestryContainers` / `getMembershipContainers`.
+    - [ ] Relational reachability from cache edges instead of `fetchRelationalReachability`'s graph walk, as far as AC-7 allows.
+    - [ ] The room graph read in `compileAttemptsFromSkeleton.ts`, if nothing left needs it.
+- [ ] **Last. Durable docs, then delete this plan.** Actions and positions contracts for planning reading the cache, and `AGENT.implementation.md` for both. Grep inbound links to this file and delete it.
+
+## Shelved (not gating; move to `AGENT.implementation.md` if still open at deletion)
+
+- **A stored row for the actor half.** The actor fold runs on every command. Store it only if Slice 1's instrumentation shows the actor half's wall time is material against the room read. That is the decision the number serves, and it would bring character-keyed staleness marking with it.
+
+- **An LLM planner tool to dig past attention** (AC-6 point 2, 2026-10-30). Initial planning and deterministic templates read only the actor's cache. A tool-use option letting the LLM planner read deeper than attention is a separate question, raised by the user and not decided.
+
+## Verification
+
+From `lambda/ephemera/`:
+
+- `npm run test -- --watchAll=false`: the full suite, which includes the integration tests that `tsc` misses. Compare against Slice 0's baseline count.
+- `npx tsc --noEmit`: types.
+- After Slice 2: `grep -rn "heldInventoryCatalog\|getHeldInventoryCatalogForCharacter\|heldPlacement" lambda/ephemera/dataSource` returns nothing outside docs being rewritten.
+- After Slice 3: the live smoke test above, which the suite cannot replace (see "The rule this must not break").
