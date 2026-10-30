@@ -924,6 +924,22 @@ Object {
 }
 `;
 
+exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is tied to the post (the tie triple blocks: abstains with the secured wording, no dissolve) 1`] = `
+Object {
+  "result": Object {
+    "confidence": 0.9,
+    "reason": "Secured: the moved object is secured to something, and cannot be moved until it is freed.",
+    "type": "Abstain",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 1,
+    "embedSpan": 0,
+    "enrich": 0,
+  },
+}
+`;
+
 exports[`characterization fixture: published attempt (ISS8203 slice 0) deterministic take / get / drop (fast path) take rope when the rope is under the post (a peer subject-move is met: the rope comes out) 1`] = `
 Object {
   "result": Object {

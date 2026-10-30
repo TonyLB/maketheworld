@@ -79,7 +79,7 @@ const isChallengeData = (value: unknown): value is ChallengeData => {
     if (v.verdict !== undefined && !isVerdictData(v.verdict)) {
         return false
     }
-    if (v.kind === 'worldKnowledge' || v.kind === 'exitEdge') {
+    if (v.kind === 'worldKnowledge' || v.kind === 'exitEdge' || v.kind === 'securedTo') {
         return true
     }
     if (v.kind === 'customEdge') {

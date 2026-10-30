@@ -37,8 +37,7 @@ describe('applyDeparture', () => {
         expect(outcome.sourceGraph.objectIds.has(tableId)).toBe(true)
     })
 
-    // Temporary pin: the block routing slice (AGENT.securedTo.planning.md Slice 3) replaces this throw with a refuse outcome.
-    it('throws on a SecuredTo boundary edge until block outcomes are routed (never called legal)', () => {
+    it('blocked: a remaining SecuredTo boundary edge refuses the departure (never legal, nothing to repair)', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object', universalKey: trayId },
@@ -47,7 +46,27 @@ describe('applyDeparture', () => {
             edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'SecuredTo' }],
         })
 
-        expect(() => applyDeparture(sourceGraph, trayId)).toThrow(/'SecuredTo' boundary edge blocks the move/)
+        expect(applyDeparture(sourceGraph, trayId)).toEqual({
+            verdict: 'blocked',
+            reasonCode: 'securedToBlocksMove',
+            edge: expect.objectContaining({ kind: 'SecuredTo', from: trayId, to: tableId }),
+        })
+    })
+
+    it('blocked, not undecidable: the tie triple (Custom support still present) reports the block', () => {
+        const sourceGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [
+                { tag: 'Relational', edgeId: 'tying', from: trayId, to: tableId, kind: 'Custom', relationLabel: 'tied to' },
+                { tag: 'Relational', edgeId: 'secured', from: trayId, to: tableId, kind: 'SecuredTo' },
+                { tag: 'Relational', from: { edgeId: 'tying' }, to: { edgeId: 'secured' }, kind: 'Justifies' },
+            ],
+        })
+
+        expect(applyDeparture(sourceGraph, trayId).verdict).toBe('blocked')
     })
 
     it('repairable/dissolveRelationalEdge: a ConnectedTo boundary edge (a part leaving its whole) defers like a non-Custom edge', () => {

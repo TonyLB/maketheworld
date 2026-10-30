@@ -1818,6 +1818,21 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
+        it('take rope when the rope is tied to the post (the tie triple blocks: abstains with the secured wording, no dissolve)', async () => {
+            expect(await run(
+                { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: {
+                        [ROOM]: roomWith([ROPE, POST], [
+                            { tag: 'Relational', edgeId: 'tying', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'tied to' },
+                            { tag: 'Relational', edgeId: 'secured', from: ROPE, to: POST, kind: 'SecuredTo' },
+                            { tag: 'Relational', from: { edgeId: 'tying' }, to: { edgeId: 'secured' }, kind: 'Justifies' },
+                        ] as any),
+                    },
+                }
+            )).toMatchSnapshot()
+        })
+
         it('take rope when the rope is under the post (a peer subject-move is met: the rope comes out)', async () => {
             expect(await run(
                 { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },

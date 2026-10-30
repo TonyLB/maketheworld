@@ -756,4 +756,26 @@ describe('tie and untie (integration)', () => {
         expect(await roomEdges()).toEqual([])
         expect(await parseAny('untie the rope from the pole', onTheFloor)).toEqual({ type: 'Error', errorMessage: 'The rope is not tied to the pole.' })
     })
+
+    it('a tied thing cannot be taken (either end), and an untie frees it: "take the rope" is refused with the secured wording, then succeeds', async () => {
+        const catalog = await (async () => [
+            { objectId: ROPE_ID, normalizedShortName: 'rope' },
+            { objectId: POLE_ID, normalizedShortName: 'pole' },
+        ])()
+        await commit((await parse('tie the rope to the pole', onTheFloor)).attempt, onTheFloor)
+        const tiedEdges = await roomEdges()
+        ephemeraDBMock.transactWrite.mockClear()
+
+        for (const command of ['take the rope', 'take the pole']) {
+            const refused = await parseAny(command, onTheFloor, catalog)
+            expect(refused).toMatchObject({ type: 'Abstain', reason: expect.stringMatching(/^Secured: /) })
+        }
+        expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()
+        expect(await roomEdges()).toEqual(tiedEdges)
+
+        await commit((await parse('untie the rope from the pole', onTheFloor)).attempt, onTheFloor)
+        const taken = await parseAny('take the rope', onTheFloor, catalog)
+        expect(taken).toMatchObject({ type: 'CommandAttempt' })
+        expect(narratedLines(await commit((taken as any).attempt, onTheFloor))).toEqual([expect.stringMatching(/ picks up rope$/)])
+    })
 })

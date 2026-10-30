@@ -56,11 +56,14 @@ export type MutationKernelRepair =
  *   the wrapper absorbed these. It does not; corrected 2026-09-08 --- see `AGENT.contract.md`'s
  *   "Current limitations".)
  *
- * There is no `irreparable` arm, and its absence is deliberate (2026-09-08). This layer has no way
- * to say *no*: it checks membership, footprint bounds, boundary edges and host consistency ---
- * mechanism, not world-legality. "The world forbids this" is judged at the enrich tier, before a
- * step sequence exists. An arm here with no producer would only invite callers to branch on a case
- * that cannot arise.
+ * - `blocked` --- no repair is on offer: a `SecuredTo` edge still holds the mover, and unsecuring is the
+ *   player's own command (`untie`), judged at the enrich tier before a step sequence exists. Its one
+ *   producer is `applyDeparture`'s recheck (a change since selection); added 2026-10-30, when
+ *   `SecuredTo` gave the arm a producer.
+ *
+ * There is no `irreparable` arm, and its absence is deliberate (2026-09-08): this layer checks
+ * membership, footprint bounds, boundary edges and host consistency --- mechanism, not
+ * world-legality. `blocked` is the one deterministic precondition (`SecuredTo`), not a world judgment.
  *
  * Both arms keep `reasonCode`, so a caller that only needs "did it pass?" stays a one-line check.
  */
@@ -68,6 +71,7 @@ export type MutationKernelApplyOutcome =
     | { verdict: 'legal'; graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>; captures: MutationKernelCaptures }
     | { verdict: 'repairable'; reasonCode: string; repair: MutationKernelRepair; authority: 'mechanical' | 'worldChanging' }
     | { verdict: 'stale'; reasonCode: string }
+    | { verdict: 'blocked'; reasonCode: string; edge: HostRelationalEdge }
 
 export type MutationKernelCommitResult =
     | { ok: true; beatAnchorTime: number; steps: readonly MutationKernelStep[]; captures: MutationKernelCaptures }

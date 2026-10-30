@@ -51,8 +51,7 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
             .toThrow(/'ConnectedTo' boundary edge deferred/)
     })
 
-    // Temporary pin: the block routing slice (AGENT.securedTo.planning.md Slice 3) replaces this throw with a challenge on the primary action.
-    it('throws on a SecuredTo boundary edge until block outcomes are routed', () => {
+    it('makes no dissolve for a SecuredTo boundary edge (the block is a challenge on the primary, see attemptActionsFromTransfer)', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [
                 { tag: 'Object' as const, universalKey: ropeId },
@@ -62,8 +61,9 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
         })
         const primaryAction = new PositionAttemptAction('action-st', [], undefined, 'Take: rope')
 
-        expect(() => attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, [graph], noShards))
-            .toThrow(/'SecuredTo' boundary edge blocks the move/)
+        const { actions } = attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, [graph], noShards)
+
+        expect(actions).toEqual([primaryAction])
     })
 
     it('adds one action carrying a CustomEdgeChallenge (with the real edge) for a defer-classified boundary edge', () => {
@@ -275,6 +275,59 @@ describe('attemptActionsFromTransfer', () => {
         const [primary] = attemptActionsFromTransfer(primaryAction, ropeId, [graph], noShards).actions
 
         expect(primary?.challenges().map(({ id }) => id)).toEqual(['exitEdge:primary'])
+    })
+
+    describe('a SecuredTo boundary edge blocks the move', () => {
+        const tied = (movedIsSubject: boolean, extraEdges: any[] = []) => testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [
+                { tag: 'Relational', edgeId: 'tying', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'tied to' },
+                { tag: 'Relational', edgeId: 'secured', from: movedIsSubject ? ropeId : postId, to: movedIsSubject ? postId : ropeId, kind: 'SecuredTo' },
+                { tag: 'Relational', from: { edgeId: 'tying' }, to: { edgeId: 'secured' }, kind: 'Justifies' },
+                ...extraEdges,
+            ],
+        })
+
+        it.each([[true], [false]])('puts one securedTo challenge on the primary and no dissolve, the justifying Custom skipped (moved is subject: %s)', (subjectMoves) => {
+            const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+
+            const { actions } = attemptActionsFromTransfer(primaryAction, ropeId, [tied(subjectMoves)], noShards)
+
+            expect(actions).toHaveLength(1)
+            expect(actions[0]?.id).toBe('primary')
+            expect(actions[0]?.challenges().map((challenge) => challenge.toJSON().kind)).toEqual(['securedTo'])
+            expect(actions[0]?.challenges()[0]?.id).toBe('securedTo:primary:secured')
+            expect(actions[0]?.challenges()[0]?.verdict).toBeUndefined()
+        })
+
+        it('still gives a plain Custom edge its challenged dissolve beside the block', () => {
+            const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+            const graph = tied(true, [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'under' }])
+
+            const { actions } = attemptActionsFromTransfer(primaryAction, ropeId, [graph], noShards)
+
+            expect(actions).toHaveLength(2)
+            expect(actions[0]?.challenges().map((challenge) => challenge.toJSON().kind)).toEqual(['customEdge'])
+            expect(actions[1]?.challenges().map((challenge) => challenge.toJSON().kind)).toEqual(['securedTo'])
+        })
+
+        it('carries an exit-edge challenge and the securedTo challenge together', () => {
+            const primaryAction = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
+            const graph = testLudicGraphFromEnvelope(roomId, {
+                nodes: [{ tag: 'Object', universalKey: ropeId }, { tag: 'Object', universalKey: postId }],
+                edges: [
+                    { kind: 'Navigation', uuid: 'edge-1', from: ropeId, to: anvilId, payload: {} },
+                    { tag: 'Relational', from: ropeId, to: postId, kind: 'SecuredTo' },
+                ],
+            } as any)
+
+            const [primary] = attemptActionsFromTransfer(primaryAction, ropeId, [graph], noShards).actions
+
+            expect(primary?.challenges().map(({ id }) => id)).toEqual(['exitEdge:primary', expect.stringMatching(/^securedTo:primary:/)])
+        })
     })
 
     describe('presence on the dissolves\' referents', () => {
