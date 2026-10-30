@@ -1,6 +1,6 @@
 # Actor cache: one `ludicCache` for what an actor can reach, held inventory included
 
-**Status:** drafted 2026-10-30 (ISS8314). Slice 0 done 2026-10-30 (evidence and tests only; no production code): AC-1's premise holds, and the payoff test is red because the coin is in neither catalog. **Next step: Slice 1** (build the actor's cache). AC-1 to AC-5 were decided 2026-10-30, and AC-6 for points 3 and 4; AC-6's points 2--4 were decided the same day, but its point 4 wording now conflicts with point 2; that and AC-7 stay open for Phase 2. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). Phase 1 (Slices 0--3) is cut; Phase 2 (planning on the cache) is a sketch, re-cut once AC-7 and AC-6's point 4 wording are decided.
+**Status:** drafted 2026-10-30 (ISS8314). Slice 0 done 2026-10-30 (evidence and tests only; no production code): AC-1's premise holds, and the payoff test is red because the coin is in neither catalog. Slice 1 done 2026-10-30 (the actor's cache is built in `actorCache.ts`, with no production caller yet). **Next step: Slice 2** (one catalog), which waits on [fold as union](../positions/AGENT.foldAsUnion.planning.md) (added 2026-10-30). AC-1 to AC-5 were decided 2026-10-30, and AC-6 for points 3 and 4; AC-6's points 2--4 were decided the same day, but its point 4 wording now conflicts with point 2; that and AC-7 stay open for Phase 2. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). Phase 1 (Slices 0--3) is cut; Phase 2 (planning on the cache) is a sketch, re-cut once AC-7 and AC-6's point 4 wording are decided.
 
 ## Goal
 
@@ -35,6 +35,7 @@ The aim is **one cache for each actor and command**: the room's stored row plus 
 ## Relationship to other plans and docs
 
 - **Not in scope: presence-bucket filtering (AB-9's read-path half).** The catalog is still exhaustive rather than filtered by what the viewer perceives (the "Known gap" paragraph in [`enrich/objectManipulation/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/AGENT.md); AB-9 in [`AGENT.abstractionLayers.planning.md`](../positions/AGENT.abstractionLayers.planning.md)). The actor's cache is where that filter would go. This plan builds the place, not the filter.
+- **Fold as union** ([`AGENT.foldAsUnion.planning.md`](../positions/AGENT.foldAsUnion.planning.md)): makes the union collapse crossings, so a character-to-room crossing (its room leg in the stored row, its character leg in the actor fold) joins in the actor's cache. Slice 2 here waits on it.
 - **stableRefs** ([`AGENT.stableRefs.planning.md`](../positions/AGENT.stableRefs.planning.md)): it binds refs to existing ids with a graph read. If Phase 2 lands first, that read may be a cache read. No ordering constraint.
 
 ## Getting Started
@@ -65,8 +66,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | Slice | State |
 | --- | --- |
 | 0. Evidence: AC-1's equivalence test, `catalogScope` consumer inventory, failing payoff test | Done 2026-10-30. Baseline 426 suites / 4096 passed / 9 skipped; after 428 / 4103 / 9 (+7 tests, 2 new files) |
-| 1. Build the actor's cache (AC-1, AC-2, AC-4, AC-5) | Not started; can start |
-| 2. Derive the catalog from it; retire the held catalog and the merge (AC-3) | |
+| 1. Build the actor's cache (AC-1, AC-2, AC-4, AC-5) | Done 2026-10-30. `actorCache.ts` (`buildActorLudicCache`, `ActorLudicCache`, `unionLudicCaches`); no production caller until Slice 2. Baseline 428 / 4103 / 9; after 429 / 4109 / 9 (+6 tests, 1 new file) |
+| 2. Derive the catalog from it; retire the held catalog and the merge (AC-3) | Not started; waits on [fold as union](../positions/AGENT.foldAsUnion.planning.md) |
 | 3. Phase 1 payoff, live smoke test, durable docs for Phase 1 | |
 | 4. Phase 2: decide AC-6, AC-7; re-cut the side-read slices | |
 | 5+. Phase 2: retire planning's side reads one at a time | |
@@ -83,10 +84,10 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
     - [X] Inventory the `catalogScope` consumers: what each does with `room` versus `held`, and what changes if nested-held and half-held entries change scope. Fill AC-3's evidence.
     - [X] Write the payoff test (`take coin from bag` while holding the bag) at the egress, and confirm it fails today for the stated reason (no candidate).
     - [X] Settle AC-1, AC-2, AC-4, AC-5 with the user (2026-10-30; AC-3 and AC-6 settled the same day).
-- [ ] **Slice 1. Build the actor's cache** (per AC-1, AC-2, AC-4, AC-5).
-    - [ ] One function in `positions/ludicCache/`: read the room row (`readLudicCacheWithOutcome`), fold the actor, assemble per AC-1, and return AC-5's type. Instrument it like `ludicCacheRoomObjectHandles`, including the actor half's `shardFetchCount` and wall time.
-    - [ ] Tests: the union cases from Slice 0, the collision rule (AC-4: the actor half's node wins), and that the room row is never written with actor content (the read path writes only `rebuild`'s own output).
-- [ ] **Slice 2. One catalog** (per AC-3).
+- [X] **Slice 1. Build the actor's cache** (per AC-1, AC-2, AC-4, AC-5). [`actorCache.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/actorCache.ts), tests `actorCache.test.ts`; `actorUnion.test.ts` now runs on the production `unionLudicCaches`. The class's one accessor is `handles()`; `handlesFromCache` is exported from `catalogHandles.ts` for it. Two log lines per build (room read, actor half) through `logLudicCacheRebuild`.
+    - [X] One function in `positions/ludicCache/`: read the room row (`readLudicCacheWithOutcome`), fold the actor, assemble per AC-1, and return AC-5's type. Instrument it like `ludicCacheRoomObjectHandles`, including the actor half's `shardFetchCount` and wall time.
+    - [X] Tests: the union cases from Slice 0, the collision rule (AC-4: the actor half's node wins), and that the room row is never written with actor content (the read path writes only `rebuild`'s own output).
+- [ ] **Slice 2. One catalog** (per AC-3). Waits on [fold as union](../positions/AGENT.foldAsUnion.planning.md): `unionLudicCaches` gains crossing collapse there, and the catalog is built on that union.
     - [ ] `loadCommandWorld` builds the actor's cache once and derives one catalog from its handles. `catalogScope` comes from placement per AC-3.
     - [ ] Delete `heldInventoryCatalogForCharacter.ts`, `heldPlacement`, and the room-wins merge in `catalogMerge.ts`. Thread one catalog through `parseCommand` instead of `roomObjectCatalog` + `heldInventoryCatalog`; there are no external consumers.
     - [ ] Check whether `atActorPosition`'s `actorCharacter` clause is now redundant for reachability. Keep it for labels ("the cup you hold") if `readingLabel` still needs it. Remove it only where a test shows the cache answers.

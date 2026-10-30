@@ -104,7 +104,7 @@ const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, Presence
     )
 }
 
-const handlesFromCache = (
+export const handlesFromCache = (
     cache: EphemeraLudicCacheData,
     seedHostId: EphemeraMembershipHostId
 ): { handles: LudicCacheObjectHandle[]; objectCount: number } => {

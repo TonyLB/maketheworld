@@ -139,6 +139,7 @@ Closed set. `other` accumulating three lookalikes mints a new tag; nothing else 
 | 2026-10-30 | `framing-inherited` | Assessed actor-inventory merge as a world-loading change only, reading planning's current catalog-plus-side-reads diet as its shape; the user pointed out the cache should be planning's native language, which makes the per-viewer cache the planner's context, not just the catalog's source. |
 | 2026-10-30 | `proxy-read` | Told the user the actor/room cache merge must be built by the fold, not a node-key union, reasoning from the primer's port-composition summary; reading `fold.ts` showed each host's contribution is independent, so the union plus edge dedupe already equals the joint fold. |
 | 2026-10-30 | `framing-inherited` | actorCache AC-4 framed the actor walk as needing a freshness/collision mechanism like the stored row's; the user pointed out it is never persisted and lives only inside one command, so nothing can invalidate it and the skew is the ordinary read-then-commit race. |
+| 2026-10-30 | `trigger-untested` | Said to defer "graph to cache, then union with collapse" until a crossing joins two separately built caches, naming only shelved participant characters as the trigger; the user pointed out character-to-room crossing ports are near-term roadmap, so the trigger was effectively already met. |
 
 ## Patterns
 

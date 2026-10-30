@@ -12,8 +12,8 @@ import type { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
 import { buildLudicCache } from './fold'
 import { ludicCacheObjectHandles } from './catalogHandles'
-import { dedupeEdgesByIdentity } from './mergeReducer'
-import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from './types'
+import { unionLudicCaches } from './actorCache'
+import type { EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from './types'
 import { isEphemeraLudicCacheData } from './types'
 import {
     actorCacheGraphs, actorId, actorInRoom, bagHeld, bagId, coinId, coinInBag, graphReader, lampId, ropeAtTable, ropeHeld, ropeId, roomId, tableId, tableInRoom,
@@ -28,11 +28,7 @@ const namedAggregate: ComponentAggregateMergedCache['get'] = async ([perspective
 
 const noShortNameDeps = () => ({ getComponentAggregate: jest.fn(async () => []) })
 
-/** The union AC-1 describes: nodes by `universalKey` (the later half wins a collision), edges by identity. */
-const unionOf = (room: EphemeraLudicCacheData, actor: EphemeraLudicCacheData): { nodes: EphemeraLudicCacheNode[]; edges: EphemeraLudicCacheEdge[] } => ({
-    nodes: [...new Map([...room.nodes, ...actor.nodes].map((node) => [node.universalKey, node])).values()],
-    edges: dedupeEdgesByIdentity([...room.edges, ...actor.edges]),
-})
+const unionOf = unionLudicCaches
 
 const byKey = (nodes: EphemeraLudicCacheNode[]) => [...nodes].sort((a, b) => a.universalKey.localeCompare(b.universalKey))
 const edgeSort = (edges: EphemeraLudicCacheEdge[]) => [...edges].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
@@ -56,7 +52,7 @@ describe('the actor\'s cache as a union of two folds (AC-1)', () => {
         const union = unionOf(room, actor)
         expect(byKey(union.nodes)).toEqual(byKey(referenceNodes))
         expect(edgeSort(union.edges)).toEqual(edgeSort(reference.edges))
-        expect(isEphemeraLudicCacheData({ hostId: actorId, ...union })).toBe(true)
+        expect(isEphemeraLudicCacheData(union)).toBe(true)
 
         // The fixture is not degenerate: both halves contribute, and a node in both is the same node in each.
         expect(room.nodes.map((node) => node.universalKey)).not.toContain(bagId)
