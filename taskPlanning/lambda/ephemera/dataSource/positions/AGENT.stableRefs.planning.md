@@ -1,6 +1,6 @@
 # StableRefs: ids bound by compile-time analysis, not by bespoke operations
 
-**Status:** drafted 2026-10-30, alongside the SecuredTo prototype that supplies its evidence. Nothing is built. **Next step: Slice 0, which can start: [SecuredTo](AGENT.securedTo.planning.md) Slice 2 shipped the prototype on 2026-10-30** and filled each row's evidence below from working code. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). Slices after Slice 1 are a sketch: Slice 1's decisions reshape them.
+**Status:** drafted 2026-10-30, alongside the SecuredTo prototype that supplies its evidence. Nothing is built. **Next step: Slice 0, which can start: [SecuredTo](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#relation-kinds) Slice 2 shipped the prototype on 2026-10-30** and filled each row's evidence below from working code. An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). Slices after Slice 1 are a sketch: Slice 1's decisions reshape them.
 
 ## Goal
 
@@ -20,7 +20,7 @@ The aim is the opposite arrangement. An instruction set names the components and
 
 ## Relationship to other plans
 
-- **SecuredTo** ([`AGENT.securedTo.planning.md`](AGENT.securedTo.planning.md)) builds the prototype and writes its findings here (its Slice 0's primitive item and Slice 2's last item). That plan is deleted when it ships; this one stays open.
+- **SecuredTo** ([SecuredTo contract rules](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#relation-kinds)) builds the prototype and writes its findings here (its Slice 0's primitive item and Slice 2's last item). That plan shipped and was deleted 2026-10-30; this one stays open.
 - **Edge abstractions** ([`AGENT.edgeAbstractions.planning.md`](AGENT.edgeAbstractions.planning.md)): the capable version of `Justifies` (a component as the source, edges across graphs) will need refs to more than edges. Not this plan's scope, but SR-3 should not close the door on it.
 - **Presence-op vocabulary aspiration:** a rich op language where the planner decides semantics and the compiler expands deterministically. Refs are one of its prerequisites; this plan does not build the language.
 
