@@ -1380,15 +1380,291 @@ Object {
 }
 `;
 
-exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands tie the rope to the post (no peer parse: Unimplemented) 1`] = `
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands tie the rope to the coin when the coin sits inside the jar (a crossing tie: refused) 1`] = `
 Object {
   "result": Object {
-    "confidence": 0.9,
-    "type": "Unimplemented",
+    "errorMessage": "The rope and the coin are not in the same place.",
+    "type": "Error",
   },
   "stubCalls": Object {
     "acme": 0,
-    "classify": 1,
+    "classify": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands tie the rope to the post (the tie template: the tie triple, one assignEdgeRelations) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "entries": Array [
+              Object {
+                "edgeRef": "tyingEdge",
+                "from": Object {
+                  "groundedId": "OBJECT#Rope",
+                  "referentType": "objectSpan",
+                  "shortName": "rope",
+                  "span": "the rope",
+                  "stableRefKey": "theRopeRef",
+                },
+                "relationKind": "Custom",
+                "relationLabel": "tied to",
+                "to": Object {
+                  "groundedId": "OBJECT#Post",
+                  "referentType": "objectSpan",
+                  "shortName": "post",
+                  "span": "the post",
+                  "stableRefKey": "thePostRef",
+                },
+              },
+              Object {
+                "edgeRef": "secureEdge",
+                "from": Object {
+                  "groundedId": "OBJECT#Rope",
+                  "referentType": "objectSpan",
+                  "shortName": "rope",
+                  "span": "the rope",
+                  "stableRefKey": "theRopeRef",
+                },
+                "relationKind": "SecuredTo",
+                "to": Object {
+                  "groundedId": "OBJECT#Post",
+                  "referentType": "objectSpan",
+                  "shortName": "post",
+                  "span": "the post",
+                  "stableRefKey": "thePostRef",
+                },
+              },
+              Object {
+                "from": Object {
+                  "edgeRef": "tyingEdge",
+                },
+                "relationKind": "Justifies",
+                "to": Object {
+                  "edgeRef": "secureEdge",
+                },
+              },
+            ],
+            "kind": "change",
+            "mintedEdgeIds": Object {
+              "secureEdge": "<minted id 1>",
+              "tyingEdge": "<minted id 2>",
+            },
+            "primitive": "assignEdgeRelations",
+          },
+          "desiredResultDescription": "Relate: rope tied to post",
+          "id": "<minted id 3>",
+          "kind": "position",
+        },
+      ],
+      "kind": "relation",
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 3>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "theRopeRef",
+                  "thePostRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " ties ",
+                },
+                Object {
+                  "ref": "theRopeRef",
+                },
+                Object {
+                  "text": " to ",
+                },
+                Object {
+                  "ref": "thePostRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Rope",
+          "refKey": "theRopeRef",
+          "shortName": "rope",
+        },
+        Object {
+          "id": "OBJECT#Post",
+          "refKey": "thePostRef",
+          "shortName": "post",
+        },
+      ],
+      "words": "tie the rope to the post",
+    },
+    "confidence": 1,
+    "type": "CommandAttempt",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands untie the rope from the post (the untie template: every tie edge optional, Justifies first) 1`] = `
+Object {
+  "result": Object {
+    "attempt": Object {
+      "actions": Array [
+        Object {
+          "challenges": Array [],
+          "desiredResult": Object {
+            "entries": Array [
+              Object {
+                "from": Object {
+                  "edgeRef": "tyingEdge",
+                },
+                "mustBePresent": false,
+                "relationKind": "Justifies",
+                "to": Object {
+                  "edgeRef": "secureEdge",
+                },
+              },
+              Object {
+                "edgeRef": "secureEdge",
+                "from": Object {
+                  "groundedId": "OBJECT#Rope",
+                  "referentType": "objectSpan",
+                  "shortName": "rope",
+                  "span": "the rope",
+                  "stableRefKey": "theRopeRef",
+                },
+                "mustBePresent": false,
+                "relationKind": "SecuredTo",
+                "to": Object {
+                  "groundedId": "OBJECT#Post",
+                  "referentType": "objectSpan",
+                  "shortName": "post",
+                  "span": "the post",
+                  "stableRefKey": "thePostRef",
+                },
+              },
+              Object {
+                "edgeRef": "tyingEdge",
+                "from": Object {
+                  "groundedId": "OBJECT#Rope",
+                  "referentType": "objectSpan",
+                  "shortName": "rope",
+                  "span": "the rope",
+                  "stableRefKey": "theRopeRef",
+                },
+                "mustBePresent": false,
+                "relationKind": "Custom",
+                "relationLabel": "tied to",
+                "to": Object {
+                  "groundedId": "OBJECT#Post",
+                  "referentType": "objectSpan",
+                  "shortName": "post",
+                  "span": "the post",
+                  "stableRefKey": "thePostRef",
+                },
+              },
+            ],
+            "kind": "change",
+            "primitive": "dissolveEdgeRelations",
+          },
+          "desiredResultDescription": "Unrelate: rope tied to post",
+          "id": "<minted id 1>",
+          "kind": "position",
+        },
+      ],
+      "kind": "relation",
+      "narrationUnits": Array [
+        Object {
+          "covers": Array [
+            "<minted id 1>",
+          ],
+          "variants": Array [
+            Object {
+              "audience": Object {
+                "phase": "before",
+                "refs": Array [
+                  "actor",
+                  "theRopeRef",
+                  "thePostRef",
+                ],
+              },
+              "parts": Array [
+                Object {
+                  "slot": "actor",
+                },
+                Object {
+                  "text": " unties ",
+                },
+                Object {
+                  "ref": "theRopeRef",
+                },
+                Object {
+                  "text": " from ",
+                },
+                Object {
+                  "ref": "thePostRef",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      "referents": Array [
+        Object {
+          "id": "OBJECT#Rope",
+          "refKey": "theRopeRef",
+          "shortName": "rope",
+        },
+        Object {
+          "id": "OBJECT#Post",
+          "refKey": "thePostRef",
+          "shortName": "post",
+        },
+      ],
+      "words": "untie the rope from the post",
+    },
+    "confidence": 1,
+    "type": "CommandAttempt",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
+    "embedSpan": 0,
+    "enrich": 0,
+  },
+}
+`;
+
+exports[`characterization fixture: published attempt (ISS8203 slice 0) relational commands untie the rope from the post when nothing ties them (refused) 1`] = `
+Object {
+  "result": Object {
+    "errorMessage": "The rope is not tied to the post.",
+    "type": "Error",
+  },
+  "stubCalls": Object {
+    "acme": 0,
+    "classify": 0,
     "embedSpan": 0,
     "enrich": 0,
   },

@@ -72,7 +72,7 @@ describe('Change literal shapes', () => {
             primitive: 'dissolveRelation',
             subject: objectSpanRef('rope'),
             target: objectSpanRef('crate'),
-            relationKind: 'On',
+            relationKind: 'SecuredTo',
         }
         expect(change.primitive).toBe('dissolveRelation')
     })

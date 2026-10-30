@@ -1838,9 +1838,40 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('tie the rope to the post (no peer parse: Unimplemented)', async () => {
+        it('tie the rope to the post (the tie template: the tie triple, one assignEdgeRelations)', async () => {
             expect(await run(
                 { command: 'tie the rope to the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: { [ROOM]: roomWith([ROPE, POST]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('tie the rope to the coin when the coin sits inside the jar (a crossing tie: refused)', async () => {
+            expect(await run(
+                { command: 'tie the rope to the coin', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [COIN, 'coin']]) },
+                {
+                    containers: { [COIN]: [JAR] },
+                    graphs: {
+                        [ROOM]: roomWith([ROPE, JAR]),
+                        [JAR]: testLudicGraph(JAR, { nodes: [{ tag: 'Object', universalKey: COIN }] }),
+                    },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('untie the rope from the post (the untie template: every tie edge optional, Justifies first)', async () => {
+            expect(await run(
+                { command: 'untie the rope from the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'tied to' }]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('untie the rope from the post when nothing ties them (refused)', async () => {
+            expect(await run(
+                { command: 'untie the rope from the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     graphs: { [ROOM]: roomWith([ROPE, POST]) },
                 }

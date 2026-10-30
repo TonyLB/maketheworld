@@ -39,8 +39,8 @@ const hostsOf = (
     graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicGraph>
 ): EphemeraMembershipHostId[] => {
     if (isEphemeraLudicEdgeTerminal(id)) {
-        // An edge terminal names no component, so no host (and no step carries one).
-        return []
+        // An edge terminal names a stored edge by id: its hosts are the graphs that store it.
+        return [...graphs].filter(([, graph]) => graph.relationalEdges.some(({ edgeId }) => edgeId === id.edgeId)).map(([hostId]) => hostId)
     }
     if (isEphemeraLudicPortAddress(id)) {
         // An address end names its own host directly (owner) --- graph-local addressing, not

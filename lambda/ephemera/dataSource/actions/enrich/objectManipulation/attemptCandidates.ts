@@ -17,17 +17,18 @@ import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { IdentityPlanIdentity } from './identityPlanCandidate'
 import { defaultReading, placementHostsOfView, readingLabel, readingsHere, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
 import type { ObjectManipulationPositionsReadDeps } from './membershipObservation'
-import { viewMintedByExtend } from './plan/planStep'
-import type { ContainedByAssertion, ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
+import { edgeRelationReferents, viewMintedByExtend } from './plan/planStep'
+import type { ContainedByAssertion, EdgeRelationEntry, EdgeRelationsChange, ExtendChange, GroundedId, GroundedReferent, PlanStep, Referent, TransferMembershipChange } from './plan/planStep'
 import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
 import { groundPlanStep } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
 import { walkAncestryContainers } from './synthesize/findShardBoundary'
 import { fetchRelationalReachability } from '../../../positions/manipulation/relational/findRelationalChainsForRemoval'
+import { edgeRelationSteps, edgeRelationsHost } from '../../../positions/manipulation/relational/edgeRelationSteps'
 import type { SpanName } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
-import { objectManipulationErrorMessages, qualifierErrorMessages } from './resolveObjectSpan'
+import { edgeRelationErrorMessages, objectManipulationErrorMessages, qualifierErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
 import { resumeErrorMessages } from './resumeAnswers'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -324,6 +325,19 @@ const describeGroundedAction = (action: AttemptAction, attemptSteps: readonly Pl
             action: new PositionAttemptAction(action.id, action.challenges(), step, `Extend ${subject}`),
             alternative: { objectId: groundedObjectIdOf(step.object), label: subject, proposedCommand: `extend the ${subject}` },
         }
+    }
+    if (step.primitive === 'assignEdgeRelations' || step.primitive === 'dissolveEdgeRelations') {
+        const { subject, manner, target } = edgeRelationsWording(step)
+        const label = `${subject} / ${target}`
+        return step.primitive === 'assignEdgeRelations'
+            ? {
+                action: new PositionAttemptAction(action.id, action.challenges(), step, `Relate: ${subject} ${manner} ${target}`),
+                alternative: { label, proposedCommand: `the ${subject} ${manner} the ${target}` },
+            }
+            : {
+                action: new PositionAttemptAction(action.id, action.challenges(), step, `Unrelate: ${subject} ${manner} ${target}`),
+                alternative: { label, proposedCommand: `the ${subject} no longer ${manner} the ${target}` },
+            }
     }
     if (step.primitive === 'establishRelation' || step.primitive === 'dissolveRelation') {
         const subject = labelOf(step.subject)
@@ -665,6 +679,14 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
             }
             continue
         }
+        if (grounded.kind === 'change' && (grounded.primitive === 'assignEdgeRelations' || grounded.primitive === 'dissolveEdgeRelations')) {
+            // Judged here against the graph it is written in, by the same builder commit lowers it with; nothing for the executor.
+            const failure = edgeRelationsFailure(grounded, env)
+            if (failure !== undefined) {
+                return { verdict: 'illegal', decidable: true, reason: failure }
+            }
+            continue
+        }
         if (grounded.kind === 'change' && grounded.primitive === 'transferMembership') {
             const precondition = transferPreconditionFailure(grounded, env)
             if (precondition !== undefined) {
@@ -715,6 +737,45 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
  * one seam where a real judgment (planner, or an authored or improvised trait) replaces the assumption.
  */
 const extendPreconditionFailure = (_step: ExtendChange<GroundedReferent>): string | undefined => undefined
+
+/**
+ * How an edge-relations change is named to the player: its first relation between two things, and the
+ * manner of its first `Custom` one (`tied to`).
+ */
+const edgeRelationsWording = (change: EdgeRelationsChange): { subject: string; manner: string; target: string } => {
+    const [subject, target] = edgeRelationReferents(change)
+    const custom = (change.entries as EdgeRelationEntry[]).find((entry) => entry.relationKind === 'Custom')
+    return {
+        subject: subject === undefined ? 'thing' : labelOf(subject),
+        manner: custom?.relationKind === 'Custom' ? custom.relationLabel : 'related to',
+        target: target === undefined ? 'thing' : labelOf(target),
+    }
+}
+
+/**
+ * An edge-relations change's failure reason, or undefined when it can be written: the graph is the one
+ * among its things' hosts that holds them all, and the steps are those commit will build
+ * (`edgeRelationSteps`), so the dry run refuses what commit would.
+ */
+const edgeRelationsFailure = (change: EdgeRelationsChange<GroundedReferent>, env: ExpansionEnvironment): string | undefined => {
+    const hostIds = new Set(edgeRelationReferents(change).flatMap(({ groundedId }) => (
+        isEphemeraObjectId(groundedId) ? env.getMembershipContainers(groundedId) : []
+    )))
+    const host = edgeRelationsHost(change, [...hostIds].map((hostId) => [hostId, env.getGraph(hostId)] as const))
+    const built = host.ok ? edgeRelationSteps(change, host.hostId, host.graph) : host
+    if (built.ok) {
+        return undefined
+    }
+    const { subject, manner, target } = edgeRelationsWording(change)
+    switch (built.refusal) {
+        case 'notInOneGraph': return edgeRelationErrorMessages.notInOneGraph(subject, target)
+        case 'alreadyPresent': return edgeRelationErrorMessages.alreadyPresent(subject, manner, target)
+        case 'nonePresent':
+        case 'requiredAbsent': return edgeRelationErrorMessages.notPresent(subject, manner, target)
+        case 'ambiguousGraph':
+        case 'notAThing': return objectManipulationErrorMessages.noMembershipHost
+    }
+}
 
 /**
  * A `containedBy` assertion's failure reason, or undefined when it holds. The subject's hosts are its one
@@ -841,6 +902,9 @@ const stepSpans = (step: PlanStep): Extract<Referent, { referentType: 'objectSpa
     }
     if (step.primitive === 'extend') {
         return objectSpansIn(step.object)
+    }
+    if (step.primitive === 'assignEdgeRelations' || step.primitive === 'dissolveEdgeRelations') {
+        return edgeRelationReferents(step).flatMap(objectSpansIn)
     }
     return [step.subject, step.target].flatMap(objectSpansIn)
 }

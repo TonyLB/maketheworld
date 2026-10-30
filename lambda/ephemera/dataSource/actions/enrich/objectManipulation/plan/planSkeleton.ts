@@ -13,6 +13,7 @@ import { membershipTemplate } from './matchMembershipTemplate'
 import { bareNavigationTemplate, navigationTemplate } from './matchNavigationTemplate'
 import { exceedsQualifierCap } from './qualifierPrepositions'
 import { spreadTemplate } from './matchSpreadTemplate'
+import { tieTemplate, untieTemplate } from './matchSecuredToTemplates'
 
 /**
  * Plan's templates, in order: the first attempt is the primary one, so the navigation templates
@@ -21,6 +22,8 @@ import { spreadTemplate } from './matchSpreadTemplate'
 export const PLAN_TEMPLATES: readonly AttemptTemplate[] = [
     containmentTemplate,
     spreadTemplate,
+    tieTemplate,
+    untieTemplate,
     lookTemplate,
     lookAtTemplate,
     membershipTemplate,
