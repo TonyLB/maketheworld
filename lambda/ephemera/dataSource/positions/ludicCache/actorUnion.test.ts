@@ -3,13 +3,12 @@
  * cache and a cache seeded at the actor equals one fold over both walks, and a held binding's parent chain reaches
  * the room. Hand-authored graphs, no `jest.mock`, as the rest of this directory.
  */
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { mergedComponentResult, type ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import type { EphemeraLudicGraph } from '../ludicGraph'
-import { testLudicGraph } from '../ludicGraph/testFixtures'
+import { EphemeraLudicGraph, toStoredRelationalEdge } from '../ludicGraph'
 import { buildLudicCache } from './fold'
 import { ludicCacheObjectHandles } from './catalogHandles'
 import { unionLudicCaches } from './actorCache'
@@ -34,20 +33,24 @@ const byKey = (nodes: EphemeraLudicCacheNode[]) => [...nodes].sort((a, b) => a.u
 const edgeSort = (edges: EphemeraLudicCacheEdge[]) => [...edges].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
 
 describe('the actor\'s cache as a union of two folds (AC-1)', () => {
-    const bothId = 'ROOM#Both' as EphemeraRoomId
-
     it('equals one fold over both walks', async () => {
         const graphs = actorCacheGraphs()
         const getLudicGraph = graphReader(graphs)
         const { cache: room } = await buildLudicCache(roomId, [], { getLudicGraph, ...noShortNameDeps() })
         const { cache: actor } = await buildLudicCache(actorId, [], { getLudicGraph, ...noShortNameDeps() })
 
-        // The reference: a synthetic seed that names both walks' seeds, so one `buildLudicCache` walks (and folds) both.
-        const referenceGraphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>(graphs).set(bothId, testLudicGraph(bothId, {
-            nodes: [{ tag: 'Room', universalKey: bothId }, { tag: 'Room', universalKey: roomId }, { tag: 'Character', universalKey: actorId }],
+        // The reference: the actor's graph also names the room as a member, so one `buildLudicCache` seeded at the actor
+        // walks (and folds) both walks. (A synthetic seed naming both would not do: the room walk never expands a
+        // character other than its seed.)
+        const actorGraph = graphs.get(actorId) as EphemeraLudicGraph
+        const referenceGraphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>(graphs).set(actorId, EphemeraLudicGraph.fromFieldPayload(actorId, {
+            rootId: actorGraph.rootId,
+            nodes: [...actorGraph.componentNodes, { tag: 'Room', universalKey: roomId }, ...actorGraph.presenceNodes],
+            edges: actorGraph.relationalEdges.map(toStoredRelationalEdge),
+            ports: actorGraph.ports,
         }))
-        const { cache: reference } = await buildLudicCache(bothId, [], { getLudicGraph: graphReader(referenceGraphs), ...noShortNameDeps() })
-        const referenceNodes = reference.nodes.filter((node) => node.universalKey !== bothId)
+        const { cache: reference } = await buildLudicCache(actorId, [], { getLudicGraph: graphReader(referenceGraphs), ...noShortNameDeps() })
+        const referenceNodes = reference.nodes
 
         const union = unionOf(room, actor)
         expect(byKey(union.nodes)).toEqual(byKey(referenceNodes))

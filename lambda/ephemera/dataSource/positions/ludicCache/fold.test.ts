@@ -25,7 +25,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import StandardRoom from '@tonylb/mtw-wml/ts/standardize/components/room'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
-import { testLudicGraph } from '../ludicGraph/testFixtures'
+import { presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 import { buildLudicCache } from './fold'
 import { isEphemeraLudicCacheData } from './types'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
@@ -436,15 +436,18 @@ describe('buildLudicCache', () => {
     // collapsed edge carries one route per binding, side by side (LR-8).
     it('collapses a crossing to one edge when a child is bound twice into the same host', async () => {
         const roomGraph = testLudicGraph(roomA, {
-            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boulder }, { tag: 'Object', universalKey: boxId }],
+            nodes: [
+                { tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: boulder }, { tag: 'Object', universalKey: boxId },
+                presenceBindingNode(parentRemainderKey(roomA), undefined, { members: [{ host: boulder, presence: PresenceKey('boulder_in_a') }, { host: boxId, presence: PresenceKey('box_in_a_1') }] }),
+            ],
             edges: [{ tag: 'Relational', from: boulder, to: { owner: boxId, port: 'PORT-port_1' }, kind: 'ConnectedTo' }],
         })
         const boxGraph = testLudicGraph(boxId, {
             nodes: [
                 { tag: 'Object', universalKey: boxId },
                 { tag: 'Object', universalKey: pebble },
-                presenceNode('box_in_a_1', roomA, { members: [] }),
-                presenceNode('box_in_a_2', roomA, { members: [] }),
+                presenceNode('box_in_a_1', roomA, { members: [{ host: pebble, presence: PresenceKey('pebble_in_box') }] }),
+                presenceNode('box_in_a_2', roomA, { members: [{ host: pebble, presence: PresenceKey('pebble_in_box') }] }),
             ],
             edges: [{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo' }],
             ports: [{ portId: 'PORT-port_1', fromHostId: roomA, kind: 'ConnectedTo' }],
@@ -464,7 +467,8 @@ describe('buildLudicCache', () => {
 
         const { cache } = await buildLudicCache(roomA, [], { getLudicGraph, ...noShortNameDeps() })
 
-        // Two routes (one per binding of the box) collapse to one identity, so one edge.
+        // Two routes (one per binding of the box) collapse to one identity, so one edge. (The graphs carry bindings
+        // covering their members because the fold reads each graph through its bindings' buckets.)
         expect(cache.edges.filter((edge) => edge.from === boulder && edge.to === pebble)).toHaveLength(1)
     })
 

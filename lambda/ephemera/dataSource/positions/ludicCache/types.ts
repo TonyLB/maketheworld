@@ -185,7 +185,7 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
 
 // A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): the type
 // (`EphemeraLudicCacheTerminalId`) refuses it at compile time, and this guard refuses it in stored
-// rows. `foldSameHostBuckets` and `collapseCrossingPorts` lift every such terminal at mint time; a
+// rows. `foldSameHostBuckets` lifts every such terminal at mint time; a
 // bare one reaching this guard is corruption, not an unpulled-binding case (that case is an
 // owner-qualified terminal whose binding is simply absent from `nodes`, which the
 // referential-integrity pass below already permits).

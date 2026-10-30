@@ -8,12 +8,13 @@
  * `cover`, no edges) --- that is Slice 3's fold. This hands the fold the per-shard graphs it
  * needs, in walk order, already deduplicated.
  *
- * **A room's graph holds no character.** A bystander (a present character) is indexed by the room's
- * `LudicCache::Characters` row, never by the room's graph, so this walk never meets one except as the
- * seed. That is what keeps a room's cache from re-absorbing an object a character has just picked up
- * (`catalogHandles.ts`): the walk cannot pass through a character into its inventory. A character-seeded
- * walk (e.g. a held-inventory cache) still sees its own contents, because the seed is queued
- * unconditionally before the loop below runs. (Rule: `positions/AGENT.contract.md`, "A bystander is not in
+ * **The walk never expands a character other than its seed.** A bystander is indexed by the room's
+ * `LudicCache::Characters` row, never by the room's graph; a participant (FA-2) has a node in the room's graph,
+ * but its shard is not fetched either. That is what keeps a room's cache from re-absorbing an object a character
+ * has just picked up (`catalogHandles.ts`): the walk cannot pass through a character into its inventory. A
+ * participant's crossing joins its room-side leg at union time (`unionCaches.ts`). A character-seeded walk
+ * (e.g. a held-inventory cache) still sees its own contents, because the seed is queued unconditionally before
+ * the loop below runs. (Rule: `positions/AGENT.contract.md`, "A bystander is not in
  * its room's graph or cache".)
  *
  * **`maxDepth` (Slice 5, PC-3's instrument).** The highest BFS level actually visited --- the
@@ -40,6 +41,7 @@
  * rather than left disabled-in-place (live runs averaged about 386ms against about 316ms for the concurrent path).
  */
 import internalCache from '../../../internalCache'
+import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraMembershipHostId, type EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
@@ -52,7 +54,6 @@ export type EnumerateLudicCacheShardsResult = {
     /** Walk order, seed host first. Each id appears exactly once. */
     hostIds: EphemeraMembershipHostId[]
     graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>
-    /** Hosts fetched but not expanded: a present character other than the seed. Their members are not in `hostIds`. */
     /** One increment per host actually fetched --- a returned statistic, not a log line. */
     shardFetchCount: number
     /** The highest BFS level dequeued, seed at 0 --- a returned statistic, not a log line. */
@@ -93,7 +94,7 @@ export async function enumerateLudicCacheShards(
             hostIds.push(currentHostId)
             graphs.set(currentHostId, graph)
             for (const nodeId of graph.nodeIds) {
-                if (!isEphemeraMembershipHostId(nodeId)) {
+                if (!isEphemeraMembershipHostId(nodeId) || isEphemeraCharacterId(nodeId)) {
                     continue
                 }
                 if (queued.has(nodeId)) {

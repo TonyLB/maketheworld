@@ -144,7 +144,7 @@ export const joinCrossingLegs = <T extends EphemeraLudicTerminalId>(
  * cache entries can therefore hold the same edge in two forms, and a merge that does not equate
  * them duplicates it. **Normalize UP, to the exterior form**, as of Slice 3: `liftPresenceTerminal`
  * rewrites every bare presence terminal to `{ owner, port }` at the point each cache edge is minted
- * (`foldSameHostBuckets`, `collapseCrossingPorts`), so by the time an edge reaches this function
+ * (`foldSameHostBuckets`), so by the time an edge reaches this function
  * both addresses have already collapsed to one shape, and there is no second, bare form left for
  * this key function to re-normalize --- every port-address terminal, presence or crossing alike,
  * keys as `owner#port`. (PN-24's reasoning still explains why the two forms must hash alike; it no
@@ -189,85 +189,6 @@ export const dedupeEdgesByIdentity = (edges: EphemeraLudicCacheEdge[]): Ephemera
  */
 const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: EphemeraMembershipHostId): EphemeraLudicCacheTerminalId =>
     isEphemeraLudicNodeTerminal(terminal) && isEphemeraPresenceNodeId(terminal) ? { owner, port: terminal } : terminal
-
-/**
- * Collapse of crossing relation ports.
- *
- * A port that binds a child (the contained side) to its parent is minted and owned only by the
- * child's own graph (`AGENT.concepts.md`'s "Wholes, parts, and ports", clause 2 --- the interior
- * mints the binding, mirroring how a presence port is added to the *contained* thing's own
- * graph). A single relational edge spanning that boundary is therefore split into two **legs**,
- * sharing `kind` (and `relationLabel`/`chainId` where present) on both --- the reduction
- * convention recorded in `AGENT.presence.planning.md`'s PR-8 --- per the
- * `cup -[TiedTo]-> string` case:
- *
- * - **The parent's leg**, in `parentGraph.relationalEdges`: one terminal is an ordinary
- *   parent-side node, the other is `{ owner: childGraph.hostId, port }` --- already
- *   port-qualified, referencing a port it does not own.
- * - **The child's leg**, in `childGraph.relationalEdges`: one terminal is that same address
- *   (the child's own port, referenced from within its own graph), the other is the real
- *   interior node.
- *
- * For each crossing port on `childGraph` (every port, as of Slice 7a --- presence carries no
- * port record any more), this finds the two legs
- * that share its terminal, asserts they agree on identity fields (a mismatch is a data-integrity
- * break under this uniform-kind model, not a case to paper over --- see `legsAgree`), and
- * produces one collapsed edge: the parent leg with its port terminal rewritten to the child
- * leg's real interior node. Collapsed edges are then grouped by `collapsedEdgeIdentityKey` ---
- * **two crossing ports can independently collapse to the same final `(from, to, kind)` triple**,
- * and those land on one record (the first, by port order). The cache keeps no record of which
- * crossings justified an edge: a stale cache is rebuilt whole.
- *
- * **A port with no matching leg on one or both sides is incomplete data, not an error.** A
- * merge reducer cannot invent a missing leg (data may legitimately be mid-write), so that port
- * is skipped rather than throwing.
- *
- * Presence is bucket-membership metadata carried on nodes, not ports (`presenceSubGraph.ts`'s
- * own LR-6 note) --- `childGraph.ports` never contains one, so there is nothing to exclude here.
- */
-export const collapseCrossingPorts = (
-    parentGraph: EphemeraLudicGraph,
-    childGraph: EphemeraLudicGraph
-): EphemeraLudicCacheEdge[] => {
-    const crossingPorts = childGraph.ports
-
-    const collapsedLegs = crossingPorts.reduce<EphemeraLudicCacheEdge[]>((acc, port) => {
-        const portTerminal: EphemeraLudicPortAddress = { owner: childGraph.hostId, port: port.portId }
-        const parentLeg = parentGraph.relationalEdges.find(hasPortTerminal(portTerminal))
-        const childLeg = childGraph.relationalEdges.find(hasPortTerminal(portTerminal))
-
-        if (!parentLeg || !childLeg) {
-            return acc
-        }
-
-        if (!legsAgree(parentLeg, childLeg)) {
-            throw new Error(
-                `Crossing port ${port.portId} on ${childGraph.hostId} joins legs that disagree on kind/relationLabel/chainId`
-            )
-        }
-
-        // A bare presence terminal here (the child's own edge landing on one of the child's own
-        // bindings) is legal within childGraph's own interior storage, but the collapsed edge is
-        // cache-bound, where lookup is a path --- lift it to the exterior form, owner childGraph's
-        // own hostId (PNR-2(a)).
-        const childOuter = liftPresenceTerminal(outerTerminal(childLeg, portTerminal), childGraph.hostId)
-        // The parent leg's other end is cache-bound too: lift a bare presence terminal on the
-        // parent's own graph, owner parentGraph's hostId.
-        const rewrite = (terminal: EphemeraLudicTerminalId): EphemeraLudicCacheTerminalId =>
-            ephemeraLudicTerminalsEqual(terminal, portTerminal) ? childOuter : liftPresenceTerminal(terminal, parentGraph.hostId)
-
-        const collapsed: HostRelationalEdge<EphemeraLudicCacheTerminalId> = {
-            ...parentLeg,
-            from: rewrite(parentLeg.from),
-            to: rewrite(parentLeg.to),
-        }
-
-        return [...acc, toStoredRelationalEdge(collapsed)]
-    }, [])
-
-    const deduped = dedupeEdgesByIdentity(collapsedLegs)
-    return deduped
-}
 
 /**
  * Fold-walk probe (ISS8149 D1, second measurement): the running state a walk needs between
@@ -391,11 +312,9 @@ const presenceCacheNodesFromFold = (
  * accumulator's own state until something matches it, not in a side channel compared only to the
  * immediately preceding bucket.
  *
- * The final read-off is the accumulated graph's own edges that no longer touch any of its own
- * remaining `ports` --- those are the resolved interior edges. Anything still touching a
- * remaining port is a genuine unresolved boundary (this host is not fully covered by
- * `presenceUuids`) and is correctly not emitted, the same "incomplete data, not an error" stance
- * `collapseCrossingPorts` already takes.
+ * The final read-off is the accumulated graph's own edges, open legs included: a leg touching a
+ * remaining authored crossing port is a boundary of this host that no same-host merge can resolve,
+ * and is kept for the union to join or leave open (foldAsUnion FA-1).
  *
  * `presenceNodes` (presenceNodes Slice 4, item 3): the cache binding for every binding folded,
  * via `presenceCacheNodesFromFold` above. All are `graph.hostId`'s own bindings, so the caller
@@ -414,27 +333,19 @@ export const foldSameHostBuckets = (
         return mergeSameHostBucket(accumulated, bucket)
     }, seed)
 
-    //
-    // The test here is *still bounded*, not *still unmatched*. An authored crossing port carried through the fold is a real boundary of
-    // this host that no same-host merge can resolve --- only the parent's `collapseCrossingPorts`
-    // can --- so a leg touching one is unresolved in exactly the sense this read-off means. Every
-    // port in `folded.ports` is already a crossing port (Slice 7a: presence carries no port
-    // record), so there is nothing left to filter.
-    const remainingPortIds = folded.ports.map((port) => port.portId)
-    const touchesRemainingPort = (edge: HostRelationalEdge): boolean =>
-        remainingPortIds.some((portId) => hasPortTerminal({ owner: folded.hostId, port: portId })(edge))
-
+    // Every leg is emitted, including one that still touches an authored crossing port of this host: its
+    // partner lives in another host, and the union (`unionCaches.ts`) joins the two or keeps the leg open
+    // (FA-1). Every port in `folded.ports` is a crossing port (Slice 7a: presence carries no port record).
     // A resolved leg landing bare on one of `graph`'s own presence nodes is legal within `graph`'s
     // own interior storage (the graph names the owner implicitly), but this is the cache-bound
     // emission point --- lift it to the exterior form, owner `graph.hostId` (PNR-2(a)).
-    const resolvedLegs = folded.relationalEdges
-        .filter((edge) => !touchesRemainingPort(edge))
+    const legs = folded.relationalEdges
         .map((edge) => toStoredRelationalEdge<EphemeraLudicCacheTerminalId>({
             ...edge,
             from: liftPresenceTerminal(edge.from, graph.hostId),
             to: liftPresenceTerminal(edge.to, graph.hostId),
         }))
 
-    const deduped = dedupeEdgesByIdentity(resolvedLegs)
+    const deduped = dedupeEdgesByIdentity(legs)
     return { presenceNodes: presenceCacheNodesFromFold(graph, presenceUuids), edges: deduped }
 }

@@ -1,18 +1,12 @@
 /**
- * The fold. Composes the node enumeration's
- * `enumerateLudicCacheShards` (the cross-host walk, unmodified) with two mechanisms that already
- * shipped separately and don't yet talk to each other in code:
+ * The fold. Composes the node enumeration's `enumerateLudicCacheShards` (the cross-host walk) with
+ * `foldSameHostBuckets` and the union (`unionCaches.ts`), as one rule (foldAsUnion):
  *
- * - `foldSameHostBuckets` (Slice 0/2) resolves a single host's own same-host presence-bucket
- *   straddles against its own raw graph.
- * - `collapseCrossingPorts` (pre-existing) resolves the membership boundary between a parent
- *   host and a child that carries its own graph.
- *
- * **These run against the same unmodified per-shard graphs `enumerateLudicCacheShards` already
- * fetched, not sequentially on one another's output.** A crossing port is authored on a child's
- * raw graph regardless of which presence bucket a cut would place it in (Slice 7a: presence
- * carries no port record any more), so same-host resolution and parent/child collapse are two
- * independent contributions to the final edge set, not a pipeline.
+ * - **Each host's cache contribution is derived from its own raw graph alone**: its node, its bindings, and its
+ *   same-host fold, including the legs still open at its authored crossing ports.
+ * - **The contributions are reduced through the union**, which joins the two legs of a crossing port (the parent's
+ *   and the child's) into one edge and leaves an unmatched leg open. There is no parent/child pairing here: the
+ *   room's stored row and the actor's fold combine through the same function (`actorCache.ts`).
  *
  * `hostId` is recorded as `seedHostId`, never derived --- the same convention
  * `EphemeraLudicGraph` uses for its `rootId`: the caller-known identity, written straight in. `EphemeraLudicCacheData`
@@ -25,8 +19,7 @@
  * binding arriving against an *already-persisted* cache --- is not this file's: a stale persisted cache is rebuilt whole (see `positions/AGENT.contract.md`, Ludic cache staleness and rebuild).
  *
  * **3e (idempotence and confluence, LC2/LC3):** grouping by `collapsedEdgeIdentityKey`
- * (`mergeReducer.ts`) at cache-assembly grain, not only within each `collapseCrossingPorts`/
- * `foldSameHostBuckets` call, is what makes a retried rebuild against the same graphs produce a
+ * (`mergeReducer.ts`) at cache-assembly grain, not only within each `foldSameHostBuckets` call, is what makes a retried rebuild against the same graphs produce a
  * byte-identical `edges` array --- see `fold.test.ts`'s "run twice" case.
  *
  * Tier: Prototype, inheriting `mergeReducer.ts`'s dependency tag and rollback trigger (this file
@@ -40,26 +33,22 @@
  * one documented lesson (`homeShards`, removed 2026-09-10) against denormalizing a derived fact
  * onto it. `stats` stays a sibling of `cache`, not a member of it.
  *
- * **Two-pass loop (Slice 5b, 2026-09-19).** The former single `for` loop interleaved
- * `componentCacheNode`'s awaited I/O (`resolveComponentCacheFields`) with two purely synchronous
- * computations (`foldSameHostBuckets`, `collapseCrossingPorts`), serializing all three across
- * every host for no reason the synchronous pair needed. `componentCacheNode` calls for every
- * `hostId` now run concurrently via `Promise.all`; the synchronous fold/collapse pass runs after,
- * still iterated in `hostIds` order so 3e's byte-identical-rebuild property is preserved by
+ * **Two-pass loop (Slice 5b, 2026-09-19).** `componentCacheNode` calls (awaited I/O,
+ * `resolveComponentCacheFields`) for every `hostId` run concurrently via `Promise.all`; the synchronous
+ * derivation runs after, iterated in `hostIds` order so 3e's byte-identical-rebuild property is preserved by
  * construction rather than by an accident of fetch order.
  */
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { isEphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../../internalCache'
 import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
-import { bindingHasParentOn } from '../ludicGraph/presenceParent'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
-import { collapseCrossingPorts, dedupeEdgesByIdentity, foldSameHostBuckets } from './mergeReducer'
-import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
+import { foldSameHostBuckets } from './mergeReducer'
+import { unionAllLudicCaches } from './unionCaches'
+import type { EphemeraLudicCacheData, EphemeraLudicCacheNode } from './types'
 
 const presenceUuidFromKey = stripTypedKey('PRESENCE')
 
@@ -101,44 +90,20 @@ export const buildLudicCache = async (
         hostIds.map((hostId) => componentCacheNode(hostId, assetStack, resolvedDeps))
     )
 
-    // Pass 2: the purely synchronous fold/collapse computation, one result per host in hostIds
-    // order.
-    const perHost = hostIds.map((hostId) => {
+    // Pass 2: the purely synchronous derivation, one cache contribution per host in hostIds order.
+    // Each is read from that host's own raw graph alone: its node with its own bindings nested, and its
+    // same-host fold (open crossing legs included). `presenceUuids` is the FULL set of this host's own
+    // bindings (never a proper subset), satisfying `foldSameHostBuckets`'s clause-3 zero-or-all assertion
+    // for an exhaustive rebuild. A node without a graph here is a bug in this function, not a data shape.
+    const contributions = hostIds.map((hostId, index): EphemeraLudicCacheData => {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
-
-        // Mechanism 1: this host's own same-host presence-bucket straddles, resolved against its
-        // own raw graph. `presenceUuids` is the FULL set of this host's own bindings (never a
-        // proper subset), satisfying `foldSameHostBuckets`'s clause-3 zero-or-all assertion for
-        // an exhaustive rebuild.
         const presenceUuids = graph.presenceNodes.map((presenceNode) => presenceUuidFromKey(presenceNode.universalKey))
-        const { presenceNodes, edges: sameHostEdges } = foldSameHostBuckets(graph, presenceUuids)
-
-        // Mechanism 2: the parent/child crossing-port boundary between this host and every
-        // member walked as its own shard. A member with no crossing ports contributes nothing
-        // (collapseCrossingPorts's own "incomplete data, not an error" stance), so it costs
-        // nothing to attempt this uniformly rather than pre-filtering "true" members.
-        // A child bound twice into one host (an Object under two of a Feature's bindings) crosses
-        // at the same ports either way, so one collapse covers every binding.
-        const crossingEdges = [...graph.nodeIds]
-            .filter((nodeId) => nodeId !== hostId && isEphemeraMembershipHostId(nodeId))
-            .map((nodeId) => graphs.get(nodeId as EphemeraMembershipHostId))
-            .filter((childGraph): childGraph is EphemeraLudicGraph =>
-                !!childGraph && childGraph.presenceNodes.some((presenceNode) => bindingHasParentOn(presenceNode, hostId)))
-            .flatMap((childGraph) => collapseCrossingPorts(graph, childGraph))
-
-        return { hostId, presenceNodes, edges: [...sameHostEdges, ...crossingEdges] }
+        const { presenceNodes, edges } = foldSameHostBuckets(graph, presenceUuids)
+        return { hostId, nodes: [{ ...nodes[index], presenceNodes }], edges }
     })
-    const bindingsByOwner = new Map(perHost.map(({ hostId, presenceNodes }) => [hostId, presenceNodes]))
-    const edges = dedupeEdgesByIdentity(perHost.flatMap(({ edges }) => edges))
 
-    // Each host's own bindings nest on its component node. Pass 1 built one node per hostId, so
-    // an owner without one is a bug in this function, not a data shape.
-    const ownerIds = new Set<string>(nodes.map((node) => node.universalKey))
-    const unowned = [...bindingsByOwner.keys()].filter((hostId) => !ownerIds.has(hostId))
-    if (unowned.length) {
-        throw new Error(`buildLudicCache: no component node for binding owner(s) ${unowned.join(', ')}`)
-    }
-    const nestedNodes = nodes.map((node) => ({ ...node, presenceNodes: bindingsByOwner.get(node.universalKey as EphemeraMembershipHostId) ?? [] }))
+    // The one composition rule: a union, which also joins the two legs of each crossing port.
+    const { nodes: nestedNodes, edges } = unionAllLudicCaches(seedHostId, contributions)
 
     return {
         cache: { hostId: seedHostId, nodes: nestedNodes, edges },

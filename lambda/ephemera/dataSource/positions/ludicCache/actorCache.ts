@@ -4,7 +4,7 @@
  * time. It is never stored, and never written into the room's row: the row is shared by every viewer, and a room walk
  * never enters a character's shard.
  *
- * **Union (AC-1).** Nodes by `universalKey`, edges by `dedupeEdgesByIdentity`. The fold is per-host and independent, so this
+ * **Union (AC-1).** `unionCaches.ts`: nodes by `universalKey`, edges joined at crossing ports then deduped. The fold is per-host and independent, so this
  * equals one fold over both walks (`actorUnion.test.ts`). On a node-key collision the actor half's node wins: a determinism
  * rule, not a freshness claim (AC-4).
  *
@@ -23,16 +23,11 @@ import { resolveCanonAssetStackForRoom } from '../../state/resolveAssetStackForR
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { handlesFromCache, type LudicCacheObjectHandle } from './catalogHandles'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
-import { dedupeEdgesByIdentity } from './mergeReducer'
 import { readLudicCacheWithOutcome } from './store'
-import type { EphemeraLudicCacheData } from './types'
+import { unionLudicCaches } from './unionCaches'
 
-/** The room's cache and the actor's, as one: nodes by key (the actor's wins a collision), edges deduped by identity. */
-export const unionLudicCaches = (room: EphemeraLudicCacheData, actor: EphemeraLudicCacheData): EphemeraLudicCacheData => ({
-    hostId: actor.hostId,
-    nodes: [...new Map([...room.nodes, ...actor.nodes].map((node) => [node.universalKey, node])).values()],
-    edges: dedupeEdgesByIdentity([...room.edges, ...actor.edges]),
-})
+export { unionLudicCaches }
+import type { EphemeraLudicCacheData } from './types'
 
 export class ActorLudicCache {
     readonly actorId: EphemeraCharacterId

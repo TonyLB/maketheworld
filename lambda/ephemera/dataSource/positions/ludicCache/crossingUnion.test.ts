@@ -1,5 +1,5 @@
 /**
- * Slice 0 evidence for foldAsUnion (`AGENT.foldAsUnion.planning.md`): character-to-room crossings, today's behavior
+ * Evidence for foldAsUnion (`AGENT.foldAsUnion.planning.md`): character-to-room crossings, today's behavior
  * pinned, and the payoff as `it.failing`. Hand-authored graphs, injected deps, no `jest.mock`, as `actorUnion.test.ts`.
  *
  * The target model (FA-2): a participant's node is in the room's graph, the room walk never expands a character other
@@ -29,28 +29,31 @@ const namesPort = (port: { owner: string; port: string }) => (edge: EphemeraLudi
     [edge.from, edge.to].some((terminal) => JSON.stringify(terminal) === JSON.stringify(port))
 const nodeKeys = (cache: EphemeraLudicCacheData) => cache.nodes.map((node) => node.universalKey)
 
-describe('character-to-room crossings: today\'s behavior (Slice 0 pins)', () => {
+describe('character-to-room crossings: the halves (Slice 0 pins, updated by Slice 2)', () => {
     it('the room\'s own fold keeps its legs to a participant\'s port, unchanged', () => {
         const roomGraph = actorCrossingGraphs().get(roomId) as EphemeraLudicGraph
         const { edges } = foldSameHostBuckets(roomGraph, roomGraph.presenceNodes.map((node) => presenceUuidFromKey(node.universalKey)))
         expect(edges).toEqual(expect.arrayContaining([tiedTo(tableId, tetherPort), tiedTo(tableId, leashPort)]))
     })
 
-    it('the actor\'s fold drops its own leg from the crossing port', async () => {
+    it('the actor\'s fold keeps its own leg from the crossing port, open', async () => {
         const actor = await fold(actorId)
-        expect(actor.edges.some(namesPort(tetherPort))).toBe(false)
+        expect(actor.edges).toEqual(expect.arrayContaining([tiedTo(tetherPort, bagId)]))
         expect(actor.edges).not.toEqual(expect.arrayContaining([tiedTo(tableId, bagId)]))
     })
 
-    it('the room walk expands participants\' shards: held inventory and the joined crossings enter the room row (Slice 2 removes this)', async () => {
+    it('the room walk never expands a participant\'s shard: its inventory and the unjoined legs stay in their own halves', async () => {
         const room = await fold(roomId)
-        expect(nodeKeys(room)).toEqual(expect.arrayContaining([actorId, bagId, coinId, leashId]))
-        expect(room.edges).toEqual(expect.arrayContaining([tiedTo(tableId, bagId), tiedTo(tableId, leashId)]))
+        expect(nodeKeys(room)).not.toEqual(expect.arrayContaining([bagId]))
+        expect(nodeKeys(room)).not.toContain(coinId)
+        expect(nodeKeys(room)).not.toContain(leashId)
+        expect(room.edges).toEqual(expect.arrayContaining([tiedTo(tableId, tetherPort), tiedTo(tableId, leashPort)]))
+        expect(room.edges).not.toEqual(expect.arrayContaining([tiedTo(tableId, bagId)]))
     })
 })
 
 describe('character-to-room crossings: the payoff', () => {
-    it.failing('the actor\'s cache joins its own crossing and keeps the other character\'s leg unmatched', async () => {
+    it('the actor\'s cache joins its own crossing and keeps the other character\'s leg unmatched', async () => {
         const room = await fold(roomId)
         const actor = await fold(actorId)
 

@@ -1,6 +1,6 @@
 # Fold as union: derive a cache contribution from each host's graph, and collapse crossings in the union
 
-**Status:** drafted 2026-10-30. Slices 0 (evidence) and 1 (one leg-matching rule, `joinCrossingLegs`) done 2026-10-30. **Next step: Slice 2** (one composition rule). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). The actor's cache plan's Slice 2 waits on this plan ([`AGENT.actorCache.planning.md`](../actions/AGENT.actorCache.planning.md)).
+**Status:** drafted 2026-10-30. Slices 0 (evidence), 1 (one leg-matching rule, `joinCrossingLegs`) and 2 (one composition rule, `unionCaches.ts`) done 2026-10-30. **Next step: Slice 3** (payoff; its test flip already landed in Slice 2, so what remains is the `storedBytes` check and the full-suite run). An implementation plan, per [`taskPlanning/AGENT.md`](../../../../AGENT.md). The actor's cache plan's Slice 2 waits on this plan ([`AGENT.actorCache.planning.md`](../actions/AGENT.actorCache.planning.md)).
 
 ## Goal
 
@@ -59,7 +59,7 @@ No consumer reads cache edges yet (see below), so that cache is the furthest obs
 3. **The code this reshapes:** `fold.ts`, then in `mergeReducer.ts`: `collapseCrossingPorts`, `foldSameHostBuckets`, `mergeSameHostBucket`, `legsAgree`, `outerTerminal`, `liftPresenceTerminal` and `dedupeEdgesByIdentity`. Then `actorCache.ts` and `actorCacheTestFixtures.ts`.
 4. **How crossings are made:** `buildCrossingLegs.ts` and its [synthesize `AGENT.implementation.md`](../../../../../lambda/ephemera/dataSource/actions/enrich/objectManipulation/synthesize/AGENT.implementation.md).
 5. **Testing (command authority):** [`lambda/ephemera/AGENT.testing.md`](../../../../../lambda/ephemera/AGENT.testing.md). Run from `lambda/ephemera/` with `npm run test` (not `npm test`). `npx tsc --noEmit` is not sufficient on its own, because `*.integration.test.ts` files sit outside `tsconfig`.
-6. **Baseline (must pass before edits):** from `lambda/ephemera/`, `npm run test -- --watchAll=false`. Last recorded 2026-10-30, after Slice 1: 430 suites / 4120 passed / 9 skipped. Jest counts the payoff's `it.failing` as passed, so a green count does not mean the payoff holds; Slice 3 flips it to `it`.
+6. **Baseline (must pass before edits):** from `lambda/ephemera/`, `npm run test -- --watchAll=false`. Last recorded 2026-10-30, after Slice 2: 431 suites / 4129 passed / 9 skipped.
 
 ## Open decisions (implementation --- plan only)
 
@@ -68,6 +68,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | FA-1 | **What happens to unmatched legs.** **Decided 2026-10-30 (revised the same day): they are kept, and nothing drops them.** The stored room row keeps them, which is how the actor half finds its partner, and the actor's cache keeps whatever stays unmatched. An unmatched leg is local information for reasoning: the parent's leg (`String -[tied to]-> Table#PortA`) says the string is tied to something hosted on the Table; the child's leg (`Table#PortA -> Cup`) says the cup is tied to something outside the Table, without naming which host, since the cache keeps no port records. A matched pair is consumed: the union replaces both legs with the joined edge, so no relation appears twice. (First decided as "drop once before reasoning"; that framing came from today's behavior, which drops as a side effect.) | 2, 3 | Decided |
+| FA-3 | **An open leg whose pair another half already joined.** **Decided 2026-10-30:** the union drops an open leg when it holds an edge of the same relationship that the leg is half of (same `edgeId`, `kind`, `relationLabel`, `chainId`, with the leg's non-port terminal on the same side), because a room row can join a crossing whose child the actor's fold walks alone (the half-held rope). Without an `edgeId` the match is not provable, so the leg stays (a stray, never a lost fact). Revisit if a producer mints crossing legs without `edgeId`. | 2 | Decided |
 | FA-2 | **Which characters the room graph and room walk hold.** **Decided 2026-10-30:** a participant (a character entangled with the room by a crossing) has a node in the room's graph, so the room's leg has a node to land on; a bystander does not. The room walk never expands a character shard other than its seed, so a participant's inventory stays out of the shared row. The actor's own full walk joins in through the union. Reverses the participant shelf's "Inclusion: expand the participant's whole shard". | 2 | Decided |
 
 ## Progress
@@ -76,8 +77,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- |
 | 0. Evidence: crossing fixture, today's behavior pinned, failing payoff test | Done 2026-10-30 (`actorCrossingGraphs`, `crossingUnion.test.ts`); found the walk has no character filter (FA-2) |
 | 1. One leg-matching rule (dedupe, then join distinct legs on a crossing-port address); `mergeSameHostBucket` uses it and `isStubPort` retires; no output change | Done 2026-10-30 (`joinCrossingLegs` in `mergeReducer.ts`; `isStubPort` retired, no fallback needed; `collapseCrossingPorts` untouched, it retires in Slice 2) |
-| 2. The room walk skips non-seed characters; each host's cache contribution (derived from its graph) keeps open legs; the union joins crossings with Slice 1's rule; the fold reduces through it | Can start |
-| 3. Payoff: cross-half collapse and surviving unmatched legs in the actor's cache | |
+| 2. The room walk skips non-seed characters; each host's cache contribution (derived from its graph) keeps open legs; the union joins crossings with Slice 1's rule; the fold reduces through it | Done 2026-10-30 (`unionCaches.ts`; `collapseCrossingPorts` retired; payoff test flipped to `it`, since `it.failing` fails once it passes; FA-3 added) |
+| 3. Payoff: cross-half collapse and surviving unmatched legs in the actor's cache | Can start (payoff test already passes) |
 | last. Durable docs; plan deleted | |
 
 ## Recommended order
@@ -98,14 +99,16 @@ Pending work uses `[ ]` and completed work `[X]`; mark each nested line `[X]` as
     - [X] `mergeSameHostBucket` uses it; `isStubPort` retires.
     - [X] Tests: `mergeReducer.test.ts`, `fold.test.ts` (including "run twice") and the full suite pass **unchanged**. New cases for what `isStubPort` guarded: a port-to-port transit leg carried into two buckets is not spliced to itself; an exact duplicate leg is not joined to its copy; an authored port with one leg in the host stays open.
     - [X] Fallback not needed: no case required the guard. `collapseCrossingPorts` is left as is (it retires in Slice 2) and still shares `legsAgree`/`outerTerminal`.
-- [ ] **Slice 2. One composition rule.**
-    - [ ] The room walk (`enumerateShards.ts`) skips any `Character` node other than its seed (FA-2). Rewrite the Slice 0 pin of today's walk to assert the inventory stays out; `actorUnion.test.ts`'s AC-1 tests stay green.
-    - [ ] A host's cache contribution (derived from its `ludicGraph`; the graph is untouched): `foldSameHostBuckets`' output keeps legs on still-open **crossing** ports (never binding addresses; see the hazard above).
-    - [ ] The union joins legs with Slice 1's rule on cache edges, then dedupes by identity (`dedupeEdgesByIdentity`).
-    - [ ] `buildLudicCache` reduces the hosts' cache contributions through the union in `hostIds` order. Retire `collapseCrossingPorts`' parent/child pairing.
-    - [ ] Tests: the union is commutative as a set; "run twice" stays byte-identical; a matched pair leaves only the joined edge. Review each existing fold test whose expected `edges` change: every change must be an open leg now kept.
+- [X] **Slice 2. One composition rule.**
+    - [X] The room walk (`enumerateShards.ts`) skips any `Character` node other than its seed (FA-2). Rewrite the Slice 0 pin of today's walk to assert the inventory stays out; `actorUnion.test.ts`'s AC-1 tests stay green.
+    - [X] A host's cache contribution (derived from its `ludicGraph`; the graph is untouched): `foldSameHostBuckets`' output keeps legs on still-open **crossing** ports (never binding addresses; see the hazard above).
+    - [X] The union joins legs with Slice 1's rule on cache edges, then dedupes by identity (`dedupeEdgesByIdentity`).
+    - [X] `buildLudicCache` reduces the hosts' cache contributions through the union in `hostIds` order. Retire `collapseCrossingPorts`' parent/child pairing.
+    - [X] Tests: the union is commutative as a set; "run twice" stays byte-identical; a matched pair leaves only the joined edge. Review each existing fold test whose expected `edges` change: every change must be an open leg now kept.
+    - [X] FA-3 (found while planning): `isHalfOf` in the union drops an open leg already joined in the other half; pinned in `unionCaches.test.ts`.
+    - [X] Test changes: `collapseCrossingPorts` tests re-expressed through the union in `mergeReducer.test.ts` (two lift-only cases dropped; lifting stays tested under `foldSameHostBuckets`); `actorUnion.test.ts`'s reference fold now seeds at the actor and names the room as a member (a synthetic seed cannot name a character any more); `fold.test.ts`'s bound-twice fixture gained bindings covering its members, since the fold reads graphs through buckets. Each changed expectation was an open leg now kept, none a lost or duplicated edge.
 - [ ] **Slice 3. Payoff.**
-    - [ ] Slice 0's payoff tests pass: flip `it.failing` to `it`.
+    - [X] Slice 0's payoff tests pass: flipped `it.failing` to `it` in Slice 2 (it passed as soon as the union landed).
     - [ ] Watch `storedBytes` on the stored row: open legs add bytes to a row with no size guard.
     - [ ] The full suite passes.
 - [ ] **Last. Durable docs, then delete this plan.**
@@ -123,4 +126,4 @@ From `lambda/ephemera/`:
 - `npx tsc --noEmit`: types.
 - `fold.test.ts`'s "run twice" case: byte-identical edges.
 - After Slice 1: `grep -rn "isStubPort" lambda/ephemera/dataSource` is empty (verified after Slice 1).
-- After Slice 2: `grep -rn "collapseCrossingPorts(" lambda/ephemera/dataSource` shows no parent/child pairing loop left in `fold.ts`.
+- After Slice 2: `grep -rn "collapseCrossingPorts(" lambda/ephemera/dataSource` matches only the test helper of that name in `mergeReducer.test.ts` (verified).
