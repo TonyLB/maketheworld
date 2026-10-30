@@ -10,7 +10,7 @@ import { buildActorLudicCache, unionLudicCaches } from './actorCache'
 import { buildLudicCache } from './fold'
 import { readLudicCacheWithOutcome } from './store'
 import type { EphemeraLudicCacheData } from './types'
-import { actorCacheGraphs, actorId, bagId, coinId, graphReader, ropeAtTable, ropeHeld, ropeId, roomId, tableId } from './actorCacheFixture'
+import { actorCacheGraphs, actorId, bagId, coinId, graphReader, ropeAtTable, ropeHeld, ropeId, roomId, tableId } from './actorCacheTestFixtures'
 
 /** Names each object for its id, with `overrides` for chosen ones. */
 const aggregateNamed = (overrides: Record<string, string> = {}): ComponentAggregateMergedCache['get'] => async ([perspective]) => [mergedComponentResult({

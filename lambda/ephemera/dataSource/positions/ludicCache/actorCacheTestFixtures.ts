@@ -5,7 +5,11 @@
  * never reaches the bag or the coin; a walk seeded at the actor does.
  *
  * Crossing: the actor holds a leg `rope -ConnectedTo-> bag.PORT-held` and the bag holds `PORT-held -ConnectedTo-> coin`,
- * so the actor's fold collapses one crossing edge `rope -> coin`. The table likewise crosses to a lamp in the room.
+ * so the actor's fold collapses one crossing edge `rope -> coin`.
+ *
+ * `actorCrossingGraphs` (foldAsUnion, `AGENT.foldAsUnion.planning.md`) adds character-to-room crossings: the actor and a
+ * second character are participants, so each has a node in the room's graph, and the table is tied across each one's
+ * boundary (`table -[tied to]-> actor.PORT-tether`, then `PORT-tether -[tied to]-> bag`; likewise to the other's leash).
  */
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -22,6 +26,8 @@ export const lampId = 'OBJECT#Lamp' as EphemeraObjectId
 export const bagId = 'OBJECT#Bag' as EphemeraObjectId
 export const coinId = 'OBJECT#Coin' as EphemeraObjectId
 export const ropeId = 'OBJECT#Rope' as EphemeraObjectId
+export const otherId = 'CHARACTER#Other' as EphemeraCharacterId
+export const leashId = 'OBJECT#Leash' as EphemeraObjectId
 
 export const actorInRoom = PresenceKey('actor-in-room')
 export const tableInRoom = PresenceKey('table-in-room')
@@ -30,6 +36,8 @@ export const bagHeld = PresenceKey('bag-held')
 export const coinInBag = PresenceKey('coin-in-bag')
 export const ropeHeld = PresenceKey('rope-held')
 export const ropeAtTable = PresenceKey('rope-at-table')
+export const otherInRoom = PresenceKey('other-in-room')
+export const leashHeld = PresenceKey('leash-held')
 
 const cover = (...entries: [EphemeraMembershipHostId, string][]): EphemeraPresenceCover => ({
     members: entries.map(([host, presence]) => ({ host, presence: presence as EphemeraPresenceCover['members'][number]['presence'] })),
@@ -81,6 +89,56 @@ export const actorCacheGraphs = (): Map<EphemeraMembershipHostId, EphemeraLudicG
         ports: [{ portId: 'PORT-held', fromHostId: actorId, kind: 'ConnectedTo' }],
     })],
     [coinId, testLudicGraph(coinId, { nodes: [{ tag: 'Object', universalKey: coinId }, presenceBindingNode(coinInBag, { host: bagId, presence: bagHeld })] })],
+])
+
+const tiedTo = { kind: 'Custom', relationLabel: 'tied to' } as const
+export const tetherPort = { owner: actorId, port: 'PORT-tether' } as const
+export const leashPort = { owner: otherId, port: 'PORT-leash' } as const
+
+/**
+ * `actorCacheGraphs` with two character-to-room crossings. The actor and the other character are participants: each
+ * has a node in the room's graph, covered by the room's Base, so the room's leg has a node to land on. Each crossing's
+ * port is the character's own (the interior mints it), so the room holds the leg to the port and the character holds
+ * the leg from it.
+ */
+export const actorCrossingGraphs = (): Map<EphemeraMembershipHostId, EphemeraLudicGraph> => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+    ...actorCacheGraphs(),
+    [roomId, testLudicGraph(roomId, {
+        nodes: [
+            { tag: 'Room', universalKey: roomId },
+            { tag: 'Object', universalKey: tableId },
+            { tag: 'Character', universalKey: actorId },
+            { tag: 'Character', universalKey: otherId },
+            presenceBindingNode(parentRemainderKey(roomId), undefined, cover([tableId, tableInRoom], [actorId, actorInRoom], [otherId, otherInRoom])),
+        ],
+        edges: [
+            { tag: 'Relational', from: tableId, to: tetherPort, ...tiedTo },
+            { tag: 'Relational', from: tableId, to: leashPort, ...tiedTo },
+        ],
+    })],
+    [actorId, testLudicGraph(actorId, {
+        nodes: [
+            { tag: 'Character', universalKey: actorId },
+            { tag: 'Object', universalKey: bagId },
+            { tag: 'Object', universalKey: ropeId },
+            presenceBindingNode(actorInRoom, roomId, cover([bagId, bagHeld], [ropeId, ropeHeld])),
+        ],
+        edges: [
+            { tag: 'Relational', from: ropeId, to: { owner: bagId, port: 'PORT-held' }, kind: 'ConnectedTo' },
+            { tag: 'Relational', from: tetherPort, to: bagId, ...tiedTo },
+        ],
+        ports: [{ portId: 'PORT-tether', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'tied to' }],
+    })],
+    [otherId, testLudicGraph(otherId, {
+        nodes: [
+            { tag: 'Character', universalKey: otherId },
+            { tag: 'Object', universalKey: leashId },
+            presenceBindingNode(otherInRoom, roomId, cover([leashId, leashHeld])),
+        ],
+        edges: [{ tag: 'Relational', from: leashPort, to: leashId, ...tiedTo }],
+        ports: [{ portId: 'PORT-leash', fromHostId: roomId, kind: 'Custom', exteriorRelationLabel: 'tied to' }],
+    })],
+    [leashId, testLudicGraph(leashId, { nodes: [{ tag: 'Object', universalKey: leashId }, presenceBindingNode(leashHeld, { host: otherId, presence: otherInRoom })] })],
 ])
 
 export const graphReader = (graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>) => async (hostId: EphemeraMembershipHostId): Promise<EphemeraLudicGraph> => {

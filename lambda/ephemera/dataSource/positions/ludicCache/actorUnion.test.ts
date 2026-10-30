@@ -17,7 +17,7 @@ import type { EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from './types'
 import { isEphemeraLudicCacheData } from './types'
 import {
     actorCacheGraphs, actorId, actorInRoom, bagHeld, bagId, coinId, coinInBag, graphReader, lampId, ropeAtTable, ropeHeld, ropeId, roomId, tableId, tableInRoom,
-} from './actorCacheFixture'
+} from './actorCacheTestFixtures'
 
 /** Every object is named for its id, so handles are built. */
 const namedAggregate: ComponentAggregateMergedCache['get'] = async ([perspective]) => [mergedComponentResult({

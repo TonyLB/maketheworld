@@ -9,7 +9,9 @@ import type { EphemeraCrossingPortId, EphemeraLudicGraphComponentNode, EphemeraL
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
+import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets, joinCrossingLegs, mergeSameHostBucket } from './mergeReducer'
+import type { HostRelationalEdge } from '../ludicGraph'
+import type { EphemeraLudicCacheTerminalId } from './types'
 import { isEphemeraLudicCacheEdge } from './types'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
 
@@ -223,6 +225,56 @@ describe('collapseCrossingPorts', () => {
         })
 
         expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
+    })
+})
+
+describe('joinCrossingLegs', () => {
+    const port = { owner: boxId, port: 'PORT-p1' as const }
+    const leg = (from: EphemeraLudicCacheTerminalId, to: EphemeraLudicCacheTerminalId, extra: Partial<HostRelationalEdge<EphemeraLudicCacheTerminalId>> = {}): HostRelationalEdge<EphemeraLudicCacheTerminalId> =>
+        ({ from, to, kind: 'ConnectedTo', ...extra }) as HostRelationalEdge<EphemeraLudicCacheTerminalId>
+
+    it('joins two distinct legs on one crossing-port address into one edge (cache-edge terminals)', () => {
+        const result = joinCrossingLegs([leg(boulder, port), leg(port, pebble)])
+        expect(result.edges).toEqual([leg(boulder, pebble)])
+        expect(result.joinedPorts).toEqual([port])
+    })
+
+    it('does not splice a transit leg to its own copy', () => {
+        const transit = leg({ owner: roomId, port: 'PORT-a' }, { owner: roomId, port: 'PORT-b' })
+        const result = joinCrossingLegs([transit, { ...transit }])
+        expect(result.edges).toEqual([transit])
+        expect(result.joinedPorts).toEqual([])
+    })
+
+    it('does not join an exact duplicate leg to its copy', () => {
+        const result = joinCrossingLegs([leg(boulder, port), leg(boulder, port)])
+        expect(result.edges).toEqual([leg(boulder, port)])
+        expect(result.joinedPorts).toEqual([])
+    })
+
+    it('leaves a port with one leg open', () => {
+        const result = joinCrossingLegs([leg(boulder, port), leg(pebble, feather)])
+        expect(result.edges).toEqual([leg(boulder, port), leg(pebble, feather)])
+        expect(result.joinedPorts).toEqual([])
+    })
+
+    it('puts joined edges first, then untouched legs', () => {
+        const result = joinCrossingLegs([leg(pebble, feather), leg(boulder, port), leg(port, objC)])
+        expect(result.edges).toEqual([leg(boulder, objC), leg(pebble, feather)])
+    })
+
+    it('throws when the two legs disagree on edgeId, kind or chainId', () => {
+        expect(() => joinCrossingLegs([leg(boulder, port, { edgeId: 'E1' }), leg(port, pebble, { edgeId: 'E2' })])).toThrow(/disagree/)
+        expect(() => joinCrossingLegs([leg(boulder, port), leg(port, pebble, { kind: 'Custom', relationLabel: 'x' } as any)])).toThrow(/disagree/)
+        expect(() => joinCrossingLegs([leg(boulder, port, { chainId: 'C1' }), leg(port, pebble, { chainId: 'C2' })])).toThrow(/disagree/)
+    })
+
+    it('never joins binding addresses, even with two distinct legs', () => {
+        const binding = { owner: boxId, port: 'PRESENCE#b1' as EphemeraPresenceNodeId }
+        const legs = [leg(boulder, binding), leg(binding, pebble)]
+        const result = joinCrossingLegs(legs)
+        expect(result.edges).toEqual(legs)
+        expect(result.joinedPorts).toEqual([])
     })
 })
 
