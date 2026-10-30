@@ -23,3 +23,10 @@ describe('StandardLudicRelationalEdge edge terminals', () => {
         expect(edge.sameKey(new StandardLudicRelationalEdge({ ...data, to: { edgeId: 'other' } }))).toBe(false)
     })
 })
+
+describe('SecuredTo wire kind', () => {
+    it('is a label-less relational edge kind', () => {
+        expect(isStandardLudicRelationalEdgeData({ kind: 'SecuredTo', from: { key: 'Rope', tag: 'Object' }, to: { key: 'Pole', tag: 'Object' } })).toBe(true)
+        expect(isStandardLudicRelationalEdgeData({ kind: 'SecuredTo', from: { key: 'Rope', tag: 'Object' }, to: { key: 'Pole', tag: 'Object' }, relationLabel: 'x' })).toBe(false)
+    })
+})

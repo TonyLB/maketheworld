@@ -129,6 +129,18 @@ describe('isObjectRelationChangedPublishedPayload', () => {
         })).toBe(false)
     })
 
+    it('accepts a SecuredTo relationKind (label-less)', () => {
+        expect(isObjectRelationChangedPublishedPayload({
+            type: 'Object Relation Changed',
+            subjectId: 'OBJECT#rope',
+            targetId: 'OBJECT#pole',
+            hostId: 'ROOM#Kitchen',
+            relationKind: 'SecuredTo',
+            operation: 'establish',
+            beatAnchorTime: 1_700_000_000_000,
+        })).toBe(true)
+    })
+
     // `'Present'` retired from `HostRelationalEdgeKind` entirely at presenceNodes Slice 3
     // (PN-14) -- this guard's RELATION_INSTRUCTION_KINDS Set (this file) dropped it in the same
     // change, and no writer ever constructed this payload shape (checked as part of PN-14's

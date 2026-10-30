@@ -956,6 +956,39 @@ describe('EphemeraLudicGraph', () => {
                 })).toStrictEqual([{ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo' }])
             })
 
+            describe('SecuredTo', () => {
+                it('stores a label-less, directional SecuredTo and it survives the stored round trip', () => {
+                    const next = graphWithThreeObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'SecuredTo' })
+                    expect(next.relationalEdges).toContainEqual({ from: OBJECT_A, to: OBJECT_B, kind: 'SecuredTo' })
+                    const reread = EphemeraLudicGraph.fromFieldPayload(HOST_ID, next.toStored())
+                    expect(reread.relationalEdges).toContainEqual({ from: OBJECT_A, to: OBJECT_B, kind: 'SecuredTo' })
+                    // directional: the reverse is a different edge
+                    expect(reread.removeRelationalEdge({ from: OBJECT_B, to: OBJECT_A, kind: 'SecuredTo' }).relationalEdges).toHaveLength(1)
+                })
+
+                it('stores an edge from a member to its host root, and removes it', () => {
+                    const withEdge = graphWithThreeObjects().addRelationalEdge({ from: OBJECT_A, to: HOST_ID, kind: 'SecuredTo' })
+                    const reread = EphemeraLudicGraph.fromFieldPayload(HOST_ID, withEdge.toStored())
+                    expect(reread.relationalEdges).toContainEqual({ from: OBJECT_A, to: HOST_ID, kind: 'SecuredTo' })
+                    expect(reread.removeRelationalEdge({ from: OBJECT_A, to: HOST_ID, kind: 'SecuredTo' }).relationalEdges).toEqual([])
+                })
+
+                it('stores the tie triple: Custom(tied to) justifying SecuredTo, the Justifies naming both ids', () => {
+                    const triple = graphWithThreeObjects()
+                        .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'Custom', relationLabel: 'tied to', edgeId: 'tie-1' })
+                        .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'SecuredTo', edgeId: 'secure-1' })
+                        .addRelationalEdge({ from: { edgeId: 'tie-1' }, to: { edgeId: 'secure-1' }, kind: 'Justifies' })
+                    const reread = EphemeraLudicGraph.fromFieldPayload(HOST_ID, triple.toStored())
+                    expect(reread.relationalEdges).toHaveLength(3)
+                    expect(reread.relationalEdges).toContainEqual({ from: { edgeId: 'tie-1' }, to: { edgeId: 'secure-1' }, kind: 'Justifies' })
+                })
+
+                it('refuses a SecuredTo carrying an edge terminal', () => {
+                    const graph = graphWithThreeObjects().addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-a' })
+                    expect(() => graph.addRelationalEdge({ from: OBJECT_A, to: { edgeId: 'edge-a' }, kind: 'SecuredTo' })).toThrow(/Only a Justifies/)
+                })
+            })
+
             describe('edge terminals (Justifies)', () => {
                 const base = () => graphWithThreeObjects()
                     .addRelationalEdge({ from: OBJECT_A, to: OBJECT_B, kind: 'ConnectedTo', edgeId: 'edge-a' })

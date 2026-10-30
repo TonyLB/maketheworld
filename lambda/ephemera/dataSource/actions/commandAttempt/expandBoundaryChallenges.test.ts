@@ -51,6 +51,21 @@ describe('attemptActionsFromBoundaryOutcomes', () => {
             .toThrow(/'ConnectedTo' boundary edge deferred/)
     })
 
+    // Temporary pin: the block routing slice (AGENT.securedTo.planning.md Slice 3) replaces this throw with a challenge on the primary action.
+    it('throws on a SecuredTo boundary edge until block outcomes are routed', () => {
+        const graph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: postId },
+            ],
+            edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'SecuredTo' }],
+        })
+        const primaryAction = new PositionAttemptAction('action-st', [], undefined, 'Take: rope')
+
+        expect(() => attemptActionsFromBoundaryOutcomes(primaryAction, ropeId, [graph], noShards))
+            .toThrow(/'SecuredTo' boundary edge blocks the move/)
+    })
+
     it('adds one action carrying a CustomEdgeChallenge (with the real edge) for a defer-classified boundary edge', () => {
         const graph = testLudicGraph(roomId, {
             nodes: [

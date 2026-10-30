@@ -18,6 +18,7 @@ import { reparentPresenceBinding } from './reparentPresenceBinding'
 import { joinBindings } from './joinPresenceBindings'
 import { splitPresenceBinding } from './splitPresenceBinding'
 import { connectedToViolation } from './connectedToLegality'
+import { securedToViolation } from './securedToLegality'
 import { settleParentless } from './settleParentless'
 import type { ParentBinding } from '../../ludicGraph/presenceParent'
 import type { MutationKernelApplyOutcome } from './types'
@@ -389,6 +390,12 @@ export const applyStepSequenceCore = (
             const violation = connectedToViolation(hostGraph, step.hostId, step.subjectId, step.targetId)
             if (violation) {
                 throw new Error(`ConnectedTo in ${step.hostId}: ${violation} --- structural invariant violated (ConnectedTo joins parts of one whole, in that whole's own graph)`)
+            }
+        }
+        if (step.kind === 'establishRelation' && step.relationKind === 'SecuredTo') {
+            const violation = securedToViolation(hostGraph, step.hostId, step.subjectId, step.targetId)
+            if (violation) {
+                throw new Error(`SecuredTo in ${step.hostId}: ${violation} --- structural invariant violated (SecuredTo joins two things of one graph, in that graph)`)
             }
         }
         const patched = hostGraph.applyRelationalPatch({

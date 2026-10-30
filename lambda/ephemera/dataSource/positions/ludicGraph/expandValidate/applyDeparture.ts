@@ -47,6 +47,12 @@ export function applyDeparture(
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
     const boundaryOutcomes = isEphemeraObjectId(entityId) ? boundaryEdgeOutcomes(entityId, sourceGraph) : []
+    // Temporary until the block routing slice (AGENT.securedTo.planning.md Slice 3) gives a remaining
+    // `block` edge its refuse outcome: without this the departure below would be called legal.
+    const blockOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'block')
+    if (blockOutcome !== undefined) {
+        throw new Error(`applyDeparture: a '${blockOutcome.edge.kind}' boundary edge blocks the move, and block outcomes are not routed yet`)
+    }
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
         // Both deferring cases are repairable; they differ in *which* repair. A non-`Custom` edge

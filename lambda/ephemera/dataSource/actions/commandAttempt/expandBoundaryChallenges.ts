@@ -158,6 +158,12 @@ const boundaryActionsInGraph = (
             ...relationKindAndLabelOf(entry.edge),
         }
 
+        // Temporary until the block routing slice (AGENT.securedTo.planning.md Slice 3) puts a challenge on
+        // the primary action: a `block` falling through would become an unchallenged dissolve.
+        if (entry.outcome === 'block') {
+            throw new Error(`attemptActionsFromBoundaryOutcomes: a '${entry.edge.kind}' boundary edge blocks the move, and block outcomes are not routed yet`)
+        }
+
         let challenges: Challenge[] = []
         if (entry.outcome === 'defer') {
             // The classifier defers `Custom` (the one peer kind) and `ConnectedTo`; only `Custom` has a

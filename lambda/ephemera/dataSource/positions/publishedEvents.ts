@@ -44,7 +44,7 @@ export type ObjectRelationChangedPublishedPayload = {
     beatAnchorTime: number;
 } & RelationalKindAndLabel
 
-const RELATION_INSTRUCTION_KINDS = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo'])
+const RELATION_INSTRUCTION_KINDS = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo', 'SecuredTo'])
 
 /**
  * The rooms whose stored `ludicCache` was just marked stale (its marker bumped), whatever the

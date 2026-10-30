@@ -5,9 +5,10 @@ import type { EphemeraLudicGraph, HostRelationalEdge } from '../index'
 
 export type TransferEndpointRole = 'subject' | 'target'
 
-// `dissolve` has no producer (every peer edge defers). It is kept as the no-judgment class reserved
-// for a future LLM tier.
-export type InteractionUnderTransferOutcome = 'dissolve' | 'defer'
+// `dissolve` has no producer (every peer edge but `SecuredTo` defers). It is kept as the no-judgment
+// class reserved for a future LLM tier. `block` is a precondition: the move abstains until the edge
+// is gone (only `SecuredTo`), where `defer` lets an adjudicator judge the severing.
+export type InteractionUnderTransferOutcome = 'dissolve' | 'defer' | 'block'
 
 /**
  * What happens to an existing relation when one of its endpoints moves: `dissolve` (the move
@@ -28,6 +29,10 @@ export function classifyInteractionUnderTransfer(
     switch (relationKind) {
         case 'Custom':
             return 'defer'
+        case 'SecuredTo':
+            // Securing is the one deterministic precondition: whichever end moves, the move is
+            // blocked until the edge is gone (the player's own `untie`).
+            return 'block'
         case 'ConnectedTo':
             // A `ConnectedTo` edge reaches this graph only when a part moves out of its own whole,
             // which tears the whole apart: an interaction for the adjudicator, as a peer edge is,

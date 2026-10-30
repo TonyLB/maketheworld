@@ -37,6 +37,19 @@ describe('applyDeparture', () => {
         expect(outcome.sourceGraph.objectIds.has(tableId)).toBe(true)
     })
 
+    // Temporary pin: the block routing slice (AGENT.securedTo.planning.md Slice 3) replaces this throw with a refuse outcome.
+    it('throws on a SecuredTo boundary edge until block outcomes are routed (never called legal)', () => {
+        const sourceGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object', universalKey: trayId },
+                { tag: 'Object', universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: trayId, to: tableId, kind: 'SecuredTo' }],
+        })
+
+        expect(() => applyDeparture(sourceGraph, trayId)).toThrow(/'SecuredTo' boundary edge blocks the move/)
+    })
+
     it('repairable/dissolveRelationalEdge: a ConnectedTo boundary edge (a part leaving its whole) defers like a non-Custom edge', () => {
         const sourceGraph = testLudicGraph(roomId, {
             nodes: [

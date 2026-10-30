@@ -335,13 +335,14 @@ Mental model: [**Host-local relational patch**](AGENT.concepts.md#manipulation-l
 
 ### Relation kinds
 
-**`HostRelationalEdgeKind`** is one peer kind, `Custom`, plus the topology kind `ConnectedTo`. The hosting kinds (`On`, `In`, `PartOf`, and the placement/composition kinds `Held` and `SectionOf`) are not relation kinds: each is the `hostingKind` field of a member's node, set by the `setHostingKind` kernel step:
+**`HostRelationalEdgeKind`** is the peer kinds `Custom` and `SecuredTo`, the topology kind `ConnectedTo`, and the support kind `Justifies`. The hosting kinds (`On`, `In`, `PartOf`, and the placement/composition kinds `Held` and `SectionOf`) are not relation kinds: each is the `hostingKind` field of a member's node, set by the `setHostingKind` kernel step:
 
 | Kind | Player language (examples) | Persist |
 | --- | --- | --- |
 | **`On`** / **`In`** | on, onto, in, inside | Containment: the member's `hostingKind` on its node in the new host's graph, not an edge. Arrival gives a default kind (`defaultHostingKind`: `Held` for an object in a character, `In` for an object elsewhere, `PartOf` for a Room/Feature/Area); a move's `hostingKind` (the planner's parsed preposition) compiles to a `setHostingKind` step after the presence steps, which `applyStepSequenceCore` applies through `EphemeraLudicGraph.setHostingKind` (no published fact), and leaving a host removes the node and its kind with it. **Must not** persist as a peer edge between siblings |
 | **`PartOf`** | none (no deterministic authoring) | Containment, same shape: the member's `hostingKind` on its node |
 | **`Custom`** | under, against, tied to, wrapped around, long-tail phrases | **`kind: 'Custom'`** + **`relationLabel`** (see below) |
+| **`SecuredTo`** | none yet (the `tie` templates are planned) | **`kind: 'SecuredTo'`**, no label. A closed, directional peer kind (subject secured to object), same graph and single leg: both ends are nodes of the host's graph (a member, or the host's own root); the kernel refuses an edge, binding-address, crossing-port or foreign terminal. A move of either end is classified `block` (a precondition, not a judgment); the routing of that block is not yet built |
 | **`ConnectedTo`** | none directly: written by **extend** (spread, drape, carrying one end of a rope onward) and rewritten by contraction | **`kind: 'ConnectedTo'`**, no label. Topology within one whole: how its parts or bindings join |
 
 **Hosting kind rules.** A member has **exactly one** hosting kind in a given host (one per membership; the same thing in two hosts holds two kinds, one on each node). The five values fall in two families, read through the total function `hostingFamily(kind)` and never through a list of kinds: **placement** (`On`, `In`, `Held`: where a distinct thing sits relative to its host) and **composition** (`PartOf`, a distinct part; `SectionOf`, a fungible stretch of the host read as an abstraction). The field is **required on every non-root component member** (the payload guard and the container's add path both refuse a kind-less one) and **absent on the root and on presence nodes**. Legality is per host: `Held` only on a character host; `In`, `PartOf` and `SectionOf` never on one (`On` on a character is worn or a coating). `addMember` refuses a different kind for a present node; a change of kind is `setHostingKind`. `SectionOf` has a type, a guard and a round-trip test but no writer.
@@ -354,7 +355,7 @@ Containment (`put X in Y`, `put X on Y`) is the only relational parse that stays
 
 ### Edge persist shape
 
-A hosting kind is **never** an edge or a port: it persists on the member's node. The kinds a stored edge or crossing port may carry are `STORED_RELATIONAL_EDGE_KINDS` (`Custom`, `ConnectedTo`, `Justifies`); the payload guard refuses a stored hosting-kind edge or port, and recovery (`extractRelationalEdgesFromStored`) drops one.
+A hosting kind is **never** an edge or a port: it persists on the member's node. The kinds a stored edge or crossing port may carry are `STORED_RELATIONAL_EDGE_KINDS` (`Custom`, `SecuredTo`, `ConnectedTo`, `Justifies`); the payload guard refuses a stored hosting-kind edge or port, and recovery (`extractRelationalEdgesFromStored`) drops one.
 
 Relational mutations **must** persist on a **fixed host** --- the host's own **`Meta::<Kind>.ludicGraph`** forward graph only. `RelationalIngressArgs.hostId` is an `EphemeraMembershipHostId`, so **any** of the five host kinds is a legal persist target and all five dispatch through storage. **Room and Character are the kinds production ingress is confirmed to produce today** (a Character host arises when subject and target already share the acting character's inventory graph); Object / Feature / Area are storage-supported and grounding-reachable but have no confirmed production ingress path yet, so **absence of one is not evidence the host kind is illegal**. **Must not** write adjacency rows for relational edges (forward-graph only; see [`manipulation/AGENT.implementation.md`](manipulation/AGENT.implementation.md#host-local-relational-patch)).
 
@@ -362,7 +363,7 @@ Relational mutations **must** persist on a **fixed host** --- the host's own **`
 
 ```typescript
 type HostRelationalEdgeKind =
-    | 'Custom' | 'ConnectedTo' | 'Justifies'
+    | 'Custom' | 'SecuredTo' | 'ConnectedTo' | 'Justifies'
 
 /** The kind/label pairing, shared by every type that carries one. */
 type RelationalEdgeKindAndLabel<K extends string = HostRelationalEdgeKind> =
