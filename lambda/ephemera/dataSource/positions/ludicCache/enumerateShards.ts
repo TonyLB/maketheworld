@@ -9,7 +9,7 @@
  * needs, in walk order, already deduplicated.
  *
  * **The walk never expands a character other than its seed.** A bystander is indexed by the room's
- * `LudicCache::Characters` row, never by the room's graph; a participant (FA-2) has a node in the room's graph,
+ * `LudicCache::Characters` row, never by the room's graph; a participant has a node in the room's graph,
  * but its shard is not fetched either. That is what keeps a room's cache from re-absorbing an object a character
  * has just picked up (`catalogHandles.ts`): the walk cannot pass through a character into its inventory. A
  * participant's crossing joins its room-side leg at union time (`unionCaches.ts`). A character-seeded walk

@@ -1,8 +1,8 @@
 /**
- * Evidence for foldAsUnion (`AGENT.foldAsUnion.planning.md`): character-to-room crossings, today's behavior
+ * Evidence for the crossing union (positions contract, "Cache edges keep unmatched crossing legs"): character-to-room crossings, today's behavior
  * pinned, and the payoff as `it.failing`. Hand-authored graphs, injected deps, no `jest.mock`, as `actorUnion.test.ts`.
  *
- * The target model (FA-2): a participant's node is in the room's graph, the room walk never expands a character other
+ * The model: a participant's node is in the room's graph, the room walk never expands a character other
  * than its seed, and the actor's own walk joins in through the union. The payoff asserts through `unionLudicCaches`, the
  * function `buildActorLudicCache` composes with, since `ActorLudicCache` exposes no edges until Phase 2 designs that
  * boundary (AC-5).

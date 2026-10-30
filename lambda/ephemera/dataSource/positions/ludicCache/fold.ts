@@ -1,6 +1,6 @@
 /**
  * The fold. Composes the node enumeration's `enumerateLudicCacheShards` (the cross-host walk) with
- * `foldSameHostBuckets` and the union (`unionCaches.ts`), as one rule (foldAsUnion):
+ * `foldSameHostBuckets` and the union (`unionCaches.ts`), as one rule:
  *
  * - **Each host's cache contribution is derived from its own raw graph alone**: its node, its bindings, and its
  *   same-host fold, including the legs still open at its authored crossing ports.

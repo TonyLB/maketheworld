@@ -6,6 +6,7 @@
  * Dependency tag --- the rollback set is exactly:
  *   - positions/ludicGraph/presenceSubGraph.ts (+ test)
  *   - positions/ludicCache/mergeReducer.ts (+ test)
+ *   - positions/ludicCache/unionCaches.ts (+ test), which composes what this file's legs produce
  *   - their fixtures
  * No change to EphemeraLudicGraph, to ephemeraMeta.ts, or to any write path. If a slice finds
  * it needs one, that is a scope change to raise, not to take.
@@ -71,7 +72,7 @@ const outerTerminal = <T extends EphemeraLudicTerminalId>(
     ephemeraLudicTerminalsEqual(edge.from, portTerminal) ? edge.to : edge.from
 
 /**
- * The one leg-matching rule (foldAsUnion Slice 1): **dedupe exact copies, then join two *distinct*
+ * The one leg-matching rule (shared by the same-host merge and the union): **dedupe exact copies, then join two *distinct*
  * legs that name the same crossing-port address.** Generic over the terminal type, so graph edges
  * and cache edges share it.
  *
@@ -314,7 +315,7 @@ const presenceCacheNodesFromFold = (
  *
  * The final read-off is the accumulated graph's own edges, open legs included: a leg touching a
  * remaining authored crossing port is a boundary of this host that no same-host merge can resolve,
- * and is kept for the union to join or leave open (foldAsUnion FA-1).
+ * and is kept for the union to join or leave open (contract: "Cache edges keep unmatched crossing legs").
  *
  * `presenceNodes` (presenceNodes Slice 4, item 3): the cache binding for every binding folded,
  * via `presenceCacheNodesFromFold` above. All are `graph.hostId`'s own bindings, so the caller
@@ -335,7 +336,7 @@ export const foldSameHostBuckets = (
 
     // Every leg is emitted, including one that still touches an authored crossing port of this host: its
     // partner lives in another host, and the union (`unionCaches.ts`) joins the two or keeps the leg open
-    // (FA-1). Every port in `folded.ports` is a crossing port (Slice 7a: presence carries no port record).
+    // (an unmatched leg is kept). Every port in `folded.ports` is a crossing port (Slice 7a: presence carries no port record).
     // A resolved leg landing bare on one of `graph`'s own presence nodes is legal within `graph`'s
     // own interior storage (the graph names the owner implicitly), but this is the cache-bound
     // emission point --- lift it to the exterior form, owner `graph.hostId` (PNR-2(a)).

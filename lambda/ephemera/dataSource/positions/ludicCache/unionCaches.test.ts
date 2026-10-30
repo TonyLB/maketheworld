@@ -1,5 +1,5 @@
 /**
- * The union (`unionCaches.ts`, foldAsUnion Slice 2): nodes by key, crossing legs joined, unmatched legs kept.
+ * The union (`unionCaches.ts`, positions contract, "Cache edges keep unmatched crossing legs"): nodes by key, crossing legs joined, unmatched legs kept.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -67,7 +67,7 @@ describe('unionLudicCaches', () => {
     })
 })
 
-describe('an open leg whose pair another half already joined (FA-3)', () => {
+describe('an open leg whose pair another half already joined (the union drops it)', () => {
     // The room row joined `a -> c` across the port `b` owns; the actor's fold walks only `b`, so it sees one open leg.
     const room = cache(hostA, [edge(a, c, { edgeId: 'edge_1' })])
     const strayLeg = edge(port, c, { edgeId: 'edge_1' })

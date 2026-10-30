@@ -351,7 +351,7 @@ describe('mergeSameHostBucket', () => {
 })
 
 describe('foldSameHostBuckets', () => {
-    it('keeps a leg still open at an authored crossing port of the host (foldAsUnion FA-1)', () => {
+    it('keeps a leg still open at an authored crossing port of the host (the union joins it or leaves it open)', () => {
         const childGraph = testLudicGraph(boxId, {
             nodes: [
                 { tag: 'Object', universalKey: boxId },

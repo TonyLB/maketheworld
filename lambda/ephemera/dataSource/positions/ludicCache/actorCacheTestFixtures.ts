@@ -7,7 +7,7 @@
  * Crossing: the actor holds a leg `rope -ConnectedTo-> bag.PORT-held` and the bag holds `PORT-held -ConnectedTo-> coin`,
  * so the actor's fold collapses one crossing edge `rope -> coin`.
  *
- * `actorCrossingGraphs` (foldAsUnion, `AGENT.foldAsUnion.planning.md`) adds character-to-room crossings: the actor and a
+ * `actorCrossingGraphs` (see the positions contract, "Cache edges keep unmatched crossing legs") adds character-to-room crossings: the actor and a
  * second character are participants, so each has a node in the room's graph, and the table is tied across each one's
  * boundary (`table -[tied to]-> actor.PORT-tether`, then `PORT-tether -[tied to]-> bag`; likewise to the other's leash).
  */
