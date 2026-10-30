@@ -25,6 +25,7 @@ export type ChallengeData =
     | { kind: 'customEdge'; id: string; edge: HostRelationalEdge; description: string; verdict?: VerdictData }
     | { kind: 'worldKnowledge'; id: string; description: string; verdict?: VerdictData }
     | { kind: 'exitEdge'; id: string; description: string; verdict?: VerdictData }
+    | { kind: 'securedTo'; id: string; description: string; verdict?: VerdictData }
 
 /**
  * A `Custom` boundary edge deferring to adjudication. CA-1 (slice 0, rows 3/6) confirmed
@@ -151,8 +152,49 @@ export class ExitEdgeChallenge implements Challenge {
     }
 }
 
+/**
+ * A moved object that is `SecuredTo` something (either end, SS-3). Securing is the one deterministic
+ * precondition: the move abstains until the edge is gone (the player's own `untie`). No adjudicator
+ * judges it, so it stays pending like an exit contact; the manner label is never read.
+ */
+export class SecuredToChallenge implements Challenge {
+    readonly id: string
+    readonly description: string
+    readonly verdict: Verdict | undefined
+    readonly detectionSource = 'graph' as const
+
+    constructor(id: string, description: string, verdict?: Verdict) {
+        this.id = id
+        this.description = description
+        this.verdict = verdict
+    }
+
+    static fromJSON(data: Extract<ChallengeData, { kind: 'securedTo' }>): SecuredToChallenge {
+        return new SecuredToChallenge(data.id, data.description, data.verdict && verdictFromJSON(data.verdict))
+    }
+
+    toJSON(): ChallengeData {
+        return {
+            kind: 'securedTo',
+            id: this.id,
+            description: this.description,
+            ...(this.verdict !== undefined ? { verdict: verdictToJSON(this.verdict) } : {}),
+        }
+    }
+
+    describe(): string {
+        return this.description
+    }
+
+    withVerdict(verdict: Verdict): Challenge {
+        return new SecuredToChallenge(this.id, this.description, verdict)
+    }
+}
+
 export const challengeFromJSON = (data: ChallengeData): Challenge => {
     switch (data.kind) {
+        case 'securedTo':
+            return SecuredToChallenge.fromJSON(data)
         case 'customEdge':
             return CustomEdgeChallenge.fromJSON(data)
         case 'worldKnowledge':

@@ -1,5 +1,6 @@
 import type { EphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { Change, GroundedId, GroundedPresence, PlanStep, Referent } from './plan/planStep'
+import { mapEdgeRelationReferents } from './plan/planStep'
 
 /** What one identity candidate says about a span key: its id, the names prose reads, and where it was seen. */
 export type SpanName = { id: GroundedId; shortName: string; gloss?: string; presence?: GroundedPresence[]; view?: EphemeraPresenceNodeId[] }
@@ -47,6 +48,9 @@ export const stampCandidateReferents = <S extends PlanStep>(step: S, names: Read
     }
     if (change.primitive === 'extend') {
         return { ...change, object: stampReferent(change.object, names) } as S
+    }
+    if (change.primitive === 'assignEdgeRelations' || change.primitive === 'dissolveEdgeRelations') {
+        return mapEdgeRelationReferents(change, (referent) => stampReferent(referent, names)) as S
     }
     return {
         ...change,

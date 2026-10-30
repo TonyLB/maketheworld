@@ -20,6 +20,8 @@ import { boundaryEdgeOutcomes } from './interactionUnderTransfer'
  */
 export type ApplyDepartureOutcome =
     | { verdict: 'legal'; sourceGraph: EphemeraLudicGraph }
+    // A remaining `SecuredTo` edge: no repair is on offer (unsecuring is the player's own command), so the move is refused.
+    | { verdict: 'blocked'; reasonCode: 'securedToBlocksMove'; edge: HostRelationalEdge }
     | {
         verdict: 'repairable'
         reasonCode: 'unresolvedDissolveEdge' | 'transferInteractionDefer' | 'undecidableInteractionEdge'
@@ -47,6 +49,12 @@ export function applyDeparture(
     // no production path produces a character-endpoint relational edge yet, so a character can never
     // appear on either side of a boundary edge.
     const boundaryOutcomes = isEphemeraObjectId(entityId) ? boundaryEdgeOutcomes(entityId, sourceGraph) : []
+    // Checked before the defers: a tied rope's `Custom` support is still present, and would otherwise
+    // be reported as an undecidable interaction when the block is the real answer.
+    const blockOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'block')
+    if (blockOutcome !== undefined) {
+        return { verdict: 'blocked', reasonCode: 'securedToBlocksMove', edge: blockOutcome.edge }
+    }
     const deferOutcome = boundaryOutcomes.find((entry) => entry.outcome === 'defer')
     if (deferOutcome !== undefined) {
         // Both deferring cases are repairable; they differ in *which* repair. A non-`Custom` edge

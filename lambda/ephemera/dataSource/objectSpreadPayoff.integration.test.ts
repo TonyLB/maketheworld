@@ -12,6 +12,9 @@
  * header's read, `ludicCacheRoomObjectContents`, over a cold `buildLudicCache` of the committed
  * graphs (as `roomObjectContents.test.ts` stands in for the stored row).
  *
+ * It also carries `tie` and `untie` (the SecuredTo templates): the triple the tie writes, and the untie
+ * that removes it, at the stored graph and the narrated line.
+ *
  * The same harness carries the qualified-take payoffs ("get the cup on the table", "get the cloth on
  * the table", "get bag from table"): a phrase naming where an object is picks the object, or the part
  * of it, without asking, or refuses with a line that says why (the actions contract's "Qualifier").
@@ -72,12 +75,13 @@ const PLATE_ID = 'OBJECT#Plate' as EphemeraObjectId
 const CUP_ON_TABLE_ID = 'OBJECT#CupOnTable' as EphemeraObjectId
 const CUP_ON_FLOOR_ID = 'OBJECT#CupOnFloor' as EphemeraObjectId
 const BAG_ID = 'OBJECT#Bag' as EphemeraObjectId
+const POLE_ID = 'OBJECT#Pole' as EphemeraObjectId
 const CHARACTER_ID = 'CHARACTER#Tester' as EphemeraCharacterId
 const VIEWER = 'CHARACTER#viewer' as const
 const PERSPECTIVE_KEY = 'PERSPECTIVE#v1#abc123'
 const CACHE_ID = 'CACHE#fixture-cache-1' as const
 
-const SHORT_NAMES: Record<string, string> = { [RUG_ID]: 'rug', [TABLE_ID]: 'table', [CLOTH_ID]: 'cloth', [PLATE_ID]: 'plate', [ROPE_ID]: 'rope', [CUP_ON_TABLE_ID]: 'cup', [CUP_ON_FLOOR_ID]: 'cup', [BAG_ID]: 'bag' }
+const SHORT_NAMES: Record<string, string> = { [RUG_ID]: 'rug', [TABLE_ID]: 'table', [CLOTH_ID]: 'cloth', [PLATE_ID]: 'plate', [ROPE_ID]: 'rope', [CUP_ON_TABLE_ID]: 'cup', [CUP_ON_FLOOR_ID]: 'cup', [BAG_ID]: 'bag', [POLE_ID]: 'pole' }
 
 /** Names for the cache's stored nodes and for the viewer's labels: the same per-object shortName. */
 const shortNameDeps = {
@@ -157,7 +161,7 @@ const useWorld = (objects: WorldObjects) => {
         const initialGraphsByHost: Record<string, EphemeraLudicGraph> = {
             [ROOM_ID]: testLudicGraph(ROOM_ID, {
                 nodes: [
-                    ...objects.map(([universalKey]) => ({ tag: 'Object' as const, universalKey })),
+                    ...objects.map(([universalKey]) => ({ tag: 'Object' as const, universalKey, hostingKind: 'In' as const })),
                     { tag: 'Character', universalKey: CHARACTER_ID },
                     presenceBindingNode(BASE_PRESENCE_ID, undefined, { members: objects.map(([host]) => ({ host, presence: BASE_PRESENCE_ID })) }),
                 ],
@@ -721,5 +725,57 @@ describe('one bag, on the floor: a qualifier that matches nothing (integration)'
         expect(result).toEqual({ type: 'Error', errorMessage: 'The table has no bag.' })
         expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()
         expect(await roomObjects()).toEqual(before)
+    })
+})
+
+describe('tie and untie (integration)', () => {
+    const { parse, parseAny, commit } = useWorld([[ROPE_ID, 'rope'], [POLE_ID, 'pole']])
+    const onTheFloor = (id: string) => (id === ROPE_ID || id === POLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
+    const roomEdges = async () => (await internalCache.Positions.getLudicGraph(ROOM_ID)).relationalEdges
+
+    it('"tie the rope to the pole" leaves exactly the tie triple, under the ids the attempt minted; "untie" leaves nothing', async () => {
+        const tie = await parse('tie the rope to the pole', onTheFloor)
+        const [assign] = CommandAttempt.fromJSON(tie.attempt).actions().map((action) => action.desiredResult)
+        if (assign?.kind !== 'change' || assign.primitive !== 'assignEdgeRelations') {
+            throw new Error('expected an assignEdgeRelations')
+        }
+        const { tyingEdge, secureEdge } = assign.mintedEdgeIds
+
+        expect(narratedLines(await commit(tie.attempt, onTheFloor))).toEqual([expect.stringMatching(/ ties rope to pole$/)])
+        expect(await roomEdges()).toEqual([
+            { from: ROPE_ID, to: POLE_ID, kind: 'Custom', relationLabel: 'tied to', edgeId: tyingEdge },
+            { from: ROPE_ID, to: POLE_ID, kind: 'SecuredTo', edgeId: secureEdge },
+            { from: { edgeId: tyingEdge }, to: { edgeId: secureEdge }, kind: 'Justifies' },
+        ])
+
+        expect(await parseAny('tie the rope to the pole', onTheFloor)).toEqual({ type: 'Error', errorMessage: 'The rope is already tied to the pole.' })
+        expect(await parseAny('untie the pole from the rope', onTheFloor)).toEqual({ type: 'Error', errorMessage: 'The pole is not tied to the rope.' })
+
+        const untie = await parse('untie the rope from the pole', onTheFloor)
+        expect(narratedLines(await commit(untie.attempt, onTheFloor))).toEqual([expect.stringMatching(/ unties rope from pole$/)])
+        expect(await roomEdges()).toEqual([])
+        expect(await parseAny('untie the rope from the pole', onTheFloor)).toEqual({ type: 'Error', errorMessage: 'The rope is not tied to the pole.' })
+    })
+
+    it('a tied thing cannot be taken (either end), and an untie frees it: "take the rope" is refused with the secured wording, then succeeds', async () => {
+        const catalog = await (async () => [
+            { objectId: ROPE_ID, normalizedShortName: 'rope' },
+            { objectId: POLE_ID, normalizedShortName: 'pole' },
+        ])()
+        await commit((await parse('tie the rope to the pole', onTheFloor)).attempt, onTheFloor)
+        const tiedEdges = await roomEdges()
+        ephemeraDBMock.transactWrite.mockClear()
+
+        for (const command of ['take the rope', 'take the pole']) {
+            const refused = await parseAny(command, onTheFloor, catalog)
+            expect(refused).toMatchObject({ type: 'Abstain', reason: expect.stringMatching(/^Secured: /) })
+        }
+        expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()
+        expect(await roomEdges()).toEqual(tiedEdges)
+
+        await commit((await parse('untie the rope from the pole', onTheFloor)).attempt, onTheFloor)
+        const taken = await parseAny('take the rope', onTheFloor, catalog)
+        expect(taken).toMatchObject({ type: 'CommandAttempt' })
+        expect(narratedLines(await commit((taken as any).attempt, onTheFloor))).toEqual([expect.stringMatching(/ picks up rope$/)])
     })
 })

@@ -14,7 +14,7 @@ import { ExitEdgePayloadData, isExitEdgePayloadData } from "./exitEdge"
 
 export const LUDIC_EDGE_TOPOLOGY_KINDS = ['Navigation', 'Bearing', 'ConnectedTo'] as const
 export const LUDIC_EDGE_MEMBERSHIP_KINDS = ['In', 'On', 'PartOf'] as const
-export const LUDIC_EDGE_PEER_KINDS = ['Custom'] as const
+export const LUDIC_EDGE_PEER_KINDS = ['Custom', 'SecuredTo'] as const
 /** One edge justifying another. What may stand at its ends is a limit of the first producer, enforced where
  * edges are written (AGENT.edgeAbstractions.planning.md, "Owed by the capable version"), not part of this kind. */
 export const LUDIC_EDGE_JUSTIFICATION_KINDS = ['Justifies'] as const

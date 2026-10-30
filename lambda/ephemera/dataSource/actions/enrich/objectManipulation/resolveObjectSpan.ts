@@ -37,6 +37,16 @@ export const qualifierErrorMessages = {
     negatedUnmet: (host: string, subject: string): string => `The ${host} has the ${subject}.`,
 } as const
 
+/**
+ * An edge-relations change the world refuses (`tie`, `untie`): named by the first relation between two
+ * things it lists and that relation's manner (`tied to`). Already the player's line.
+ */
+export const edgeRelationErrorMessages = {
+    notInOneGraph: (subject: string, target: string): string => `The ${subject} and the ${target} are not in the same place.`,
+    alreadyPresent: (subject: string, manner: string, target: string): string => `The ${subject} is already ${manner} the ${target}.`,
+    notPresent: (subject: string, manner: string, target: string): string => `The ${subject} is not ${manner} the ${target}.`,
+} as const
+
 export type ObjectSpanResolutionResult =
     | { type: 'Resolved'; objectId: EphemeraObjectId }
     | { type: 'NoCatalog' }

@@ -1547,6 +1547,15 @@ describe('isEphemeraLudicRelationalEdgeData with edge terminals', () => {
     const A = { edgeId: 'edge-a' }
     const B = { edgeId: 'edge-b' }
 
+    it('SecuredTo is a stored, label-less kind between nodes, and refuses an edge terminal', () => {
+        expect(STORED_RELATIONAL_EDGE_KINDS.has('SecuredTo')).toBe(true)
+        const securedTo = (from: unknown, to: unknown, extra: object = {}) => ({ tag: 'Relational', kind: 'SecuredTo', from, to, ...extra })
+        expect(isEphemeraLudicRelationalEdgeData(securedTo('OBJECT#Rope', 'OBJECT#Pole'))).toBe(true)
+        expect(isEphemeraLudicRelationalEdgeData(securedTo('OBJECT#Rope', 'OBJECT#Pole', { edgeId: 'edge-s' }))).toBe(true)
+        expect(isEphemeraLudicRelationalEdgeData(securedTo('OBJECT#Rope', A))).toBe(false)
+        expect(isEphemeraLudicRelationalEdgeData(securedTo(A, B))).toBe(false)
+    })
+
     it('Justifies is a stored kind', () => {
         expect(STORED_RELATIONAL_EDGE_KINDS.has('Justifies')).toBe(true)
     })

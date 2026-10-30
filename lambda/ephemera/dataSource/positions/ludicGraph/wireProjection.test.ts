@@ -81,6 +81,23 @@ describe('toWireLudicGraph / fromWireLudicGraph (Slice 4)', () => {
         })
     })
 
+    describe('SecuredTo', () => {
+        it('carries a label-less SecuredTo through the wire and back', () => {
+            const bindingUuid = 'binding1'
+            const graph = testLudicGraph(tableId, {
+                nodes: [
+                    { tag: 'Object', universalKey: tableId },
+                    { tag: 'Object', universalKey: boxId },
+                    presenceBindingNode(bindingUuid, [roomId]),
+                ],
+                edges: [{ tag: 'Relational', kind: 'SecuredTo', from: boxId, to: tableId, edgeId: 'secured1' }],
+            })
+            const wire = toWireLudicGraph(graph, bindingUuid)
+            expect(wire.edges).toContainEqual(expect.objectContaining({ kind: 'SecuredTo', from: expect.anything(), to: expect.anything() }))
+            expect(fromWireLudicGraph(tableId, wire)).toEqual(graph.toStored())
+        })
+    })
+
     describe('edge terminals', () => {
         it('carries a Justifies edge naming two edges through the wire and back', () => {
             const bindingUuid = 'binding1'

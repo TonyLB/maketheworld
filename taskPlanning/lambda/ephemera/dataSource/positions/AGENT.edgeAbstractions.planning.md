@@ -74,7 +74,7 @@ A row body, a proposal clause or a corpus case below that argues for any of thes
 
 ## Reopened in part: support between edges (2026-10-28)
 
-**Decided with the user, in conversation on 2026-10-28, while redesigning [`SecuredTo`](AGENT.securedTo.planning.md).** This amends [the reassessment](#reassessment-against-shipped-multi-hosting-2026-10-15) in three places and leaves the rest of it standing. The Arrangement component kind, port-to-port summary edges, and storing one edge in more than one graph stay unlicensed.
+**Decided with the user, in conversation on 2026-10-28, while redesigning [`SecuredTo`](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#relation-kinds).** This amends [the reassessment](#reassessment-against-shipped-multi-hosting-2026-10-15) in three places and leaves the rest of it standing. The Arrangement component kind, port-to-port summary edges, and storing one edge in more than one graph stay unlicensed.
 
 ### What fired
 
@@ -88,7 +88,7 @@ A first sketch stored support as a list of AND sets on the dependent edge. **Tha
 
 ### What is licensed now, and only in this scope
 
-Id minting shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape)); the edge-terminal arm and the `Justifies` kind shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape) and its terminal rule; the same-graph, single-leg, both-ends-edges legality is v1 scope); `SecuredTo` v1 builds the rest:
+Id minting shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape)); the edge-terminal arm and the `Justifies` kind shipped 2026-10-29 (rules in [`AGENT.contract.md` "Edge persist shape"](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#edge-persist-shape) and its terminal rule; the same-graph, single-leg, both-ends-edges legality is v1 scope); the `SecuredTo` plan's first iteration (2026-10-29) is a bare blocking edge that uses none of this, and its [later iteration](../../../../../lambda/ephemera/dataSource/positions/AGENT.implementation.md#:~:text=Shelved%3A%20SecuredTo%20auto-lapse) builds the rest:
 
 - **Minting an `edgeId` on one edge in one graph, on demand**, with no Edge record. This is CE2-local, split from [CE2](AGENT.abstractionLayers.planning.md#recommended-order) on 2026-10-28. Most edges still carry no id, per [EA-8](#settled-register).
 - **An edge-reference arm of `EphemeraLudicTerminalId`**, for one producer: `Justifies`, with both terminals edges in the same graph.

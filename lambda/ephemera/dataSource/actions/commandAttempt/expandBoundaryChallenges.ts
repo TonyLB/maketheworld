@@ -1,5 +1,5 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { ephemeraLudicTerminalKey, ephemeraLudicTerminalsEqual, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalKey, ephemeraLudicTerminalsEqual, isEphemeraLudicEdgeTerminal, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
 import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
@@ -12,7 +12,7 @@ import { findRelationalChainFromLeg } from '../enrich/objectManipulation/synthes
 import type { AttemptAction } from './action'
 import { mintActionId, PositionAttemptAction } from './action'
 import type { Challenge } from './challenge'
-import { CustomEdgeChallenge, ExitEdgeChallenge } from './challenge'
+import { CustomEdgeChallenge, ExitEdgeChallenge, SecuredToChallenge } from './challenge'
 import { objectTouchesExitEdgeOnGraph } from '../enrich/objectManipulation/membershipObservation'
 import type { NarrationUnit } from './narrationUnit'
 
@@ -42,6 +42,25 @@ const customEdgeChallengeId = (
 
 const describeCustomEdgeChallenge = (edge: Extract<HostRelationalEdge, { kind: 'Custom' }>): string =>
     `Boundary relation to dissolve: ${edge.relationLabel}.`
+
+const securedToChallengeId = (primaryActionId: string, edge: HostRelationalEdge): string =>
+    `securedTo:${primaryActionId}:${edge.edgeId ?? [ephemeraLudicTerminalKey(edge.from), ephemeraLudicTerminalKey(edge.to)].join('|')}`
+
+const describeSecuredToChallenge = (): string =>
+    'Secured: the moved object is secured to something, and cannot be moved until it is freed.'
+
+/**
+ * The `edgeId`s of the `Custom` edges that justify a `SecuredTo` in `graph` (the manner half of a
+ * tie triple). The block covers them, so they produce no facilitating dissolve of their own.
+ */
+const securedToSupportEdgeIds = (graph: EphemeraLudicGraph): ReadonlySet<string> => {
+    const securedIds = new Set(graph.relationalEdges.flatMap((edge) => edge.kind === 'SecuredTo' && edge.edgeId !== undefined ? [edge.edgeId] : []))
+    return new Set(graph.relationalEdges.flatMap((edge) => (
+        edge.kind === 'Justifies' && isEphemeraLudicEdgeTerminal(edge.from) && isEphemeraLudicEdgeTerminal(edge.to) && securedIds.has(edge.to.edgeId)
+            ? [edge.from.edgeId]
+            : []
+    )))
+}
 
 const describeExitEdgeChallenge = (): string =>
     'Exit contact: the moved object touches an exit, which has no graph rule for moving it.'
@@ -131,8 +150,14 @@ const boundaryActionsInGraph = (
     getGraph: ExpansionEnvironment['getGraph']
 ): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
     // The mover's hosting kind is a field of its node, not an edge, so it is never a boundary edge.
+    const supports = securedToSupportEdgeIds(graph)
     const outcomes = boundaryEdgeOutcomes(objectId, graph)
     return outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
+        // A block is a challenge on the primary action (`attemptActionsFromTransfer`), never a dissolve,
+        // and it covers the `Custom` support that justifies it.
+        if (entry.outcome === 'block' || (entry.edge.edgeId !== undefined && supports.has(entry.edge.edgeId))) {
+            return []
+        }
         const chain = findRelationalChainFromLeg({ hostId: graph.hostId, edge: entry.edge }, { getGraph })
         if (chain.verdict !== 'found') {
             return []
@@ -185,7 +210,8 @@ const boundaryActionsInGraph = (
 /**
  * Expansion for any `transferMembership` (ISS8203 slice 3), whichever template produced it. A
  * transfer whose moved object touches an exit gets an {@link ExitEdgeChallenge} on the primary
- * action, which stays pending (the take or drop abstains); then the boundary dissolves are added
+ * action, and one with a `SecuredTo` boundary edge gets a {@link SecuredToChallenge} per edge; each
+ * stays pending (the take or drop abstains); then the boundary dissolves are added
  * as {@link attemptActionsFromBoundaryOutcomes} does. `graphs` are the object's source hosts (several
  * for a take of a thing in several hosts: an exit contact in any one challenges the take);
  * `getGraph` reaches the shards a crossing relation continues into.
@@ -197,11 +223,16 @@ export const attemptActionsFromTransfer = (
     getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
     const exitChallenged = graphs.some((graph) => objectTouchesExitEdgeOnGraph(graph, objectId))
-    const primary = exitChallenged
-        ? primaryAction.withChallenges([
-            ...primaryAction.challenges(),
-            new ExitEdgeChallenge(exitEdgeChallengeId(primaryAction.id), describeExitEdgeChallenge()),
-        ])
+    const securedChallenges = graphs
+        .flatMap((graph) => boundaryEdgeOutcomes(objectId, graph))
+        .filter(({ outcome }) => outcome === 'block')
+        .map(({ edge }) => new SecuredToChallenge(securedToChallengeId(primaryAction.id, edge), describeSecuredToChallenge()))
+    const added: Challenge[] = [
+        ...(exitChallenged ? [new ExitEdgeChallenge(exitEdgeChallengeId(primaryAction.id), describeExitEdgeChallenge())] : []),
+        ...securedChallenges,
+    ]
+    const primary = added.length > 0
+        ? primaryAction.withChallenges([...primaryAction.challenges(), ...added])
         : primaryAction
     return attemptActionsFromBoundaryOutcomes(primary, objectId, graphs, getGraph)
 }

@@ -598,13 +598,14 @@ export type EphemeraLudicGraphNode = EphemeraLudicGraphComponentNode | EphemeraL
  * The kinds a **stored** relational edge or crossing port may carry:
  * the peer and topology kinds only. A member's hosting kind is a field of its node
  * (`EphemeraHostingKind`), never an edge, so none is representable here. One named union, so a
- * later closed peer kind (`SecuredTo`) adds a member rather than reopening every site.
+ * later closed peer kind adds a member rather than reopening every site.
  */
 export type HostRelationalEdgeKind =
     | 'Custom'                                  // peer kind (AB-54): a label says which relation
+    | 'SecuredTo'                               // closed peer kind, no label (directional: subject secured to object); same graph, single leg
     | 'ConnectedTo'                             // topology within ONE whole (symmetric); never decides shard placement
     | 'Justifies'                               // support between two edges of one graph (directional); the only kind whose terminals are edges
-export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'ConnectedTo', 'Justifies'])
+export const STORED_RELATIONAL_EDGE_KINDS: ReadonlySet<string> = new Set<HostRelationalEdgeKind>(['Custom', 'SecuredTo', 'ConnectedTo', 'Justifies'])
 
 // `'Present'` retired from this union at presenceNodes Slice 3 (PN-14, decided 2026-09-16: removal
 // here with the edge sense, not deferred to Slice 7 with the port sense). No `Present`-kind edge

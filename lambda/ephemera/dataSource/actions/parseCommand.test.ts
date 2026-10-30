@@ -1818,6 +1818,21 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
+        it('take rope when the rope is tied to the post (the tie triple blocks: abstains with the secured wording, no dissolve)', async () => {
+            expect(await run(
+                { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: {
+                        [ROOM]: roomWith([ROPE, POST], [
+                            { tag: 'Relational', edgeId: 'tying', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'tied to' },
+                            { tag: 'Relational', edgeId: 'secured', from: ROPE, to: POST, kind: 'SecuredTo' },
+                            { tag: 'Relational', from: { edgeId: 'tying' }, to: { edgeId: 'secured' }, kind: 'Justifies' },
+                        ] as any),
+                    },
+                }
+            )).toMatchSnapshot()
+        })
+
         it('take rope when the rope is under the post (a peer subject-move is met: the rope comes out)', async () => {
             expect(await run(
                 { command: 'take rope', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
@@ -1838,9 +1853,40 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             )).toMatchSnapshot()
         })
 
-        it('tie the rope to the post (no peer parse: Unimplemented)', async () => {
+        it('tie the rope to the post (the tie template: the tie triple, one assignEdgeRelations)', async () => {
             expect(await run(
                 { command: 'tie the rope to the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: { [ROOM]: roomWith([ROPE, POST]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('tie the rope to the coin when the coin sits inside the jar (a crossing tie: refused)', async () => {
+            expect(await run(
+                { command: 'tie the rope to the coin', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [COIN, 'coin']]) },
+                {
+                    containers: { [COIN]: [JAR] },
+                    graphs: {
+                        [ROOM]: roomWith([ROPE, JAR]),
+                        [JAR]: testLudicGraph(JAR, { nodes: [{ tag: 'Object', universalKey: COIN }] }),
+                    },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('untie the rope from the post (the untie template: every tie edge optional, Justifies first)', async () => {
+            expect(await run(
+                { command: 'untie the rope from the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
+                {
+                    graphs: { [ROOM]: roomWith([ROPE, POST], [{ tag: 'Relational', from: ROPE, to: POST, kind: 'Custom', relationLabel: 'tied to' }]) },
+                }
+            )).toMatchSnapshot()
+        })
+
+        it('untie the rope from the post when nothing ties them (refused)', async () => {
+            expect(await run(
+                { command: 'untie the rope from the post', roomObjectCatalog: catalogOf([[ROPE, 'rope'], [POST, 'post']]) },
                 {
                     graphs: { [ROOM]: roomWith([ROPE, POST]) },
                 }

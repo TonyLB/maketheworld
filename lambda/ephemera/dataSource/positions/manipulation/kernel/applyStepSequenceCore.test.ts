@@ -136,6 +136,36 @@ describe('applyStepSequenceCore', () => {
                 .toMatchObject({ verdict: 'stale', reasonCode: 'hostNotInFootprint' })
         })
 
+        it('a later Justifies step names the ids assigned before it (the tie triple)', () => {
+            const securedEdge = { from: trayId, to: tableId, kind: 'SecuredTo' as const }
+            const outcome = applyStepSequenceCore(
+                [
+                    { kind: 'establishRelation', hostId: roomId, subjectId: trayId, targetId: tableId, relationKind: 'Custom', relationLabel: 'tied to' },
+                    { kind: 'establishRelation', hostId: roomId, subjectId: trayId, targetId: tableId, relationKind: 'SecuredTo' },
+                    { kind: 'assignEdgeId', hostId: roomId, edge: tiedEdge, edgeId: 'support-1' },
+                    { kind: 'assignEdgeId', hostId: roomId, edge: securedEdge, edgeId: 'secured-1' },
+                    { kind: 'establishRelation', hostId: roomId, subjectId: { edgeId: 'support-1' }, targetId: { edgeId: 'secured-1' }, relationKind: 'Justifies' },
+                ],
+                graphsMap([roomId, testLudicGraph(roomId, {
+                    nodes: [{ ...object(trayId), hostingKind: 'In' }, { ...object(tableId), hostingKind: 'In' }, presenceBindingNode(parentRemainderKey(roomId))],
+                })])
+            )
+            expect(outcome.verdict).toBe('legal')
+            if (outcome.verdict !== 'legal') return
+            expect(outcome.graphs.get(roomId)!.relationalEdges).toEqual([
+                { ...tiedEdge, edgeId: 'support-1' },
+                { ...securedEdge, edgeId: 'secured-1' },
+                { from: { edgeId: 'support-1' }, to: { edgeId: 'secured-1' }, kind: 'Justifies' },
+            ])
+        })
+
+        it('a Justifies naming an id no graph stores is stale', () => {
+            expect(applyStepSequenceCore(
+                [{ kind: 'establishRelation', hostId: roomId, subjectId: { edgeId: 'support-1' }, targetId: { edgeId: 'secured-1' }, relationKind: 'Justifies' }],
+                graphsMap([roomId, roomWithEdge('support-1')])
+            )).toMatchObject({ verdict: 'stale', reasonCode: 'staleRelationalCandidate' })
+        })
+
         it('throws on a leg of a chain', () => {
             const chained = testLudicGraph(roomId, {
                 nodes: [object(trayId), object(tableId), presenceBindingNode(parentRemainderKey(roomId))],

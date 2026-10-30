@@ -127,7 +127,76 @@ export type DissolveRelationChange<R extends Referent = Referent> = {
     target: R
 } & RelationalKindAndLabel
 
-export type Change<R extends Referent = Referent> = TransferMembershipChange<R> | ExtendChange<R> | EstablishRelationChange<R> | DissolveRelationChange<R>
+/** An edge relation's end that names another entry's edge, by that entry's `edgeRef`. */
+export type EdgeRefEnd = { edgeRef: string }
+
+/** An end of an edge relation: a thing (a referent), or another entry's edge. */
+export type EdgeRelationEnd<R extends Referent = Referent> = R | EdgeRefEnd
+
+export const isEdgeRefEnd = <R extends Referent>(end: EdgeRelationEnd<R>): end is EdgeRefEnd => 'edgeRef' in end
+
+/**
+ * One edge of an `assignEdgeRelations` / `dissolveEdgeRelations` change, all in one graph. `edgeRef`
+ * declares a name for this entry's edge that another entry's end can use (`{ edgeRef }`): a
+ * `Justifies` names the two edges it relates that way.
+ */
+export type EdgeRelationEntry<R extends Referent = Referent> = {
+    edgeRef?: string
+    from: EdgeRelationEnd<R>
+    to: EdgeRelationEnd<R>
+} & RelationalKindAndLabel
+
+/**
+ * Writes several edge relations in one graph together (`tie`: the `Custom` manner edge, the
+ * `SecuredTo` it justifies, and the `Justifies` between them). Phrase-free, so the LLM Plan fallback
+ * can produce it as a template does.
+ *
+ * **A prototype.** The entries are the interface kept; `mintedEdgeIds` is not. It holds an id for
+ * every declared `edgeRef`, minted by whoever plans the step (`mintEdgeRefs`) so dry run and commit
+ * agree, and is the ad-hoc ref handling that `AGENT.stableRefs.planning.md` replaces.
+ */
+export type AssignEdgeRelationsChange<R extends Referent = Referent> = {
+    kind: 'change'
+    primitive: 'assignEdgeRelations'
+    entries: EdgeRelationEntry<R>[]
+    mintedEdgeIds: Readonly<Record<string, string>>
+}
+
+/**
+ * Removes edge relations from one graph together (`untie`). Removes every listed edge that is
+ * present, and refuses when none is, or when a `mustBePresent` entry is absent. A declared `edgeRef`
+ * names the stored edge its entry matches, so a `Justifies` entry can name the edges it relates.
+ * Listed in the order dissolved: a dissolve takes the edges naming the one removed, so an entry
+ * naming another's edge comes first.
+ */
+export type DissolveEdgeRelationsChange<R extends Referent = Referent> = {
+    kind: 'change'
+    primitive: 'dissolveEdgeRelations'
+    entries: (EdgeRelationEntry<R> & { mustBePresent: boolean })[]
+}
+
+export type EdgeRelationsChange<R extends Referent = Referent> = AssignEdgeRelationsChange<R> | DissolveEdgeRelationsChange<R>
+
+/** The things an edge-relations change names (every end that is not another entry's edge). */
+export const edgeRelationReferents = <R extends Referent>(change: EdgeRelationsChange<R>): R[] => (
+    (change.entries as EdgeRelationEntry<R>[]).flatMap(({ from, to }) => [from, to].filter((end): end is R => !isEdgeRefEnd(end)))
+)
+
+/** Maps every referent end of an edge-relations change, leaving the ends that name another entry's edge. */
+export const mapEdgeRelationReferents = <R extends Referent, S extends Referent>(change: EdgeRelationsChange<R>, f: (referent: R) => S): EdgeRelationsChange<S> => {
+    const end = (value: EdgeRelationEnd<R>): EdgeRelationEnd<S> => (isEdgeRefEnd(value) ? value : f(value))
+    return change.primitive === 'assignEdgeRelations'
+        ? { ...change, entries: change.entries.map((entry) => ({ ...entry, from: end(entry.from), to: end(entry.to) })) }
+        : { ...change, entries: change.entries.map((entry) => ({ ...entry, from: end(entry.from), to: end(entry.to) })) }
+}
+
+export type Change<R extends Referent = Referent> =
+    | TransferMembershipChange<R>
+    | ExtendChange<R>
+    | EstablishRelationChange<R>
+    | DissolveRelationChange<R>
+    | AssignEdgeRelationsChange<R>
+    | DissolveEdgeRelationsChange<R>
 
 /**
  * BD-14: `negate` rather than paired predicate names (e.g. `notContainedBy`) ---
@@ -225,7 +294,9 @@ export const stepReferents = (step: PlanStep): Referent[] =>
             ? [step.object, step.from, step.to]
             : step.primitive === 'extend'
                 ? [step.object]
-                : [step.subject, step.target]
+                : step.primitive === 'assignEdgeRelations' || step.primitive === 'dissolveEdgeRelations'
+                    ? edgeRelationReferents(step)
+                    : [step.subject, step.target]
 
 /** True when every referent of this step carries a known id. */
 export const isGroundedStep = (step: PlanStep): step is PlanStep<GroundedReferent> =>

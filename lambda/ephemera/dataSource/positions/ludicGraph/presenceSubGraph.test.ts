@@ -711,6 +711,16 @@ describe('subGraphFromNodes with edge terminals', () => {
         })
     })
 
+    it('a SecuredTo edge survives cut then fold, whole in the bucket that holds both ends', () => {
+        const secured = { tag: 'Relational' as const, kind: 'SecuredTo' as const, from: objC, to: objD }
+        const graph = testLudicGraph(roomId, { nodes, edges: [secured] })
+        const strip = ({ tag, ...edge }: { tag: 'Relational' }) => edge
+        const whole = subGraphFromNodes(graph, new Set([roomId, objC, objD]))
+        expect(whole.relationalEdges).toEqual([strip(secured)])
+        const merged = mergeSameHostBucket(whole, subGraphFromNodes(graph, new Set([roomId])))
+        expect(merged.relationalEdges).toEqual([strip(secured)])
+    })
+
     it('throws on a referrer naming an edge the graph does not hold', () => {
         const graph = testLudicGraph(roomId, { nodes, edges: [edgeB, justifies] })
         expect(() => subGraphFromNodes(graph, new Set([roomId, objC, objD]))).toThrow(/edge-a/)

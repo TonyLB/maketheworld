@@ -79,6 +79,9 @@ export const settleMembership = (
             return { verdict: 'stale', reasonCode: 'staleTransferCandidate' }
         }
         const departure = applyDeparture(sourceGraph, moverId as EphemeraObjectId | EphemeraCharacterId)
+        if (departure.verdict === 'blocked') {
+            return { verdict: 'blocked', reasonCode: departure.reasonCode, edge: departure.edge }
+        }
         if (departure.verdict === 'repairable') {
             // `applyDeparture` names the offending edge but not the host it sits on --- supply `left` here:
             // boundary edges are found on the source graph, so that is where a repair step is aimed.

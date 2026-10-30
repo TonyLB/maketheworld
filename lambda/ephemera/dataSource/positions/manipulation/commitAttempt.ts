@@ -15,6 +15,7 @@ import type { CommandAttempt } from '../../actions/commandAttempt'
 import type { NarrationUnit } from '../../actions/commandAttempt/narrationUnit'
 import type {
     DissolveRelationChange,
+    EdgeRelationsChange,
     EstablishRelationChange,
     ExtendChange,
     GroundedId,
@@ -22,7 +23,7 @@ import type {
     GroundedReferent,
     TransferMembershipChange,
 } from '../../actions/enrich/objectManipulation/plan/planStep'
-import { derivedReferentKey } from '../../actions/enrich/objectManipulation/plan/planStep'
+import { derivedReferentKey, edgeRelationReferents } from '../../actions/enrich/objectManipulation/plan/planStep'
 import { buildReferentAssignment, type DerivedReferentResolver } from '../../actions/enrich/objectManipulation/synthesize/buildReferentAssignment'
 import { groundChange } from '../../actions/enrich/objectManipulation/synthesize/groundChange'
 import { commitAndPresentStepSequence } from './kernel/commitAndPresentStepSequence'
@@ -35,6 +36,7 @@ import { extendSteps, withExtendedBinding } from './membership/extendSteps'
 import { planObjectMoveTransfer } from './membership/planObjectMoveTransfer'
 import { defaultGetGraph } from './relational/findRelationalChainsForRemoval'
 import { planRelationalEdgeTransfer } from './relational/planRelationalEdgeTransfer'
+import { edgeRelationSteps, edgeRelationsHost } from './relational/edgeRelationSteps'
 import { deliverNarrationUnits } from './deliverNarrationUnits'
 import { resolveNarrationLabels } from '../../perception/resolveNarrationLabels'
 import { roomsForHost, roomsForReferent } from '../ludicGraph/presenceRooms'
@@ -215,6 +217,27 @@ const buildExtendFragment = async (
         entityId,
         extended: withExtendedBinding(graph, binding, change.presenceUuid),
     }
+}
+
+/**
+ * An edge-relations change's fragment (`tie`, `untie`): written in the one graph, among its things'
+ * live hosts, that holds them all, with the steps the dry run judged by (`edgeRelationSteps`). A
+ * refusal (the world moved since the dry run) refuses the attempt. Each relation between two things
+ * publishes its own fact from its step, so the fragment names no `relationalEdge`.
+ */
+const buildEdgeRelationsFragment = async (
+    change: EdgeRelationsChange<GroundedReferent>,
+    containers: ReadonlyMap<GroundedId, readonly EphemeraMembershipHostId[]>,
+    getGraph: (hostId: EphemeraMembershipHostId) => Promise<EphemeraLudicGraph>
+): Promise<ActionFragment | undefined> => {
+    const hostIds = [...new Set(edgeRelationReferents(change).flatMap(({ groundedId }) => containers.get(groundedId) ?? []))]
+    const host = edgeRelationsHost(change, await Promise.all(hostIds.map(async (hostId) => [hostId, await getGraph(hostId)] as const)))
+    const built = host.ok ? edgeRelationSteps(change, host.hostId, host.graph) : host
+    if (!built.ok) {
+        console.error(`[mtw.ephemera.positions] commitAttempt: ${change.primitive} action refused (${built.refusal})`)
+        return undefined
+    }
+    return { steps: built.steps }
 }
 
 const buildRelationalFragment = async (
@@ -512,6 +535,8 @@ export const commitAttempt = async (args: CommitAttemptArgs): Promise<void> => {
                 overlay.set(built.entityId, built.extended)
                 fragment = built.fragment
             }
+        } else if (change.primitive === 'assignEdgeRelations' || change.primitive === 'dissolveEdgeRelations') {
+            fragment = await buildEdgeRelationsFragment(change, live.containers, getGraph)
         } else {
             fragment = change.primitive === 'transferMembership'
                 ? await buildMembershipFragment(actionId, change, live, args, getGraph)

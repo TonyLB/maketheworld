@@ -243,8 +243,12 @@ describe('planSkeleton', () => {
         })
     })
 
+    it('plans "tie the rope to the pole" and "untie the rope from the pole" as relation attempts (the tie templates)', () => {
+        expect(templateKindsOf(relationalSkeleton('tie', 'rope', 'to', 'pole'))).toEqual(['relation'])
+        expect(templateKindsOf(relationalSkeleton('untie', 'rope', 'from', 'pole'))).toEqual(['relation'])
+    })
+
     it.each([
-        ['tie the rope to the pole', relationalSkeleton('tie', 'rope', 'to', 'pole')],
         ['lean the lamp against the wall', relationalSkeleton('lean', 'lamp', 'against', 'wall')],
         ['put the lamp under the table', relationalSkeleton('put', 'lamp', 'under', 'table')],
     ])('plans only the bare exit reading for peer relation "%s": the LLM route answers Unimplemented', (_command, skeleton) => {

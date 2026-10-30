@@ -1,5 +1,5 @@
 import type { Change, GroundedReferent, PlanStep, Referent, ReferentAssignment } from '../plan/planStep'
-import { derivedReferentKey, withGroundedId } from '../plan/planStep'
+import { derivedReferentKey, mapEdgeRelationReferents, withGroundedId } from '../plan/planStep'
 
 /**
  * Grounds one `Referent` against a `ReferentAssignment`: already-grounded passes through,
@@ -57,6 +57,9 @@ export const groundChange = (change: Change, assignment: ReferentAssignment): Ch
     }
     if (change.primitive === 'extend') {
         return { ...change, object: groundOneReferent(change.object, assignment) }
+    }
+    if (change.primitive === 'assignEdgeRelations' || change.primitive === 'dissolveEdgeRelations') {
+        return mapEdgeRelationReferents(change, (referent) => groundOneReferent(referent, assignment))
     }
     return {
         ...change,
