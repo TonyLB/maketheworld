@@ -92,17 +92,18 @@ const outerTerminal = <T extends EphemeraLudicTerminalId>(
  * terminal. Joined edges come first in the output, then untouched legs, each in input order, so a
  * retried rebuild is byte-identical (3e). A joined edge is not re-matched.
  */
-export const joinCrossingLegs = <T extends EphemeraLudicTerminalId>(
-    legs: HostRelationalEdge<T>[]
-): { edges: HostRelationalEdge<T>[]; joinedPorts: EphemeraLudicCrossingPortAddress[] } => {
-    const legKey = (leg: HostRelationalEdge<T>): string => JSON.stringify(toStoredRelationalEdge(leg))
+export const joinCrossingLegs = <T extends EphemeraLudicTerminalId, L extends HostRelationalEdge<T> = HostRelationalEdge<T>>(
+    legs: L[],
+    onJoin?: (joined: L, first: L, second: L, address: EphemeraLudicCrossingPortAddress) => L
+): { edges: L[]; joinedPorts: EphemeraLudicCrossingPortAddress[] } => {
+    const legKey = (leg: L): string => JSON.stringify(toStoredRelationalEdge(leg))
     const distinctLegs = legs.filter((leg, index) => legs.findIndex((other) => legKey(other) === legKey(leg)) === index)
     const addresses = distinctLegs
         .flatMap((leg): EphemeraLudicTerminalId[] => [leg.from, leg.to])
         .filter((terminal): terminal is EphemeraLudicCrossingPortAddress => isEphemeraLudicCrossingPortAddress(terminal))
         .filter((address, index, all) => all.findIndex((other) => ephemeraLudicTerminalsEqual(other, address)) === index)
 
-    type Slot = { leg: HostRelationalEdge<T>; joined: boolean }
+    type Slot = { leg: L; joined: boolean }
     const { slots, joinedPorts } = addresses.reduce<{ slots: Slot[]; joinedPorts: EphemeraLudicCrossingPortAddress[] }>(
         (state, address) => {
             const matching = state.slots.filter(({ leg, joined }) => !joined && hasPortTerminal(address)(leg))
@@ -117,7 +118,8 @@ export const joinCrossingLegs = <T extends EphemeraLudicTerminalId>(
             }
             const outer = outerTerminal(second.leg, address)
             const rewrite = (terminal: T): T => ephemeraLudicTerminalsEqual(terminal, address) ? outer : terminal
-            const joinedLeg: HostRelationalEdge<T> = { ...first.leg, from: rewrite(first.leg.from), to: rewrite(first.leg.to) }
+            const rewritten = { ...first.leg, from: rewrite(first.leg.from), to: rewrite(first.leg.to) } as L
+            const joinedLeg = onJoin ? onJoin(rewritten, first.leg, second.leg, address) : rewritten
             return {
                 slots: [...state.slots.filter((slot) => !matching.includes(slot)), { leg: joinedLeg, joined: true }],
                 joinedPorts: [...state.joinedPorts, address],
@@ -340,11 +342,16 @@ export const foldSameHostBuckets = (
     // A resolved leg landing bare on one of `graph`'s own presence nodes is legal within `graph`'s
     // own interior storage (the graph names the owner implicitly), but this is the cache-bound
     // emission point --- lift it to the exterior form, owner `graph.hostId` (PNR-2(a)).
+    // Each leg is held by this host's graph alone, so both of its ends sit here (`endHosts`); the union
+    // replaces the port end's host when it joins the leg to its partner.
     const legs = folded.relationalEdges
-        .map((edge) => toStoredRelationalEdge<EphemeraLudicCacheTerminalId>({
-            ...edge,
-            from: liftPresenceTerminal(edge.from, graph.hostId),
-            to: liftPresenceTerminal(edge.to, graph.hostId),
+        .map((edge): EphemeraLudicCacheEdge => ({
+            ...toStoredRelationalEdge<EphemeraLudicCacheTerminalId>({
+                ...edge,
+                from: liftPresenceTerminal(edge.from, graph.hostId),
+                to: liftPresenceTerminal(edge.to, graph.hostId),
+            }),
+            endHosts: { from: graph.hostId, to: graph.hostId },
         }))
 
     const deduped = dedupeEdgesByIdentity(legs)

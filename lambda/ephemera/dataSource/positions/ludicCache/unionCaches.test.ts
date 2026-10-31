@@ -17,8 +17,12 @@ const port = { owner: b, port: 'PORT-one' } as const
 const tied = { kind: 'Custom', relationLabel: 'tied to' } as const
 const edge = (from: EphemeraLudicCacheEdge['from'], to: EphemeraLudicCacheEdge['to'], extra: Partial<EphemeraLudicCacheEdge> = {}): EphemeraLudicCacheEdge =>
     ({ tag: 'Relational', from, to, ...tied, ...extra }) as EphemeraLudicCacheEdge
+const at = (entry: EphemeraLudicCacheEdge, from: EphemeraMembershipHostId, to: EphemeraMembershipHostId): EphemeraLudicCacheEdge => ({ ...entry, endHosts: { from, to } })
 const node = (universalKey: EphemeraObjectId, shortName?: string) => ({ tag: 'Object', universalKey, shortName, presenceNodes: [] }) as unknown as EphemeraLudicCacheNode
-const cache = (hostId: EphemeraMembershipHostId, edges: EphemeraLudicCacheEdge[], nodes: EphemeraLudicCacheNode[] = []): EphemeraLudicCacheData => ({ hostId, nodes, edges })
+// A leg minted in a host's graph has both ends there (`endHosts`); `edge` leaves the field off and `cache` stamps its own host.
+type BareEdge = Omit<EphemeraLudicCacheEdge, 'endHosts'> & { endHosts?: EphemeraLudicCacheEdge['endHosts'] }
+const cache = (hostId: EphemeraMembershipHostId, edges: BareEdge[], nodes: EphemeraLudicCacheNode[] = []): EphemeraLudicCacheData =>
+    ({ hostId, nodes, edges: edges.map((entry) => ({ ...entry, endHosts: entry.endHosts ?? { from: hostId, to: hostId } }) as EphemeraLudicCacheEdge) })
 const sorted = (edges: EphemeraLudicCacheEdge[]) => [...edges].sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))
 
 describe('unionLudicCaches', () => {
@@ -26,22 +30,27 @@ describe('unionLudicCaches', () => {
     const childHalf = cache(hostB, [edge(port, c)])
 
     it('joins the two legs of a crossing port into the one edge, in either order', () => {
-        expect(unionLudicCaches(parentHalf, childHalf).edges).toEqual([edge(a, c)])
-        expect(unionLudicCaches(childHalf, parentHalf).edges).toEqual([edge(a, c)])
+        expect(unionLudicCaches(parentHalf, childHalf).edges).toEqual([at(edge(a, c), hostA, hostB)])
+        expect(unionLudicCaches(childHalf, parentHalf).edges).toEqual([at(edge(a, c), hostA, hostB)])
+    })
+
+    it('records each outer leg\'s host on the joined edge, whichever way the legs point', () => {
+        const reversed = unionLudicCaches(cache(hostA, [edge(port, a)]), cache(hostB, [edge(c, port)])).edges
+        expect(reversed).toEqual([at(edge(c, a), hostB, hostA)])
     })
 
     it('is idempotent: a half unioned with itself changes nothing', () => {
-        expect(unionLudicCaches(parentHalf, parentHalf).edges).toEqual([edge(a, port)])
+        expect(unionLudicCaches(parentHalf, parentHalf).edges).toEqual([at(edge(a, port), hostA, hostA)])
     })
 
     it('keeps an unmatched leg open', () => {
-        expect(unionLudicCaches(parentHalf, cache(hostB, [])).edges).toEqual([edge(a, port)])
+        expect(unionLudicCaches(parentHalf, cache(hostB, [])).edges).toEqual([at(edge(a, port), hostA, hostA)])
     })
 
     it('leaves a port named by three distinct legs open, however the reduction is shaped', () => {
         const third = cache(hostB, [edge(port, a, { relationLabel: 'tied to' })])
         const all = unionAllLudicCaches(hostA, [parentHalf, childHalf, third]).edges
-        expect(sorted(all)).toEqual(sorted([edge(a, port), edge(port, c), edge(port, a)]))
+        expect(sorted(all)).toEqual(sorted([at(edge(a, port), hostA, hostA), at(edge(port, c), hostB, hostB), at(edge(port, a), hostB, hostB)]))
     })
 
     it('throws when the two legs disagree', () => {
@@ -51,7 +60,7 @@ describe('unionLudicCaches', () => {
     it('never joins binding addresses', () => {
         const binding = { owner: b, port: 'PRESENCE#one' } as const
         const bindingEdges = unionLudicCaches(cache(hostA, [edge(a, binding)]), cache(hostB, [edge(c, binding)])).edges
-        expect(sorted(bindingEdges)).toEqual(sorted([edge(a, binding), edge(c, binding)]))
+        expect(sorted(bindingEdges)).toEqual(sorted([at(edge(a, binding), hostA, hostA), at(edge(c, binding), hostB, hostB)]))
     })
 
     it('takes nodes by key, the later cache winning a collision at the first position', () => {
@@ -73,7 +82,7 @@ describe('an open leg whose pair another half already joined (the union drops it
     const strayLeg = edge(port, c, { edgeId: 'edge_1' })
 
     it('is dropped when the union holds the joined edge of the same relationship', () => {
-        expect(unionLudicCaches(room, cache(hostB, [strayLeg])).edges).toEqual([edge(a, c, { edgeId: 'edge_1' })])
+        expect(unionLudicCaches(room, cache(hostB, [strayLeg])).edges).toEqual([at(edge(a, c, { edgeId: 'edge_1' }), hostA, hostA)])
     })
 
     it('stays when the relationship cannot be proven the same (no edgeId, or a different one)', () => {

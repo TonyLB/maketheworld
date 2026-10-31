@@ -119,12 +119,22 @@ export const isEphemeraLudicCacheTerminalId = (value: unknown): value is Ephemer
     isEphemeraLudicTerminalId(value) && !(isEphemeraLudicNodeTerminal(value) && isEphemeraPresenceNodeId(value))
 
 /**
- * Cache edge: a plain relational edge, on cache terminals. The cache keeps no maintenance state (which routes
+ * Where an edge's ends sit: for each end, the host whose graph holds the leg touching that end (AC-7 (a)). Set when
+ * each leg is minted from its host's graph and kept through a crossing join (each outer leg's host survives), so a
+ * single-leg edge names one host twice. Chain interiors (intermediate hosts, ports) are not recorded. A fact about
+ * where the ends are, not maintenance state.
+ */
+export type EphemeraLudicCacheEndHosts = { from: EphemeraMembershipHostId; to: EphemeraMembershipHostId }
+
+/**
+ * Cache edge: a relational edge on cache terminals, plus its `endHosts`. The cache keeps no maintenance state (which routes
  * justify a composed edge, which buckets were pulled): a stale cache is rebuilt whole. The
  * shelved design for incremental maintenance lives in `AGENT.implementation.md`, "Shelved:
  * incremental `ludicCache` maintenance".
  */
-export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData<EphemeraLudicCacheTerminalId>
+export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData<EphemeraLudicCacheTerminalId> & {
+    endHosts: EphemeraLudicCacheEndHosts
+}
 
 export type EphemeraLudicCacheData = {
     hostId: EphemeraMembershipHostId;
@@ -193,7 +203,12 @@ export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudic
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
+    // A stored row without `endHosts` fails here, so it reads as malformed and is rebuilt (no migration).
+    const endHosts = (value as { endHosts?: { from?: unknown; to?: unknown } }).endHosts
     return isEphemeraLudicCacheTerminalId(value.from) && isEphemeraLudicCacheTerminalId(value.to)
+        && !!endHosts && typeof endHosts === 'object'
+        && typeof endHosts.from === 'string' && isEphemeraMembershipHostId(endHosts.from)
+        && typeof endHosts.to === 'string' && isEphemeraMembershipHostId(endHosts.to)
 }
 
 export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudicCacheData => {

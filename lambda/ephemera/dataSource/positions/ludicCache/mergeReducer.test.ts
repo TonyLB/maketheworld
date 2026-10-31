@@ -28,7 +28,7 @@ const collapseCrossingPorts = (parentGraph: EphemeraLudicGraph, childGraph: Ephe
     [parentGraph, childGraph].map((graph) => ({
         hostId: graph.hostId as EphemeraMembershipHostId,
         nodes: [],
-        edges: graph.relationalEdges.map((edge) => toStoredRelationalEdge(edge) as EphemeraLudicCacheEdge),
+        edges: graph.relationalEdges.map((edge) => ({ ...toStoredRelationalEdge(edge), endHosts: { from: graph.hostId, to: graph.hostId } }) as EphemeraLudicCacheEdge),
     }))
 ).edges
 
@@ -103,6 +103,7 @@ describe('the union joins a crossing port\'s two legs (formerly collapseCrossing
                 from: boulder,
                 to: pebble,
                 kind: 'ConnectedTo',
+                endHosts: { from: roomId, to: boxId },
             },
         ])
     })
@@ -174,7 +175,7 @@ describe('the union joins a crossing port\'s two legs (formerly collapseCrossing
         })
 
         expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([
-            { tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: feather, kind: 'ConnectedTo' },
+            { tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: feather, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } },
         ])
     })
 
@@ -364,7 +365,7 @@ describe('foldSameHostBuckets', () => {
 
         const { edges } = foldSameHostBuckets(childGraph, ['b1'])
 
-        expect(edges).toEqual([{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo' }])
+        expect(edges).toEqual([{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } }])
     })
 
     // Three presence buckets on one host. `objC -[Custom: under]-> objD` straddles the adjacent pair
@@ -394,8 +395,8 @@ describe('foldSameHostBuckets', () => {
     })
 
     const expectedEdges = [
-        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
-        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
+        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', endHosts: { from: roomId, to: roomId } },
+        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against', endHosts: { from: roomId, to: roomId } },
     ]
 
     it('reconstructs both interior edges via a single accumulating fold walk, cutting one bucket at a time', () => {
@@ -434,7 +435,7 @@ describe('foldSameHostBuckets', () => {
         const result = foldSameHostBuckets(bareGraph, ['port_1'])
 
         expect(result.edges).toEqual([
-            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'ConnectedTo' },
+            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } },
         ])
     })
 
@@ -587,8 +588,10 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const parentAfterB = testLudicGraph(roomId, { nodes: roomNodes, edges: [afterB[0]] })
         const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort)
 
+        // (The threaded partial edge is re-read as a graph edge, which carries no `endHosts`, so the hand-threaded
+        // end is stamped with the parent's host: an artifact of this fixture, not of the union.)
         expect(afterC).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', endHosts: { from: roomId, to: objC } },
         ])
 
         // The order variant: merge C first against the same unmodified parent, then thread that
@@ -601,7 +604,7 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort)
 
         expect(afterBSecond).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', endHosts: { from: objB, to: roomId } },
         ])
     })
 
@@ -624,16 +627,17 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
 })
 
 describe('collapsedEdgeIdentityKey: ConnectedTo symmetry', () => {
+    const endHosts = { endHosts: { from: 'OBJECT#Rope' as EphemeraMembershipHostId, to: 'OBJECT#Rope' as EphemeraMembershipHostId } }
     const a = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#a' as const }
     const b = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#b' as const }
 
     it('hashes a ConnectedTo edge alike in either endpoint order', () => {
-        expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'ConnectedTo' }))
-            .toEqual(collapsedEdgeIdentityKey({ tag: 'Relational', from: b, to: a, kind: 'ConnectedTo' }))
+        expect(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: a, to: b, kind: 'ConnectedTo' }))
+            .toEqual(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: b, to: a, kind: 'ConnectedTo' }))
     })
 
     it('keeps Custom directional', () => {
-        expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'Custom', relationLabel: 'tied to' }))
-            .not.toEqual(collapsedEdgeIdentityKey({ tag: 'Relational', from: b, to: a, kind: 'Custom', relationLabel: 'tied to' }))
+        expect(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: a, to: b, kind: 'Custom', relationLabel: 'tied to' }))
+            .not.toEqual(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: b, to: a, kind: 'Custom', relationLabel: 'tied to' }))
     })
 })

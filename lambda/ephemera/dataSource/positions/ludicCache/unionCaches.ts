@@ -9,9 +9,9 @@
  * (`isHalfOf`), then deduped by identity. Matching all the legs at once, not
  * pairwise, keeps the result independent of how the reduction is shaped.
  */
-import { ephemeraLudicTerminalsEqual, isEphemeraLudicCrossingPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalsEqual, isEphemeraLudicCrossingPortAddress, type EphemeraLudicCrossingPortAddress } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { toStoredRelationalEdge, type HostRelationalEdge } from '../ludicGraph'
+import { toStoredRelationalEdge } from '../ludicGraph'
 import { dedupeEdgesByIdentity, joinCrossingLegs } from './mergeReducer'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge, EphemeraLudicCacheTerminalId } from './types'
 
@@ -35,9 +35,21 @@ const isHalfOf = (leg: EphemeraLudicCacheEdge, joined: EphemeraLudicCacheEdge): 
     return ephemeraLudicTerminalsEqual(portOnFrom ? leg.to : leg.from, portOnFrom ? joined.to : joined.from)
 }
 
+/** The joined edge's port end now sits where the partner leg's outer end sat (`endHosts` records each outer leg's host). */
+const joinEndHosts = (
+    joined: EphemeraLudicCacheEdge,
+    first: EphemeraLudicCacheEdge,
+    second: EphemeraLudicCacheEdge,
+    address: EphemeraLudicCrossingPortAddress
+): EphemeraLudicCacheEdge => {
+    const firstPortSide = ephemeraLudicTerminalsEqual(first.from, address) ? 'from' : 'to'
+    const secondOuterSide = ephemeraLudicTerminalsEqual(second.from, address) ? 'to' : 'from'
+    return { ...joined, endHosts: { ...first.endHosts, [firstPortSide]: second.endHosts[secondOuterSide] } }
+}
+
 const joinCacheEdges = (edges: EphemeraLudicCacheEdge[]): EphemeraLudicCacheEdge[] => {
-    const { edges: joined } = joinCrossingLegs(edges as HostRelationalEdge<EphemeraLudicCacheTerminalId>[])
-    const stored = joined.map((edge) => toStoredRelationalEdge<EphemeraLudicCacheTerminalId>(edge))
+    const { edges: joined } = joinCrossingLegs<EphemeraLudicCacheTerminalId, EphemeraLudicCacheEdge>(edges, joinEndHosts)
+    const stored = joined.map((edge): EphemeraLudicCacheEdge => ({ ...toStoredRelationalEdge<EphemeraLudicCacheTerminalId>(edge), endHosts: edge.endHosts }))
     const settled = stored.filter((edge) => !hasCrossingPort(edge))
     return dedupeEdgesByIdentity(stored.filter((edge) => !hasCrossingPort(edge) || !settled.some((other) => isHalfOf(edge, other))))
 }

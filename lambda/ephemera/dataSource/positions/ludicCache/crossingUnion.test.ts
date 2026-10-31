@@ -34,6 +34,8 @@ describe('character-to-room crossings: the halves (Slice 0 pins, updated by Slic
         const roomGraph = actorCrossingGraphs().get(roomId) as EphemeraLudicGraph
         const { edges } = foldSameHostBuckets(roomGraph, roomGraph.presenceNodes.map((node) => presenceUuidFromKey(node.universalKey)))
         expect(edges).toEqual(expect.arrayContaining([tiedTo(tableId, tetherPort), tiedTo(tableId, leashPort)]))
+        // Each leg is held by the room's graph alone, so both of its ends sit there, the open port end included.
+        expect(edges.filter(namesPort(tetherPort)).map((edge) => edge.endHosts)).toEqual([{ from: roomId, to: roomId }])
     })
 
     it('the actor\'s fold keeps its own leg from the crossing port, open', async () => {
@@ -66,6 +68,8 @@ describe('character-to-room crossings: the payoff', () => {
         // The actor's crossing: one joined edge, no leg left over.
         expect(union.edges.filter((edge) => edge.from === tableId && edge.to === bagId)).toHaveLength(1)
         expect(union.edges.some(namesPort(tetherPort))).toBe(false)
+        // The table end sits in the room's graph, the bag end in the actor's (`endHosts`, AC-7 (a)).
+        expect(union.edges.find((edge) => edge.from === tableId && edge.to === bagId)?.endHosts).toEqual({ from: roomId, to: actorId })
         // The other character is outside the union: its crossing stays an open leg.
         expect(union.edges).toEqual(expect.arrayContaining([tiedTo(tableId, leashPort)]))
     })

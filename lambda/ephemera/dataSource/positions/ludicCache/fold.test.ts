@@ -161,7 +161,7 @@ describe('buildLudicCache', () => {
         // reassembled by foldSameHostBuckets --- this is what would come back stubbed on both
         // sides if the same-host fold were skipped or misapplied.
         expect(cache.edges).toEqual([
-            { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under' },
+            { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under', endHosts: { from: objZ, to: objZ } },
         ])
     })
 
