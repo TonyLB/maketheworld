@@ -310,6 +310,14 @@ Not gates; take them from the `stored-rebuild` log line when the question is nex
 
 **Undecided whether asset layering is an in-play function at all,** or belongs only to asset assembly and editing; perspectives are unstable (a viewer's asset stack can change under them). The stored `ludicCache` row sidesteps the question: it is perspective-free (Canon + Improvisation names), and only the room header's display labels read the viewer's perspective. **If layering leaves play, that per-viewer label lookup in [`roomObjectContents.ts`](ludicCache/roomObjectContents.ts) is what goes;** the stored row does not change.
 
+#### Shelved: attention-scoped caching must keep every true thing reachable
+
+P6 point 4, "a miss is never no", means **a miss never blocks the player**. Planning reads only attention (the actor's cache) and does not fall through to the graphs on a miss (point 2). But anything true must stay reachable by a command that names a path to it from something in attention: if `get coin` misses, `get coin in bag in backpack` must work. The player's qualification triggers the deeper dig, not the planner. The dig follows the named path, so it is not a search. Today the walk is exhaustive (the room's row plus the actor's fold), so nothing true and reachable can miss and the promise holds automatically. **Gate:** any cache that holds less than everything reachable (attention-based caching). Before it ships, qualified referents owe:
+
+- **A chain resolves past the cache.** Chains already parse and read every span ([actions contract "Qualifier"](../actions/AGENT.contract.md#qualifier)), but each host grounds against cache contents. Resolution must expand from an attended anchor (the backpack) down through nodes not in attention (the bag, then the coin).
+- **The chain must start from something in attention.** If no link in the chain is attended, the player names more, or moves so the anchor comes into attention.
+- **What resolves is still a proposal.** The dry run judges it against truth (point 3), so a deeper dig never authorizes anything by itself.
+
 ### `navigate/` (shared execution + post-persist orchestration)
 
 | File | Role |

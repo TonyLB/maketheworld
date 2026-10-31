@@ -1,10 +1,11 @@
 /**
- * The handle boundary (CC3), and the first
- * real test of P6 clause 3 --- a hit returns a **handle**, never a subgraph. `buildLudicCache`
+ * The handle boundary (CC3): the catalog's projection of a cache into flat handles. `buildLudicCache`
  * stays a pure function; `handlesFromCache` is the projection a consumer reads through, today only
  * `ActorLudicCache.handles()` (`actorCache.ts`, for `actions/actorObjectCatalog.ts`). Nothing past this function's return
  * type is `EphemeraLudicCacheData`-shaped --- a caller gets flat `{ objectId, shortName }` handles,
- * never `nodes`/`edges`/`ports`.
+ * never `nodes`/`edges`/`ports`. This is the catalog's boundary type, not a P6 rule: P6 clause 3
+ * says only that the cache never authorizes a change (acting traverses `ludicGraph`), so planning
+ * may read cache structure elsewhere; the catalog needs only handles.
  *
  * **Exhaustive, not bucket-filtered, by deliberate choice this slice.** The cache is presence-aware
  * internally (its own `cover` structure), but this projection still returns every object node the
@@ -22,7 +23,7 @@
  * a filter: this records where each thing is seen and drops nothing.
  *
  * The rebuild log (`logLudicCacheRebuild`) is written where the cache is read, in `actorCache.ts`, and carries only counts
- * --- never `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
+ * --- never `cache.nodes`/`edges` --- so log output stays as narrow as the handle boundary.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
