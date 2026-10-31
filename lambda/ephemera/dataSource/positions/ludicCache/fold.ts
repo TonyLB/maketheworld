@@ -40,7 +40,6 @@
  */
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { ComponentAggregateMergedCache } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
-import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 
 import internalCache from '../../../internalCache'
 import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
@@ -49,8 +48,6 @@ import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from '.
 import { cacheFromHostGraph } from './cacheFromHostGraph'
 import { unionAllLudicCaches } from './unionCaches'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheNode } from './types'
-
-const presenceUuidFromKey = stripTypedKey('PRESENCE')
 
 export type BuildLudicCacheDeps = EnumerateLudicCacheShardsDeps & {
     getComponentAggregate?: ComponentAggregateMergedCache['get']
@@ -92,13 +89,11 @@ export const buildLudicCache = async (
 
     // Pass 2: the purely synchronous derivation, one cache contribution per host in hostIds order.
     // Each is read from that host's own raw graph alone: its node with its own bindings nested, and its
-    // same-host fold (open crossing legs included). `presenceUuids` is the FULL set of this host's own
-    // bindings (never a proper subset), satisfying `cacheFromHostGraph`'s clause-3 zero-or-all assertion
-    // for an exhaustive rebuild. A node without a graph here is a bug in this function, not a data shape.
+    // same-host fold (open crossing legs included). A node without a graph here is a bug in this function,
+    // not a data shape.
     const contributions = hostIds.map((hostId, index): EphemeraLudicCacheData => {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
-        const presenceUuids = graph.presenceNodes.map((presenceNode) => presenceUuidFromKey(presenceNode.universalKey))
-        const { presenceNodes, edges } = cacheFromHostGraph(graph, presenceUuids)
+        const { presenceNodes, edges } = cacheFromHostGraph(graph)
         return { hostId, nodes: [{ ...nodes[index], presenceNodes }], edges }
     })
 

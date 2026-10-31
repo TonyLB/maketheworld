@@ -10,11 +10,13 @@ import type { EphemeraLudicTerminalId } from '@tonylb/mtw-interfaces/ts/ephemera
 import { ephemeraLudicTerminalOwner, isEphemeraLudicNodeTerminal } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraPresenceNodeId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
+import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import { EphemeraLudicGraph, toStoredRelationalEdge } from '../ludicGraph'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { dedupeEdgesByIdentity, mergeSameHostBucket } from './mergeReducer'
 import type { EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLudicCacheTerminalId } from './types'
+
+const presenceUuidFromKey = stripTypedKey('PRESENCE')
 
 /**
  * Rewrites a bare presence-tagged terminal (`PRESENCE#{uuid}`, legal within the owning graph's own
@@ -28,52 +30,21 @@ import type { EphemeraLudicCacheEdge, EphemeraLudicCachePresenceNode, EphemeraLu
  */
 const liftPresenceTerminal = (terminal: EphemeraLudicTerminalId, owner: EphemeraMembershipHostId): EphemeraLudicCacheTerminalId =>
     isEphemeraLudicNodeTerminal(terminal) && isEphemeraPresenceNodeId(terminal) ? { owner, port: terminal } : terminal
+
 /**
- * The `EphemeraLudicCachePresenceNode` for each binding folded, one per `presenceUuid`
- * (presenceNodes Slice 4, item 3). A binding only reaches this function by being named in
- * `presenceUuids` --- the set of buckets being pulled --- so every node this produces is by
- * construction one that WAS pulled; `EphemeraLudicCacheData` simply never gets an entry for one
- * that wasn't.
+ * The `EphemeraLudicCachePresenceNode` for each of the host's own bindings (presenceNodes Slice 4, item 3).
  *
  * `cover` entries name each covered member's OWN binding into this host, never the covering
  * binding (`EphemeraLudicCacheCoverEntry`). A graph-side explicit entry already says so,
  * and is copied (root filtered out; the parent side is authoritative, so no
- * cross-check against the member's graph). A binding named in
- * `presenceUuids` with no matching graph node (the same degenerate case
- * `nodesFromPresenceBinding` falls back on) mints nothing --- there is no real node to consolidate.
+ * cross-check against the member's graph).
  *
- * **Clause 3's zero-or-all invariant, enforced here and only here:** *"if a host consolidates any
- * presence bucket, it adds all of its presence nodes."* `graph.presenceNodes` is this host's
- * TRUE, complete binding set --- the one place in this module with enough information to check
- * it, unlike a read-time guard over an already-assembled `EphemeraLudicCacheData`, which sees only
- * whichever subset a producer already chose to write and cannot tell a genuine partial pull from
- * a host with no other bindings to omit. `presenceUuids` naming a proper, non-empty subset of
- * `graph.presenceNodes` is exactly the violation clause 3 forbids; `[]` (unexamined) and the full
- * set (this host's own bucket fully consolidated) are the only two legal shapes.
+ * **Clause 3 (zero-or-all) holds by construction:** every binding in `graph.presenceNodes`, this host's
+ * complete binding set, is minted; no caller chooses a subset.
  */
-const assertZeroOrAllPresenceBindings = (graph: EphemeraLudicGraph, presenceUuids: string[]): void => {
-    const allIds = new Set<string>(graph.presenceNodes.map((node) => node.universalKey))
-    const requestedIds = new Set(presenceUuids.map((uuid) => PresenceKey(uuid)))
-    const requestedKnownCount = [...requestedIds].filter((id) => allIds.has(id)).length
-    if (requestedKnownCount > 0 && requestedKnownCount < allIds.size) {
-        throw new Error(
-            `${graph.hostId} consolidates ${requestedKnownCount} of its ${allIds.size} presence bindings --- clause 3 requires zero or all`
-        )
-    }
-}
-
-const presenceCacheNodesFromFold = (
-    graph: EphemeraLudicGraph,
-    presenceUuids: string[]
-): EphemeraLudicCachePresenceNode[] => {
-    assertZeroOrAllPresenceBindings(graph, presenceUuids)
+const presenceCacheNodesFromFold = (graph: EphemeraLudicGraph): EphemeraLudicCachePresenceNode[] => {
     const root = ephemeraLudicTerminalOwner(graph.rootId)
-    return presenceUuids.reduce<EphemeraLudicCachePresenceNode[]>((acc, presenceUuid) => {
-        const universalKey = PresenceKey(presenceUuid)
-        const presenceNode = graph.presenceNodes.find((node) => node.universalKey === universalKey)
-        if (!presenceNode) {
-            return acc
-        }
+    return graph.presenceNodes.map((presenceNode) => {
         // A room's binding into an Area is stored as a carve-out with no members (the room rule,
         // PR-21(f)), so it expands to nothing here and a member's bucket is the room's own remainder.
         const members = presenceNode.cover.members
@@ -82,20 +53,20 @@ const presenceCacheNodesFromFold = (
                 const hostingKind = graph.hostingKindOf(entry.host)
                 return hostingKind === undefined ? entry : { ...entry, hostingKind }
             })
-        return [...acc, {
+        return {
             tag: 'Presence' as const,
-            universalKey,
+            universalKey: presenceNode.universalKey,
             fromHostPresences: presenceNode.fromHostPresences,
             cover: { members },
-        }]
-    }, [])
+        }
+    })
 }
 
 /**
- * Fold-walk probe (ISS8149 D1, second measurement): a single accumulating pass over `portIds`,
- * cutting each bucket and folding its stubs into the running graph in the same step --- not a
+ * Fold-walk probe (ISS8149 D1, second measurement): a single accumulating pass over the host's
+ * bindings, cutting each bucket and folding its stubs into the running graph in the same step --- not a
  * pass that cuts every bucket first and a second pass that matches stubs across the fully-cut
- * set. Order of `presenceUuids` does not affect the result: a still-open stub lives in the
+ * set. The order of `graph.presenceNodes` does not affect the result: a still-open stub lives in the
  * accumulator's own state until something matches it, not in a side channel compared only to the
  * immediately preceding bucket.
  *
@@ -103,20 +74,19 @@ const presenceCacheNodesFromFold = (
  * remaining authored crossing port is a boundary of this host that no same-host merge can resolve,
  * and is kept for the union to join or leave open (contract: "Cache edges keep unmatched crossing legs").
  *
- * `presenceNodes` (presenceNodes Slice 4, item 3): the cache binding for every binding folded,
+ * `presenceNodes` (presenceNodes Slice 4, item 3): the cache binding for every binding of the host,
  * via `presenceCacheNodesFromFold` above. All are `graph.hostId`'s own bindings, so the caller
- * nests them on that host's cache node. Computed in a separate pass over `presenceUuids` rather than as a
+ * nests them on that host's cache node. Computed in a separate pass rather than as a
  * side-effect of the accumulator, since a binding's own cover is a fact about `graph` alone and
  * needs no merge state to compute.
  */
 export const cacheFromHostGraph = (
-    graph: EphemeraLudicGraph,
-    presenceUuids: string[]
+    graph: EphemeraLudicGraph
 ): { presenceNodes: EphemeraLudicCachePresenceNode[]; edges: EphemeraLudicCacheEdge[] } => {
     const seed = EphemeraLudicGraph.fromFieldPayload(graph.hostId, { rootId: graph.rootId, nodes: [], edges: [], ports: [] })
 
-    const folded = presenceUuids.reduce<EphemeraLudicGraph>((accumulated, presenceUuid) => {
-        const bucket = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, presenceUuid))
+    const folded = graph.presenceNodes.reduce<EphemeraLudicGraph>((accumulated, presenceNode) => {
+        const bucket = subGraphFromNodes(graph, nodesFromPresenceBinding(graph, presenceUuidFromKey(presenceNode.universalKey)))
         return mergeSameHostBucket(accumulated, bucket)
     }, seed)
 
@@ -139,5 +109,5 @@ export const cacheFromHostGraph = (
         }))
 
     const deduped = dedupeEdgesByIdentity(legs)
-    return { presenceNodes: presenceCacheNodesFromFold(graph, presenceUuids), edges: deduped }
+    return { presenceNodes: presenceCacheNodesFromFold(graph), edges: deduped }
 }

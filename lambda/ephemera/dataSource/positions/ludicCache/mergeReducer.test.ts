@@ -364,7 +364,7 @@ describe('cacheFromHostGraph', () => {
             ports: [crossingPort('PORT-port_1')],
         })
 
-        const { edges } = cacheFromHostGraph(childGraph, ['b1'])
+        const { edges } = cacheFromHostGraph(childGraph)
 
         expect(edges).toEqual([{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } }])
     })
@@ -375,7 +375,13 @@ describe('cacheFromHostGraph', () => {
     // it at all --- the case that forces a real walk to carry bucket 1's unmatched stub *through*
     // bucket 2 (which cannot resolve it) rather than only comparing each bucket to its immediate
     // predecessor.
-    const graph = testLudicGraph(roomId, {
+    const bindings = [
+        presenceNode('port_1', enumeratedCover(charA, objC, objE)),
+        presenceNode('port_2', enumeratedCover(charB, objD)),
+        presenceNode('port_3', enumeratedCover(charC, objF)),
+    ]
+    // The walk visits buckets in the order the graph lists its presence nodes.
+    const graphWithBindings = (presenceNodes: EphemeraLudicGraphStructureNode[]) => testLudicGraph(roomId, {
         nodes: [
             { tag: 'Room', universalKey: roomId },
             { tag: 'Character', universalKey: charA },
@@ -385,15 +391,14 @@ describe('cacheFromHostGraph', () => {
             { tag: 'Object', universalKey: objD },
             { tag: 'Object', universalKey: objE },
             { tag: 'Object', universalKey: objF },
-            presenceNode('port_1', enumeratedCover(charA, objC, objE)),
-            presenceNode('port_2', enumeratedCover(charB, objD)),
-            presenceNode('port_3', enumeratedCover(charC, objF)),
+            ...presenceNodes,
         ],
         edges: [
             { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
             { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
         ],
     })
+    const graph = graphWithBindings(bindings)
 
     const expectedEdges = [
         { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', endHosts: { from: roomId, to: roomId } },
@@ -401,15 +406,17 @@ describe('cacheFromHostGraph', () => {
     ]
 
     it('reconstructs both interior edges via a single accumulating fold walk, cutting one bucket at a time', () => {
-        const result = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])
+        const result = cacheFromHostGraph(graph)
 
         expect(result.edges).toHaveLength(2)
         expect(result.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
     it('does not depend on the order buckets are visited in --- a still-open stub is carried in the walk\'s own state, not compared only to the immediately preceding bucket', () => {
-        const forward = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])
-        const shuffled = cacheFromHostGraph(graph, ['port_3', 'port_1', 'port_2'])
+        const shuffledGraph = graphWithBindings([bindings[2], bindings[0], bindings[1]])
+        expect(shuffledGraph.presenceNodes.map((node) => node.universalKey)).toEqual(['PRESENCE#port_3', 'PRESENCE#port_1', 'PRESENCE#port_2'])
+        const forward = cacheFromHostGraph(graph)
+        const shuffled = cacheFromHostGraph(shuffledGraph)
 
         expect(forward.edges).toHaveLength(2)
         expect(shuffled.edges).toHaveLength(2)
@@ -433,15 +440,15 @@ describe('cacheFromHostGraph', () => {
             ],
         })
 
-        const result = cacheFromHostGraph(bareGraph, ['port_1'])
+        const result = cacheFromHostGraph(bareGraph)
 
         expect(result.edges).toEqual([
             { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } },
         ])
     })
 
-    it('mints one cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
-        const result = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])
+    it('mints one cache binding per binding of the host, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
+        const result = cacheFromHostGraph(graph)
 
         expect(result.presenceNodes).toHaveLength(3)
         expect(result.presenceNodes).toEqual(expect.arrayContaining([
@@ -480,24 +487,6 @@ describe('cacheFromHostGraph', () => {
                 },
             },
         ]))
-    })
-
-    it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
-        const result = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
-
-        expect(result.presenceNodes).toHaveLength(3)
-        expect(result.presenceNodes.map((node) => node.universalKey).sort()).toEqual([
-            'PRESENCE#port_1', 'PRESENCE#port_2', 'PRESENCE#port_3',
-        ])
-    })
-
-    it("throws when presenceUuids consolidates a proper subset of the host's real presence bindings (clause 3: zero or all, never some)", () => {
-        expect(() => cacheFromHostGraph(graph, ['port_1'])).toThrow(/zero or all/)
-    })
-
-    it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
-        expect(() => cacheFromHostGraph(graph, [])).not.toThrow()
-        expect(() => cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
     })
 })
 
