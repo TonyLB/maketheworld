@@ -2,6 +2,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { buildLudicCache, type BuildLudicCacheDeps } from '../positions/ludicCache/fold'
+import type { ActorContainers } from '../positions/ludicCache/actorCache'
 import type { ActorObjectCatalogDeps, ObjectManipulationCatalogEntry, RoomInPlayObjectCatalogEntry } from './actorObjectCatalog'
 
 type ColdCatalogDeps = {
@@ -38,3 +39,13 @@ export const scopedCatalog = (
         ...held.filter(({ objectId }) => !roomIds.has(objectId)).map((entry): ObjectManipulationCatalogEntry => ({ ...entry, catalogScope: 'held' })),
     ]
 }
+
+/**
+ * Test support: the ancestry a planning test's world has, as the actor's cache answers it (`containersOf`). Pass the world's
+ * `{ id: [its containers] }` map, or a function for a rule (every object sits in the room).
+ */
+export const containersCache = (
+    hostsOf: Record<string, readonly string[]> | ((id: string) => readonly string[])
+): ActorContainers => ({
+    containersOf: (id) => [...(typeof hostsOf === 'function' ? hostsOf(id) : hostsOf[id] ?? [])] as EphemeraMembershipHostId[],
+})

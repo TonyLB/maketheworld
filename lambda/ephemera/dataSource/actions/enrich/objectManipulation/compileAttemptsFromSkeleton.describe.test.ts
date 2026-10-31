@@ -8,7 +8,7 @@ import { planFillOf } from './plan/attemptTemplateFixture'
 import { CommandAttempt } from '../../commandAttempt'
 import { lookedAtObjectIdOf } from '../../commandAttempt/lookedAtObjectId'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
-import { scopedCatalog } from '../../objectCatalogTestSupport'
+import { containersCache, scopedCatalog } from '../../objectCatalogTestSupport'
 
 /** The object the look names: the attempt's first referent. */
 const lookedAtId = (result: { type: string; attempt?: unknown }): unknown => (result.attempt as { referents: { id: unknown }[] }).referents[0]?.id
@@ -192,6 +192,7 @@ describe('compileAttemptsFromSkeleton (a qualified look)', () => {
             fills: [planFillOf(skeleton, 'look at the cup on the table')],
             characterId,
             hostRoomId: roomId,
+            actorCache: containersCache(hostsOf),
             objectCatalog: scopedCatalog(catalog),
         },
         0.9,

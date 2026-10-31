@@ -10,7 +10,7 @@ import { buildActorLudicCache, unionLudicCaches } from './actorCache'
 import { buildLudicCache } from './fold'
 import { readLudicCacheWithOutcome } from './store'
 import type { EphemeraLudicCacheData } from './types'
-import { actorCacheGraphs, actorId, bagId, coinId, graphReader, ropeAtTable, ropeHeld, ropeId, roomId, tableId } from './actorCacheTestFixtures'
+import { actorCacheGraphs, actorId, bagId, coinId, graphReader, lampId, ropeAtTable, ropeHeld, ropeId, roomId, tableId } from './actorCacheTestFixtures'
 
 /** Names each object for its id, with `overrides` for chosen ones. */
 const aggregateNamed = (overrides: Record<string, string> = {}): ComponentAggregateMergedCache['get'] => async ([perspective]) => [mergedComponentResult({
@@ -106,6 +106,31 @@ describe('buildActorLudicCache', () => {
         await build(await roomRow())
         const actorLine = log.mock.calls.map(([, fields]) => fields).find((fields) => fields?.seedHostId === actorId)
         expect(actorLine).toEqual(expect.objectContaining({ outcome: 'cold', shardFetchCount: expect.any(Number), wallTimeMs: expect.any(Number) }))
+    })
+})
+
+describe('ActorLudicCache.containersOf', () => {
+    // What the stored membership adjacency says of the same world: the cache's ancestry must equal it (ISS8314 Slice 5).
+    const adjacency: Record<string, string[]> = {
+        [actorId]: [roomId],
+        [bagId]: [actorId],
+        [coinId]: [bagId],
+        [tableId]: [roomId],
+        [lampId]: [tableId],
+        [ropeId]: [tableId, actorId],
+    }
+
+    it.each(Object.entries(adjacency))('answers %s as the stored adjacency does', async (id, containers) => {
+        const cache = await build(await roomRow())
+
+        expect([...cache.containersOf(id as never)].sort()).toEqual([...containers].sort())
+    })
+
+    it('has no containers for a room, or for a node the cache does not hold', async () => {
+        const cache = await build(await roomRow())
+
+        expect(cache.containersOf(roomId)).toEqual([])
+        expect(cache.containersOf('OBJECT#Absent' as never)).toEqual([])
     })
 })
 

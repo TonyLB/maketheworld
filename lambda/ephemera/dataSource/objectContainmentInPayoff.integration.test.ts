@@ -69,7 +69,7 @@ import { orchestrateRoomDescriptionStreams } from './perception/orchestrate'
 import { newDirectIngressAddress, registerIngressSlot } from './messageOrchestration'
 import type { EphemeraCacheDynamoItem } from './renderCache/baseClasses'
 import { EPHEMERA_CACHE_PROVENANCE_AUTHORED } from './renderCache/baseClasses'
-import { scopedCatalog } from './actions/objectCatalogTestSupport'
+import { scopedCatalog, containersCache } from './actions/objectCatalogTestSupport'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -208,6 +208,7 @@ describe('object containment In payoff (integration)', () => {
             {
                 command: 'put the ball in the box',
                 hostRoomId: ROOM_ID,
+                actorCache: containersCache((id) => (id === BALL_ID || id === BOX_ID ? [ROOM_ID] : [])),
                 objectCatalog: scopedCatalog([
                     { objectId: BALL_ID, normalizedShortName: 'ball' },
                     { objectId: BOX_ID, normalizedShortName: 'box' },

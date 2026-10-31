@@ -41,7 +41,7 @@ import { catalogDepsFromColdBuild } from './objectCatalogTestSupport'
 /** The route's change step: the attempt's first action that changes the world (relation or transfer). */
 import internalCache from '../../internalCache'
 import { spanEmbeddingKey } from '../../internalCache/spanEmbeddings'
-import { scopedCatalog } from './objectCatalogTestSupport'
+import { containersCache, scopedCatalog } from './objectCatalogTestSupport'
 
 jest.mock('../../internalCache', () => ({
     __esModule: true,
@@ -1080,6 +1080,7 @@ describe('parseCommand LLM path', () => {
                     command: 'take the sweeping tool',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([
                         {
                             objectId: broomId,
@@ -1127,6 +1128,7 @@ describe('parseCommand LLM path', () => {
                     command: 'take the broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([
                         { objectId: broomId, normalizedShortName: 'broom' },
                         { objectId: mopId, normalizedShortName: 'broom' },
@@ -1172,6 +1174,7 @@ describe('parseCommand LLM path', () => {
                     command: 'remove the rope off the crate',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([
                         { objectId: ropeId, normalizedShortName: 'rope' },
                         { objectId: crateId, normalizedShortName: 'crate' },
@@ -1216,6 +1219,7 @@ describe('parseCommand LLM path', () => {
                 command: 'put down the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
+                actorCache: containersCache(() => ['CHARACTER#123']),
                 objectCatalog: scopedCatalog([], [{ objectId: broomId, normalizedShortName: 'broom' }]),
             },
             {
@@ -1236,6 +1240,7 @@ describe('parseCommand LLM path', () => {
                 command: 'drop the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
+                actorCache: containersCache(() => ['ROOM#Bridge']),
                 objectCatalog: scopedCatalog([{ objectId: broomId, normalizedShortName: 'broom' }]),
             },
             {
@@ -1263,6 +1268,7 @@ describe('parseCommand LLM path', () => {
                 command: 'get the broom',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge',
+                actorCache: containersCache(() => ['CHARACTER#123']),
                 objectCatalog: scopedCatalog([], [{ objectId: broomId, normalizedShortName: 'broom' }]),
             },
             {
@@ -1290,6 +1296,7 @@ describe('parseCommand LLM path', () => {
                 command: 'put the broom under the table',
                 characterId: 'CHARACTER#123',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                actorCache: containersCache(() => ['ROOM#Bridge']),
                 objectCatalog: scopedCatalog([
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: tableId, normalizedShortName: 'table' },
@@ -1349,6 +1356,7 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'put the coin in the jar',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                actorCache: containersCache(() => ['ROOM#Bridge']),
                 objectCatalog: scopedCatalog([
                     { objectId: coinId, normalizedShortName: 'coin' },
                     { objectId: jarId, normalizedShortName: 'jar' },
@@ -1381,6 +1389,7 @@ describe('parseCommand LLM path', () => {
             {
                 command: 'put the cup on the tray',
                 hostRoomId: 'ROOM#Bridge' as EphemeraRoomId,
+                actorCache: containersCache(() => ['ROOM#Bridge']),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
@@ -1437,6 +1446,7 @@ describe('parseCommand LLM path', () => {
                     command: 'take broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([{ objectId: broomId, normalizedShortName: 'broom' }]),
                 },
                 {
@@ -1470,6 +1480,7 @@ describe('parseCommand LLM path', () => {
                         command,
                         characterId: 'CHARACTER#123',
                         hostRoomId: 'ROOM#Bridge',
+                        actorCache: containersCache(() => ['ROOM#Bridge']),
                         objectCatalog: scopedCatalog([{ objectId: broomId, normalizedShortName: 'broom' }]),
                         ...catalogExtras,
                     } as any,
@@ -1508,6 +1519,7 @@ describe('parseCommand LLM path', () => {
                     command: 'get broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([{ objectId: broomId, normalizedShortName: 'broom' }]),
                 },
                 {
@@ -1535,6 +1547,7 @@ describe('parseCommand LLM path', () => {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['CHARACTER#123']),
                     objectCatalog: scopedCatalog([], [{ objectId: broomId, normalizedShortName: 'broom' }]),
                 },
                 {
@@ -1561,6 +1574,7 @@ describe('parseCommand LLM path', () => {
                     command: 'get broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([{ objectId: broomId, normalizedShortName: 'broom' }]),
                 },
                 {
@@ -1587,6 +1601,7 @@ describe('parseCommand LLM path', () => {
                     command: 'drop broom',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([{ objectId: broomId, normalizedShortName: 'broom' }]),
                 },
                 {
@@ -1610,6 +1625,7 @@ describe('parseCommand LLM path', () => {
                     command: 'drop the cup in the box',
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache((id) => [id === 'OBJECT#Cup' ? 'CHARACTER#123' : 'ROOM#Bridge']),
                     objectCatalog: scopedCatalog([{ objectId: 'OBJECT#Box', normalizedShortName: 'box' }], [{ objectId: 'OBJECT#Cup', normalizedShortName: 'cup' }]),
                 },
                 {
@@ -1642,6 +1658,7 @@ describe('parseCommand LLM path', () => {
                     command,
                     characterId: 'CHARACTER#123',
                     hostRoomId: 'ROOM#Bridge',
+                    actorCache: containersCache(() => ['ROOM#Bridge']),
                     objectCatalog: scopedCatalog([
                         { objectId: 'OBJECT#Saucer', normalizedShortName: 'saucer' },
                         { objectId: 'OBJECT#Table', normalizedShortName: 'table' },
@@ -1742,6 +1759,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             {
                 characterId: CHARACTER,
                 hostRoomId: ROOM,
+                actorCache: containersCache((id) => containers[id] ?? (id === CHARACTER ? [] : [ROOM])),
                 objectCatalog: scopedCatalog([]),
                 ...input,
             } as ParseInput,

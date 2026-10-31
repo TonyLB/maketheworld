@@ -10,7 +10,7 @@ import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
 import type { ResumeAnswers } from './resumeAnswers'
 
 import internalCache from '../../../../internalCache'
-import { scopedCatalog } from '../../objectCatalogTestSupport'
+import { containersCache, scopedCatalog } from '../../objectCatalogTestSupport'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -60,6 +60,7 @@ const compile = (
         fills: fillsOf(command, drafts),
         characterId: actor,
         hostRoomId: roomId,
+        actorCache: containersCache(hostsOf),
         objectCatalog: scopedCatalog(catalog.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName }))),
         ...(answers ? { answers } : {}),
     },

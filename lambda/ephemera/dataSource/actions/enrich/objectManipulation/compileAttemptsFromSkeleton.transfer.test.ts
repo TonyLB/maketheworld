@@ -28,7 +28,7 @@ const transferStepOf = (result: { type: string; attempt?: unknown }): any => {
     return actions[actions.length - 1]?.desiredResult
 }
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
-import { scopedCatalog } from '../../objectCatalogTestSupport'
+import { containersCache, scopedCatalog } from '../../objectCatalogTestSupport'
 
 /** Room and host graphs for the shared dry run; the containment move needs the subject's room. */
 const containmentPositionsReads = () => ({
@@ -67,6 +67,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on tray',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
@@ -86,6 +87,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup in tray',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'in', 'tray', 'trayRef'), 'put cup in tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
@@ -105,6 +107,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on tray',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([{ objectId: trayId, normalizedShortName: 'tray' }], [{ objectId: cupId, normalizedShortName: 'cup' }]),
             },
             0.9,
@@ -153,6 +156,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 fills: [{ skeleton, attempts: [planAttempt(skeleton, 'take unicorn')] }],
                 characterId: 'CHARACTER#Alpha' as EphemeraCharacterId,
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([{ objectId: cupId, normalizedShortName: 'cup' }]),
             },
             0.9,
@@ -171,6 +175,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on tray',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: secondCupId, normalizedShortName: 'cup' },
@@ -207,6 +212,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on cup',
                 fills: [{ skeleton, attempts: [planAttempt(skeleton, 'put cup on cup')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: redId, normalizedShortName: 'Red cup' },
                     { objectId: blueId, normalizedShortName: 'Blue cup' },
@@ -231,6 +237,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on tray',
                 fills: [{ skeleton, attempts: [planAttempt(skeleton, 'put cup on tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: redId, normalizedShortName: 'Red cup' },
                     { objectId: blueId, normalizedShortName: 'Blue cup' },
@@ -256,6 +263,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on tray',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup', placement: [{ host: cupId, bindings: [{ presence: base, under: [{ host: roomId, presence: base }], rooms: [roomId] }] }] },
                     { objectId: secondCupId, normalizedShortName: 'cup', placement: [{ host: secondCupId, bindings: [{ presence: onTable, under: [{ host: tableId, presence: base }], rooms: [roomId] }] }] },
@@ -281,6 +289,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on cup',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef1', 'on', 'cup', 'cupRef2'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef1', 'on', 'cup', 'cupRef2'), 'put cup on cup')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup' },
                 ]),
@@ -302,6 +311,7 @@ describe('compileAttemptsFromSkeleton (take, drop and containment)', () => {
                 command: 'put cup on tray',
                 fills: [{ skeleton: containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), attempts: [planAttempt(containmentSkeleton('put', 'cup', 'cupRef', 'on', 'tray', 'trayRef'), 'put cup on tray')] }],
                 hostRoomId: roomId,
+                actorCache: containersCache(() => [roomId]),
                 objectCatalog: scopedCatalog([
                     { objectId: cupId, normalizedShortName: 'cup' },
                     { objectId: trayId, normalizedShortName: 'tray' },
@@ -361,6 +371,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
                 fills: planSkeleton(skeleton, command).fills,
                 characterId: actor,
                 hostRoomId: roomId,
+                actorCache: containersCache(hostsOf),
                 objectCatalog: scopedCatalog(catalog),
             },
             0.9,
@@ -439,6 +450,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
                 fills: [planFillOf(skeleton, command)],
                 characterId: actor,
                 hostRoomId: roomId,
+                actorCache: containersCache(hostsOf),
                 objectCatalog: scopedCatalog([
                     { objectId: blueCupId, normalizedShortName: 'cup' },
                     { objectId: redCupId, normalizedShortName: 'cup' },
@@ -501,6 +513,7 @@ describe('compileAttemptsFromSkeleton (a qualified take, on the LLM route)', () 
                 fills: [planFillOf(skeleton, command)],
                 characterId: actor,
                 hostRoomId: roomId,
+                actorCache: containersCache(hostsOf),
                 objectCatalog: scopedCatalog([
                     { objectId: tableCupId, normalizedShortName: 'cup' },
                     { objectId: floorCupId, normalizedShortName: 'cup' },

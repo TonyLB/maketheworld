@@ -13,9 +13,11 @@
  * **Freshness (AC-4).** None: the actor half uses the ordinary command reads, since it exists only inside one command.
  *
  * **A boundary type (AC-5).** The class keeps the union private and hands out flat handles (the boundary
- * `catalogHandles.ts` holds); planning-facing accessors are Phase 2.
+ * `catalogHandles.ts` holds); planning-facing accessors answer one question each and return ids, never the cache
+ * (`containersOf`: ancestry, ISS8314 Slice 5).
  */
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import internalCache from '../../../internalCache'
@@ -46,6 +48,16 @@ export class ActorLudicCache {
     }
 
     /**
+     * The hosts that directly contain a node: the owners of the parents of each of its bindings (`fromHostPresences`), in first-seen
+     * order. Empty for a node the cache does not hold, and for one with no parents (a room). A thing in two places (a half-held
+     * rope) has both.
+     */
+    containersOf(id: EphemeraMembershipHostId): EphemeraMembershipHostId[] {
+        const node = this.data.nodes.find(({ universalKey }) => universalKey === id)
+        return [...new Set((node?.presenceNodes ?? []).flatMap((binding) => binding.fromHostPresences.map(({ host }) => host)))]
+    }
+
+    /**
      * The objects wholly in the actor's hands: each has a binding, and every binding sits under the actor, directly or through
      * a chain of parents (the coin in a held bag). A part held and a part elsewhere (a half-held rope) is not wholly held.
      */
@@ -69,6 +81,9 @@ export class ActorLudicCache {
         )))
     }
 }
+
+/** What planning asks of the actor's cache about ancestry; tests supply a bare object. */
+export type ActorContainers = Pick<ActorLudicCache, 'containersOf'>
 
 export type ActorLudicCacheDeps = {
     readLudicCache?: typeof readLudicCacheWithOutcome

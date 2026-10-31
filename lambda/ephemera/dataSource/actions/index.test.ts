@@ -12,7 +12,7 @@ import { navigationIntentErrorMessages, objectManipulationErrorMessages } from '
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
-import { getActorObjectCatalog } from './actorObjectCatalog'
+import { getActorWorld } from './actorObjectCatalog'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -53,7 +53,7 @@ jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
 jest.mock('./actorObjectCatalog', () => ({
-    getActorObjectCatalog: jest.fn(),
+    getActorWorld: jest.fn(),
 }))
 jest.mock('./resolveHomeTargetForCharacter', () => ({
     resolveHomeTargetForCharacter: jest.fn(),
@@ -81,7 +81,7 @@ const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeo
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
-const mockedGetActorObjectCatalog = jest.mocked(getActorObjectCatalog)
+const mockedGetActorWorld = jest.mocked(getActorWorld)
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedIsCoyoteGameRoom = jest.mocked(isCoyoteGameRoom)
@@ -104,7 +104,7 @@ describe('ephemeraActionsDataSource', () => {
             toRoomIds: [],
             exits: [],
         })
-        mockedGetActorObjectCatalog.mockResolvedValue([])
+        mockedGetActorWorld.mockResolvedValue({ entries: [] })
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
         internalCacheMock.ObjectEmbedding.get.mockResolvedValue({})
@@ -1420,7 +1420,7 @@ describe('ephemeraActionsDataSource', () => {
 
         it('passes the actor object catalog (held entries included) into parseCommand', async () => {
             const heldEntry = { objectId: 'OBJECT#Broom' as const, normalizedShortName: 'broom', catalogScope: 'held' as const }
-            mockedGetActorObjectCatalog.mockResolvedValue([heldEntry])
+            mockedGetActorWorld.mockResolvedValue({ entries: [heldEntry] })
             mockedParseCommand.mockResolvedValue({
                 type: 'Error',
                 errorMessage: 'held only',
@@ -1443,7 +1443,7 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockedGetActorObjectCatalog).toHaveBeenCalledWith('CHARACTER#123')
+            expect(mockedGetActorWorld).toHaveBeenCalledWith('CHARACTER#123')
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 expect.objectContaining({
                     objectCatalog: [{ ...heldEntry, embedding: undefined }],
@@ -1464,11 +1464,11 @@ describe('ephemeraActionsDataSource', () => {
                 Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, (_, index) => (index === 1 ? 1 : 0)),
                 { modelId: 'amazon.titan-embed-text-v2:0' }
             )
-            mockedGetActorObjectCatalog.mockResolvedValue([
+            mockedGetActorWorld.mockResolvedValue({ entries: [
                 { objectId: broomId, normalizedShortName: 'broom', catalogScope: 'room' },
                 { objectId: anvilId, normalizedShortName: 'anvil', catalogScope: 'room' },
                 { objectId: pouchId, normalizedShortName: 'pouch', catalogScope: 'held' },
-            ])
+            ] })
             internalCacheMock.ObjectEmbedding.get.mockResolvedValue({
                 [broomId]: broomEmbedding,
                 [pouchId]: pouchEmbedding,
@@ -1509,7 +1509,7 @@ describe('ephemeraActionsDataSource', () => {
         })
 
         it('skips ObjectEmbedding.get when the catalog is empty', async () => {
-            mockedGetActorObjectCatalog.mockResolvedValue([])
+            mockedGetActorWorld.mockResolvedValue({ entries: [] })
             mockedParseCommand.mockResolvedValue({
                 type: 'Error',
                 errorMessage: 'empty catalogs',

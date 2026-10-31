@@ -42,6 +42,7 @@ async function parseCommandCore(
                     characterId: input.characterId,
                     hostRoomId: input.hostRoomId,
                     objectCatalog: input.objectCatalog,
+                    actorCache: input.actorCache,
                     roomExits: input.roomExits,
                 },
                 intentResult.confidence,

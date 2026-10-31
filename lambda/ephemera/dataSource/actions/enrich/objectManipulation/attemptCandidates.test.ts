@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { attemptDryRun, attemptReferentAnswers, attemptSpanKeys, buildAttemptEnvironment, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
+import { attemptDryRun, attemptReferentAnswers, attemptSpanKeys, buildAttemptEnvironment, containersFromCache, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
 import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { planFillOf } from './plan/attemptTemplateFixture'
 import type { ParseSkeleton } from './parse/parseToken'
@@ -9,6 +9,7 @@ import type { SpanCandidatePool } from './spanResolution'
 import { CommandAttempt } from '../../commandAttempt'
 import type { NarrationUnit } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
+import { containersCache } from '../../objectCatalogTestSupport'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { actingCharacterRef, currentHostRef } from './plan/planStep'
 import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
@@ -39,6 +40,42 @@ const relationSkeleton: ParseSkeleton = [
     { type: 'text', text: 'on' },
     { type: 'objectSpan', span: 'tray', stableRefKey: 'trayRef' },
 ]
+
+describe('containersFromCache (the ancestry walk over the actor\'s cache)', () => {
+    const CUP = 'OBJECT#Cup' as EphemeraObjectId
+    const TABLE = 'OBJECT#Table' as EphemeraObjectId
+    const ROOM = 'ROOM#Vortex' as EphemeraRoomId
+
+    it('resolves the full multi-hop chain, not just the first hop', () => {
+        const containersOf = jest.fn(containersCache({ [CUP]: [TABLE], [TABLE]: [ROOM] }).containersOf)
+
+        const result = containersFromCache([CUP], { containersOf })
+
+        expect(result).toEqual(new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>([[CUP, [TABLE]], [TABLE, [ROOM]]]))
+    })
+
+    it('terminates on a containment cycle instead of looping', () => {
+        const containersOf = jest.fn(containersCache({ [CUP]: [TABLE], [TABLE]: [CUP] }).containersOf)
+
+        const result = containersFromCache([CUP], { containersOf })
+
+        expect(result).toEqual(new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>([[CUP, [TABLE]], [TABLE, [CUP]]]))
+        expect(containersOf).toHaveBeenCalledTimes(2)
+    })
+
+    it('ends a branch at a Room without asking the cache about it', () => {
+        const containersOf = jest.fn(containersCache({ [CUP]: [ROOM] }).containersOf)
+
+        const result = containersFromCache([CUP], { containersOf })
+
+        expect(result).toEqual(new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>([[CUP, [ROOM]]]))
+        expect(containersOf).toHaveBeenCalledTimes(1)
+    })
+
+    it('has no containers for anything when there is no cache', () => {
+        expect(containersFromCache([CUP], undefined)).toEqual(new Map([[CUP, []]]))
+    })
+})
 
 describe('attemptSpanKeys', () => {
     it('lists the distinct stableRefKeys the attempt names, in order', () => {
@@ -598,8 +635,8 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
         [floorCupId]: [roomId],
         [clothId]: [roomId, tableId],
     }
+    const actorCache = containersCache(hostsOf)
     const reads = {
-        getMembershipContainers: jest.fn(async (id: string) => hostsOf[id] ?? []),
         getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
     }
 
@@ -635,7 +672,7 @@ describe('a qualifier\'s containedBy assertion, judged in the dry run', () => {
         if (!proposed.ok) {
             throw new Error(proposed.reason)
         }
-        const env = await buildAttemptEnvironment(proposed.candidates, roomId, testLudicGraph(roomId), reads, catalogHere)
+        const env = await buildAttemptEnvironment(proposed.candidates, roomId, testLudicGraph(roomId), reads, actorCache, catalogHere)
         return proposed.candidates.map((candidate) => ({
             candidate,
             outcome: attemptDryRun(candidate, env, { roomId, actorCharacterId: actor }),

@@ -28,6 +28,7 @@ import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/inv
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
 import type { ObjectManipulationCatalogEntry } from './actorObjectCatalog'
+import type { ActorContainers } from '../positions/ludicCache/actorCache'
 import { isCompilePass, isPersistentCommandRoot, type CompilePass, type PersistentCommandRoot } from './persistentCommand/payload'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
@@ -717,6 +718,8 @@ export type ParseCommandInput = {
     roomExits?: readonly RoomExit[]
     /** The one object catalog (room and hand) for enrich and deterministic resolve (`actorObjectCatalog.ts`). */
     objectCatalog?: readonly ObjectManipulationCatalogEntry[]
+    /** The cache `objectCatalog` was read from: what planning reads for ancestry (`actorObjectCatalog.ts`). Absent where there is no room. */
+    actorCache?: ActorContainers
     /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }

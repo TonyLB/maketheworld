@@ -24,7 +24,7 @@ import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { getActorObjectCatalog } from './actions/actorObjectCatalog'
+import { getActorWorld } from './actions/actorObjectCatalog'
 import { catalogDepsFromColdBuild } from './actions/objectCatalogTestSupport'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
 import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
@@ -102,7 +102,7 @@ describe('actor cache payoff: take from a held bag (integration)', () => {
 
     /** The real `parseCommand`; the one catalog as `loadCommandWorld` builds it, from the actor's cache (the table in the room, the bag in hand, the coin in the bag). */
     const parse = async (command: string) => {
-        const objectCatalog = await getActorObjectCatalog(CHARACTER_ID, {
+        const { entries: objectCatalog, actorCache } = await getActorWorld(CHARACTER_ID, {
             ...catalogDepsFromColdBuild({
                 getLudicGraph: async (hostId) => graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
                 getComponentAggregate: getComponentAggregate as any,
@@ -116,6 +116,7 @@ describe('actor cache payoff: take from a held bag (integration)', () => {
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
                 objectCatalog,
+                actorCache,
             },
             {
                 invokeBedrockParseCommandImpl,

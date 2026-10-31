@@ -53,7 +53,7 @@ import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { buildLudicCache } from './positions/ludicCache/fold'
 import { ludicCacheRoomObjectContents } from './positions/ludicCache/roomObjectContents'
 import { getActorObjectCatalog } from './actions/actorObjectCatalog'
-import { catalogDepsFromColdBuild, scopedCatalog } from './actions/objectCatalogTestSupport'
+import { catalogDepsFromColdBuild, containersCache, scopedCatalog } from './actions/objectCatalogTestSupport'
 import type { RoomInPlayObjectCatalogEntry } from './actions/actorObjectCatalog'
 import { askRowPayload, selectQuestionFromConsult } from './actions/selectQuestion'
 import { resumePersistentCommand } from './actions/persistentCommand/resume'
@@ -198,6 +198,7 @@ const useWorld = (objects: WorldObjects) => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
+                actorCache: containersCache(containersOf),
                 objectCatalog: scopedCatalog(catalog ?? objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name }))),
             },
             {
@@ -266,7 +267,7 @@ const useWorld = (objects: WorldObjects) => {
     /** The question's option labels, then the command resumed at the option at `index`: the attempt the player's answer makes. */
     const resumeAt = async (consult: Awaited<ReturnType<typeof parseAny>>, index: number, command: string, catalog: readonly RoomInPlayObjectCatalogEntry[], containersOf: (id: string) => string[]) => {
         const { payload } = answered(consult, index, command)
-        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, objectCatalog: scopedCatalog(catalog) }, {
+        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, objectCatalog: scopedCatalog(catalog), actorCache: containersCache(containersOf) }, {
             positionsReadDeps: {
                 getMembershipContainers: async (id: string) => containersOf(id) as any,
                 getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),
@@ -623,7 +624,7 @@ describe('asking which part of a draped cloth (integration)', () => {
         const { catalog, consult } = await askTake()
         const { payload } = answered(consult, index)
 
-        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, objectCatalog: scopedCatalog(catalog) }, { positionsReadDeps: positionsReadDeps as any })
+        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, objectCatalog: scopedCatalog(catalog), actorCache: containersCache(afterDrape) }, { positionsReadDeps: positionsReadDeps as any })
 
         expect(resumed).toMatchObject({ type: 'CommandAttempt' })
         const [step] = CommandAttempt.fromJSON((resumed as any).attempt).actions().map((action) => action.desiredResult)

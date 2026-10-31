@@ -9,6 +9,7 @@ import type {
     ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
+import type { ActorContainers } from '../../../positions/ludicCache/actorCache'
 import type { AttemptKind, CommandAttempt } from '../../commandAttempt'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 
@@ -33,6 +34,7 @@ import {
     attemptSpanKeys,
     buildAttemptEnvironment,
     defaultPositionsReads,
+    type AttemptPositionsReads,
     expandAndAdjudicateCandidates,
     groundedObjectIdOf,
     proposeAttemptCandidates,
@@ -58,6 +60,8 @@ export type CompileAttemptsFromSkeletonInput = {
     hostRoomId?: EphemeraRoomId
     /** Everything the actor can reach, room and hand, each entry scoped by placement (`actorObjectCatalog.ts`). */
     objectCatalog?: readonly ObjectManipulationCatalogEntry[]
+    /** The cache the catalog came from: ancestry for the step environment. Absent, nothing has a container. */
+    actorCache?: ActorContainers
     /** The exits from the actor's room: what an exit span grounds against, and what the dry run judges a navigation by. */
     roomExits?: readonly RoomExit[]
     /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */
@@ -281,7 +285,7 @@ type ProducerContext = {
     intentConfidence: number
     answers: ResumeAnswers | undefined
     hostRoomId: EphemeraRoomId | undefined
-    positionsReads: ObjectManipulationPositionsReadDeps
+    positionsReads: AttemptPositionsReads
     roomGraph: Awaited<ReturnType<ObjectManipulationPositionsReadDeps['getLudicGraph']>> | undefined
     catalog: readonly ObjectManipulationCatalogEntry[]
 }
@@ -420,7 +424,7 @@ async function proposeToResult(
     // A pool of plain looks has no steps, so the shared dry run never reads its environment and none is built.
     const env = roomGraph === undefined || hostRoomId === undefined || !survivors.some(hasStep)
         ? undefined
-        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads, catalog)
+        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads, input.actorCache, catalog)
     const expanded = env === undefined ? proposed.candidates : expandAndAdjudicateCandidates(proposed.candidates, env)
     const candidates = answers?.challengeAnswers === undefined ? expanded : applyChallengeAnswers(expanded, answers.challengeAnswers)
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {

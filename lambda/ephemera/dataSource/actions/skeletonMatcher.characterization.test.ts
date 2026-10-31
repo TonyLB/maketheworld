@@ -11,7 +11,7 @@ import { parseCommand } from './parseCommand'
 
 import internalCache from '../../internalCache'
 import { spanEmbeddingKey } from '../../internalCache/spanEmbeddings'
-import { scopedCatalog } from './objectCatalogTestSupport'
+import { containersCache, scopedCatalog } from './objectCatalogTestSupport'
 
 jest.mock('../../internalCache', () => ({
     __esModule: true,
@@ -185,15 +185,14 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
             enrich: jest.fn(),
             acme: jest.fn().mockResolvedValue({ success: false, errorMessage: 'acme stubbed as unavailable' }),
         }
-        const result = await parseCommand(inputOf(row), {
+        const containersOf = (id: string) => row.containers?.[id] ?? (id === CHARACTER ? [] : [ROOM])
+        const result = await parseCommand({ ...inputOf(row), actorCache: containersCache(containersOf) }, {
             invokeBedrockParseCommandImpl: stubs.classify,
             invokeBedrockObjectManipulationEnrichImpl: stubs.enrich,
             invokeBedrockAcmeOrderEnrichImpl: stubs.acme,
             countCoyotePlacedObjectsAcrossRoomsDeps: { getGameRooms: async () => [] },
             objectManipulationPositionsReadDeps: {
-                getMembershipContainers: jest.fn().mockImplementation(async (id: string) => (
-                    row.containers?.[id] ?? (id === CHARACTER ? [] : [ROOM])
-                )),
+                getMembershipContainers: jest.fn().mockImplementation(async (id: string) => containersOf(id)),
                 getLudicGraph: jest.fn().mockImplementation(async (hostId: string) => (
                     graphs[hostId] ?? testLudicGraph(hostId as EphemeraRoomId)
                 )),

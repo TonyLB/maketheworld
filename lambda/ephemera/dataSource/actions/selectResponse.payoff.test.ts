@@ -4,7 +4,8 @@ import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
-import { getActorObjectCatalog } from './actorObjectCatalog'
+import { getActorWorld } from './actorObjectCatalog'
+import { containersCache } from './objectCatalogTestSupport'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import { applyOptimisticUpdate } from './persistentCommand/testFixtures'
@@ -51,7 +52,7 @@ jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
 jest.mock('./actorObjectCatalog', () => ({
-    getActorObjectCatalog: jest.fn(),
+    getActorWorld: jest.fn(),
 }))
 jest.mock('./stableKey/collectCoyoteOccupiedStableKeys', () => ({ collectCoyoteOccupiedStableKeys: jest.fn() }))
 jest.mock('../perception/subscribedEvents', () => ({
@@ -111,9 +112,10 @@ describe('select response payoff: an ambiguous take is asked, answered and commi
         mockTable.clear()
         mockMessageBus.publish.mockReturnValue(undefined)
         ;(getRoomExitTargetsForCharacter as jest.Mock).mockResolvedValue({ fromRoomId: roomId, toRoomIds: [], exits: [] })
-        ;(getActorObjectCatalog as jest.Mock).mockResolvedValue(
-            cupIds.map((objectId) => ({ objectId, normalizedShortName: 'cup', catalogScope: 'room' }))
-        )
+        ;(getActorWorld as jest.Mock).mockResolvedValue({
+            entries: cupIds.map((objectId) => ({ objectId, normalizedShortName: 'cup', catalogScope: 'room' })),
+            actorCache: containersCache(() => [roomId]),
+        })
         ;(collectCoyoteOccupiedStableKeys as jest.Mock).mockResolvedValue(new Set<string>())
         internalCacheMock.ObjectEmbedding.get.mockResolvedValue({})
         internalCacheMock.Positions.getMembershipContainers.mockResolvedValue([roomId])

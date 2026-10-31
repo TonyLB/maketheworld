@@ -8,7 +8,7 @@ import { CommandAttempt } from '../commandAttempt'
 import type { PersistentCommandPayload } from './payload'
 import { resumePersistentCommand } from './resume'
 import { transcriptContextForResume } from './transcript'
-import { scopedCatalog } from '../objectCatalogTestSupport'
+import { containersCache, scopedCatalog } from '../objectCatalogTestSupport'
 
 const roomId = 'ROOM#Bridge' as EphemeraRoomId
 const cupId = 'OBJECT#Cup' as EphemeraObjectId
@@ -47,6 +47,7 @@ const readsFor = (objectIds: EphemeraObjectId[], touchedId?: EphemeraObjectId) =
 const world = (catalogIds: EphemeraObjectId[]) => ({
     characterId,
     hostRoomId: roomId,
+    actorCache: containersCache(() => [roomId]),
     objectCatalog: scopedCatalog(catalogIds.map((objectId) => ({ objectId, normalizedShortName: 'cup' }))),
 })
 

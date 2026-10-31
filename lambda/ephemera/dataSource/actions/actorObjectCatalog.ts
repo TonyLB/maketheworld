@@ -2,7 +2,7 @@ import { isEphemeraRoomId, type EphemeraCharacterId, type EphemeraObjectId } fro
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 
 import internalCache from '../../internalCache'
-import { buildActorLudicCache, type ActorLudicCacheDeps } from '../positions/ludicCache/actorCache'
+import { buildActorLudicCache, type ActorLudicCache, type ActorLudicCacheDeps } from '../positions/ludicCache/actorCache'
 import { normalizeExitName } from './roomExitTargetsForCharacter'
 import type { GroundedPresence } from './enrich/objectManipulation/plan/planStep'
 import type { PresencePlacement } from './objectViews'
@@ -32,24 +32,34 @@ export type ActorObjectCatalogDeps = ActorLudicCacheDeps & {
 }
 
 /**
+ * The actor's cache and the one object catalog read from it, for a command's world. Both are absent for a character in no
+ * room: no cache, no catalog.
+ */
+export type ActorWorld = {
+    actorCache?: ActorLudicCache
+    entries: ObjectManipulationCatalogEntry[]
+}
+
+/**
  * The one object catalog of a command, for classify, enrich, and deterministic resolve: everything the actor can reach, in the
  * room or in hand, read from the actor's cache (`positions/ludicCache/actorCache.ts`), so names are the room's Canon +
  * Improvisation names every viewer shares and a thing nested in a held container is in the catalog like any other.
  * `catalogScope` comes from placement (AC-3), not from where an entry was read. A character in no room has no catalog.
+ * The cache is returned beside it, so planning reads the same cache the catalog came from.
  *
  * Exhaustive rather than presence-bucket-filtered (see `enrich/objectManipulation/AGENT.md`, "Known gap").
  */
-export async function getActorObjectCatalog(
+export async function getActorWorld(
     characterId: EphemeraCharacterId,
     deps: ActorObjectCatalogDeps = {}
-): Promise<ObjectManipulationCatalogEntry[]> {
+): Promise<ActorWorld> {
     const [roomId] = await (deps.getMembershipContainers ?? ((id) => internalCache.Positions.getMembershipContainers(id)))(characterId)
     if (!roomId || !isEphemeraRoomId(roomId)) {
-        return []
+        return { entries: [] }
     }
     const actorCache = await buildActorLudicCache(characterId, roomId, deps)
     const held = actorCache.heldObjectIds()
-    return actorCache.handles()
+    const entries = actorCache.handles()
         .map(({ objectId, shortName, gloss, presence, placement }): ObjectManipulationCatalogEntry | undefined => {
             const normalizedShortName = normalizeExitName(shortName)
             if (normalizedShortName.length === 0) {
@@ -65,4 +75,13 @@ export async function getActorObjectCatalog(
             }
         })
         .filter((entry): entry is ObjectManipulationCatalogEntry => entry !== undefined)
+    return { actorCache, entries }
+}
+
+/** The catalog alone, for callers that read nothing else of the actor's world. */
+export async function getActorObjectCatalog(
+    characterId: EphemeraCharacterId,
+    deps: ActorObjectCatalogDeps = {}
+): Promise<ObjectManipulationCatalogEntry[]> {
+    return (await getActorWorld(characterId, deps)).entries
 }

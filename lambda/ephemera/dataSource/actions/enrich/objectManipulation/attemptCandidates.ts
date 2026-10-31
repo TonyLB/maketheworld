@@ -23,7 +23,8 @@ import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
 import { groundPlanStep } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
-import { walkAncestryContainers } from './synthesize/findShardBoundary'
+import { isPositionAdjacencyContainedId } from './synthesize/findShardBoundary'
+import type { ActorContainers } from '../../../positions/ludicCache/actorCache'
 import { fetchRelationalReachability } from '../../../positions/manipulation/relational/findRelationalChainsForRemoval'
 import { edgeRelationSteps, edgeRelationsHost } from '../../../positions/manipulation/relational/edgeRelationSteps'
 import type { SpanName } from './stampCandidateReferents'
@@ -40,10 +41,9 @@ import type { ParseSkeleton } from './parse/parseToken'
  * `compileAttemptsFromSkeleton.ts` is its one entry.
  */
 
-export type AttemptPositionsReads = Pick<ObjectManipulationPositionsReadDeps, 'getLudicGraph' | 'getMembershipContainers'>
+export type AttemptPositionsReads = Pick<ObjectManipulationPositionsReadDeps, 'getLudicGraph'>
 
 export const defaultPositionsReads = (): AttemptPositionsReads => ({
-    getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
     getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
 
@@ -518,8 +518,28 @@ const candidateObjectIds = (candidates: readonly GroundedAttemptCandidate[]): Ep
 }
 
 /**
+ * Each host the candidates sit under, to its own direct containers, read from the actor's cache. A walk up from every
+ * candidate until a Room (or anything the cache has no node for) ends the branch; `visited` guards a containment cycle.
+ */
+export const containersFromCache = (
+    objectIds: readonly EphemeraObjectId[],
+    actorCache: ActorContainers | undefined
+): Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]> => {
+    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
+    const frontier: EphemeraMembershipHostId[] = [...objectIds]
+    while (frontier.length > 0) {
+        const hostId = frontier.pop()!
+        if (containersByHostId.has(hostId) || !isPositionAdjacencyContainedId(hostId)) continue
+        const containers = actorCache?.containersOf(hostId) ?? []
+        containersByHostId.set(hostId, containers)
+        frontier.push(...containers)
+    }
+    return containersByHostId
+}
+
+/**
  * The per-command environment: the room graph, plus each candidate object's host graph
- * found by an eager, depth-capped ancestry walk. Built once for the whole pool. A
+ * found by walking its ancestry in the actor's cache. Built once for the whole pool. A
  * `findShardBoundary` walk reaches past intermediate hosts, so one-hop lookups would dead-end.
  * Also every shard a relation touching a candidate can cross into (`fetchRelationalReachability`,
  * the same walk chain-aware removal uses): Expansion and the dry run follow a crossing to its far
@@ -530,18 +550,11 @@ export const buildAttemptEnvironment = async (
     hostRoomId: EphemeraRoomId,
     roomGraph: EphemeraLudicGraph | undefined,
     reads: AttemptPositionsReads,
+    actorCache: ActorContainers | undefined,
     catalog: readonly ObjectManipulationCatalogEntry[] = []
 ): Promise<ExpansionEnvironment> => {
     const objectIds = candidateObjectIds(candidates)
-    const getMembershipContainersForWalk = (id: EphemeraPositionAdjacencyContainedId): Promise<EphemeraMembershipHostId[]> =>
-        // Candidates, and everything their walk can reach, are Objects until a Room/Area ends the branch.
-        reads.getMembershipContainers(id as EphemeraObjectId)
-
-    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
-    const ancestryMaps = await Promise.all(objectIds.map((objectId) => walkAncestryContainers(objectId, getMembershipContainersForWalk)))
-    ancestryMaps.forEach((ancestryMap) => ancestryMap.forEach((containers, hostId) => {
-        containersByHostId.set(hostId, containers)
-    }))
+    const containersByHostId = containersFromCache(objectIds, actorCache)
 
     const hostByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
     for (const objectId of objectIds) {
@@ -561,7 +574,7 @@ export const buildAttemptEnvironment = async (
     }
     const reachable = await fetchRelationalReachability(
         new Set(objectIds),
-        (id) => reads.getMembershipContainers(id as EphemeraObjectId),
+        async (id) => containersByHostId.get(id) ?? actorCache?.containersOf(id) ?? [],
         async (hostId) => hostGraphMap.get(hostId) ?? reads.getLudicGraph(hostId)
     )
     for (const [hostId, graph] of reachable) {

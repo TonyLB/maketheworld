@@ -45,7 +45,7 @@ import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
 import { getActorObjectCatalog } from './actions/actorObjectCatalog'
-import { catalogDepsFromColdBuild, scopedCatalog } from './actions/objectCatalogTestSupport'
+import { catalogDepsFromColdBuild, scopedCatalog, containersCache } from './actions/objectCatalogTestSupport'
 import { CommandAttempt, type CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
@@ -205,6 +205,7 @@ describe('phrase coverage payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
+                actorCache: containersCache(world.containers),
                 objectCatalog: scopedCatalog(labels.filter(([objectId]) => !isHeld(objectId)).map(([objectId, normalizedShortName]) => ({
                     objectId,
                     normalizedShortName,
