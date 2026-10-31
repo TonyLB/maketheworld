@@ -12,7 +12,7 @@ import { stripTypedKey } from '@tonylb/mtw-utilities/ts/types'
 import type { EphemeraLudicGraph } from '../ludicGraph'
 import { unionLudicCaches } from './actorCache'
 import { buildLudicCache } from './fold'
-import { foldSameHostBuckets } from './mergeReducer'
+import { cacheFromHostGraph } from './cacheFromHostGraph'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheEdge } from './types'
 import { actorCrossingGraphs, actorId, bagId, coinId, graphReader, leashId, leashPort, roomId, tableId, tetherPort } from './actorCacheTestFixtures'
 
@@ -32,7 +32,7 @@ const nodeKeys = (cache: EphemeraLudicCacheData) => cache.nodes.map((node) => no
 describe('character-to-room crossings: the halves (Slice 0 pins, updated by Slice 2)', () => {
     it('the room\'s own fold keeps its legs to a participant\'s port, unchanged', () => {
         const roomGraph = actorCrossingGraphs().get(roomId) as EphemeraLudicGraph
-        const { edges } = foldSameHostBuckets(roomGraph, roomGraph.presenceNodes.map((node) => presenceUuidFromKey(node.universalKey)))
+        const { edges } = cacheFromHostGraph(roomGraph, roomGraph.presenceNodes.map((node) => presenceUuidFromKey(node.universalKey)))
         expect(edges).toEqual(expect.arrayContaining([tiedTo(tableId, tetherPort), tiedTo(tableId, leashPort)]))
         // Each leg is held by the room's graph alone, so both of its ends sit there, the open port end included.
         expect(edges.filter(namesPort(tetherPort)).map((edge) => edge.endHosts)).toEqual([{ from: roomId, to: roomId }])

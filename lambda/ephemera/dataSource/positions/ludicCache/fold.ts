@@ -1,6 +1,6 @@
 /**
  * The fold. Composes the node enumeration's `enumerateLudicCacheShards` (the cross-host walk) with
- * `foldSameHostBuckets` and the union (`unionCaches.ts`), as one rule:
+ * `cacheFromHostGraph` and the union (`unionCaches.ts`), as one rule:
  *
  * - **Each host's cache contribution is derived from its own raw graph alone**: its node, its bindings, and its
  *   same-host fold, including the legs still open at its authored crossing ports.
@@ -19,7 +19,7 @@
  * binding arriving against an *already-persisted* cache --- is not this file's: a stale persisted cache is rebuilt whole (see `positions/AGENT.contract.md`, Ludic cache staleness and rebuild).
  *
  * **3e (idempotence and confluence, LC2/LC3):** grouping by `collapsedEdgeIdentityKey`
- * (`mergeReducer.ts`) at cache-assembly grain, not only within each `foldSameHostBuckets` call, is what makes a retried rebuild against the same graphs produce a
+ * (`mergeReducer.ts`) at cache-assembly grain, not only within each `cacheFromHostGraph` call, is what makes a retried rebuild against the same graphs produce a
  * byte-identical `edges` array --- see `fold.test.ts`'s "run twice" case.
  *
  * Tier: Prototype, inheriting `mergeReducer.ts`'s dependency tag and rollback trigger (this file
@@ -46,7 +46,7 @@ import internalCache from '../../../internalCache'
 import { EphemeraLudicGraph, nodeFromId } from '../ludicGraph'
 import { resolveComponentCacheFields } from '../../objects/objectShortName'
 import { enumerateLudicCacheShards, type EnumerateLudicCacheShardsDeps } from './enumerateShards'
-import { foldSameHostBuckets } from './mergeReducer'
+import { cacheFromHostGraph } from './cacheFromHostGraph'
 import { unionAllLudicCaches } from './unionCaches'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheNode } from './types'
 
@@ -93,12 +93,12 @@ export const buildLudicCache = async (
     // Pass 2: the purely synchronous derivation, one cache contribution per host in hostIds order.
     // Each is read from that host's own raw graph alone: its node with its own bindings nested, and its
     // same-host fold (open crossing legs included). `presenceUuids` is the FULL set of this host's own
-    // bindings (never a proper subset), satisfying `foldSameHostBuckets`'s clause-3 zero-or-all assertion
+    // bindings (never a proper subset), satisfying `cacheFromHostGraph`'s clause-3 zero-or-all assertion
     // for an exhaustive rebuild. A node without a graph here is a bug in this function, not a data shape.
     const contributions = hostIds.map((hostId, index): EphemeraLudicCacheData => {
         const graph = graphs.get(hostId) as EphemeraLudicGraph
         const presenceUuids = graph.presenceNodes.map((presenceNode) => presenceUuidFromKey(presenceNode.universalKey))
-        const { presenceNodes, edges } = foldSameHostBuckets(graph, presenceUuids)
+        const { presenceNodes, edges } = cacheFromHostGraph(graph, presenceUuids)
         return { hostId, nodes: [{ ...nodes[index], presenceNodes }], edges }
     })
 

@@ -4,7 +4,7 @@
  *
  * **The realistic same-host fold case, confirmed with the plan's author (2026-09-18):** a ROOM
  * cannot itself carry more than one presence binding (rooms are not multi-hosted, and may never
- * be, being character-viewpoint atomics) --- `mergeReducer.test.ts`'s `foldSameHostBuckets`
+ * be, being character-viewpoint atomics) --- `mergeReducer.test.ts`'s `cacheFromHostGraph`
  * fixtures, which put several buckets directly on a room's own graph, encode a scenario that
  * cannot arise from a real write. The real case is a **multi-hosted child**: an object present
  * inside two different containing objects at once carries two presence bindings on its OWN
@@ -158,7 +158,7 @@ describe('buildLudicCache', () => {
         expect(isEphemeraLudicCacheData(cache)).toBe(true)
 
         // The payoff: objZ's own interior edge, split across its two bindings' covers, is
-        // reassembled by foldSameHostBuckets --- this is what would come back stubbed on both
+        // reassembled by cacheFromHostGraph --- this is what would come back stubbed on both
         // sides if the same-host fold were skipped or misapplied.
         expect(cache.edges).toEqual([
             { tag: 'Relational', from: pebble1, to: pebble2, kind: 'Custom', relationLabel: 'under', endHosts: { from: objZ, to: objZ } },

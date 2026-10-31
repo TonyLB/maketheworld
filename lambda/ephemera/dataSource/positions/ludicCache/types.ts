@@ -76,7 +76,7 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNodeBase & {
  * entries only, as the graph-side cover is, so a complement ("every unclaimed node of the host", which
  * has no referent in a multi-host merge, loss (A)) is unrepresentable *by construction* rather
  * than by a runtime guard someone could forget. Minted by
- * `mergeReducer.ts`'s `foldSameHostBuckets` (via its
+ * `cacheFromHostGraph.ts` (via its
  * `presenceCacheNodesFromFold` helper), one per binding folded. Each cover
  * entry names the member's own binding into this binding's host (`EphemeraLudicCacheCoverEntry`).
  */
@@ -107,7 +107,7 @@ export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'pre
  * A terminal on a cache edge: every kind of terminal except the own binding (a bare
  * `PRESENCE#...`). Nesting makes a binding's lookup in the cache a path --- the owner's node, then
  * that binding on it --- so a cache edge ending at a binding names it through its binding address,
- * which carries the owner. `liftPresenceTerminal` (`mergeReducer.ts`) rewrites an own binding to that
+ * which carries the owner. `liftPresenceTerminal` (`cacheFromHostGraph.ts`) rewrites an own binding to that
  * form at the point each cache edge is minted.
  */
 export type EphemeraLudicCacheTerminalId =
@@ -195,7 +195,7 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
 
 // A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): the type
 // (`EphemeraLudicCacheTerminalId`) refuses it at compile time, and this guard refuses it in stored
-// rows. `foldSameHostBuckets` lifts every such terminal at mint time; a
+// rows. `cacheFromHostGraph` lifts every such terminal at mint time; a
 // bare one reaching this guard is corruption, not an unpulled-binding case (that case is an
 // owner-qualified terminal whose binding is simply absent from `nodes`, which the
 // referential-integrity pass below already permits).

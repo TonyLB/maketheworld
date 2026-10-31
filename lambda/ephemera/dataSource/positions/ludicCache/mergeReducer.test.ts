@@ -10,7 +10,8 @@ import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { collapsedEdgeIdentityKey, foldSameHostBuckets, joinCrossingLegs, mergeSameHostBucket } from './mergeReducer'
+import { collapsedEdgeIdentityKey, joinCrossingLegs, mergeSameHostBucket } from './mergeReducer'
+import { cacheFromHostGraph } from './cacheFromHostGraph'
 import { toStoredRelationalEdge, type HostRelationalEdge } from '../ludicGraph'
 import type { EphemeraLudicCacheEdge, EphemeraLudicCacheTerminalId } from './types'
 import { isEphemeraLudicCacheEdge } from './types'
@@ -21,7 +22,7 @@ import { unionAllLudicCaches } from './unionCaches'
 /**
  * What the retired `collapseCrossingPorts(parent, child)` did, through the one composition rule: each graph's edges as a
  * cache contribution, unioned. Legs with no partner stay in the result as open legs. (These fixtures carry no bindings, so
- * they skip `foldSameHostBuckets`; lifting a bare presence terminal to its exterior form is tested there, below.)
+ * they skip `cacheFromHostGraph`; lifting a bare presence terminal to its exterior form is tested there, below.)
  */
 const collapseCrossingPorts = (parentGraph: EphemeraLudicGraph, childGraph: EphemeraLudicGraph) => unionAllLudicCaches(
     parentGraph.hostId as EphemeraMembershipHostId,
@@ -351,7 +352,7 @@ describe('mergeSameHostBucket', () => {
     })
 })
 
-describe('foldSameHostBuckets', () => {
+describe('cacheFromHostGraph', () => {
     it('keeps a leg still open at an authored crossing port of the host (the union joins it or leaves it open)', () => {
         const childGraph = testLudicGraph(boxId, {
             nodes: [
@@ -363,7 +364,7 @@ describe('foldSameHostBuckets', () => {
             ports: [crossingPort('PORT-port_1')],
         })
 
-        const { edges } = foldSameHostBuckets(childGraph, ['b1'])
+        const { edges } = cacheFromHostGraph(childGraph, ['b1'])
 
         expect(edges).toEqual([{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } }])
     })
@@ -400,15 +401,15 @@ describe('foldSameHostBuckets', () => {
     ]
 
     it('reconstructs both interior edges via a single accumulating fold walk, cutting one bucket at a time', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+        const result = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])
 
         expect(result.edges).toHaveLength(2)
         expect(result.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
     it('does not depend on the order buckets are visited in --- a still-open stub is carried in the walk\'s own state, not compared only to the immediately preceding bucket', () => {
-        const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
-        const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'])
+        const forward = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])
+        const shuffled = cacheFromHostGraph(graph, ['port_3', 'port_1', 'port_2'])
 
         expect(forward.edges).toHaveLength(2)
         expect(shuffled.edges).toHaveLength(2)
@@ -432,7 +433,7 @@ describe('foldSameHostBuckets', () => {
             ],
         })
 
-        const result = foldSameHostBuckets(bareGraph, ['port_1'])
+        const result = cacheFromHostGraph(bareGraph, ['port_1'])
 
         expect(result.edges).toEqual([
             { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } },
@@ -440,7 +441,7 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('mints one cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+        const result = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])
 
         expect(result.presenceNodes).toHaveLength(3)
         expect(result.presenceNodes).toEqual(expect.arrayContaining([
@@ -482,7 +483,7 @@ describe('foldSameHostBuckets', () => {
     })
 
     it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
+        const result = cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
 
         expect(result.presenceNodes).toHaveLength(3)
         expect(result.presenceNodes.map((node) => node.universalKey).sort()).toEqual([
@@ -491,12 +492,12 @@ describe('foldSameHostBuckets', () => {
     })
 
     it("throws when presenceUuids consolidates a proper subset of the host's real presence bindings (clause 3: zero or all, never some)", () => {
-        expect(() => foldSameHostBuckets(graph, ['port_1'])).toThrow(/zero or all/)
+        expect(() => cacheFromHostGraph(graph, ['port_1'])).toThrow(/zero or all/)
     })
 
     it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
-        expect(() => foldSameHostBuckets(graph, [])).not.toThrow()
-        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
+        expect(() => cacheFromHostGraph(graph, [])).not.toThrow()
+        expect(() => cacheFromHostGraph(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
     })
 })
 
