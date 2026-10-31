@@ -15,7 +15,7 @@
  * **A boundary type (AC-5).** The class keeps the union private and hands out flat handles (the boundary
  * `catalogHandles.ts` holds); planning-facing accessors are Phase 2.
  */
-import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import internalCache from '../../../internalCache'
@@ -43,6 +43,30 @@ export class ActorLudicCache {
     /** Every named object the actor can reach, in the room or in hand, as flat handles. */
     handles(): LudicCacheObjectHandle[] {
         return handlesFromCache(this.data, this.roomId).handles
+    }
+
+    /**
+     * The objects wholly in the actor's hands: each has a binding, and every binding sits under the actor, directly or through
+     * a chain of parents (the coin in a held bag). A part held and a part elsewhere (a half-held rope) is not wholly held.
+     */
+    heldObjectIds(): Set<EphemeraObjectId> {
+        const bindings = new Map<string, EphemeraLudicCacheData['nodes'][number]['presenceNodes'][number]>(
+            this.data.nodes.flatMap((node) => node.presenceNodes.map((binding) => [`${node.universalKey}|${binding.universalKey}`, binding] as const))
+        )
+        const underActor = (host: string, presence: string, seen: ReadonlySet<string> = new Set()): boolean => {
+            const key = `${host}|${presence}`
+            const binding = bindings.get(key)
+            return binding !== undefined && !seen.has(key) && binding.fromHostPresences.some((parent) => (
+                parent.host === this.actorId || underActor(parent.host, parent.presence, new Set([...seen, key]))
+            ))
+        }
+        return new Set(this.data.nodes.flatMap((node) => (
+            isEphemeraObjectId(node.universalKey)
+            && node.presenceNodes.length > 0
+            && node.presenceNodes.every((binding) => underActor(node.universalKey, binding.universalKey))
+                ? [node.universalKey]
+                : []
+        )))
     }
 }
 

@@ -50,10 +50,9 @@ import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import type { RoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import {
     attachEmbeddingsToCatalogEntries,
-    catalogObjectIdsUnion,
+    catalogObjectIds,
 } from './attachEmbeddingsToCatalogEntries'
-import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
-import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
+import { getActorObjectCatalog } from './actorObjectCatalog'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
@@ -637,31 +636,20 @@ const roomExitsOf = ({ exits }: RoomExitTargetsForCharacter): RoomExit[] => exit
 
 /** The world a command is parsed or resumed against, read fresh each time (a stored row holds none of it). */
 const loadCommandWorld = async (characterId: EphemeraCharacterId) => {
-    // The embedding batch below keys off catalogObjectIds, so the ludicCache rebuild inside
-    // getRoomObjectCatalogForCharacter must finish before that fetch runs --- keep this awaited
-    // as a batch, not started in parallel with the embedding fetch.
-    const [roomExitContext, roomObjectCatalogResult, heldInventoryCatalogResult] = await Promise.all([
+    // The embedding batch below keys off the catalog's object ids, so the actor's cache (the room row and the
+    // actor's own fold) must be built before that fetch runs --- keep this awaited as a batch, not started in
+    // parallel with the embedding fetch.
+    const [roomExitContext, catalogEntries] = await Promise.all([
         getRoomExitTargetsForCharacter(characterId),
-        getRoomObjectCatalogForCharacter(characterId),
-        getHeldInventoryCatalogForCharacter(characterId),
+        getActorObjectCatalog(characterId),
     ])
-    const catalogObjectIds = catalogObjectIdsUnion(
-        roomObjectCatalogResult.entries,
-        heldInventoryCatalogResult.entries
-    )
-    const embeddingMap = catalogObjectIds.length > 0
-        ? await internalCache.ObjectEmbedding.get(catalogObjectIds)
+    const catalogObjectIdList = catalogObjectIds(catalogEntries)
+    const embeddingMap = catalogObjectIdList.length > 0
+        ? await internalCache.ObjectEmbedding.get(catalogObjectIdList)
         : {}
-    const roomObjectCatalog = attachEmbeddingsToCatalogEntries(
-        roomObjectCatalogResult.entries,
-        embeddingMap
-    )
-    const heldInventoryCatalog = attachEmbeddingsToCatalogEntries(
-        heldInventoryCatalogResult.entries,
-        embeddingMap
-    )
+    const objectCatalog = attachEmbeddingsToCatalogEntries(catalogEntries, embeddingMap)
     const coyoteOccupiedStableKeys = await collectCoyoteOccupiedStableKeys()
-    return { roomExitContext, roomObjectCatalog, heldInventoryCatalog, coyoteOccupiedStableKeys }
+    return { roomExitContext, objectCatalog, coyoteOccupiedStableKeys }
 }
 
 const handleParseRequested = async (
@@ -688,8 +676,7 @@ const handleParseRequested = async (
     })
     const {
         roomExitContext,
-        roomObjectCatalog,
-        heldInventoryCatalog,
+        objectCatalog,
         coyoteOccupiedStableKeys,
     } = await loadCommandWorld(content.characterId)
     const parseResult = await parseCommand({
@@ -697,8 +684,7 @@ const handleParseRequested = async (
         characterId: content.characterId,
         hostRoomId: roomExitContext.fromRoomId ?? undefined,
         roomExits: roomExitsOf(roomExitContext),
-        roomObjectCatalog,
-        heldInventoryCatalog,
+        objectCatalog,
         occupiedStableKeys: [...coyoteOccupiedStableKeys],
     }, { messageBus })
     const responseContext: ResponseContext = {
@@ -743,12 +729,11 @@ const handleAnswerSubmitted = async (
         return
     }
     const { payload } = answered
-    const { roomExitContext, roomObjectCatalog, heldInventoryCatalog, coyoteOccupiedStableKeys } = await loadCommandWorld(characterId)
+    const { roomExitContext, objectCatalog, coyoteOccupiedStableKeys } = await loadCommandWorld(characterId)
     const parseResult = await resumePersistentCommand(payload, {
         characterId,
         hostRoomId: roomExitContext.fromRoomId ?? undefined,
-        roomObjectCatalog,
-        heldInventoryCatalog,
+        objectCatalog,
         roomExits: roomExitsOf(roomExitContext),
     })
     const transcript = transcriptContextForResume(payload, sessionId)

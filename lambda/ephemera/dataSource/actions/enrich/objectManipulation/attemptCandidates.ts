@@ -12,7 +12,7 @@ import { CommandAttempt } from '../../commandAttempt'
 import { adjudicateAttempt } from '../../commandAttempt/adjudicate'
 import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryChallenges'
 
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { IdentityPlanIdentity } from './identityPlanCandidate'
 import { defaultReading, placementHostsOfView, readingLabel, readingsHere, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'

@@ -3,11 +3,10 @@
  * a coin in it types `take coin from bag`, and the command grounds the coin and reaches its egress, the
  * `CommandAttempt` that `handleParseRequested` publishes as `Ludic Network Change Requested`.
  *
- * **Red today, on purpose (Slice 0).** The coin is a node of the bag's graph. The room walk never enters a character's
- * shard, and the held catalog lists only the direct members of the character's graph, so the coin is in neither
- * catalog and no candidate is found. The case is `it.failing` so the suite stays green; Slice 3 turns it into a plain `it`.
- * The control case ("take bag") runs the same harness and passes, so a red `take coin from bag` is the missing coin,
- * not a broken harness.
+ * **Slice 2 turned it green.** The coin is a node of the bag's graph. The room walk never enters a character's shard, so the
+ * coin used to be in no catalog. The one catalog is now read from the actor's cache, which folds the held bag, so the coin
+ * grounds. The control case ("drop bag") runs the same harness, so a red `take coin from bag` is the missing coin, not a
+ * broken harness.
  *
  * Harness copied from `phraseCoveragePayoff.integration.test.ts` (real `parseCommand` over seeded graphs, catalogs
  * built the way `loadCommandWorld` builds them from the same graphs); it stops at the parse result, which is the
@@ -25,7 +24,8 @@ import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { getHeldInventoryCatalogForCharacter } from './actions/heldInventoryCatalogForCharacter'
+import { getActorObjectCatalog } from './actions/actorObjectCatalog'
+import { catalogDepsFromColdBuild } from './actions/objectCatalogTestSupport'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
 import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
 
@@ -100,21 +100,22 @@ describe('actor cache payoff: take from a held bag (integration)', () => {
         jest.restoreAllMocks()
     })
 
-    /** The real `parseCommand`; the catalogs as `loadCommandWorld` builds them today (the room walk: the table; the held catalog: direct members only). */
+    /** The real `parseCommand`; the one catalog as `loadCommandWorld` builds it, from the actor's cache (the table in the room, the bag in hand, the coin in the bag). */
     const parse = async (command: string) => {
-        const heldInventoryCatalog = (await getHeldInventoryCatalogForCharacter(CHARACTER_ID, {
-            getLudicGraph: async (hostId) => graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
-            getCharacterAssets: async () => [],
-            getComponentAggregate: getComponentAggregate as any,
-        })).entries
+        const objectCatalog = await getActorObjectCatalog(CHARACTER_ID, {
+            ...catalogDepsFromColdBuild({
+                getLudicGraph: async (hostId) => graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
+                getComponentAggregate: getComponentAggregate as any,
+            }),
+            getMembershipContainers: async (id) => containers[id] ?? [],
+        })
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const parseResult = await parseCommand(
             {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectCatalog: [{ objectId: TABLE_ID, normalizedShortName: 'table' }],
-                heldInventoryCatalog,
+                objectCatalog,
             },
             {
                 invokeBedrockParseCommandImpl,
@@ -134,17 +135,7 @@ describe('actor cache payoff: take from a held bag (integration)', () => {
         expect(JSON.stringify(parseResult)).toContain(BAG_ID)
     })
 
-    // Characterization of today's reason, to be deleted at Slice 3 with the `it.failing` below: the coin is in neither
-    // catalog, so no candidate grounds it, and the command falls to a reading that finds the bag already held. With the
-    // coin added to the held catalog by hand, the same harness yields the right attempt (a membership take, coin from
-    // the actor's bag), so the catalog is the whole gap.
-    it('today: "take coin from bag" is refused because the coin is in neither catalog', async () => {
-        const { parseResult } = await parse('take coin from bag')
-
-        expect(parseResult).toEqual({ type: 'Error', errorMessage: 'ObjectManipulation resolution failed: object is already held' })
-    })
-
-    it.failing('"take coin from bag", the bag held with the coin in it, grounds the coin and reaches the egress attempt', async () => {
+    it('"take coin from bag", the bag held with the coin in it, grounds the coin and reaches the egress attempt', async () => {
         const { parseResult } = await parse('take coin from bag')
 
         expect(parseResult).toEqual(expect.objectContaining({ type: 'CommandAttempt' }))

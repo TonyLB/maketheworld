@@ -46,6 +46,16 @@ describe('buildActorLudicCache', () => {
         expect(roomsOf(ropeId, ropeHeld)).toEqual([roomId])
     })
 
+    it('names the wholly held objects: nested in held is held, half-held and room objects are not (AC-3)', async () => {
+        const cache = await build(await roomRow())
+        const held = cache.heldObjectIds()
+
+        expect(held.has(bagId)).toBe(true)
+        expect(held.has(coinId)).toBe(true)
+        expect(held.has(ropeId)).toBe(false)
+        expect(held.has(tableId)).toBe(false)
+    })
+
     it('lets the actor half\'s node win a collision (AC-4)', async () => {
         const cache = await build(await roomRow({ [ropeId]: 'room rope' }), { [ropeId]: 'actor rope' })
         expect(cache.handles().find((handle) => handle.objectId === ropeId)?.shortName).toBe('actor rope')

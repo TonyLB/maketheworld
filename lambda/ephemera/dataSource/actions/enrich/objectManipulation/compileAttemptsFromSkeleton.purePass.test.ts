@@ -14,6 +14,7 @@ import type { ParseSkeleton } from './parse/parseToken'
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import { makeEmbeddingFromAxis } from './embeddingMatch/testing/mockVectors'
 import { planSkeleton } from './plan/attemptTemplateFixture'
+import { scopedCatalog } from '../../objectCatalogTestSupport'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -61,7 +62,7 @@ const compile = (
     extra: { startPass?: 'pure' | 'full'; answers?: { referentAnswers: Record<string, string> } } = {},
     reads = readsWith()
 ) => compileAttemptsFromSkeleton(
-    { command, fills: planSkeleton(skeleton, command).fills, characterId: actor, hostRoomId: roomId, roomObjectCatalog: catalog, ...extra },
+    { command, fills: planSkeleton(skeleton, command).fills, characterId: actor, hostRoomId: roomId, objectCatalog: scopedCatalog(catalog), ...extra },
     0.9,
     { positionsReadDeps: reads }
 )
@@ -145,7 +146,7 @@ describe('compileAttemptsFromSkeleton pure pass', () => {
             referentAnswers: answers,
             challengeAnswers: {},
         })
-        const world = (catalog: ReturnType<typeof entry>[]) => ({ characterId: actor, hostRoomId: roomId, roomObjectCatalog: catalog })
+        const world = (catalog: ReturnType<typeof entry>[]) => ({ characterId: actor, hostRoomId: roomId, objectCatalog: scopedCatalog(catalog)})
 
         it('answers a pure Consult without an embed', async () => {
             const { root, pass, answers } = await consulted()

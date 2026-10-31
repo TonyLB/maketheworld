@@ -44,7 +44,8 @@ import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { getHeldInventoryCatalogForCharacter } from './actions/heldInventoryCatalogForCharacter'
+import { getActorObjectCatalog } from './actions/actorObjectCatalog'
+import { catalogDepsFromColdBuild, scopedCatalog } from './actions/objectCatalogTestSupport'
 import { CommandAttempt, type CommandAttemptData } from './actions/commandAttempt'
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
@@ -190,24 +191,25 @@ describe('phrase coverage payoff (integration)', () => {
             : { success: false })
         const labels = Object.entries(world.names) as Array<[EphemeraObjectId, string]>
         const isHeld = (objectId: EphemeraObjectId) => (world.containers[objectId] ?? []).includes(CHARACTER_ID)
-        // The held catalog as production builds it: what the character holds, read from its own graph.
-        const heldInventoryCatalog = (await getHeldInventoryCatalogForCharacter(CHARACTER_ID, {
-            getLudicGraph: async (hostId) => world.graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
-            getCharacterAssets: async () => [],
-            getComponentAggregate: getComponentAggregate as any,
-        })).entries
+        // The held part of the catalog as production builds it: what the actor's cache says is in hand.
+        const heldInventoryCatalog = (await getActorObjectCatalog(CHARACTER_ID, {
+            ...catalogDepsFromColdBuild({
+                getLudicGraph: async (hostId) => world.graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
+                getComponentAggregate: getComponentAggregate as any,
+            }),
+            getMembershipContainers: async (id) => world.containers[id] ?? [],
+        })).filter(({ catalogScope }) => catalogScope === 'held')
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const parseResult = await parseCommand(
             {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectCatalog: labels.filter(([objectId]) => !isHeld(objectId)).map(([objectId, normalizedShortName]) => ({
+                objectCatalog: scopedCatalog(labels.filter(([objectId]) => !isHeld(objectId)).map(([objectId, normalizedShortName]) => ({
                     objectId,
                     normalizedShortName,
                     ...(embeddings ? { embedding: UNRELATED_OBJECT_EMBEDDING } : {}),
-                })),
-                heldInventoryCatalog,
+                })), heldInventoryCatalog),
             },
             {
                 invokeBedrockParseCommandImpl,

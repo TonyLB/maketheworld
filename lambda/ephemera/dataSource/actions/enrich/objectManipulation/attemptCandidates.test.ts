@@ -2,7 +2,7 @@ import type { EphemeraCharacterId, EphemeraObjectId, EphemeraPresenceNodeId, Eph
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { attemptDryRun, attemptReferentAnswers, attemptSpanKeys, buildAttemptEnvironment, disambiguationLabels, expandAndAdjudicateCandidates, proposeAttemptCandidates } from './attemptCandidates'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { planFillOf } from './plan/attemptTemplateFixture'
 import type { ParseSkeleton } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'

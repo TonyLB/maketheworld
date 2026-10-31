@@ -8,6 +8,7 @@ import { planFillOf } from './plan/attemptTemplateFixture'
 import { CommandAttempt } from '../../commandAttempt'
 import { lookedAtObjectIdOf } from '../../commandAttempt/lookedAtObjectId'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
+import { scopedCatalog } from '../../objectCatalogTestSupport'
 
 /** The object the look names: the attempt's first referent. */
 const lookedAtId = (result: { type: string; attempt?: unknown }): unknown => (result.attempt as { referents: { id: unknown }[] }).referents[0]?.id
@@ -32,7 +33,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                 command: 'look rocket skates',
                 fills: [{ skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'), attempts: [planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'))] }],
                 characterId,
-                roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
+                objectCatalog: scopedCatalog([{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }]),
             },
             0.9
         )
@@ -47,7 +48,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                 command: 'examine rocket skates',
                 fills: [{ skeleton: lookSkeleton('examine', 'rocket skates', 'rocketSkatesRef'), attempts: [planned(lookSkeleton('examine', 'rocket skates', 'rocketSkatesRef'))] }],
                 characterId,
-                roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
+                objectCatalog: scopedCatalog([{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }]),
             },
             0.9
         )
@@ -62,7 +63,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                 command: 'look lantern',
                 fills: [{ skeleton: lookSkeleton('look', 'lantern', 'lanternRef'), attempts: [planned(lookSkeleton('look', 'lantern', 'lanternRef'))] }],
                 characterId,
-                heldInventoryCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'lantern' }],
+                objectCatalog: scopedCatalog([], [{ objectId: rocketSkatesId, normalizedShortName: 'lantern' }]),
             },
             0.9
         )
@@ -97,7 +98,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
             {
                 command: 'look rocket skates',
                 fills: [{ skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'), attempts: [planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'))] }],
-                roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
+                objectCatalog: scopedCatalog([{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }]),
             },
             0.9
         )
@@ -128,10 +129,10 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                 command: 'look rocket skates',
                 fills: [{ skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'), attempts: [planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'))] }],
                 characterId,
-                roomObjectCatalog: [
+                objectCatalog: scopedCatalog([
                     { objectId: rocketSkatesId, normalizedShortName: 'rocket skates' },
                     { objectId: secondRocketSkatesId, normalizedShortName: 'rocket skates' },
-                ],
+                ]),
             },
             0.9
         )
@@ -159,7 +160,7 @@ describe('compileAttemptsFromSkeleton (a look)', () => {
                 command: 'look rocket skates',
                 fills: [{ skeleton: lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'), attempts: [planned(lookSkeleton('look', 'rocket skates', 'rocketSkatesRef'))] }],
                 characterId,
-                roomObjectCatalog: [{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }],
+                objectCatalog: scopedCatalog([{ objectId: rocketSkatesId, normalizedShortName: 'rocket skates' }]),
             },
             0.9
         )
@@ -191,7 +192,7 @@ describe('compileAttemptsFromSkeleton (a qualified look)', () => {
             fills: [planFillOf(skeleton, 'look at the cup on the table')],
             characterId,
             hostRoomId: roomId,
-            roomObjectCatalog: catalog,
+            objectCatalog: scopedCatalog(catalog),
         },
         0.9,
         {

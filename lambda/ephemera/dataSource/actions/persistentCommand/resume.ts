@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { CommandAttempt } from '../commandAttempt'
-import type { RoomInPlayObjectCatalogEntry } from '../roomObjectCatalogForCharacter'
+import type { ObjectManipulationCatalogEntry } from '../actorObjectCatalog'
 import { compileAttemptsFromSkeleton } from '../enrich/objectManipulation/compileAttemptsFromSkeleton'
 import type {
     CompileAttemptsFromSkeletonDeps,
@@ -14,8 +14,7 @@ import type { PersistentCommandPayload } from './payload'
 export type PersistentCommandWorld = {
     characterId?: EphemeraCharacterId
     hostRoomId?: EphemeraRoomId
-    roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
-    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    objectCatalog?: readonly ObjectManipulationCatalogEntry[]
     roomExits?: readonly RoomExit[]
 }
 

@@ -9,6 +9,7 @@ import { CommandAttempt } from '../../commandAttempt'
 import { peerRelationFixture } from './peerRelationFixture'
 
 import internalCache from '../../../../internalCache'
+import { scopedCatalog } from '../../objectCatalogTestSupport'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -71,10 +72,10 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                objectCatalog: scopedCatalog([
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: tableId, normalizedShortName: 'table' },
-                ],
+                ]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
@@ -116,10 +117,10 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'), attempts: [peerRelationFixture('put bench under bench', relationalSkeleton('put', 'bench', 'benchRef1', 'under', 'bench', 'benchRef2'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                objectCatalog: scopedCatalog([
                     { objectId: benchAId, normalizedShortName: 'bench' },
                     { objectId: benchBId, normalizedShortName: 'bench' },
-                ],
+                ]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
@@ -208,10 +209,10 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                objectCatalog: scopedCatalog([
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: tableId, normalizedShortName: 'table' },
-                ],
+                ]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
@@ -236,7 +237,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'), attempts: [peerRelationFixture('put lamp under lamp', relationalSkeleton('put', 'lamp', 'lampRef1', 'under', 'lamp', 'lampRef2'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
+                objectCatalog: scopedCatalog([{ objectId: lampId, normalizedShortName: 'lamp' }]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
@@ -259,7 +260,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'), attempts: [peerRelationFixture('put lamp around lamp', relationalSkeleton('put', 'lamp', 'lampRef1', 'around', 'lamp', 'lampRef2'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: lampId, normalizedShortName: 'lamp' }],
+                objectCatalog: scopedCatalog([{ objectId: lampId, normalizedShortName: 'lamp' }]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers: jest.fn().mockResolvedValue([roomId]), getLudicGraph } }
@@ -286,7 +287,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'), attempts: [peerRelationFixture('put sword under table', relationalSkeleton('put', 'sword', 'swordRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: tableId, normalizedShortName: 'table' }],
+                objectCatalog: scopedCatalog([{ objectId: tableId, normalizedShortName: 'table' }]),
             },
             0.9,
             {
@@ -328,8 +329,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'), attempts: [peerRelationFixture('wrap charm around necklace', relationalSkeleton('put', 'charm', 'charmRef', 'around', 'necklace', 'necklaceRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [{ objectId: charmId, normalizedShortName: 'charm' }],
-                heldInventoryCatalog: [{ objectId: necklaceId, normalizedShortName: 'necklace' }],
+                objectCatalog: scopedCatalog([{ objectId: charmId, normalizedShortName: 'charm' }], [{ objectId: necklaceId, normalizedShortName: 'necklace' }]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers, getLudicGraph } }
@@ -369,10 +369,10 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'), attempts: [peerRelationFixture('tie string to cup', relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'to' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                objectCatalog: scopedCatalog([
                     { objectId: stringId, normalizedShortName: 'string' },
                     { objectId: cupId, normalizedShortName: 'cup' },
-                ],
+                ]),
             },
             0.9,
             { positionsReadDeps: { getMembershipContainers, getLudicGraph } }

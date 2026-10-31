@@ -1,4 +1,4 @@
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import {
     exactCatalogMatches,
     objectManipulationErrorMessageForResolution,

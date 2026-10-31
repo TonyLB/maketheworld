@@ -6,10 +6,9 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 
 import type { EphemeraLudicGraph } from '../../dataSource/positions/ludicGraph'
 import { testLudicGraph } from '../../dataSource/positions/ludicGraph/testFixtures'
-import { catalogDepsFromColdBuild } from './roomObjectCatalogTestDeps'
-import {
-    getRoomObjectCatalogForCharacter as getCatalogFromStoredCache,
-} from './roomObjectCatalogForCharacter'
+import { catalogDepsFromColdBuild } from './objectCatalogTestSupport'
+import { getActorObjectCatalog } from './actorObjectCatalog'
+import { actorCacheGraphs, actorId, bagId, coinId, graphReader, ropeId, roomId as kitchenId, tableId as fixtureTableId } from '../positions/ludicCache/actorCacheTestFixtures'
 import { parentRemainderKey } from '../positions/ludicGraph/testFixtures'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
@@ -29,8 +28,11 @@ const getLudicGraphFromMap = (graphs: Record<string, EphemeraLudicGraph>) => asy
     graphs[hostId] ?? testLudicGraph(hostId as EphemeraObjectId)
 
 const catalogPerspectiveDeps = {}
-const getRoomObjectCatalogForCharacter = (characterId: EphemeraCharacterId, deps: Parameters<typeof catalogDepsFromColdBuild>[0]) =>
-    getCatalogFromStoredCache(characterId, catalogDepsFromColdBuild(deps))
+/** The catalog of a character standing in `room` (null: in no room), over a cold build of the fixture graphs. */
+type CatalogFixture = Parameters<typeof catalogDepsFromColdBuild>[0] & { room?: EphemeraRoomId | null }
+const getActorCatalog = async (characterId: EphemeraCharacterId, { room = roomId, ...deps }: CatalogFixture) => ({
+    entries: await getActorObjectCatalog(characterId, { ...catalogDepsFromColdBuild(deps), getMembershipContainers: async () => (room ? [room] : []) }),
+})
 
 /** Resolves each host's shortName from `names` via a mocked merged aggregate, matching the real
  * per-host `getComponentAggregate([perspective])` call shape. */
@@ -46,20 +48,19 @@ const namedComponentAggregate = (names: Record<string, string>) =>
             : []
     }
 
-describe('getRoomObjectCatalogForCharacter', () => {
+describe('getActorObjectCatalog', () => {
     it('returns empty catalog when character has no room', async () => {
-        const result = await getRoomObjectCatalogForCharacter(characterId, {
-            getMembershipContainers: async () => [],
+        const result = await getActorCatalog(characterId, {
+            room: null,
             getLudicGraph: async () => testLudicGraph(roomId),
         })
 
-        expect(result).toEqual({ roomId: null, entries: [] })
+        expect(result).toEqual({ entries: [] })
     })
 
     it('returns catalog entries resolved from the merged aggregate', async () => {
-        const result = await getRoomObjectCatalogForCharacter(characterId, {
+        const result = await getActorCatalog(characterId, {
             ...catalogPerspectiveDeps,
-            getMembershipContainers: async () => [roomId],
             getLudicGraph: getLudicGraphFromMap({
                 [roomId]: testLudicGraph(roomId, {
                     nodes: [
@@ -74,17 +75,15 @@ describe('getRoomObjectCatalogForCharacter', () => {
             }),
         })
 
-        expect(result.roomId).toBe(roomId)
         expect(result.entries).toEqual([
-            { objectId: broomId, normalizedShortName: 'broom', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
-            { objectId: anvilId, normalizedShortName: 'heavy anvil', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
+            { objectId: broomId, normalizedShortName: 'broom', placement: [{ host: roomId, bindings: [] }], presence: [roomId], catalogScope: 'room' },
+            { objectId: anvilId, normalizedShortName: 'heavy anvil', placement: [{ host: roomId, bindings: [] }], presence: [roomId], catalogScope: 'room' },
         ])
     })
 
     it('resolves an authored merged ComponentAggregate shortName', async () => {
-        const result = await getRoomObjectCatalogForCharacter(characterId, {
+        const result = await getActorCatalog(characterId, {
             ...catalogPerspectiveDeps,
-            getMembershipContainers: async () => [roomId],
             getLudicGraph: getLudicGraphFromMap({
                 [roomId]: testLudicGraph(roomId, {
                     nodes: [{ tag: 'Object', universalKey: authoredId }],
@@ -100,14 +99,13 @@ describe('getRoomObjectCatalogForCharacter', () => {
         })
 
         expect(result.entries).toEqual([
-            { objectId: authoredId, normalizedShortName: 'brass candlestick', placement: [{ host: roomId, bindings: [] }], presence: [roomId] },
+            { objectId: authoredId, normalizedShortName: 'brass candlestick', placement: [{ host: roomId, bindings: [] }], presence: [roomId], catalogScope: 'room' },
         ])
     })
 
     it('skips objects without any shortName', async () => {
-        const result = await getRoomObjectCatalogForCharacter(characterId, {
+        const result = await getActorCatalog(characterId, {
             ...catalogPerspectiveDeps,
-            getMembershipContainers: async () => [roomId],
             getLudicGraph: getLudicGraphFromMap({
                 [roomId]: testLudicGraph(roomId, {
                     nodes: [{ tag: 'Object', universalKey: noNameId }],
@@ -123,9 +121,8 @@ describe('getRoomObjectCatalogForCharacter', () => {
         const cupId = 'OBJECT#Cup' as EphemeraObjectId
         const tableBinding = PresenceKey('table-in-kitchen')
 
-        const result = await getRoomObjectCatalogForCharacter(characterId, {
+        const result = await getActorCatalog(characterId, {
             ...catalogPerspectiveDeps,
-            getMembershipContainers: async () => [roomId],
             getLudicGraph: getLudicGraphFromMap({
                 [roomId]: testLudicGraph(roomId, {
                     nodes: [{ tag: 'Object', universalKey: tableId }],
@@ -149,8 +146,38 @@ describe('getRoomObjectCatalogForCharacter', () => {
                 normalizedShortName: 'table',
                 placement: [{ host: tableId, bindings: [{ presence: tableBinding, under: [{ host: roomId, presence: parentRemainderKey(roomId) }], rooms: [roomId] }] }],
                 presence: [{ host: tableId, presence: tableBinding }],
+                catalogScope: 'room',
             },
-            { objectId: cupId, normalizedShortName: 'cup', placement: [{ host: tableId, bindings: [{ presence: tableBinding }] }], presence: [{ host: tableId, presence: tableBinding }] },
+            { objectId: cupId, normalizedShortName: 'cup', placement: [{ host: tableId, bindings: [{ presence: tableBinding }] }], presence: [{ host: tableId, presence: tableBinding }], catalogScope: 'room' },
         ])
+    })
+
+    describe('with something in hand (the actor\'s cache)', () => {
+        const named = (names: Record<string, string> = {}) => async ([perspective]: { universalKey: string, mergeParticipationOrder: readonly `ASSET#${string}`[] }[]) => [mergedComponentResult({
+            universalKey: perspective.universalKey as EphemeraObjectId,
+            merged: makeObjectComponent(names[perspective.universalKey] ?? perspective.universalKey.replace('OBJECT#', '').toLowerCase()),
+            mergeParticipationOrderApplied: perspective.mergeParticipationOrder,
+        })]
+        const heldCatalog = async () => (await getActorCatalog(actorId, {
+            room: kitchenId,
+            getLudicGraph: graphReader(actorCacheGraphs()),
+            getComponentAggregate: named() as any,
+        })).entries
+        const scopeOf = (entries: Awaited<ReturnType<typeof heldCatalog>>, objectId: EphemeraObjectId) => entries.find((entry) => entry.objectId === objectId)?.catalogScope
+
+        it('lists what is nested inside a held container, scoped held (AC-3 i)', async () => {
+            const entries = await heldCatalog()
+
+            expect(entries.map(({ objectId }) => objectId)).toEqual(expect.arrayContaining([fixtureTableId, bagId, coinId, ropeId]))
+            expect(scopeOf(entries, bagId)).toBe('held')
+            expect(scopeOf(entries, coinId)).toBe('held')
+        })
+
+        it('scopes a half-held object and a room object as room (AC-3 ii)', async () => {
+            const entries = await heldCatalog()
+
+            expect(scopeOf(entries, ropeId)).toBe('room')
+            expect(scopeOf(entries, fixtureTableId)).toBe('room')
+        })
     })
 })

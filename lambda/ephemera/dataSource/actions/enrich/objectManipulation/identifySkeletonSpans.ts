@@ -1,5 +1,5 @@
 import type { RoomExit } from '../../baseClasses'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { exitSpanPool } from './exitSpanPool'
 import { runIdentityStage } from './identityStage'
 import type { ObjectSpanToken, ParseSkeleton, SpanStructure } from './parse/parseToken'

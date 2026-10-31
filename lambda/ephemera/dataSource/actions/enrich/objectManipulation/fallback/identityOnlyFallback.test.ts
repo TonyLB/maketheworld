@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { InvokeBedrockObjectManipulationEnrichResult } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
-import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../../actorObjectCatalog'
 import type { ParseSkeleton } from '../parse/parseToken'
 import { planFillOf } from '../plan/attemptTemplateFixture'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'

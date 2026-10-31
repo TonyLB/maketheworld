@@ -1,7 +1,7 @@
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { ObjectManipulationCatalogEntry, ObjectManipulationCatalogScope } from '../catalogMerge'
+import type { ObjectManipulationCatalogEntry, ObjectManipulationCatalogScope } from '../../../actorObjectCatalog'
 
 /**
  * Pure embedding identity fast path (EM-0 scaffold).

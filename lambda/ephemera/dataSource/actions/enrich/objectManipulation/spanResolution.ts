@@ -10,7 +10,7 @@ import {
 } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { ViewAnswer } from '../../objectViews'
-import type { ObjectManipulationCatalogScope } from './catalogMerge'
+import type { ObjectManipulationCatalogScope } from '../../actorObjectCatalog'
 import type { EphemeraThingId } from './thing'
 import { isEphemeraThingId } from './thing'
 

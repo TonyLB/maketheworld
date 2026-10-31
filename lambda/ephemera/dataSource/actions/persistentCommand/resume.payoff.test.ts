@@ -1,6 +1,7 @@
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { PersistentCommandPayload } from './payload'
+import { scopedCatalog } from '../objectCatalogTestSupport'
 
 /**
  * The plan's end-to-end payoff: an answer stored by one instance lands on the right question in
@@ -63,7 +64,7 @@ describe('persistentCommand resume payoff: a stored answer lands on its question
             const { resumePersistentCommand } = require('./resume')
             jest.doMock('@tonylb/mtw-utilities/ts/dynamoDB', () => ({ ephemeraDB: fakeDB }))
             const { get } = require('./rowStore')
-            const world = { characterId, hostRoomId: roomId, roomObjectCatalog: [{ objectId: cupId, normalizedShortName: 'cup' }] }
+            const world = { characterId, hostRoomId: roomId, objectCatalog: scopedCatalog([{ objectId: cupId, normalizedShortName: 'cup' }])}
             const deps = { positionsReadDeps: readsWithExitContact(testLudicGraphFromEnvelope) }
             resumed = get(characterId, 'abc').then((payload: PersistentCommandPayload) => resumePersistentCommand(payload, world, deps))
             unanswered = get(characterId, 'abc').then((payload: PersistentCommandPayload) => resumePersistentCommand(

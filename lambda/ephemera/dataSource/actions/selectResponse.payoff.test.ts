@@ -4,8 +4,7 @@ import { ephemeraActionsDataSource } from './index'
 import messageBus from '../../messageBus'
 import internalCache from '../../internalCache'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
-import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
-import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
+import { getActorObjectCatalog } from './actorObjectCatalog'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import { applyOptimisticUpdate } from './persistentCommand/testFixtures'
@@ -51,10 +50,9 @@ jest.mock('./roomExitTargetsForCharacter', () => ({
     ...(jest.requireActual('./roomExitTargetsForCharacter') as object),
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
-jest.mock('./roomObjectCatalogForCharacter', () => ({
-    getRoomObjectCatalogForCharacter: jest.fn(),
+jest.mock('./actorObjectCatalog', () => ({
+    getActorObjectCatalog: jest.fn(),
 }))
-jest.mock('./heldInventoryCatalogForCharacter', () => ({ getHeldInventoryCatalogForCharacter: jest.fn() }))
 jest.mock('./stableKey/collectCoyoteOccupiedStableKeys', () => ({ collectCoyoteOccupiedStableKeys: jest.fn() }))
 jest.mock('../perception/subscribedEvents', () => ({
     ...(jest.requireActual('../perception/subscribedEvents') as object),
@@ -113,11 +111,9 @@ describe('select response payoff: an ambiguous take is asked, answered and commi
         mockTable.clear()
         mockMessageBus.publish.mockReturnValue(undefined)
         ;(getRoomExitTargetsForCharacter as jest.Mock).mockResolvedValue({ fromRoomId: roomId, toRoomIds: [], exits: [] })
-        ;(getRoomObjectCatalogForCharacter as jest.Mock).mockResolvedValue({
-            roomId,
-            entries: cupIds.map((objectId) => ({ objectId, normalizedShortName: 'cup' })),
-        })
-        ;(getHeldInventoryCatalogForCharacter as jest.Mock).mockResolvedValue({ entries: [] })
+        ;(getActorObjectCatalog as jest.Mock).mockResolvedValue(
+            cupIds.map((objectId) => ({ objectId, normalizedShortName: 'cup', catalogScope: 'room' }))
+        )
         ;(collectCoyoteOccupiedStableKeys as jest.Mock).mockResolvedValue(new Set<string>())
         internalCacheMock.ObjectEmbedding.get.mockResolvedValue({})
         internalCacheMock.Positions.getMembershipContainers.mockResolvedValue([roomId])

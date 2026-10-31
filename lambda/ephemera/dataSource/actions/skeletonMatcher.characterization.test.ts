@@ -11,6 +11,7 @@ import { parseCommand } from './parseCommand'
 
 import internalCache from '../../internalCache'
 import { spanEmbeddingKey } from '../../internalCache/spanEmbeddings'
+import { scopedCatalog } from './objectCatalogTestSupport'
 
 jest.mock('../../internalCache', () => ({
     __esModule: true,
@@ -101,7 +102,7 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
     })
 
     const holdingCup: Pick<Row, 'input' | 'graphs' | 'containers'> = {
-        input: { heldInventoryCatalog: catalogOf([[HELD_CUP, 'cup']]) },
+        input: { objectCatalog: scopedCatalog(catalogOf(ROOM_OBJECTS), catalogOf([[HELD_CUP, 'cup']])) },
         containers: { [HELD_CUP]: [CHARACTER] },
         graphs: { [CHARACTER]: testLudicGraph(CHARACTER, { nodes: [{ tag: 'Object', universalKey: HELD_CUP }] }) },
     }
@@ -145,7 +146,7 @@ describe('skeletonMatcher characterization corpus (Slice 0)', () => {
         characterId: CHARACTER,
         hostRoomId: ROOM,
         roomExits: [{ normalizedName: 'north', targetId: NORTH_ROOM }],
-        roomObjectCatalog: catalogOf(ROOM_OBJECTS),
+        objectCatalog: scopedCatalog(catalogOf(ROOM_OBJECTS)),
         ...row.input,
     } as ParseInput)
 

@@ -31,7 +31,7 @@ const defaultDeps = (): PrepareObjectRenderDeps => ({
  * Resolve Object perspective and commands for correlated description thread + passive render ---
  * the Object-stub sibling of `prepareFeatureKnowledgeRenderForCharacter.ts`. Object has no import-
  * vertical participation of its own (unlike Feature/Knowledge), so perspective is resolved the same
- * way `roomObjectCatalogForCharacter.ts` already does: from the acting character's *current room*,
+ * way the command's object catalog (`actions/actorObjectCatalog.ts`) does: from the acting character's *current room*,
  * not the object's own asset linkage.
  */
 export async function prepareObjectRenderForCharacter(

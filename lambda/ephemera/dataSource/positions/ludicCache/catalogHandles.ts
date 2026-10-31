@@ -2,7 +2,7 @@
  * The first real consumer (CC3), and the first
  * real test of P6 clause 3 --- a hit returns a **handle**, never a subgraph. `buildLudicCache`
  * stays a pure function; this is the thin handler D6 decided on, and the only thing a consumer
- * (`roomObjectCatalogForCharacter.ts`) is allowed to call. Nothing past this function's return
+ * (`actions/actorObjectCatalog.ts`, through `actorCache.ts`) is allowed to call. Nothing past this function's return
  * type is `EphemeraLudicCacheData`-shaped --- a caller gets flat `{ objectId, shortName }` handles,
  * never `nodes`/`edges`/`ports`.
  *

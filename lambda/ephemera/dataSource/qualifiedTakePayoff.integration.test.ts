@@ -43,6 +43,7 @@ import { CommandAttempt, type CommandAttemptData } from './actions/commandAttemp
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
 import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
+import { scopedCatalog } from './actions/objectCatalogTestSupport'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -163,7 +164,7 @@ describe('qualified take payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectCatalog: labels.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName })),
+                objectCatalog: scopedCatalog(labels.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName }))),
             },
             {
                 invokeBedrockParseCommandImpl,

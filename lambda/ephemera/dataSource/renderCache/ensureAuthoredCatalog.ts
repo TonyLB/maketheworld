@@ -88,7 +88,7 @@ async function runStaleHydratePath(
     // An Object's or Character's authored `SITUATION#DEFAULT` facet lives on its
     // `(OBJECT#|CHARACTER#, ASSET#IMPROVISATION)` pair row, so `ASSET#IMPROVISATION` has to be the
     // last participation layer for the merge to see it at all --- the same append every other
-    // Object-merging call site performs (`objectShortName.ts`, `heldInventoryCatalogForCharacter.ts`,
+    // Object-merging call site performs (`objectShortName.ts`,
     // `affordanceRoomDeliverable.ts`, the two presentation-label resolvers). This is merge
     // participation only: `perspectiveKey` and the catalog row's stored `assetStack` stay the raw
     // perspective, since the improvisation layer is appended per-merge rather than being part of the

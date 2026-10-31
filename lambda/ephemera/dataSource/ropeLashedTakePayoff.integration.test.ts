@@ -45,6 +45,7 @@ import { CommandAttempt, type CommandAttemptData } from './actions/commandAttemp
 import { commitAttempt } from './positions/manipulation/commitAttempt'
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from './positions/ludicGraph/testFixtures'
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
+import { scopedCatalog } from './actions/objectCatalogTestSupport'
 
 const assetDBMock = jest.mocked(assetDB)
 const ephemeraDBMock = jest.mocked(ephemeraDB)
@@ -138,10 +139,10 @@ describe('lashed rope take payoff (integration)', () => {
                 command: 'get rope',
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                roomObjectCatalog: [
+                objectCatalog: scopedCatalog([
                     { objectId: ROPE_ID, normalizedShortName: 'rope' },
                     { objectId: POST_ID, normalizedShortName: 'post' },
-                ],
+                ]),
             },
             {
                 invokeBedrockParseCommandImpl,

@@ -1,6 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { lexicalRelevance } from './embeddingMatch/lexicalRelevance'
 import { resolvePureSpanToPool } from './resolvePureSpanToPool'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'

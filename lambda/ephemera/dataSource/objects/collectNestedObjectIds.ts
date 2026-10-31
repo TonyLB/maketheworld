@@ -11,11 +11,11 @@ export type GetObjectLudicGraph = (objectId: EphemeraObjectId) => Promise<Epheme
  * cyclic hand-built fixture; `depthCap` (5, a testing bound rather than a claim about real
  * nesting depth) bounds BFS levels independently of cycles.
  *
- * **Relocated here (rebuild Slice 4, D10) from `actions/roomObjectCatalogForCharacter.ts`.** Its
+ * **Relocated here (rebuild Slice 4, D10) from the former `actions/roomObjectCatalogForCharacter.ts`.** Its
  * one remaining caller is `clearCoyoteGameImprovisationObjects.ts`'s bulk clear, which must stay
  * exhaustive and presence-blind --- it asks *what is true of the world*, which the presence-aware
  * `ludicCache` is not licensed to answer (P6 clause 1). The candidate-pool path
- * (`roomObjectCatalogForCharacter.ts`) now goes through `ludicCache/catalogHandles.ts` instead.
+ * (`actions/actorObjectCatalog.ts`) now goes through `ludicCache/catalogHandles.ts` instead.
  */
 export async function collectNestedObjectIds(
     initialIds: Iterable<EphemeraObjectId>,
