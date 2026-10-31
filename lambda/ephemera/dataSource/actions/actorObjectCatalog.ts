@@ -3,7 +3,6 @@ import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticE
 
 import internalCache from '../../internalCache'
 import { buildActorLudicCache, type ActorLudicCache, type ActorLudicCacheDeps } from '../positions/ludicCache/actorCache'
-import { normalizeExitName } from './roomExitTargetsForCharacter'
 import type { GroundedPresence } from './enrich/objectManipulation/plan/planStep'
 import type { PresencePlacement } from './objectViews'
 
@@ -32,56 +31,25 @@ export type ActorObjectCatalogDeps = ActorLudicCacheDeps & {
 }
 
 /**
- * The actor's cache and the one object catalog read from it, for a command's world. Both are absent for a character in no
- * room: no cache, no catalog.
- */
-export type ActorWorld = {
-    actorCache?: ActorLudicCache
-    entries: ObjectManipulationCatalogEntry[]
-}
-
-/**
- * The one object catalog of a command, for classify, enrich, and deterministic resolve: everything the actor can reach, in the
- * room or in hand, read from the actor's cache (`positions/ludicCache/actorCache.ts`), so names are the room's Canon +
- * Improvisation names every viewer shares and a thing nested in a held container is in the catalog like any other.
- * `catalogScope` comes from placement (AC-3), not from where an entry was read. A character in no room has no catalog.
- * The cache is returned beside it, so planning reads the same cache the catalog came from.
+ * The actor's cache for a command's world: everything the actor can reach, in the room or in hand
+ * (`positions/ludicCache/actorCache.ts`). Its `entries()` is the command's one object catalog, for classify, enrich, and
+ * deterministic resolve, so names are the room's Canon + Improvisation names every viewer shares and a thing nested in a
+ * held container is in the catalog like any other; planning reads the same cache. A character in no room has no cache.
  *
  * Exhaustive rather than presence-bucket-filtered (see `enrich/objectManipulation/AGENT.md`, "Known gap").
  */
-export async function getActorWorld(
+export async function getActorCache(
     characterId: EphemeraCharacterId,
     deps: ActorObjectCatalogDeps = {}
-): Promise<ActorWorld> {
+): Promise<ActorLudicCache | undefined> {
     const [roomId] = await (deps.getMembershipContainers ?? ((id) => internalCache.Positions.getMembershipContainers(id)))(characterId)
-    if (!roomId || !isEphemeraRoomId(roomId)) {
-        return { entries: [] }
-    }
-    const actorCache = await buildActorLudicCache(characterId, roomId, deps)
-    const held = actorCache.heldObjectIds()
-    const entries = actorCache.handles()
-        .map(({ objectId, shortName, gloss, presence, placement }): ObjectManipulationCatalogEntry | undefined => {
-            const normalizedShortName = normalizeExitName(shortName)
-            if (normalizedShortName.length === 0) {
-                return undefined
-            }
-            return {
-                objectId,
-                normalizedShortName,
-                catalogScope: held.has(objectId) ? 'held' : 'room',
-                ...(gloss !== undefined ? { gloss } : {}),
-                ...(presence !== undefined ? { presence } : {}),
-                ...(placement !== undefined ? { placement } : {}),
-            }
-        })
-        .filter((entry): entry is ObjectManipulationCatalogEntry => entry !== undefined)
-    return { actorCache, entries }
+    return roomId && isEphemeraRoomId(roomId) ? buildActorLudicCache(characterId, roomId, deps) : undefined
 }
 
-/** The catalog alone, for callers that read nothing else of the actor's world. */
+/** The catalog alone, for callers that read nothing else of the actor's cache. A character in no room has none. */
 export async function getActorObjectCatalog(
     characterId: EphemeraCharacterId,
     deps: ActorObjectCatalogDeps = {}
 ): Promise<ObjectManipulationCatalogEntry[]> {
-    return (await getActorWorld(characterId, deps)).entries
+    return (await getActorCache(characterId, deps))?.entries() ?? []
 }

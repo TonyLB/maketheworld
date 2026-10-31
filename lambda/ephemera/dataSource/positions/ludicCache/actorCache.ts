@@ -12,9 +12,9 @@
  *
  * **Freshness (AC-4).** None: the actor half uses the ordinary command reads, since it exists only inside one command.
  *
- * **A boundary type (AC-5).** The class keeps the union private and hands out flat handles (the boundary
- * `catalogHandles.ts` holds); planning-facing accessors answer one question each and return ids, never the cache
- * (`containersOf`: ancestry, ISS8314 Slice 5).
+ * **A boundary type (AC-5).** The class keeps the union private; its accessors answer one question each and return flat
+ * values, never the cache: `entries` is the command's object catalog (built on the flat handles `catalogHandles.ts`
+ * holds), `containersOf` is planning's ancestry (ISS8314 Slice 5).
  */
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -23,6 +23,8 @@ import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import internalCache from '../../../internalCache'
 import { resolveCanonAssetStackForRoom } from '../../state/resolveAssetStackForRoom'
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
+import type { ObjectManipulationCatalogEntry } from '../../actions/actorObjectCatalog'
+import { normalizeExitName } from '../../actions/normalizeExitName'
 import { handlesFromCache, type LudicCacheObjectHandle } from './catalogHandles'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
 import { readLudicCacheWithOutcome } from './store'
@@ -42,8 +44,27 @@ export class ActorLudicCache {
         this.data = data
     }
 
+    /**
+     * The command's one object catalog: every named object the actor can reach, in the room or in hand. `catalogScope` comes
+     * from placement (AC-3), not from which half an object was read from. An object whose name normalizes to nothing is left out.
+     */
+    entries(): ObjectManipulationCatalogEntry[] {
+        const held = this.heldObjectIds()
+        return this.handles().flatMap(({ objectId, shortName, gloss, presence, placement }): ObjectManipulationCatalogEntry[] => {
+            const normalizedShortName = normalizeExitName(shortName)
+            return normalizedShortName.length === 0 ? [] : [{
+                objectId,
+                normalizedShortName,
+                catalogScope: held.has(objectId) ? 'held' : 'room',
+                ...(gloss !== undefined ? { gloss } : {}),
+                ...(presence !== undefined ? { presence } : {}),
+                ...(placement !== undefined ? { placement } : {}),
+            }]
+        })
+    }
+
     /** Every named object the actor can reach, in the room or in hand, as flat handles. */
-    handles(): LudicCacheObjectHandle[] {
+    private handles(): LudicCacheObjectHandle[] {
         return handlesFromCache(this.data, this.roomId)
     }
 
@@ -61,7 +82,7 @@ export class ActorLudicCache {
      * The objects wholly in the actor's hands: each has a binding, and every binding sits under the actor, directly or through
      * a chain of parents (the coin in a held bag). A part held and a part elsewhere (a half-held rope) is not wholly held.
      */
-    heldObjectIds(): Set<EphemeraObjectId> {
+    private heldObjectIds(): Set<EphemeraObjectId> {
         const bindings = new Map<string, EphemeraLudicCacheData['nodes'][number]['presenceNodes'][number]>(
             this.data.nodes.flatMap((node) => node.presenceNodes.map((binding) => [`${node.universalKey}|${binding.universalKey}`, binding] as const))
         )

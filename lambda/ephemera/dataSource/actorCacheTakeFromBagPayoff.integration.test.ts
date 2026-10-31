@@ -24,7 +24,7 @@ import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components
 import internalCache from '../internalCache'
 import messageBus from '../messageBus'
 import { parseCommand } from './actions/parseCommand'
-import { getActorWorld } from './actions/actorObjectCatalog'
+import { getActorCache } from './actions/actorObjectCatalog'
 import { catalogDepsFromColdBuild } from './actions/objectCatalogTestSupport'
 import { EphemeraLudicGraph } from './positions/ludicGraph'
 import { parentRemainderKey } from './positions/ludicGraph/testFixtures'
@@ -102,13 +102,14 @@ describe('actor cache payoff: take from a held bag (integration)', () => {
 
     /** The real `parseCommand`; the one catalog as `loadCommandWorld` builds it, from the actor's cache (the table in the room, the bag in hand, the coin in the bag). */
     const parse = async (command: string) => {
-        const { entries: objectCatalog, actorCache } = await getActorWorld(CHARACTER_ID, {
+        const actorCache = await getActorCache(CHARACTER_ID, {
             ...catalogDepsFromColdBuild({
                 getLudicGraph: async (hostId) => graphs[hostId] ?? EphemeraLudicGraph.empty(hostId),
                 getComponentAggregate: getComponentAggregate as any,
             }),
             getMembershipContainers: async (id) => containers[id] ?? [],
         })
+        const objectCatalog = actorCache?.entries() ?? []
         const invokeBedrockParseCommandImpl = jest.fn().mockResolvedValue({ success: true, body: '{"type":"Command","confidence":0.9}' })
         const parseResult = await parseCommand(
             {

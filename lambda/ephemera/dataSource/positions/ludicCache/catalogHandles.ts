@@ -1,7 +1,7 @@
 /**
  * The handle boundary (CC3): the catalog's projection of a cache into flat handles. `buildLudicCache`
  * stays a pure function; `handlesFromCache` is the projection a consumer reads through, today only
- * `ActorLudicCache.handles()` (`actorCache.ts`, for `actions/actorObjectCatalog.ts`). Nothing past this function's return
+ * `ActorLudicCache.handles()` (`actorCache.ts`, private behind its `entries()` catalog). Nothing past this function's return
  * type is `EphemeraLudicCacheData`-shaped --- a caller gets flat `{ objectId, shortName }` handles,
  * never `nodes`/`edges`/`ports`. This is the catalog's boundary type, not a P6 rule: P6 clause 3
  * says only that the cache never authorizes a change (acting traverses `ludicGraph`), so planning

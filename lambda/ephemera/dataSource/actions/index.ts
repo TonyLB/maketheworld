@@ -52,7 +52,7 @@ import {
     attachEmbeddingsToCatalogEntries,
     catalogObjectIds,
 } from './attachEmbeddingsToCatalogEntries'
-import { getActorWorld } from './actorObjectCatalog'
+import { getActorCache } from './actorObjectCatalog'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
@@ -639,10 +639,11 @@ const loadCommandWorld = async (characterId: EphemeraCharacterId) => {
     // The embedding batch below keys off the catalog's object ids, so the actor's cache (the room row and the
     // actor's own fold) must be built before that fetch runs --- keep this awaited as a batch, not started in
     // parallel with the embedding fetch.
-    const [roomExitContext, { actorCache, entries: catalogEntries }] = await Promise.all([
+    const [roomExitContext, actorCache] = await Promise.all([
         getRoomExitTargetsForCharacter(characterId),
-        getActorWorld(characterId),
+        getActorCache(characterId),
     ])
+    const catalogEntries = actorCache?.entries() ?? []
     const catalogObjectIdList = catalogObjectIds(catalogEntries)
     const embeddingMap = catalogObjectIdList.length > 0
         ? await internalCache.ObjectEmbedding.get(catalogObjectIdList)

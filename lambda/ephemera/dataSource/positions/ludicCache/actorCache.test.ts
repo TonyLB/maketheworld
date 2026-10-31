@@ -35,12 +35,12 @@ describe('buildActorLudicCache', () => {
 
     it('reaches the room and the hand, with `rooms` resolved for each held part', async () => {
         const cache = await build(await roomRow())
-        const handles = cache.handles()
-        const placementOf = (objectId: string) => handles.find((handle) => handle.objectId === objectId)?.placement
+        const entries = cache.entries()
+        const placementOf = (objectId: string) => entries.find((entry) => entry.objectId === objectId)?.placement
         const roomsOf = (objectId: string, presence: string) => placementOf(objectId)?.find((run) => run.host === objectId)?.bindings.find((binding) => binding.presence === presence)?.rooms
 
-        expect(handles.map((handle) => handle.objectId)).toEqual(expect.arrayContaining([tableId, bagId, coinId, ropeId]))
-        expect(handles.every((handle) => handle.shortName.length > 0)).toBe(true)
+        expect(entries.map((entry) => entry.objectId)).toEqual(expect.arrayContaining([tableId, bagId, coinId, ropeId]))
+        expect(entries.every((entry) => entry.normalizedShortName.length > 0)).toBe(true)
         // The table-tied part resolves only because the room half supplies the table.
         expect(roomsOf(ropeId, ropeAtTable)).toEqual([roomId])
         expect(roomsOf(ropeId, ropeHeld)).toEqual([roomId])
@@ -48,17 +48,17 @@ describe('buildActorLudicCache', () => {
 
     it('names the wholly held objects: nested in held is held, half-held and room objects are not (AC-3)', async () => {
         const cache = await build(await roomRow())
-        const held = cache.heldObjectIds()
+        const scopeOf = (objectId: string) => cache.entries().find((entry) => entry.objectId === objectId)?.catalogScope
 
-        expect(held.has(bagId)).toBe(true)
-        expect(held.has(coinId)).toBe(true)
-        expect(held.has(ropeId)).toBe(false)
-        expect(held.has(tableId)).toBe(false)
+        expect(scopeOf(bagId)).toBe('held')
+        expect(scopeOf(coinId)).toBe('held')
+        expect(scopeOf(ropeId)).toBe('room')
+        expect(scopeOf(tableId)).toBe('room')
     })
 
     it('lets the actor half\'s node win a collision (AC-4)', async () => {
         const cache = await build(await roomRow({ [ropeId]: 'room rope' }), { [ropeId]: 'actor rope' })
-        expect(cache.handles().find((handle) => handle.objectId === ropeId)?.shortName).toBe('actor rope')
+        expect(cache.entries().find((entry) => entry.objectId === ropeId)?.normalizedShortName).toBe('actor rope')
     })
 
     it('never writes the room row, and leaves the room cache unchanged', async () => {
@@ -71,7 +71,7 @@ describe('buildActorLudicCache', () => {
         })
 
         expect(room.nodes.map((node) => node.universalKey)).not.toContain(bagId)
-        expect(cache.handles().map((handle) => handle.objectId)).toContain(coinId)
+        expect(cache.entries().map((entry) => entry.objectId)).toContain(coinId)
         expect(writeRow).not.toHaveBeenCalled()
         expect(room).toEqual(before)
     })

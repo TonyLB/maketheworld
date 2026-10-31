@@ -2,7 +2,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { buildLudicCache, type BuildLudicCacheDeps } from '../positions/ludicCache/fold'
-import type { ActorContainers } from '../positions/ludicCache/actorCache'
+import type { ActorContainers, ActorLudicCache } from '../positions/ludicCache/actorCache'
 import type { ActorObjectCatalogDeps, ObjectManipulationCatalogEntry, RoomInPlayObjectCatalogEntry } from './actorObjectCatalog'
 
 type ColdCatalogDeps = {
@@ -49,3 +49,9 @@ export const containersCache = (
 ): ActorContainers => ({
     containersOf: (id) => [...(typeof hostsOf === 'function' ? hostsOf(id) : hostsOf[id] ?? [])] as EphemeraMembershipHostId[],
 })
+
+/** A stand-in for `getActorCache`'s result: the given catalog, and ancestry from `hostsOf` (none by default). */
+export const actorCacheStub = (
+    entries: ObjectManipulationCatalogEntry[],
+    hostsOf: Parameters<typeof containersCache>[0] = {}
+): ActorLudicCache => ({ entries: () => entries, ...containersCache(hostsOf) }) as unknown as ActorLudicCache
