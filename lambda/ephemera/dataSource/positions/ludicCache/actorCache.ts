@@ -42,7 +42,7 @@ export class ActorLudicCache {
 
     /** Every named object the actor can reach, in the room or in hand, as flat handles. */
     handles(): LudicCacheObjectHandle[] {
-        return handlesFromCache(this.data, this.roomId).handles
+        return handlesFromCache(this.data, this.roomId)
     }
 
     /**

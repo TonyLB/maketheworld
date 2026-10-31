@@ -86,6 +86,21 @@ describe('buildActorLudicCache', () => {
         expect(buildSpy).toHaveBeenCalledWith(actorId, ['ASSET#Canon'], buildDeps)
     })
 
+    it('reads the stored row as the command reader, and logs each half with counts, never cache structure', async () => {
+        const log = jest.spyOn(console, 'log').mockImplementation(() => undefined)
+        const room = await roomRow()
+        const readLudicCache = jest.fn(async () => ({ cache: room, outcome: 'hit' as const }))
+        await build(room, {}, { readLudicCache })
+
+        expect(readLudicCache).toHaveBeenCalledWith(roomId, { reader: 'command' })
+        const lines = log.mock.calls.map(([, fields]) => fields as Record<string, unknown>)
+        expect(lines.find((fields) => fields?.seedHostId === roomId)).toEqual(expect.objectContaining({ outcome: 'hit', objectCount: expect.any(Number) }))
+        lines.forEach((fields) => {
+            expect(fields).not.toHaveProperty('nodes')
+            expect(fields).not.toHaveProperty('edges')
+        })
+    })
+
     it('logs the actor half\'s shard count and wall time', async () => {
         const log = jest.spyOn(console, 'log').mockImplementation(() => undefined)
         await build(await roomRow())

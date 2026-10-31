@@ -52,7 +52,6 @@ import { presenceBindingNode, testLudicGraph } from './positions/ludicGraph/test
 import type { EphemeraLudicGraph } from './positions/ludicGraph'
 import { buildLudicCache } from './positions/ludicCache/fold'
 import { ludicCacheRoomObjectContents } from './positions/ludicCache/roomObjectContents'
-import { ludicCacheRoomObjectHandles } from './positions/ludicCache/catalogHandles'
 import { getActorObjectCatalog } from './actions/actorObjectCatalog'
 import { catalogDepsFromColdBuild, scopedCatalog } from './actions/objectCatalogTestSupport'
 import type { RoomInPlayObjectCatalogEntry } from './actions/actorObjectCatalog'
@@ -191,7 +190,7 @@ const useWorld = (objects: WorldObjects) => {
 
     /**
      * A real parse, its positions reads answered by `containersOf` and the live graphs. `catalog` stands in for the
-     * production one (`catalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
+     * production one (`actorCatalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
      */
     const parseAny = async (command: string, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
         return parseCommand(
@@ -217,20 +216,6 @@ const useWorld = (objects: WorldObjects) => {
         }
         return parseResult
     }
-
-    /** The room catalog as production builds it: the handles of a cold fold over the committed graphs, which carry `presence` and `placement`. */
-    const catalogFromCache = async (): Promise<RoomInPlayObjectCatalogEntry[]> => (await ludicCacheRoomObjectHandles(ROOM_ID, {
-        readLudicCache: async (roomId) => ({
-            cache: (await buildLudicCache(roomId, [], { getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId), ...shortNameDeps })).cache,
-            outcome: 'hit' as const,
-        }),
-    })).map(({ objectId, shortName, gloss, presence, placement }) => ({
-        objectId,
-        normalizedShortName: shortName,
-        ...(gloss !== undefined ? { gloss } : {}),
-        ...(presence !== undefined ? { presence } : {}),
-        ...(placement !== undefined ? { placement } : {}),
-    }))
 
     /** The one catalog as production builds it: the actor's cache over the committed graphs, room and hand (a half-held thing is `room`, with a binding in hand). */
     const actorCatalogFromCache = async (): Promise<RoomInPlayObjectCatalogEntry[]> => (await getActorObjectCatalog(CHARACTER_ID, {
@@ -266,7 +251,7 @@ const useWorld = (objects: WorldObjects) => {
 
     /** A command as production parses it (the catalog built from the committed graphs), whatever it answers: an attempt, or a question. */
     const ask = async (command: string, containersOf: (id: string) => string[]) => {
-        const catalog = await catalogFromCache()
+        const catalog = await actorCatalogFromCache()
         return { catalog, consult: await parseAny(command, containersOf, catalog) }
     }
     /** What answering the option at `index` stores, applied to the row the question left (as `answerPending` merges it). */
@@ -294,7 +279,7 @@ const useWorld = (objects: WorldObjects) => {
     }
     const optionLabels = (consult: Awaited<ReturnType<typeof parseAny>>, command: string) => answered(consult, 0, command).question.outcome.Options.map(({ Label }) => Label)
 
-    return { parse, parseAny, commit, roomObjects, catalogFromCache, actorCatalogFromCache, ask, resumeAt, optionLabels }
+    return { parse, parseAny, commit, roomObjects, actorCatalogFromCache, ask, resumeAt, optionLabels }
 }
 
 /** The world lines a commit narrated, from the bus it published to. */
@@ -476,7 +461,7 @@ describe('cloth draped over a table (integration)', () => {
 })
 
 describe('rope carried into the next room (integration)', () => {
-    const { commit, roomObjects, ask, parseAny, catalogFromCache, actorCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
+    const { commit, roomObjects, ask, parseAny, actorCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
 
     /**
      * `[extend rope, move the new end into the next room]`, as the plan layer will state it once a
@@ -551,7 +536,7 @@ describe('rope carried into the next room (integration)', () => {
 })
 
 describe('rope held at one end, the other on the floor of the same room (integration)', () => {
-    const { commit, ask, parseAny, catalogFromCache, actorCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
+    const { commit, ask, parseAny, actorCatalogFromCache } = useWorld([[ROPE_ID, 'rope']])
 
     /** `[extend rope, move the new end into the actor's hands]`, built by hand as the carry into the next room is. */
     const holdEndAttempt = (): CommandAttemptData => CommandAttempt.create('spread', 'pick up one end of the rope', [
@@ -597,7 +582,7 @@ describe('rope held at one end, the other on the floor of the same room (integra
 })
 
 describe('asking which part of a draped cloth (integration)', () => {
-    const { parse, parseAny, commit, catalogFromCache } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table']])
+    const { parse, parseAny, commit, actorCatalogFromCache } = useWorld([[CLOTH_ID, 'cloth'], [TABLE_ID, 'table']])
 
     const beforeDrape = (id: string) => (id === CLOTH_ID || id === TABLE_ID || id === CHARACTER_ID ? [ROOM_ID] : [])
     const afterDrape = (id: string) => (id === CLOTH_ID ? [ROOM_ID, TABLE_ID] : beforeDrape(id))
@@ -608,7 +593,7 @@ describe('asking which part of a draped cloth (integration)', () => {
 
     const askTake = async () => {
         await commit((await parse('drape the cloth over the table', beforeDrape)).attempt, beforeDrape)
-        const catalog = await catalogFromCache()
+        const catalog = await actorCatalogFromCache()
         const consult = await parseAny('take cloth', afterDrape, catalog)
         return { catalog, consult }
     }
@@ -656,7 +641,7 @@ describe('asking which part of a draped cloth (integration)', () => {
         await commit((await parse('drape the cloth over the table', beforeDrape)).attempt, beforeDrape)
 
         // The fast path claims it, and the dry run's check rules out the hanging part and the whole.
-        const result = await parseAny('get the cloth on the table', afterDrape, await catalogFromCache())
+        const result = await parseAny('get the cloth on the table', afterDrape, await actorCatalogFromCache())
         expect(result).toMatchObject({ type: 'CommandAttempt' })
 
         const writeMessageBus = await commit((result as any).attempt, afterDrape)
@@ -682,7 +667,7 @@ describe('asking which part of a draped cloth (integration)', () => {
 })
 
 describe('two cups, one on the table: a qualified take (integration)', () => {
-    const { parse, parseAny, commit, roomObjects, catalogFromCache } = useWorld([[CUP_ON_TABLE_ID, 'cup'], [CUP_ON_FLOOR_ID, 'cup'], [TABLE_ID, 'table']])
+    const { parse, parseAny, commit, roomObjects, actorCatalogFromCache } = useWorld([[CUP_ON_TABLE_ID, 'cup'], [CUP_ON_FLOOR_ID, 'cup'], [TABLE_ID, 'table']])
 
     const beforePut = (id: string) => ([CUP_ON_TABLE_ID, CUP_ON_FLOOR_ID, TABLE_ID, CHARACTER_ID].includes(id as any) ? [ROOM_ID] : [])
     const afterPut = (id: string) => (id === CUP_ON_TABLE_ID ? [TABLE_ID] : beforePut(id))
@@ -698,7 +683,7 @@ describe('two cups, one on the table: a qualified take (integration)', () => {
     })
 
     it('"get the cup on the table" picks up the cup on the table without asking', async () => {
-        const result = await parseAny('get the cup on the table', afterPut, await catalogFromCache())
+        const result = await parseAny('get the cup on the table', afterPut, await actorCatalogFromCache())
         expect(result).toMatchObject({ type: 'CommandAttempt' })
 
         const writeMessageBus = await commit((result as any).attempt, afterPut)
@@ -716,13 +701,13 @@ describe('two cups, one on the table: a qualified take (integration)', () => {
 })
 
 describe('one bag, on the floor: a qualifier that matches nothing (integration)', () => {
-    const { parseAny, roomObjects, catalogFromCache } = useWorld([[BAG_ID, 'bag'], [TABLE_ID, 'table']])
+    const { parseAny, roomObjects, actorCatalogFromCache } = useWorld([[BAG_ID, 'bag'], [TABLE_ID, 'table']])
     const onTheFloor = (id: string) => ([BAG_ID, TABLE_ID, CHARACTER_ID].includes(id as any) ? [ROOM_ID] : [])
 
     it('"get bag from table" refuses with a line that says why, and changes nothing', async () => {
         const before = await roomObjects()
 
-        const result = await parseAny('get bag from table', onTheFloor, await catalogFromCache())
+        const result = await parseAny('get bag from table', onTheFloor, await actorCatalogFromCache())
 
         expect(result).toEqual({ type: 'Error', errorMessage: 'The table has no bag.' })
         expect(ephemeraDBMock.transactWrite).not.toHaveBeenCalled()

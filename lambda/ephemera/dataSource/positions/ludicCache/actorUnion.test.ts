@@ -10,7 +10,7 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import { EphemeraLudicGraph, toStoredRelationalEdge } from '../ludicGraph'
 import { buildLudicCache } from './fold'
-import { ludicCacheObjectHandles } from './catalogHandles'
+import { handlesFromCache } from './catalogHandles'
 import { unionLudicCaches } from './actorCache'
 import type { EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from './types'
 import { isEphemeraLudicCacheData } from './types'
@@ -87,7 +87,8 @@ describe('the actor\'s cache reaches the room (the actor special case)', () => {
     })
 
     it('resolves `rooms` for the held bag, the coin in it and the held part of the rope, and leaves the part tied to the table unresolved (actor fold alone)', async () => {
-        const handles = await ludicCacheObjectHandles(actorId, [], { getLudicGraph: graphReader(actorCacheGraphs()), getComponentAggregate: namedAggregate })
+        const { cache } = await buildLudicCache(actorId, [], { getLudicGraph: graphReader(actorCacheGraphs()), getComponentAggregate: namedAggregate })
+        const handles = handlesFromCache(cache, actorId)
         const placementOf = (objectId: string) => handles.find((handle) => handle.objectId === objectId)?.placement
         const ownBinding = (objectId: string, presence: string) => placementOf(objectId)
             ?.find((run) => run.host === objectId)?.bindings.find((binding) => binding.presence === presence)

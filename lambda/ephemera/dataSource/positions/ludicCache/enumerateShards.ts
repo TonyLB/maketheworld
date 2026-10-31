@@ -13,7 +13,7 @@
  * but its shard is not fetched either. That is what keeps a room's cache from re-absorbing an object a character
  * has just picked up (`catalogHandles.ts`): the walk cannot pass through a character into its inventory. A
  * participant's crossing joins its room-side leg at union time (`unionCaches.ts`). A character-seeded walk
- * (e.g. a held-inventory cache) still sees its own contents, because the seed is queued unconditionally before
+ * (the actor half of the actor's cache, `actorCache.ts`) still sees its own contents, because the seed is queued unconditionally before
  * the loop below runs. (Rule: `positions/AGENT.contract.md`, "A bystander is not in
  * its room's graph or cache".)
  *

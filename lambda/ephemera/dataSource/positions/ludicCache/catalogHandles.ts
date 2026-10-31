@@ -1,13 +1,13 @@
 /**
- * The first real consumer (CC3), and the first
+ * The handle boundary (CC3), and the first
  * real test of P6 clause 3 --- a hit returns a **handle**, never a subgraph. `buildLudicCache`
- * stays a pure function; this is the thin handler D6 decided on, and the only thing a consumer
- * (`actions/actorObjectCatalog.ts`, through `actorCache.ts`) is allowed to call. Nothing past this function's return
+ * stays a pure function; `handlesFromCache` is the projection a consumer reads through, today only
+ * `ActorLudicCache.handles()` (`actorCache.ts`, for `actions/actorObjectCatalog.ts`). Nothing past this function's return
  * type is `EphemeraLudicCacheData`-shaped --- a caller gets flat `{ objectId, shortName }` handles,
  * never `nodes`/`edges`/`ports`.
  *
  * **Exhaustive, not bucket-filtered, by deliberate choice this slice.** The cache is presence-aware
- * internally (its own `cover` structure), but this handler still returns every object node the
+ * internally (its own `cover` structure), but this projection still returns every object node the
  * walk reaches, matching `collectNestedObjectIds`'s old scope exactly. Filtering the pool to the
  * caller's own presence bucket (AB-9's read-path half) is open debt, not built here.
  *
@@ -21,22 +21,14 @@
  * seen in the room without one). Still flat scalars, and still not
  * a filter: this records where each thing is seen and drops nothing.
  *
- * **Room seeds read the stored row** (`ludicCacheRoomObjectHandles`); `ludicCacheObjectHandles` is the per-request rebuild for any other seed.
- *
- * **Slice 5 (PC-3): this is also the instrumentation boundary.** `buildLudicCache` and
- * `enumerateLudicCacheShards` stay pure, so wall time is timed here, around the one call this
- * handler already makes, and `objectCount` is a byproduct of the loop this handler already runs
- * to build handles. The logged line (`logLudicCacheRebuild`) carries only counts --- never
- * `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
+ * The rebuild log (`logLudicCacheRebuild`) is written where the cache is read, in `actorCache.ts`, and carries only counts
+ * --- never `cache.nodes`/`edges` --- so it does not reopen the P6-clause-3 boundary this file exists to hold.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
-import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
-import { readLudicCacheWithOutcome } from './store'
 import type { EphemeraLudicCacheData, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
 import { audienceBuckets, type PlacementBinding, type PresencePlacement } from '../../actions/objectViews'
 import type { GroundedPresence } from '../../actions/enrich/objectManipulation/plan/planStep'
@@ -107,16 +99,14 @@ const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, Presence
 export const handlesFromCache = (
     cache: EphemeraLudicCacheData,
     seedHostId: EphemeraMembershipHostId
-): { handles: LudicCacheObjectHandle[]; objectCount: number } => {
+): LudicCacheObjectHandle[] => {
     const handles: LudicCacheObjectHandle[] = []
     const placements = placementsByMember(cache)
     const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
-    let objectCount = 0
     for (const node of cache.nodes) {
         if (!isEphemeraObjectId(node.universalKey)) {
             continue
         }
-        objectCount += 1
         if (node.shortName === undefined) {
             continue
         }
@@ -128,48 +118,5 @@ export const handlesFromCache = (
             ...(placement !== undefined ? { placement, presence: audienceBuckets(placement) } : {}),
         })
     }
-    return { handles, objectCount }
-}
-
-/**
- * A room's handles from its **stored** cache (`readLudicCache`): no asset stack, because the row is shared by every viewer and
- * carries Canon + Improvisation names. A seed that is not a room has no stored row and takes
- * {@link ludicCacheObjectHandles}'s per-request rebuild.
- */
-export type RoomObjectHandlesDeps = { readLudicCache?: typeof readLudicCacheWithOutcome }
-
-export const ludicCacheRoomObjectHandles = async (
-    roomId: EphemeraRoomId,
-    deps: RoomObjectHandlesDeps = {}
-): Promise<LudicCacheObjectHandle[]> => {
-    const startedAt = Date.now()
-    const { cache, outcome } = await (deps.readLudicCache ?? readLudicCacheWithOutcome)(roomId, { reader: 'command' })
-    const { handles, objectCount } = handlesFromCache(cache, roomId)
-    logLudicCacheRebuild({
-        seedHostId: roomId,
-        objectCount,
-        wallTimeMs: Date.now() - startedAt,
-        outcome,
-        ...(outcome === 'hit' ? {} : { storedBytes: Buffer.byteLength(JSON.stringify(cache)) }),
-    })
-    return handles
-}
-
-export const ludicCacheObjectHandles = async (
-    seedHostId: EphemeraMembershipHostId,
-    assetStack: readonly string[],
-    deps: BuildLudicCacheDeps = {}
-): Promise<LudicCacheObjectHandle[]> => {
-    const startedAt = Date.now()
-    const { cache, stats } = await buildLudicCache(seedHostId, assetStack, deps)
-    const { handles, objectCount } = handlesFromCache(cache, seedHostId)
-    logLudicCacheRebuild({
-        seedHostId,
-        shardFetchCount: stats.shardFetchCount,
-        maxDepth: stats.maxDepth,
-        objectCount,
-        wallTimeMs: Date.now() - startedAt,
-        outcome: 'cold',
-    })
     return handles
 }
