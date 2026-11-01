@@ -46,6 +46,8 @@ It has two layers:
 
 ## Relationship to other plans
 
+- **Abstraction** ([`positions/AGENT.abstractionKind.planning.md`](../positions/AGENT.abstractionKind.planning.md)): **gates SP-2.** It separates things present only by association from physical things, and its physical-forest invariant (AK-2) is what lets this plan render physical placement as a forest with abstractions as references. A rollback there rolls back SP-2's direction.
+
 - **Iteration ladder** ([`AGENT.objectManipulationIterations.planning.md`](AGENT.objectManipulationIterations.planning.md)): this is foundation for the proposal's step 3 (the orchestration loop) and for layer 2 (fallbacks as attempt consumers). It builds no LLM call.
 - **Command attempt phase** ([`AGENT.commandAttemptPhase.planning.md`](AGENT.commandAttemptPhase.planning.md)): CA-1's section 4 is this plan's first consumer (Slice 4).
 - **Attention history** ([`positions/AGENT.attentionHistory.planning.md`](../positions/AGENT.attentionHistory.planning.md)): it owns what the cache holds; this plan only renders what it holds. If attention scoping narrows the cache, the scene narrows with it at no cost to this plan.
@@ -71,7 +73,7 @@ Each row is decided against Slice 0's worked scenes, not in the abstract. Where 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
 | SP-1 | **Handles: form, uniqueness and lifetime.** What the model sees in place of an id, and how its output names a thing again. Options include a name-derived slug (`[cup1]`), the bare short name made unique ("Cup", "Cup (2)"), or numbers. Also: are handles stable only within one render, or across the turns of one command (the loop's later turns must mean the same cup), or across commands? And how do they relate to `stableRefKey` (a phrase's referent) and to SR-5's ref variables? *Recommended start:* a name-derived slug, unique within one render, built deterministically from cache order so that one cache always renders the same handles. The handle table is part of the scene model's result. | 1 | Open |
-| SP-2 | **Placement in a DAG.** Indentation by hosting kind reads naturally, but containment is a DAG: the spring is in the box and part of the contraption, and a rope has an end in each of two rooms. Decide which placement is listed in full and how every other one is written, whether a thing reachable only through another's interior is nested or flattened, and how a thing with several bindings reads ("one end here, tied to the Hook; the other end leads into another room"). *Recommended start:* list each thing in full once, at its first placement in a walk from the room, then the actor; elsewhere write a back-reference by handle. Word parts using the `readingsOf` / `readingLabel` vocabulary that Consult labels already use. | 1 | Open |
+| SP-2 | **Placement in a DAG.** **Gated on the [Abstraction plan](../positions/AGENT.abstractionKind.planning.md)** (user, 2026-11-01): if that plan is rolled back, this direction is rolled back with it. *Direction pending that plan:* physical placement is a forest over hosts (its AK-2 invariant, decided 2026-11-01: each binding's physical parents all belong to one host; relied on here, not enforced at write time), nested by indentation with no back-references among physical placements. A binding with several parents on one host (a join) renders once, under that host. An object with several bindings (a spread rope or plank) appears once per binding, worded with the `readingsOf` / `readingLabel` vocabulary ("one end on [sawhorse1], the other on [sawhorse2]"). Abstractions are not placed; they are rendered as references from their associated members. (Abstraction plan AK-3: the room holds an `Associated` binding of each Abstraction with a member there, so the renderer finds it in the room's row and leaves it out of the physical forest.) Open here: whether a thing reachable only through another's interior is nested or flattened, and what this plan renders if Slice 1 must start before the Abstraction plan's Slice 4 lands. | 1 | Open; AK-2 decided, still gated on the Abstraction plan holding |
 | SP-3 | **Relations as phrases.** What the scene model carries for each edge, and the wording:<br>- a `Custom` label, as given ("tied to");<br>- `SecuredTo` plus its `Justifies` folded into the manner edge they support ("tied to [pole1], secured");<br>- `ConnectedTo` inside one whole (suppressed, or written as part of the description of the parts);<br>- an open leg ("tied to something inside [box1]");<br>- direction, read as English about the subject, as the primer does.<br>The **structure** (what the model holds per relation) blocks Slice 1; the **wording** blocks Slice 2. | 1 | Open |
 | SP-4 | **What sits outside the cache in this iteration.** The room itself (named as the heading), its exits (from `roomExitContext`; navigation is a Plan attempt, so a reader may need them), bystanders (characters row), and features (not in the catalog). *Recommended start:* the room heading and held inventory are in; exits are in as their own section if the harness can read them cheaply (the command world already loads them); bystanders and features are out, recorded under the questions below. | 1 | Open |
 | SP-5 | **Where the two layers live.** *Recommended start:* the scene model is an accessor on `ActorLudicCache` (positions, beside `entries`), so the boundary-type rule holds and nothing outside sees cache shapes. The text renderer is actions-side beside `commandAttempt/` (`actions/sceneProse/` or similar), since rendering for an LLM reader is the attempt prose's concern. Placement helpers now in `actions/objectViews.ts` are reused, not copied. | 1 | Open |
@@ -89,12 +91,13 @@ Not Open rows: none of these gates a slice. Each is recorded when Slice 0 or a l
 - **State.** The prose's State section overrides the gloss. Where the scene would carry a state override once a state axis exists.
 - **Hosting kinds `Held`, `PartOf`, `SectionOf` in words**, and whether `readingLabel`'s "on the X" for every object parent should take the scene's wording (one fix for both).
 - **Bystanders and features** as scene content, if SP-4 leaves them out.
+- **Inbound links.** Nothing links to this plan yet: neither CA-1 in the command attempt plan nor the ladder's orchestration-loop proposal (user, 2026-11-01: hold off and see what falls out of the questions). Slice 5 is obligated to add both if nobody has. Whether to add them earlier, and in what form, stays open while the questions are discussed.
 
 ## Progress
 
 | Slice | State |
 | --- | --- |
-| 0. Worked scenes; decide SP-1 to SP-5 (no code) | Not started; can start |
+| 0. Worked scenes; decide SP-1, SP-3, SP-4, SP-5 (no code) | Not started; can start. SP-2's direction rests on the Abstraction plan's AK-2 (decided) |
 | 1. Scene model and handle table, built from `ActorLudicCache` | |
 | 2. Text renderer | |
 | 3. Payoff: `/test scene` | |
@@ -116,7 +119,7 @@ Pending work is `[ ]` and completed work is `[X]`; mark each nested line `[X]` a
      - [ ] A draped cloth with a part on the table and a part in the room.
      - [ ] A node with no `shortName` that is a container or a relation end.
      - [ ] An empty room with the actor holding nothing.
-   - [ ] Decide SP-1 to SP-5 against the scenes. Record each decision in its row, and add anything new to [Questions this iteration should surface](#questions-this-iteration-should-surface).
+   - [ ] Decide SP-1, SP-3, SP-4 and SP-5 against the scenes; write the scenes' expected renders under SP-2's pending direction, and give them to the Abstraction plan's Slice 0 as cases the AK-2 invariant must hold over. Record each decision in its row, and add anything new to [Questions this iteration should surface](#questions-this-iteration-should-surface).
 1. [ ] **Slice 1: the scene model.**
    - [ ] Define the scene model type and the handle table (shape from SP-1 to SP-4), with no cache types in its surface.
    - [ ] Build it from the actor's cache (SP-5's home): a forward walk over covers from the room, then the actor; placements per SP-2; relations per SP-3's structure.
@@ -134,7 +137,7 @@ Pending work is `[ ]` and completed work is `[X]`; mark each nested line `[X]` a
 5. [ ] **Slice 5: durable docs and handoff.**
    - [ ] Rules to `positions/AGENT.contract.md` (the accessor, if a rule-bearing boundary) and the actions contract (handles; the scene uses reasoning names, never display labels); code map to both `AGENT.implementation.md` files; vocabulary (scene, handle) to actions `AGENT.concepts.md` only if it is new vocabulary a reader needs.
    - [ ] Hand each entry under [Questions this iteration should surface](#questions-this-iteration-should-surface) to an owner: an existing plan's row, a new plan, or a shelf in a durable doc.
-   - [ ] Update CA-1's pointer in the command attempt plan and the ladder's proposal to the shipped renderer.
+   - [ ] **Obligated, if not done earlier:** link this work from CA-1 in the command attempt plan and from the ladder's [orchestration-loop proposal](AGENT.objectManipulationIterations.planning.md#proposal-deterministic-first-then-an-orchestration-loop-2026-10-25), pointing at the shipped renderer. Whether to link earlier is under [Questions this iteration should surface](#questions-this-iteration-should-surface), "Inbound links".
    - [ ] Grep for inbound links to this file, then delete it.
 
 ## Verification
