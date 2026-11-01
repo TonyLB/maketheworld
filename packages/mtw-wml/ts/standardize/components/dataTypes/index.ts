@@ -19,6 +19,7 @@ import { StandardGuidanceData, StandardGuidanceInputData, isStandardGuidanceData
 import { StandardSituationData, StandardSituationInputData, isStandardSituationData, isStandardSituationInputData } from "./situation"
 import { StandardAreaData, isStandardAreaData } from "./area"
 import { StandardObjectData, isStandardObjectData } from "./object"
+import { StandardConceptData, isStandardConceptData } from "./concept"
 import {
     LUDIC_GRAPH_NODE_TAGS,
     StandardLudicGraphData,
@@ -54,7 +55,8 @@ export {
     isStandardSituationData,
     isStandardSituationInputData,
     isStandardAreaData,
-    isStandardObjectData
+    isStandardObjectData,
+    isStandardConceptData
 }
 
 export type StandardComponentNonEditData =
@@ -71,7 +73,8 @@ export type StandardComponentNonEditData =
     StandardGuidanceData |
     StandardSituationData |
     StandardAreaData |
-    StandardObjectData
+    StandardObjectData |
+    StandardConceptData
 
 export type StandardComponentInputNonEditData =
     StandardCharacterData |
@@ -87,7 +90,8 @@ export type StandardComponentInputNonEditData =
     StandardGuidanceInputData |
     StandardSituationInputData |
     StandardAreaData |
-    StandardObjectData
+    StandardObjectData |
+    StandardConceptData
 
 export type StandardComponentInputData = StandardComponentInputNonEditData
 
@@ -108,7 +112,8 @@ export const isStandardComponentData = (value: any): value is StandardComponentD
     isStandardGuidanceData(value) ||
     isStandardSituationData(value) ||
     isStandardAreaData(value) ||
-    isStandardObjectData(value)
+    isStandardObjectData(value) ||
+    isStandardConceptData(value)
 )
 
 export const isStandardComponentInputData = (value: any): value is StandardComponentInputData => (
@@ -125,7 +130,8 @@ export const isStandardComponentInputData = (value: any): value is StandardCompo
     isStandardGuidanceInputData(value) ||
     isStandardSituationInputData(value) ||
     isStandardAreaData(value) ||
-    isStandardObjectData(value)
+    isStandardObjectData(value) ||
+    isStandardConceptData(value)
 )
 
 

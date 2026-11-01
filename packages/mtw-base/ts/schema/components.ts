@@ -33,6 +33,13 @@ export type SchemaObjectTag = {
     ref?: number;
 } & SchemaImportableBase
 
+export type SchemaConceptTag = {
+    tag: 'Concept';
+    uuid?: ComponentUUID;
+    key?: string;
+    ref?: number;
+} & SchemaImportableBase
+
 export type SchemaRenderTag = {
     tag: 'Render';
 }
@@ -166,6 +173,14 @@ export const isSchemaObject = (schema: any): schema is SchemaObjectTag => (
         required: { tag: CheckTypes.STRING },
         optional: { uuid: CheckTypes.STRING, key: CheckTypes.STRING, ref: CheckTypes.NUMBER },
         values: { tag: 'Object' }
+    })(schema)
+)
+
+export const isSchemaConcept = (schema: any): schema is SchemaConceptTag => (
+    checkTypes({
+        required: { tag: CheckTypes.STRING },
+        optional: { uuid: CheckTypes.STRING, key: CheckTypes.STRING, ref: CheckTypes.NUMBER },
+        values: { tag: 'Concept' }
     })(schema)
 )
 

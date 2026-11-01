@@ -41,6 +41,10 @@ import { processWithConsumers, StandardizeConsumerFacetListSituation, Standardiz
 import { SingleReference } from "../keys/singleReference"
 import StandardLudicGraph from "./ludicGraph"
 
+/** The ludicGraph node kinds a Room names by nested reference (Character, Guidance and Lens have their own lists). */
+const ROOM_LUDIC_GRAPH_NODE_TAGS = ['Feature', 'Object', 'Concept'] as const
+const ROOM_LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(ROOM_LUDIC_GRAPH_NODE_TAGS)
+
 export class StandardRoomPayload implements ComponentConstructorMethods<StandardRoomInputData, StandardRoomData> {
     _shortName?: StandardLiteral;
     _gloss?: StandardLiteral;
@@ -109,22 +113,21 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
                         this._lens = SingleReference.fromReferenceList(list)
                     }
                 }),
-                new StandardizeConsumerReferenceList(this, { tag: "Feature", update(list) { this.withLudicGraphNodes(list) } }),
-                // Object is a graph membership reference here (LG-2), not a full inline definition:
-                // this only records "this object is a node in the room's ludicGraph." The matched
-                // schema is also returned via returnRemainderAddition (StandardizeConsumerReferenceList's
-                // contract), so processComponents's recursive walk independently discovers and builds
-                // the real top-level StandardObject from the same tag when it carries a full definition.
-                // Merges with (rather than replaces) whatever withLudicGraphNodes already holds, since
-                // Feature's consumer above populates the same node list.
-                new StandardizeConsumerReferenceList(this, {
-                    tag: "Object",
+                // Feature, Object and Concept are graph membership references here (LG-2), not full
+                // inline definitions: each only records "this is a node in the room's ludicGraph."
+                // The matched schema is also returned via returnRemainderAddition
+                // (StandardizeConsumerReferenceList's contract), so processComponents's recursive walk
+                // independently discovers and builds the real top-level component from the same tag
+                // when it carries a full definition. Each merges with (rather than replaces) whatever
+                // the node list already holds, since all three populate the same list.
+                ...ROOM_LUDIC_GRAPH_NODE_TAGS.map((tag) => new StandardizeConsumerReferenceList(this, {
+                    tag,
                     update(list) {
                         const merged = this._ludicGraph.nodes.componentRefs.merge(list, { cleanEmptyReferences: false })
                             ?? this._ludicGraph.nodes.componentRefs
                         this.withLudicGraphNodes(merged)
                     }
-                }),
+                })),
                 new StandardizeConsumerFacetListSituation(this, { update(list) { this._situations = list } }),
                 new StandardizeConsumerReferenceList(this, { tag: "Guidance", update(list) { this._guidance = list } }),
                 new StandardizeConsumerReferenceList(this, { tag: "Character", update(list) { this._characters = list } }),
@@ -346,7 +349,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
     }
 
     assureReferences(children: StandardReference[]): AssureReferencesResult<this> {
-        const BUCKET_TAGS = ['Lens', 'Feature', 'Object', 'Guidance', 'Character'] as const
+        const BUCKET_TAGS = ['Lens', ...ROOM_LUDIC_GRAPH_NODE_TAGS, 'Guidance', 'Character'] as const
         const bucketChildren = children.filter((c): c is StandardReference => BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
         const remainder = children.filter(c => !BUCKET_TAGS.includes(c.tag as (typeof BUCKET_TAGS)[number]))
 
@@ -355,11 +358,8 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         const lensReferences = new ReferenceList(
             bucketChildren.filter(child => child.tag === 'Lens').map(child => child.withRef(0))
         )
-        const featureReferences = new ReferenceList(
-            bucketChildren.filter(child => child.tag === 'Feature').map(child => child.withRef(0))
-        )
-        const objectReferences = new ReferenceList(
-            bucketChildren.filter(child => child.tag === 'Object').map(child => child.withRef(0))
+        const graphNodeReferences = new ReferenceList(
+            bucketChildren.filter(child => ROOM_LUDIC_GRAPH_NODE_TAG_SET.has(child.tag)).map(child => child.withRef(0))
         )
         const guidanceReferences = new ReferenceList(
             bucketChildren.filter(child => child.tag === 'Guidance').map(child => child.withRef(0))
@@ -369,9 +369,8 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         )
 
         returnValue._lens = this._lens.merge(SingleReference.fromReferenceList(lensReferences))
-        const mergedFeatureNodes = returnValue._ludicGraph.nodes.componentRefs.merge(featureReferences, { cleanEmptyReferences: false })
+        const mergedNodes = returnValue._ludicGraph.nodes.componentRefs.merge(graphNodeReferences, { cleanEmptyReferences: false })
             ?? returnValue._ludicGraph.nodes.componentRefs
-        const mergedNodes = mergedFeatureNodes.merge(objectReferences, { cleanEmptyReferences: false }) ?? mergedFeatureNodes
         returnValue.withLudicGraphNodes(mergedNodes)
         returnValue._guidance = this._guidance.merge(guidanceReferences, { cleanEmptyReferences: false }) ?? this._guidance
         returnValue._characters = this._characters.merge(characterReferences, { cleanEmptyReferences: false }) ?? this._characters
@@ -499,7 +498,7 @@ export class StandardRoomPayload implements ComponentConstructorMethods<Standard
         if (child.tag === 'Lens') {
             returnValue._lens = returnValue._lens.assureItem(child)
         }
-        else if (child.tag === 'Feature' || child.tag === 'Object') {
+        else if (ROOM_LUDIC_GRAPH_NODE_TAG_SET.has(child.tag)) {
             const mergedNodes = returnValue._ludicGraph.nodes.componentRefs.assureItem(child)
             returnValue.withLudicGraphNodes(mergedNodes)
         }

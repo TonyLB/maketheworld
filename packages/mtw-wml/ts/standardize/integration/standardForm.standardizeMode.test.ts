@@ -56,6 +56,76 @@ describe('StandardForm.standardizeMode', () => {
         expect(() => new StandardForm(wml)).toThrow(/Authored objects in rooms are intended but unbuilt/)
     })
 
+    // Concepts share the LG-7 gate (AK-6): the WML parses in every mode, and assetWirePolicy
+    // refuses each authored Concept membership in asset mode until LG-7's mechanism lifts it.
+    it('rejects a Concept node on a Room in asset mode', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Concept uuid=(habitatControl)>
+                        <ShortName>habitat control system</ShortName>
+                    </Concept>
+                </Room>
+            </Asset>
+        `)
+        expect(() => new StandardForm(wml)).toThrow(/Authored concepts in rooms are intended but unbuilt/)
+    })
+
+    it('rejects an Object member of a Concept in asset mode', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Concept uuid=(habitatControl)>
+                    <Object uuid=(terminal)>
+                        <ShortName>terminal</ShortName>
+                    </Object>
+                </Concept>
+            </Asset>
+        `)
+        expect(() => new StandardForm(wml)).toThrow(/Authored objects in concepts are intended but unbuilt/)
+    })
+
+    it('rejects a Concept within a Concept in asset mode', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Concept uuid=(moonbaseComputer)>
+                    <Concept uuid=(designLibrary)>
+                        <ShortName>design library</ShortName>
+                    </Concept>
+                </Concept>
+            </Asset>
+        `)
+        expect(() => new StandardForm(wml)).toThrow(/Authored concepts in concepts are intended but unbuilt/)
+    })
+
+    it('allows a top-level Concept with no members under Asset in asset mode', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Concept uuid=(habitatControl)>
+                    <ShortName>habitat control system</ShortName>
+                </Concept>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml)
+        expect(sf._lookup('CONCEPT#habitatControl')).toBeDefined()
+    })
+
+    it('allows every Concept membership in ephemeraWire mode', () => {
+        const wml = deIndentWML(`
+            <Asset uuid=(Test)>
+                <Room key=(main) uuid=(main)>
+                    <Concept uuid=(moonbaseComputer)>
+                        <Object uuid=(terminal)>
+                            <ShortName>terminal</ShortName>
+                        </Object>
+                        <Concept uuid=(designLibrary) />
+                    </Concept>
+                </Room>
+            </Asset>
+        `)
+        const sf = new StandardForm(wml, { standardizeMode: 'ephemeraWire' })
+        expect(sf._lookup('CONCEPT#moonbaseComputer')).toBeDefined()
+    })
+
     it('allows top-level Object under Asset in asset mode', () => {
         const wml = deIndentWML(`
             <Asset uuid=(Test)>

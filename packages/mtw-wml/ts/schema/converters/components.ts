@@ -4,7 +4,7 @@ import { ConverterMapEntry, PrintMapEntry, PrintMapEntryArguments } from "./base
 import { tagRender } from "./tagRender"
 import { validateProperties, validateExpressionAsNonNegativeInteger, parsePositionCoordinates } from "./utils"
 import { GenericTree, GenericTreeNodeFiltered } from "@tonylb/mtw-base/ts/genericTree"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaGloss, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaGlossTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaObject, isSchemaConcept, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaGloss, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaForward, isSchemaBack, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaObjectTag, SchemaConceptTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaGlossTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaDescription, isSchemaDisplayName, isSchemaSummary } from "@tonylb/mtw-base/ts/schema/prose"
 import { isSchemaString, SchemaStringTag } from "@tonylb/mtw-base/ts/schema/renderTree"
 import { SchemaTag, isSchemaAsset, isSchemaCharacter, isSchemaComponent, isSchemaComponentUUID } from "@tonylb/mtw-base/ts/schema"
@@ -34,6 +34,11 @@ const componentTemplates = {
     Back: {},
     Key: {},
     Object: {
+        uuid: { type: ParsePropertyTypes.Key },
+        key: { type: ParsePropertyTypes.Key },
+        ref: { type: ParsePropertyTypes.Expression }
+    },
+    Concept: {
         uuid: { type: ParsePropertyTypes.Key },
         key: { type: ParsePropertyTypes.Key },
         ref: { type: ParsePropertyTypes.Expression }
@@ -331,9 +336,9 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         initialize: ({ parseOpen, contextStack }): SchemaObjectTag => {
             const hasRoomContext = contextStack.some(({ data }) => isSchemaRoom(data))
             const hasAssetContext = contextStack.some(({ data }) => isSchemaAsset(data))
-            const hasObjectContext = contextStack.some(({ data }) => isSchemaObject(data))
+            const hasObjectContext = contextStack.some(({ data }) => isSchemaObject(data) || isSchemaConcept(data))
             if (!hasRoomContext && !hasAssetContext && !hasObjectContext) {
-                throw new Error('Object tag can only be used inside a Room, Asset, or Object')
+                throw new Error('Object tag can only be used inside a Room, Asset, Object, or Concept')
             }
             const { uuid, key, ref } = validateProperties(componentTemplates.Object)(parseOpen)
             const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
@@ -350,7 +355,7 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
         },
         typeCheckContents: (item: SchemaTag): boolean => (
             isSchemaShortName(item) || isSchemaGloss(item) || isSchemaSituation(item) || isSchemaRender(item) || isSchemaReplace(item) || isSchemaRemove(item) ||
-            isSchemaArea(item) || isSchemaRoom(item) || isSchemaFeature(item) || isSchemaCharacter(item) || isSchemaObject(item)
+            isSchemaArea(item) || isSchemaRoom(item) || isSchemaFeature(item) || isSchemaCharacter(item) || isSchemaObject(item) || isSchemaConcept(item)
         ),
         finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaObjectTag, SchemaTag> => {
             if (!isSchemaObject(initialTag)) {
@@ -366,6 +371,39 @@ export const componentConverters: Record<string, ConverterMapEntry> = {
             // downstream in the standardize layer via shortNameField.ts).
             return {
                 data: { tag: 'Object', uuid: uuidNormalized },
+                children,
+            }
+        },
+    },
+    Concept: {
+        initialize: ({ parseOpen }): SchemaConceptTag => {
+            const { uuid, key, ref } = validateProperties(componentTemplates.Concept)(parseOpen)
+            const refValue = ref ? validateExpressionAsNonNegativeInteger(ref as string, 'ref', parseOpen.tag) : undefined
+            const uuidTrimmed = (uuid ?? '').trim()
+            if (!uuidTrimmed) {
+                throw new Error('Concept tag must have a non-empty uuid')
+            }
+            return {
+                tag: 'Concept',
+                uuid: enforceTypedKey('CONCEPT')(uuidTrimmed),
+                ...(key ? { key } : {}),
+                ...(refValue !== undefined ? { ref: refValue } : {}),
+            }
+        },
+        typeCheckContents: (item: SchemaTag): boolean => (
+            isSchemaShortName(item) || isSchemaGloss(item) || isSchemaReplace(item) || isSchemaRemove(item) ||
+            isSchemaObject(item) || isSchemaConcept(item)
+        ),
+        finalize: (initialTag: SchemaTag, children: GenericTree<SchemaTag>): GenericTreeNodeFiltered<SchemaConceptTag, SchemaTag> => {
+            if (!isSchemaConcept(initialTag)) {
+                throw new Error('Type mismatch on schema finalize')
+            }
+            const uuidTrimmed = (initialTag.uuid ?? '').trim()
+            if (!uuidTrimmed) {
+                throw new Error('Concept tag must have a non-empty uuid')
+            }
+            return {
+                data: { tag: 'Concept', uuid: enforceTypedKey('CONCEPT')(uuidTrimmed) },
                 children,
             }
         },
@@ -597,6 +635,20 @@ export const componentPrintMap: Record<string, PrintMapEntry> = {
             tag: 'Object',
             properties: [
                 ...(tag.uuid ? [{ key: 'uuid', type: 'key' as const, value: stripTypedKey('OBJECT')(tag.uuid) }] : []),
+                ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
+            ],
+            node: { data: tag, children },
+        })
+    },
+    Concept: ({ tag: { data: tag, children }, ...args }: PrintMapEntryArguments) => {
+        if (!isSchemaConcept(tag)) {
+            return [{ printMode: PrintMode.naive, output: '' }]
+        }
+        return tagRender({
+            ...args,
+            tag: 'Concept',
+            properties: [
+                ...(tag.uuid ? [{ key: 'uuid', type: 'key' as const, value: stripTypedKey('CONCEPT')(tag.uuid) }] : []),
                 ...(tag.key ? [{ key: 'key', type: 'key' as const, value: tag.key }] : []),
             ],
             node: { data: tag, children },

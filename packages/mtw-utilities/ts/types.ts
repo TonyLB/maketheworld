@@ -12,7 +12,7 @@ export const splitType = (value: string) => {
 // keys that name no component. In particular PRESENCE belongs here without contradicting
 // `EphemeraPresenceNodeId`'s own rule (baseClasses.ts) that it stays OUT of the `EphemeraId`
 // allowlist, which is the union that does mean component-addressable.
-type PrefixKey = 'ASSET' | 'AREA' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK' | 'LENS' | 'GUIDANCE' | 'SITUATION' | 'OBJECT' | 'PRESENCE'
+type PrefixKey = 'ASSET' | 'AREA' | 'CONCEPT' | 'CHARACTER' | 'ROOM' | 'EXAMPLE' | 'FEATURE' | 'KNOWLEDGE' | 'MAP' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'CONNECTION' | 'SESSION' | 'MARK' | 'LENS' | 'GUIDANCE' | 'SITUATION' | 'OBJECT' | 'PRESENCE'
 
 export const enforceTypedKey = <T extends PrefixKey>(key: T) => (value: string): `${T}#${string}` => {
     const [checkType, checkForTwoSections] = splitType(value)
