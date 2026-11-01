@@ -77,6 +77,10 @@ export const isEphemeraSituationId = isEphemeraTaggedId<'SITUATION'>('SITUATION'
 export type EphemeraAreaId = EphemeraWrappedId<'AREA'>
 export const isEphemeraAreaId = isEphemeraTaggedId<'AREA'>('AREA')
 
+/** A thing that is conceptual by kind: its only connections to physical things are associations. */
+export type EphemeraConceptId = EphemeraWrappedId<'CONCEPT'>
+export const isEphemeraConceptId = isEphemeraTaggedId<'CONCEPT'>('CONCEPT')
+
 /** A presence node's minted key (presenceNodes Slice 2 / PN-5). Deliberately NOT in the
  * `EphemeraId` allowlist below --- that union is the component-addressable universe, and a
  * presence node must not become addressable as a component by side effect. */
@@ -92,7 +96,7 @@ export const isEphemeraPresenceNodeId = isEphemeraTaggedId<'PRESENCE'>('PRESENCE
 // EXAMPLE# was removed: Example is no longer a schema component (authored slices use SITUATION#).
 // Legacy EXAMPLE# strings may still appear in stored WML or PerceptionMessage metadata types.
 //
-export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION' | 'AREA'>
+export type EphemeraId = EphemeraWrappedId<'ASSET' | 'FEATURE' | 'KNOWLEDGE' | 'ROOM' | 'MAP' | 'CHARACTER' | 'OBJECT' | 'MESSAGE' | 'MOMENT' | 'IMAGE' | 'SITUATION' | 'AREA' | 'CONCEPT'>
 export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraAssetId(value) ||
     isEphemeraFeatureId(value) ||
@@ -105,7 +109,8 @@ export const isEphemeraId = (value: string): value is EphemeraId => (
     isEphemeraMomentId(value) ||
     isEphemeraImageId(value) ||
     isEphemeraSituationId(value) ||
-    isEphemeraAreaId(value)
+    isEphemeraAreaId(value) ||
+    isEphemeraConceptId(value)
 )
 
 export type LegalCharacterColor = 'blue' | 'pink' | 'purple' | 'green' | 'grey'

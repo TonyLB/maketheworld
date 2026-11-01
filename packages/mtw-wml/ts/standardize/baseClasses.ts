@@ -43,6 +43,7 @@ export const defaultComponentFromTag = (tag: SchemaTag["tag"], key?: string, uni
         case 'Guidance':
         case 'Situation':
         case 'Object':
+        case 'Concept':
             return {
                 tag,
                 key,

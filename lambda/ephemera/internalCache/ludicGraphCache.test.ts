@@ -38,7 +38,7 @@ describe('EphemeraLudicGraphCacheData', () => {
         const cache = createEphemeraLudicGraphCacheData({ getItem: jest.fn() })
         const graph = EphemeraLudicGraph.fromFieldPayload('BOGUS#NotAHost' as EphemeraMembershipHostId, { rootId: 'BOGUS#NotAHost' as EphemeraMembershipHostId, ports: [], nodes: [] })
 
-        expect(() => cache.set(graph)).toThrow(/forward host ROOM#, CHARACTER#, OBJECT#, FEATURE#, or AREA#/)
+        expect(() => cache.set(graph)).toThrow(/requires a membership host id/)
     })
 
     it('set then get round-trips membership nodes', async () => {

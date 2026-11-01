@@ -1,11 +1,13 @@
 import {
     isEphemeraAreaId,
     isEphemeraCharacterId,
+    isEphemeraConceptId,
     isEphemeraFeatureId,
     isEphemeraObjectId,
     isEphemeraRoomId,
     type EphemeraAreaId,
     type EphemeraCharacterId,
+    type EphemeraConceptId,
     type EphemeraFeatureId,
     type EphemeraObjectId,
     type EphemeraRoomId,
@@ -23,17 +25,18 @@ export const EPHEMERA_POSITION_ADJACENCY_PREFIX = 'POSITION#' as const
 
 /**
  * Eligible membership hosts: room, character inventory, object (recursive hosting --- a spring
- * hosted in a box), feature (a wall hosting a niche as a PartOf member), and area. Area is a
+ * hosted in a box), feature (a wall hosting a niche as a PartOf member), area, and concept. Area is a
  * host only --- it is never itself a member of another host, so it has no counterpart on
- * EphemeraPositionAdjacencyContainedId.
+ * EphemeraPositionAdjacencyContainedId. A concept is both: it hosts its associates and is hosted by
+ * a room it is present in (`Associated`) or by another concept (`PartOf`/`SectionOf`).
  *
  * Admission here is not a part-of-ladder claim: widening this union does not put any of these
  * kinds into the containment ladder above the room (see AGENT.concepts.md's premise-11 warning).
  */
-export type EphemeraMembershipHostId = EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
+export type EphemeraMembershipHostId = EphemeraRoomId | EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId | EphemeraConceptId
 
 export const isEphemeraMembershipHostId = (value: string): value is EphemeraMembershipHostId =>
-    isEphemeraRoomId(value) || isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value)
+    isEphemeraRoomId(value) || isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value) || isEphemeraConceptId(value)
 
 export type EphemeraPositionAdjacencyDataCategory =
     `${typeof EPHEMERA_POSITION_ADJACENCY_PREFIX}${EphemeraMembershipHostId}`
@@ -45,10 +48,10 @@ export type EphemeraPositionAdjacencyDataCategory =
  * gap this union ruled out --- that reading was mistaken, since the union is a record of which
  * containments exist, not a restriction on which may.
  */
-export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraRoomId
+export type EphemeraPositionAdjacencyContainedId = EphemeraCharacterId | EphemeraObjectId | EphemeraFeatureId | EphemeraRoomId | EphemeraConceptId
 
 export const isEphemeraPositionAdjacencyContainedId = (value: unknown): value is EphemeraPositionAdjacencyContainedId =>
-    typeof value === 'string' && (isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraRoomId(value))
+    typeof value === 'string' && (isEphemeraCharacterId(value) || isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraRoomId(value) || isEphemeraConceptId(value))
 
 export type EphemeraPositionAdjacencyRow = {
     EphemeraId: EphemeraPositionAdjacencyContainedId;
@@ -95,10 +98,7 @@ export const isEphemeraPositionAdjacencyRow = (item: unknown): item is EphemeraP
         return false
     }
     const row = item as EphemeraPositionAdjacencyRow
-    if (typeof row.EphemeraId !== 'string') {
-        return false
-    }
-    if (!isEphemeraCharacterId(row.EphemeraId) && !isEphemeraObjectId(row.EphemeraId) && !isEphemeraFeatureId(row.EphemeraId)) {
+    if (!isEphemeraPositionAdjacencyContainedId(row.EphemeraId)) {
         return false
     }
     if (typeof row.DataCategory !== 'string') {

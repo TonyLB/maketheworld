@@ -1,9 +1,11 @@
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
-import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraConceptId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { admissibleHostingKinds } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCharacterId, EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { nodeFromId } from '../../ludicGraph'
 import { applyDeparture } from '../../ludicGraph/expandValidate/applyDeparture'
 import { bindingHasParentOn } from '../../ludicGraph/presenceParent'
 import { isBystanderMove } from './bystander'
@@ -24,6 +26,10 @@ export const bindingPointsAt = (moverId: EphemeraMembershipHostId, hostId: Ephem
  * establish step.
  */
 export const defaultHostingKind = (moverId: EphemeraMembershipHostId, hostId: EphemeraMembershipHostId): EphemeraHostingKind => {
+    // A Concept on either side fixes the kind (`Associated`, or `PartOf` between Concepts).
+    if (isEphemeraConceptId(moverId) || isEphemeraConceptId(hostId)) {
+        return admissibleHostingKinds(nodeFromId(hostId).tag, nodeFromId(moverId).tag)[0]
+    }
     if (isEphemeraObjectId(moverId)) {
         return isEphemeraCharacterId(hostId) ? 'Held' : 'In'
     }

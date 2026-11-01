@@ -4,7 +4,7 @@ import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { StandardExitEdgeData } from "../../keys/edges/dataTypes/exitEdge"
 import { LudicEdgeListData, isLudicEdgeListData } from "../../keys/edges/dataTypes/ludicEdge"
 
-export const LUDIC_GRAPH_NODE_TAGS = ['Area', 'Room', 'Feature', 'Character', 'Object'] as const
+export const LUDIC_GRAPH_NODE_TAGS = ['Area', 'Room', 'Feature', 'Character', 'Object', 'Concept'] as const
 export type LudicGraphNodeTag = typeof LUDIC_GRAPH_NODE_TAGS[number]
 
 const LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(LUDIC_GRAPH_NODE_TAGS)

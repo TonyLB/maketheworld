@@ -8,7 +8,7 @@
 
 ## The picture in one paragraph
 
-The world is a set of **components** --- rooms, characters, objects, features, areas --- and every component that holds other things **hosts its own small graph** (`ludicGraph`) describing what is in it and how those things relate. There is no single world graph; the world is **sharded**, one graph per host, and a graph never contains another graph inline. A component reaches *into* another component's interior only through an **external address** the interior publishes --- a **port** --- so a relation that spans two hosts is stored as **legs**, one per graph, meeting at a port. A thing may be a node in **several** hosts' graphs at once (a spring inside a box, and also part of a contraption's mechanism), so containment is a **DAG, not a tree**. Orthogonal to all of that, every hosted thing records its own **presence** --- one **presence node** per host it is in, each carrying a **cover** stating which of the thing's own nodes are *there* --- and this is the index the read-side **`ludicCache`** is built from when it stitches several shards into one attention-scoped view.
+The world is a set of **components** --- rooms, characters, objects, features, areas, concepts --- and every component that holds other things **hosts its own small graph** (`ludicGraph`) describing what is in it and how those things relate. There is no single world graph; the world is **sharded**, one graph per host, and a graph never contains another graph inline. A component reaches *into* another component's interior only through an **external address** the interior publishes --- a **port** --- so a relation that spans two hosts is stored as **legs**, one per graph, meeting at a port. A thing may be a node in **several** hosts' graphs at once (a spring inside a box, and also associated with a contraption), so membership is a **DAG, not a tree**; physical placement alone, with the conceptual components dropped, is a forest. Orthogonal to all of that, every hosted thing records its own **presence** --- one **presence node** per host it is in, each carrying a **cover** stating which of the thing's own nodes are *there* --- and this is the index the read-side **`ludicCache`** is built from when it stitches several shards into one attention-scoped view.
 
 Five ideas, then: **sharding**, **external addressing**, **multi-hosting**, **presence as a cover**, and **the cache**. Each has a section below, and the same example runs through all of them.
 
@@ -21,9 +21,9 @@ ROOM#Lab ------------------------------------------ ROOM#Hall
  |                                                    |
  |-- OBJECT#Box                                       |
  |     |-- OBJECT#Cup                                 |
- |     '-- OBJECT#Spring   <---- also part of ----.   |
- |                                                 |  |
- |-- OBJECT#Contraption --- mechanism: OBJECT#Spring  |
+ |     '-- OBJECT#Spring   <-- associated with --.    |
+ |                                                |   |
+ |~~ CONCEPT#Contraption -- member: OBJECT#Spring     |
  |                                                    |
  |-- OBJECT#Hook                                      |
  |                                                    |
@@ -31,19 +31,19 @@ ROOM#Lab ------------------------------------------ ROOM#Hall
         OBJECT#Rope's own parts: OBJECT#RopeEndA, OBJECT#RopeEndB
 ```
 
-- The **Lab** holds a box, a contraption, a hook, and one end of a rope.
+- The **Lab** holds a box, a hook, and one end of a rope, and is associated with a contraption (`~~` marks an association).
 - The **box** holds a cup and a spring.
-- The **contraption** is an abstraction --- a whole whose mechanism includes *the same* spring that sits in the box.
+- The **contraption** is a **Concept**: a mechanism as a design the spring takes part in, conceptual by kind rather than a thing on the bench. It is an abstraction over its members, one of which is *the same* spring that sits in the box.
 - The **rope** lies across two rooms: end A in the Lab, end B in the Hall. It is one object with two parts.
 - A player has tied the rope to the hook (`Hook -TiedTo-> Rope`, both in the Lab) and, reaching into the box, tied the rope to the cup (`Rope -TiedTo-> Cup`, crossing the box's boundary).
 
-Every id below is a real tag from `EphemeraId` (`ROOM#`, `OBJECT#`, `CHARACTER#`, `FEATURE#`, `AREA#`, `PRESENCE#`); the names after the tag are illustrative.
+Every id below is a real tag from `EphemeraId` (`ROOM#`, `OBJECT#`, `CHARACTER#`, `FEATURE#`, `AREA#`, `CONCEPT#`, `PRESENCE#`); the names after the tag are illustrative.
 
 ---
 
 ## 1. Sharding: every host has its own graph
 
-**Every membership host stores one `ludicGraph`** as the `ludicGraph` attribute of its `Meta::<Kind>` row --- Room, Character, Object, Feature and Area alike, through one shared serde. The stored shape is [`EphemeraLudicGraphFieldPayload`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts):
+**Every membership host stores one `ludicGraph`** as the `ludicGraph` attribute of its `Meta::<Kind>` row --- Room, Character, Object, Feature, Area and Concept alike, through one shared serde. The stored shape is [`EphemeraLudicGraphFieldPayload`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts):
 
 ```text
 {
@@ -58,7 +58,7 @@ Three things to hold onto:
 
 1. **The host is a node in its own graph, as the root.** `OBJECT#Box`'s graph has a node `OBJECT#Box` and `rootId: 'OBJECT#Box'`. The root is an ordinary node --- it can be a relation endpoint --- and it is the same object that appears as an ordinary *member* node in `ROOM#Lab`'s graph. *Whole* and *part* are roles relative to a level, not kinds of thing.
 2. **Membership is the node list.** `OBJECT#Cup` is in the box because `OBJECT#Cup` is a node in `OBJECT#Box`'s graph --- not because of any edge. A reverse index (the **adjacency** rows, `(EphemeraId: OBJECT#Cup, DataCategory: POSITION#OBJECT#Box)`) exists **iff** that node does, and answers "what hosts is X in?" without scanning graphs.
-3. **Edges say *how* two members relate, never *whether* one is there; the kind of a membership rides on the member's node.** Relation kinds split in two. **Hosting kinds** --- `On`, `In`, `Held` (placement) and `PartOf`, `SectionOf` (composition) --- describe a member's relation to the host it lives in (the subordinate is in *its host's* graph). They are stored as `hostingKind` on the member's node entry in that host's graph, one per membership and required on every non-root member, never as an edge. **Peer kinds** --- `Custom` (with a free-text `relationLabel`) and the topology kind `ConnectedTo` --- are edges that relate two members of one graph and host nothing. Read as English about the subject: the spring's node in the contraption's graph says `PartOf`, the cup's node in the box's graph says `In`.
+3. **Edges say *how* two members relate, never *whether* one is there; the kind of a membership rides on the member's node.** Relation kinds split in two. **Hosting kinds** --- `On`, `In`, `Held` (placement), `PartOf`, `SectionOf` (composition) and `Associated` (association, the crossing between a physical component and a Concept) --- describe a member's relation to the host it lives in (the subordinate is in *its host's* graph). They are stored as `hostingKind` on the member's node entry in that host's graph, one per membership and required on every non-root member, never as an edge. **Peer kinds** --- `Custom` (with a free-text `relationLabel`) and the topology kind `ConnectedTo` --- are edges that relate two members of one graph and host nothing. Read as English about the subject: the spring's node in the contraption's graph says `Associated`, the cup's node in the box's graph says `In`.
 
 So the example's Lab and Box graphs are:
 
@@ -66,7 +66,7 @@ So the example's Lab and Box graphs are:
 ROOM#Lab.ludicGraph                       OBJECT#Box.ludicGraph
   rootId: ROOM#Lab                          rootId: OBJECT#Box
   nodes:  ROOM#Lab, OBJECT#Box,             nodes:  OBJECT#Box, OBJECT#Cup, OBJECT#Spring
-          OBJECT#Contraption, OBJECT#Hook,  edges:  (none needed: Cup and Spring are In by default)
+          CONCEPT#Contraption, OBJECT#Hook, edges:  (none needed: Cup and Spring are In by default)
           OBJECT#Rope                       ports:  (see section 2)
   edges:  OBJECT#Hook -TiedTo-> OBJECT#Rope
 ```
@@ -118,25 +118,29 @@ Where this is normative: [`AGENT.contract.md` --- Port records](AGENT.contract.m
 
 ---
 
-## 3. Multi-hosting: containment is a DAG
+## 3. Multi-hosting: membership is a DAG, physical placement a forest
 
-The spring is **inside the box** and **part of the contraption**. Both are hosting relations, so `OBJECT#Spring` is a node in **two** graphs:
+The spring is **inside the box** and **associated with the contraption**. Both are hosting relations, so `OBJECT#Spring` is a node in **two** graphs:
 
 ```text
-OBJECT#Box.ludicGraph                    OBJECT#Contraption.ludicGraph
-  nodes: …, OBJECT#Spring                  nodes: OBJECT#Contraption, OBJECT#Spring, …
-  (Spring node: hostingKind In)            (Spring node: hostingKind PartOf)
+OBJECT#Box.ludicGraph                    CONCEPT#Contraption.ludicGraph
+  nodes: …, OBJECT#Spring                  nodes: CONCEPT#Contraption, OBJECT#Spring, …
+  (Spring node: hostingKind In)            (Spring node: hostingKind Associated)
 ```
 
-Nothing is severed or duplicated here: *the spring is in the box* and *the spring is part of the contraption* are two independently complete facts, each stored where its host is. `getMembershipContainers(OBJECT#Spring)` returns both hosts. The spring's own graph (its interior, if it has parts) is one shard regardless of how many hosts hold it.
+Nothing is severed or duplicated here: *the spring is in the box* and *the spring is associated with the contraption* are two independently complete facts, each stored where its host is. `getMembershipContainers(OBJECT#Spring)` returns both hosts. The spring's own graph (its interior, if it has parts) is one shard regardless of how many hosts hold it.
+
+**The two sides' kinds fix the hosting kind.** Between two physical components it is a physical kind (`On`, `In`, `Held`, `PartOf`, `SectionOf`); between a physical component and a Concept it is `Associated`, whichever side hosts; between two Concepts it is `PartOf` or `SectionOf`. A Concept is conceptual by kind --- a design, a collection, a body of information --- so it is never placed and never carried: it is in the Lab because the Lab hosts it by association, and nothing a player does moves it.
 
 Consequences worth carrying:
 
 - **Traversal is a DAG walk, not tree recursion.** A reader following "what is in the Lab" reaches the spring twice (via the box, via the contraption) and must dedupe, not error.
+- **Physical placement is a forest.** Drop every Concept node and each binding's parents lie on one host (the physical-forest invariant; a join's several parents are bindings of one host). A thing that seems to sit in two physical hosts is placed in one *through* the other --- had the author made the contraption an Object, it would sit in the box with the spring under its binding there --- or one of the two is a Concept, as here. Which modelling fits is the author's call on what the fiction says. Readers rely on the invariant; no write checks it.
 - **Moving a thing is a membership change, not a subtree copy.** Taking the spring out of the box removes its node from the box's graph and leaves the contraption's untouched --- unless a rule says the relation must dissolve, which is a legality question for the move, not a structural one.
-- **`In` and `PartOf` are non-exclusive across hosts** and typed on the membership (each host's node entry), not on the component. A member holds one kind per host, so the spring's two kinds sit in two graphs. The spring is not a different kind of object for being a part; the *same* object is a whole of its own interior and a part of two containers.
-- **Abstractions are minted, not found.** The contraption exists as a component because someone (the modeller, a recognition path) judged the grouping useful and wrote it. Nothing compels a grouping.
+- **Hosting kinds are non-exclusive across hosts** and typed on the membership (each host's node entry), not on the component. A member holds one kind per host, so the spring's two kinds sit in two graphs. The spring is not a different kind of object for being a member; the *same* object is a whole of its own interior and a member of two hosts. The Concept kind marks conceptual against physical, never whole against part.
+- **Abstractions are minted, not found.** The contraption exists as a component because someone (the modeller, a recognition path) judged the grouping useful and wrote it. Nothing compels a grouping. *Abstraction* is a role: a physical whole is an abstraction over its `PartOf` parts and stays an Object; a Concept is an abstraction over whatever it is associated with, and is the kind for groupings that are conceptual by nature.
 
+Where this is normative: [`AGENT.contract.md` --- Relation kinds](AGENT.contract.md#relation-kinds) (hosting kind rules, the pairing rule) and [Component Updated](AGENT.contract.md#component-updated-containment-population-cache-time) (the invariant, Concept ingest).
 Mental model: [`AGENT.concepts.md` --- Abstraction Fractal](AGENT.concepts.md#abstraction-fractal) (why "DAG, not tree" is permanent) and [Minted, not found](AGENT.concepts.md#minted-not-found).
 
 ---
@@ -244,13 +248,15 @@ This codebase's worked precedent for the rule is presence itself, proven here be
 
 | Term | One line | Authority |
 | --- | --- | --- |
-| **Component** | A room, character, object, feature or area --- anything with an `EphemeraId` that can be a graph node | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
-| **Host** | A component that stores a `ludicGraph`; all five kinds do | [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception) |
+| **Component** | A room, character, object, feature, area or concept --- anything with an `EphemeraId` that can be a graph node | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts) |
+| **Host** | A component that stores a `ludicGraph`; all six kinds do | [Host storage](AGENT.contract.md#host-storage-one-shared-serde-one-documented-exception) |
 | **`ludicGraph`** | One host's shard: `{ rootId, nodes, edges, ports }` | [`ludicGraph/AGENT.md`](ludicGraph/AGENT.md) |
 | **Root** | The host's own node in its own graph; recorded, never derived | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Whole / part** | Roles, not kinds: a thing is a whole of its interior and a part of its containers, at once | same |
 | **Membership** | X is in H iff X is a node in H's graph; mirrored by an adjacency row | [Graph apply](AGENT.contract.md#graph-apply-end-state) |
-| **Hosting kind / peer kind** | `On`/`In`/`Held`/`PartOf`/`SectionOf` are a field of the member's node in its host's graph; `Custom`/`ConnectedTo` are edges relating two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
+| **Concept** | A component that is conceptual by kind (`CONCEPT#`); joins physical components only by `Associated`, so it is never placed or carried | [Concept](AGENT.concepts.md#concept) |
+| **Physical forest** | Dropping Concepts, each binding's parents lie on one host; relied on, not enforced | [Concept](AGENT.concepts.md#concept) |
+| **Hosting kind / peer kind** | `On`/`In`/`Held`/`PartOf`/`SectionOf`/`Associated` are a field of the member's node in its host's graph; `Custom`/`ConnectedTo` are edges relating two members | [Relation kind enum](AGENT.contract.md#relation-kinds) |
 | **Terminal** | An edge endpoint, one of four kinds: component, own binding (both bare ids), crossing port address, binding address (both `{ owner, port }`) | [`ephemeraMeta.ts`](../../../../packages/mtw-interfaces/ts/ephemeraMeta.ts), [terminal rule](AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path) |
 | **Port** | A single-use boundary slot a host publishes; either a crossing port or a presence binding | [Wholes, parts, and ports](AGENT.concepts.md#wholes-parts-and-ports) |
 | **Crossing port** | The record in `ports` where a relation passes through the boundary; interior-side, two scopes of field | [Port records](AGENT.contract.md#port-records-field-scope-and-the-conflict-rule) |

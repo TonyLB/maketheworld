@@ -1,4 +1,4 @@
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { isEphemeraLudicGraphData, isEphemeraLudicRelationalEdgeData } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardLudicNavigationEdgeData } from '@tonylb/mtw-wml/ts/standardize/keys/edges/dataTypes/ludicEdge'
@@ -10,9 +10,11 @@ import {
     RelationalEdgeStillReferencedError,
     areaNode,
     characterNode,
+    conceptNode,
     featureNode,
     fromAreaMeta,
     fromCharacterMeta,
+    fromConceptMeta,
     fromFeatureMeta,
     fromObjectMeta,
     fromRoomMeta,
@@ -37,6 +39,8 @@ const OBJECT_C = 'OBJECT#Chair' as EphemeraObjectId
 const OBJECT_HOST_ID = 'OBJECT#Tray' as EphemeraObjectId
 const FEATURE_HOST_ID = 'FEATURE#Sign' as EphemeraFeatureId
 const AREA_HOST_ID = 'AREA#Overworld' as EphemeraAreaId
+const CONCEPT_HOST_ID = 'CONCEPT#HabitatControl' as EphemeraConceptId
+const CONCEPT_PART_ID = 'CONCEPT#DesignLibrary' as EphemeraConceptId
 
 describe('EphemeraLudicGraph', () => {
     describe('node builders', () => {
@@ -185,7 +189,7 @@ describe('EphemeraLudicGraph', () => {
         })
 
         describe('addNode/removeNode (kind dispatch)', () => {
-            it('addNode dispatches to addObject/addCharacter/addRoom/addFeature by kind', () => {
+            it('addNode adds a member of each kind', () => {
                 const graph = EphemeraLudicGraph.empty(HOST_ID)
                 expect(graph.addNode(OBJECT_A, 'In').objectIds).toEqual(new Set([OBJECT_A]))
                 expect(graph.addNode(CHARACTER_A, 'In').characterIds).toEqual(new Set([CHARACTER_A]))
@@ -193,7 +197,7 @@ describe('EphemeraLudicGraph', () => {
                 expect(graph.addNode(CHILD_FEATURE_ID, 'In').featureIds).toEqual(new Set([CHILD_FEATURE_ID]))
             })
 
-            it('removeNode dispatches to removeObject/removeCharacter/removeRoom/removeFeature by kind', () => {
+            it('removeNode removes a member of each kind', () => {
                 const graph = EphemeraLudicGraph.fromFieldPayload(HOST_ID, {
                     rootId: HOST_ID, ports: [],
                     nodes: [roomNode(HOST_ID), objectNode(OBJECT_A), characterNode(CHARACTER_A), featureNode(CHILD_FEATURE_ID)],
@@ -202,6 +206,13 @@ describe('EphemeraLudicGraph', () => {
                 expect(graph.removeNode(OBJECT_A).objectIds.has(OBJECT_A)).toBe(false)
                 expect(graph.removeNode(CHARACTER_A).characterIds.has(CHARACTER_A)).toBe(false)
                 expect(graph.removeNode(CHILD_FEATURE_ID).featureIds.has(CHILD_FEATURE_ID)).toBe(false)
+            })
+
+            it('addNode/removeNode add and remove a Concept member', () => {
+                const graph = EphemeraLudicGraph.empty(HOST_ID).addNode(CONCEPT_HOST_ID, 'Associated')
+                expect(graph.hostingKindOf(CONCEPT_HOST_ID)).toBe('Associated')
+                expect(graph.toStored().nodes).toContainEqual({ ...conceptNode(CONCEPT_HOST_ID), hostingKind: 'Associated' })
+                expect(graph.removeNode(CONCEPT_HOST_ID).toStored().nodes).toEqual([roomNode(HOST_ID)])
             })
         })
     })
@@ -231,6 +242,22 @@ describe('EphemeraLudicGraph', () => {
             expect(() => EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'SectionOf')).toThrow()
             expect(() => EphemeraLudicGraph.empty(HOST_ID).addRoom(HOST_ID, 'In')).toThrow()
             expect(EphemeraLudicGraph.empty(CHARACTER_A).addObject(OBJECT_A, 'Held').hostingKindOf(OBJECT_A)).toBe('Held')
+        })
+
+        it('applies the pairing rule: Associated exactly across physical and Concept, whichever side hosts', () => {
+            expect(EphemeraLudicGraph.empty(HOST_ID).addNode(CONCEPT_HOST_ID, 'Associated').hostingKindOf(CONCEPT_HOST_ID)).toBe('Associated')
+            expect(EphemeraLudicGraph.empty(CONCEPT_HOST_ID).addObject(OBJECT_A, 'Associated').hostingKindOf(OBJECT_A)).toBe('Associated')
+            expect(EphemeraLudicGraph.empty(CHARACTER_A).addNode(CONCEPT_HOST_ID, 'Associated').hostingKindOf(CONCEPT_HOST_ID)).toBe('Associated')
+            expect(EphemeraLudicGraph.empty(CONCEPT_HOST_ID).addNode(CONCEPT_PART_ID, 'PartOf').hostingKindOf(CONCEPT_PART_ID)).toBe('PartOf')
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addNode(CONCEPT_HOST_ID, 'In')).toThrow(/admissible: Associated/)
+            expect(() => EphemeraLudicGraph.empty(CHARACTER_A).addNode(CONCEPT_HOST_ID, 'Held')).toThrow(/admissible: Associated/)
+            expect(() => EphemeraLudicGraph.empty(HOST_ID).addObject(OBJECT_A, 'Associated')).toThrow()
+            expect(() => EphemeraLudicGraph.empty(CONCEPT_HOST_ID).addNode(CONCEPT_PART_ID, 'Associated')).toThrow(/admissible: PartOf, SectionOf/)
+        })
+
+        it('setHostingKind applies the pairing rule to the member it changes', () => {
+            const graph = EphemeraLudicGraph.empty(HOST_ID).addNode(CONCEPT_HOST_ID, 'Associated')
+            expect(() => graph.setHostingKind(CONCEPT_HOST_ID, 'On')).toThrow(/admissible: Associated/)
         })
 
         it('re-adding is a no-op with the same kind, and throws on a different kind or none', () => {
@@ -323,7 +350,7 @@ describe('EphemeraLudicGraph', () => {
                 payload: {},
             }
             const graph = EphemeraLudicGraph.fromPlayEnvelope(HOST_ID, {
-                nodes: [objectNode(OBJECT_A), objectNode(OBJECT_B)],
+                nodes: [{ tag: 'Object', universalKey: OBJECT_A }, { tag: 'Object', universalKey: OBJECT_B }],
                 edges: [exitEdge],
             })
             expect(() => graph.removeObject(OBJECT_A)).not.toThrow()
@@ -554,7 +581,25 @@ describe('EphemeraLudicGraph', () => {
             expect(hostDataCategory(OBJECT_HOST_ID)).toBe('Meta::Object')
             expect(hostDataCategory(FEATURE_HOST_ID)).toBe('Meta::Feature')
             expect(hostDataCategory(AREA_HOST_ID)).toBe('Meta::Area')
+            expect(hostDataCategory(CONCEPT_HOST_ID)).toBe('Meta::Concept')
             expect(hostDataCategory(CHARACTER_A)).toBe('Meta::Character')
+        })
+
+        it('fromConceptMeta uses ludicGraph or a default graph carrying only its own root node, rooted at hostId', () => {
+            expect(fromConceptMeta({}, CONCEPT_HOST_ID).toStored()).toEqual({ rootId: CONCEPT_HOST_ID, ports: [], nodes: [conceptNode(CONCEPT_HOST_ID)], edges: [] })
+            const payload = { rootId: CONCEPT_HOST_ID, ports: [], nodes: [conceptNode(CONCEPT_HOST_ID), { ...objectNode(OBJECT_A), hostingKind: 'Associated' as const }], edges: [] as [] }
+            expect(fromConceptMeta({ ludicGraph: payload }, CONCEPT_HOST_ID).toStored()).toEqual(payload)
+        })
+
+        it('nodeFromId builds a Concept node', () => {
+            expect(nodeFromId(CONCEPT_HOST_ID)).toEqual({ tag: 'Concept', universalKey: CONCEPT_HOST_ID })
+        })
+
+        it('graphFromMeta dispatches a Concept host through fromConceptMeta', () => {
+            const payload = { rootId: CONCEPT_HOST_ID, ports: [], nodes: [conceptNode(CONCEPT_HOST_ID), { ...conceptNode(CONCEPT_PART_ID), hostingKind: 'PartOf' as const }], edges: [] as [] }
+            const graph = graphFromMeta({ ludicGraph: payload }, CONCEPT_HOST_ID)
+            expect(graph.hostId).toBe(CONCEPT_HOST_ID)
+            expect(graph.toStored()).toEqual(payload)
         })
 
         it('graphFromMeta dispatches an Object host through fromObjectMeta', () => {

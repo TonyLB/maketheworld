@@ -1,4 +1,4 @@
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { unpointedBindingOf } from '../../ludicGraph/presenceParent'
@@ -356,5 +356,53 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
 
             expect(containmentPopulationSteps(roomB, OBJECT_ID, parentGraph, childGraph)).toEqual([])
         })
+    })
+})
+
+describe('containmentPopulationSteps with a Concept on either side (the pairing rule at ingest)', () => {
+    const CONCEPT_ID = 'CONCEPT#MoonbaseControlSystem' as EphemeraConceptId
+    const LIBRARY_ID = 'CONCEPT#DesignLibrary' as EphemeraConceptId
+    const TERMINAL_ID = 'OBJECT#Terminal1' as EphemeraObjectId
+    const base = presenceBindingNode('Base')
+    const roomRoot = presenceBindingNode('Base')
+
+    it('binds a Concept nested under a Room as a further binding, keeping its hostless Base, and stores the member as Associated', () => {
+        const parentGraph = testLudicGraph(ROOM_ID, { nodes: [roomRoot] })
+        const childGraph = testLudicGraph(CONCEPT_ID, { nodes: [base] })
+
+        const steps = containmentPopulationSteps(ROOM_ID, CONCEPT_ID, parentGraph, childGraph)
+
+        expect(steps).toEqual([
+            { kind: 'addPresenceBinding', hostId: CONCEPT_ID, fromHostPresences: [{ host: ROOM_ID, presence: roomRoot.universalKey }], presenceUuid: expect.any(String) },
+            { kind: 'setHostingKind', hostId: ROOM_ID, memberId: CONCEPT_ID, hostingKind: 'Associated' },
+        ])
+    })
+
+    it('places a never-placed Object listed under a Concept as Associated, under the Concept\'s Base', () => {
+        const parentGraph = testLudicGraph(CONCEPT_ID, { nodes: [base] })
+        const childGraph = testLudicGraph(TERMINAL_ID, { nodes: [] })
+
+        const steps = containmentPopulationSteps(CONCEPT_ID, TERMINAL_ID, parentGraph, childGraph)
+
+        expect(steps).toEqual([
+            { kind: 'addPresenceBinding', hostId: TERMINAL_ID, fromHostPresences: [{ host: CONCEPT_ID, presence: base.universalKey }], presenceUuid: 'Base' },
+            { kind: 'setHostingKind', hostId: CONCEPT_ID, memberId: TERMINAL_ID, hostingKind: 'Associated' },
+        ])
+    })
+
+    it('skips an Object that is already live in a room, as under any other parent (authored content is not handled until later)', () => {
+        const parentGraph = testLudicGraph(CONCEPT_ID, { nodes: [base] })
+        const childGraph = testLudicGraph(TERMINAL_ID, { nodes: [presenceBindingNode('binding-1', ROOM_ID, { members: [] })] })
+
+        expect(containmentPopulationSteps(CONCEPT_ID, TERMINAL_ID, parentGraph, childGraph)).toEqual([])
+    })
+
+    it('nests a Concept in a Concept PartOf, not Associated', () => {
+        const parentGraph = testLudicGraph(CONCEPT_ID, { nodes: [base] })
+        const childGraph = testLudicGraph(LIBRARY_ID, { nodes: [presenceBindingNode('Base')] })
+
+        const steps = containmentPopulationSteps(CONCEPT_ID, LIBRARY_ID, parentGraph, childGraph)
+
+        expect(steps[steps.length - 1]).toEqual({ kind: 'setHostingKind', hostId: CONCEPT_ID, memberId: LIBRARY_ID, hostingKind: 'PartOf' })
     })
 })

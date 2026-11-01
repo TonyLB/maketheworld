@@ -31,7 +31,7 @@ jest.mock('../../../internalUtils/dateUtil', () => ({
 }))
 
 import { ephemeraDB } from '@tonylb/mtw-utilities/ts/dynamoDB'
-import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraCharacterId, EphemeraConceptId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components/aggregate'
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
@@ -68,6 +68,7 @@ const CUP = 'OBJECT#Cup' as EphemeraObjectId
 const SAUCER = 'OBJECT#Saucer' as EphemeraObjectId
 const BOX = 'OBJECT#Box' as EphemeraObjectId
 const LAMP = 'OBJECT#Lamp' as EphemeraObjectId
+const SYSTEM = 'CONCEPT#ControlSystem' as EphemeraConceptId
 const MUG = 'OBJECT#Mug' as EphemeraObjectId
 const ALPHA = 'CHARACTER#Alpha' as EphemeraCharacterId
 
@@ -134,6 +135,7 @@ const freshWorld = (): World => {
         [BOX, testLudicGraph(BOX, { nodes: [{ tag: 'Object', universalKey: BOX }, hostBinding('Base', R1)] })],
         [ALPHA, testLudicGraph(ALPHA as any, { nodes: [hostBinding('Base', R1)] })],
         [LAMP, testLudicGraph(LAMP, { nodes: [{ tag: 'Object', universalKey: LAMP }, presenceBindingNode('lamp1')] })],
+        [SYSTEM, testLudicGraph(SYSTEM, { nodes: [{ tag: 'Concept', universalKey: SYSTEM }, presenceBindingNode('Base')] })],
     ])
     return {
         graphs,
@@ -143,7 +145,7 @@ const freshWorld = (): World => {
             [R1, { [ALPHA]: ['PRESENCE#Base'] }],
             [R2, {}],
         ]),
-        names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
+        names: { [TABLE]: 'Table', [CUP]: 'Cup', [SAUCER]: 'Saucer', [BOX]: 'Box', [LAMP]: 'Lamp', [SYSTEM]: 'Control System', [MUG]: 'Mug', [R1]: 'Cafe', [R2]: 'Terrace', [ALPHA]: 'Alpha' },
         assetRooms: { 'ASSET#test-asset': [R1, R2] },
     }
 }
@@ -533,6 +535,12 @@ const cases: Case[] = [
         rooms: [R1],
         changesCache: true,
         act: () => populateContainmentAtCache(R1, [LAMP], { messageBus: messageBus as any, streamEvent: jest.fn().mockResolvedValue(undefined) }),
+    },
+    {
+        name: 'a containment population binds a Concept nested under a room',
+        rooms: [R1],
+        changesCache: true,
+        act: () => populateContainmentAtCache(R1, [SYSTEM], { messageBus: messageBus as any, streamEvent: jest.fn().mockResolvedValue(undefined) }),
     },
     {
         name: 'a structure heal rewrites a host\'s graph',

@@ -75,7 +75,7 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
 
 // The five host kinds `EphemeraMembershipHostId` admits --- every `Meta::*` row that can carry a
 // `ludicGraph`, and so both every graph that can hold a port and every graph that can refer to one.
-const HOST_DATA_CATEGORIES = ['Meta::Room', 'Meta::Character', 'Meta::Object', 'Meta::Feature', 'Meta::Area'] as const
+const HOST_DATA_CATEGORIES = ['Meta::Room', 'Meta::Character', 'Meta::Object', 'Meta::Feature', 'Meta::Area', 'Meta::Concept'] as const
 
 const defaultListCandidateRows = async (): Promise<HostMetaRow[]> => {
     const rowsByCategory = await Promise.all(

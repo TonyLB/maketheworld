@@ -73,7 +73,7 @@ const queryAllEphemeraRowsByDataCategory = async <T extends DBHandlerItem<'Ephem
 
 // Every host kind can be a host (its graph lists members) and a member (its graph holds the
 // pointer), and the comparison joins the two, so every host row is read.
-const HOST_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area', 'Meta::Object', 'Meta::Character'] as const
+const HOST_DATA_CATEGORIES = ['Meta::Room', 'Meta::Feature', 'Meta::Area', 'Meta::Concept', 'Meta::Object', 'Meta::Character'] as const
 
 const defaultListCandidateRows = async (): Promise<HostMetaRow[]> => {
     const rowsByCategory = await Promise.all(

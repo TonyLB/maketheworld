@@ -26,7 +26,9 @@ import {
     HOSTING_KINDS,
     hostingFamily,
     isEphemeraHostingKind,
-    isHostingKindLegalOnHost,
+    admissibleHostingKinds,
+    isEphemeraMetaConcept,
+    isEphemeraPresenceCover,
 } from './ephemeraMeta'
 import { isEphemeraPresenceNodeId } from './baseClasses'
 import { isEphemeraMembershipHostId } from './ephemeraPositionAdjacency'
@@ -242,7 +244,7 @@ describe('isEphemeraCrossingPortId', () => {
 const STUB_PORT = 'STUB-["OBJECT#C","OBJECT#D","On",""]'
 
 describe('isEphemeraLudicNodeTerminal', () => {
-    it.each(['ROOM#A', 'CHARACTER#Alpha', 'OBJECT#helmet', 'FEATURE#Wall', 'AREA#Test'])('accepts the component %s', (id) => {
+    it.each(['ROOM#A', 'CHARACTER#Alpha', 'OBJECT#helmet', 'FEATURE#Wall', 'AREA#Test', 'CONCEPT#HabitatControl'])('accepts the component %s', (id) => {
         expect(isEphemeraLudicNodeTerminal(id)).toBe(true)
     })
 
@@ -1434,6 +1436,30 @@ describe('isEphemeraMetaCharacter ludicGraph', () => {
     })
 })
 
+describe('isEphemeraMetaConcept', () => {
+    it('accepts a row with no ludicGraph', () => {
+        expect(isEphemeraMetaConcept({ EphemeraId: 'CONCEPT#HabitatControl', DataCategory: 'Meta::Concept' })).toBe(true)
+    })
+
+    it('accepts a row with a Concept-rooted ludicGraph', () => {
+        expect(isEphemeraMetaConcept({
+            EphemeraId: 'CONCEPT#HabitatControl',
+            DataCategory: 'Meta::Concept',
+            ludicGraph: {
+                rootId: 'CONCEPT#HabitatControl',
+                ports: [],
+                nodes: [{ tag: 'Concept', universalKey: 'CONCEPT#HabitatControl' }, { tag: 'Object', universalKey: 'OBJECT#Terminal1', hostingKind: 'Associated' }],
+            },
+        })).toBe(true)
+    })
+
+    it('rejects a mistagged id, a wrong DataCategory and a malformed ludicGraph', () => {
+        expect(isEphemeraMetaConcept({ EphemeraId: 'OBJECT#HabitatControl', DataCategory: 'Meta::Concept' })).toBe(false)
+        expect(isEphemeraMetaConcept({ EphemeraId: 'CONCEPT#HabitatControl', DataCategory: 'Meta::Object' })).toBe(false)
+        expect(isEphemeraMetaConcept({ EphemeraId: 'CONCEPT#HabitatControl', DataCategory: 'Meta::Concept', ludicGraph: { nodes: [] } })).toBe(false)
+    })
+})
+
 describe('hosting kind on the member node', () => {
     const hosts = [
         { tag: 'Character', id: 'CHARACTER#Alpha' },
@@ -1441,6 +1467,15 @@ describe('hosting kind on the member node', () => {
         { tag: 'Room', id: 'ROOM#Kitchen' },
         { tag: 'Feature', id: 'FEATURE#sign' },
         { tag: 'Area', id: 'AREA#Overworld' },
+        { tag: 'Concept', id: 'CONCEPT#HabitatControl' },
+    ] as const
+    const members = [
+        { tag: 'Character', universalKey: 'CHARACTER#Beta' },
+        { tag: 'Object', universalKey: 'OBJECT#cup' },
+        { tag: 'Room', universalKey: 'ROOM#Pantry' },
+        { tag: 'Feature', universalKey: 'FEATURE#niche' },
+        { tag: 'Area', universalKey: 'AREA#Underworld' },
+        { tag: 'Concept', universalKey: 'CONCEPT#DesignLibrary' },
     ] as const
     const payload = (host: typeof hosts[number], member: Record<string, unknown>) => ({
         rootId: host.id,
@@ -1448,8 +1483,8 @@ describe('hosting kind on the member node', () => {
         nodes: [{ tag: host.tag, universalKey: host.id }, member],
     })
 
-    it('isEphemeraHostingKind accepts exactly the five kinds', () => {
-        expect([...HOSTING_KINDS]).toEqual(['On', 'In', 'Held', 'PartOf', 'SectionOf'])
+    it('isEphemeraHostingKind accepts exactly the six kinds', () => {
+        expect([...HOSTING_KINDS]).toEqual(['On', 'In', 'Held', 'PartOf', 'SectionOf', 'Associated'])
         HOSTING_KINDS.forEach((kind) => expect(isEphemeraHostingKind(kind)).toBe(true))
         expect(isEphemeraHostingKind('Bogus')).toBe(false)
         expect(isEphemeraHostingKind('Custom')).toBe(false)
@@ -1457,9 +1492,10 @@ describe('hosting kind on the member node', () => {
     })
 
     it('hostingFamily is total over HOSTING_KINDS', () => {
-        HOSTING_KINDS.forEach((kind) => expect(['placement', 'composition']).toContain(hostingFamily(kind)))
+        HOSTING_KINDS.forEach((kind) => expect(['placement', 'composition', 'association']).toContain(hostingFamily(kind)))
         expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'placement')).toEqual(['On', 'In', 'Held'])
         expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'composition')).toEqual(['PartOf', 'SectionOf'])
+        expect(HOSTING_KINDS.filter((kind) => hostingFamily(kind) === 'association')).toEqual(['Associated'])
     })
 
     it('the component guard accepts each kind and rejects an unknown one', () => {
@@ -1471,14 +1507,77 @@ describe('hosting kind on the member node', () => {
         expect(isEphemeraLudicGraphStructureNode({ tag: 'Presence', universalKey: 'PRESENCE#abc123', fromHostPresences: [], cover: { members: [] }, hostingKind: 'On' })).toBe(false)
     })
 
-    it('legality table: Held only on characters; In/PartOf/SectionOf never on characters; On anywhere', () => {
+    it('pairing table over every host tag and member tag', () => {
+        const expectedKinds = (hostTag: string, memberTag: string): string[] => {
+            if (hostTag === 'Concept' && memberTag === 'Concept') {
+                return ['PartOf', 'SectionOf']
+            }
+            if (hostTag === 'Concept' || memberTag === 'Concept') {
+                return ['Associated']
+            }
+            return hostTag === 'Character' ? ['On', 'Held'] : ['On', 'In', 'PartOf', 'SectionOf']
+        }
         hosts.forEach((host) => {
-            HOSTING_KINDS.forEach((kind) => {
-                const expected = host.tag === 'Character' ? (kind === 'On' || kind === 'Held') : kind !== 'Held'
-                expect(isHostingKindLegalOnHost(kind, host.tag)).toBe(expected)
-                expect(isEphemeraLudicGraphFieldPayload(payload(host, { tag: 'Object', universalKey: 'OBJECT#cup', hostingKind: kind }))).toBe(expected)
+            members.forEach((member) => {
+                expect([...admissibleHostingKinds(host.tag, member.tag)]).toEqual(expectedKinds(host.tag, member.tag))
+                HOSTING_KINDS.forEach((kind) => {
+                    expect(isEphemeraLudicGraphFieldPayload(payload(host, { ...member, hostingKind: kind }))).toBe(expectedKinds(host.tag, member.tag).includes(kind))
+                })
             })
         })
+    })
+
+    it('a Concept paired with a physical component takes Associated whichever side hosts', () => {
+        hosts.filter(({ tag }) => tag !== 'Concept').forEach((host) => {
+            expect(admissibleHostingKinds(host.tag, 'Concept')).toEqual(['Associated'])
+            expect(admissibleHostingKinds('Concept', host.tag)).toEqual(['Associated'])
+        })
+    })
+
+    it('Associated is never admissible between two physical components', () => {
+        hosts.filter(({ tag }) => tag !== 'Concept').forEach((host) => {
+            members.filter(({ tag }) => tag !== 'Concept').forEach((member) => {
+                expect(admissibleHostingKinds(host.tag, member.tag)).not.toContain('Associated')
+            })
+        })
+    })
+
+    it('a Concept is never placed: In, On and Held are refused on every host', () => {
+        hosts.forEach((host) => {
+            (['In', 'On', 'Held'] as const).forEach((kind) => {
+                expect(isEphemeraLudicGraphFieldPayload(payload(host, { tag: 'Concept', universalKey: 'CONCEPT#DesignLibrary', hostingKind: kind }))).toBe(false)
+            })
+        })
+    })
+
+    it('stored shapes of the moonbase case', () => {
+        // The control system hosts a terminal by association.
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'CONCEPT#HabitatControl',
+            ports: [],
+            nodes: [{ tag: 'Concept', universalKey: 'CONCEPT#HabitatControl' }, { tag: 'Object', universalKey: 'OBJECT#Terminal1', hostingKind: 'Associated' }],
+        })).toBe(true)
+        // The room holds the system by association; the system holds its design library as a part.
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#DockingRing',
+            ports: [],
+            nodes: [{ tag: 'Room', universalKey: 'ROOM#DockingRing' }, { tag: 'Concept', universalKey: 'CONCEPT#HabitatControl', hostingKind: 'Associated' }],
+        })).toBe(true)
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'CONCEPT#HabitatControl',
+            ports: [],
+            nodes: [{ tag: 'Concept', universalKey: 'CONCEPT#HabitatControl' }, { tag: 'Concept', universalKey: 'CONCEPT#DesignLibrary', hostingKind: 'PartOf' }],
+        })).toBe(true)
+        // A terminal in a room is placed, not associated.
+        expect(isEphemeraLudicGraphFieldPayload({
+            rootId: 'ROOM#DockingRing',
+            ports: [],
+            nodes: [{ tag: 'Room', universalKey: 'ROOM#DockingRing' }, { tag: 'Object', universalKey: 'OBJECT#Terminal1', hostingKind: 'Associated' }],
+        })).toBe(false)
+    })
+
+    it('a cover may name a Concept member', () => {
+        expect(isEphemeraPresenceCover({ members: [{ host: 'CONCEPT#HabitatControl', presence: 'PRESENCE#abc123' }] })).toBe(true)
     })
 
     it('requires a hostingKind on every non-root member (no kind is no longer read as In)', () => {

@@ -1,4 +1,3 @@
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraLudicGraphFieldPayload } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { StandardLudicGraphData } from '@tonylb/mtw-wml/ts/standardize/components/dataTypes/ludicGraph'
@@ -16,7 +15,7 @@ import type { StandardLudicGraphData } from '@tonylb/mtw-wml/ts/standardize/comp
 export type PlayLudicGraph = StandardLudicGraphData
 
 export type PositionsCacheSetParams = {
-    componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId;
+    componentId: EphemeraMembershipHostId;
     graph: EphemeraLudicGraphFieldPayload;
 }
 

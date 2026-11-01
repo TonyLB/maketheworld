@@ -22,6 +22,7 @@ import type { ObjectManipulationPositionsReadDeps } from './membershipObservatio
 import type { ParseSkeleton } from './parse/parseToken'
 import type { TransferMembershipChange } from './plan/planStep'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
+import { conceptRefusalFor } from './conceptRefusal'
 import { navigationIntentErrorMessages } from '../../discriminateIntent/exitResolution'
 import { selectPlanTuple } from './selectPlanCandidate'
 import type { ConsultAlternative, SpanCandidatePool } from './spanResolution'
@@ -197,7 +198,13 @@ export async function compileAttemptsFromSkeleton(
 ): Promise<CompileAttemptsFromSkeletonResult> {
     const refusals: CompileAttemptsFromSkeletonResult[] = []
     const result = await compileReadings(input, intentConfidence, deps, refusals)
-    return result.type === 'Abstain' ? refusals.find((refused) => refused.type === 'Error') ?? result : result
+    if (result.type !== 'Abstain') {
+        return result
+    }
+    // A span that names a Concept and nothing physical is refused by kind (actions contract), not handed up as not understood.
+    return refusals.find((refused) => refused.type === 'Error')
+        ?? conceptRefusalFor(input.fills.map(({ skeleton }) => skeleton), input.objectCatalog ?? [], input.actorCache?.conceptNames?.() ?? [])
+        ?? result
 }
 
 /** The producer's work; `refusals` collects each attempt's own refusal as it is refused. */

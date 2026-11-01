@@ -8,11 +8,10 @@ import {
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
 import type { EphemeraPositionsReadDB } from '@tonylb/mtw-gateways/ts/ephemera/positions/fetch'
 import type { MembershipContainersCacheSetParams } from '@tonylb/mtw-gateways/ts/ephemera/positions/types'
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type {
-    EphemeraMembershipHostId,
-    EphemeraPositionAdjacencyContainedId,
+import {
+    isEphemeraMembershipHostId,
+    type EphemeraMembershipHostId,
+    type EphemeraPositionAdjacencyContainedId,
 } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
@@ -20,16 +19,14 @@ import { EphemeraLudicGraph } from '../dataSource/positions/ludicGraph'
 export type { MembershipContainersCacheSetParams }
 
 /**
- * Narrows a membership host id to the subset the play-position cache gateway forwards on.
- * Accepts all five `EphemeraMembershipHostId` kinds --- Room, Character, Object, Feature, Area.
+ * Refuses a graph whose host id is not a membership host (a forged or cast id): the gateway keys
+ * its memo by host id, so a bad one would be cached under a key nothing reads.
  */
-const assertForwardHostId = (
-    hostId: EphemeraMembershipHostId
-): EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId => {
-    if (isEphemeraRoomId(hostId) || isEphemeraCharacterId(hostId) || isEphemeraObjectId(hostId) || isEphemeraFeatureId(hostId) || isEphemeraAreaId(hostId)) {
+const assertForwardHostId = (hostId: EphemeraMembershipHostId): EphemeraMembershipHostId => {
+    if (isEphemeraMembershipHostId(hostId)) {
         return hostId
     }
-    throw new Error(`Positions cache requires forward host ROOM#, CHARACTER#, OBJECT#, FEATURE#, or AREA#; got ${hostId}`)
+    throw new Error(`Positions cache requires a membership host id; got ${hostId}`)
 }
 
 export class EphemeraLudicGraphCacheData {
@@ -55,9 +52,8 @@ export class EphemeraLudicGraphCacheData {
     }
 
     set(graph: EphemeraLudicGraph): void {
-        const componentId = assertForwardHostId(graph.hostId)
         this._gateway.set({
-            componentId,
+            componentId: assertForwardHostId(graph.hostId),
             graph: graph.toStored(),
         })
     }
@@ -72,7 +68,7 @@ export class EphemeraLudicGraphCacheData {
         this._gateway.setMembershipContainers(params)
     }
 
-    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId): void {
+    invalidate(componentId: EphemeraMembershipHostId): void {
         this._gateway.invalidate(componentId)
     }
 

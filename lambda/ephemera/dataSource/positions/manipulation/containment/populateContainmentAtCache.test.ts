@@ -162,3 +162,28 @@ describe('populateContainmentAtCache', () => {
         consoleError.mockRestore()
     })
 })
+
+describe('populateContainmentAtCache for a Concept parent', () => {
+    const messageBus = { publish: jest.fn() } as any
+    const streamEvent = jest.fn().mockResolvedValue(undefined)
+    const SYSTEM = 'CONCEPT#MoonbaseControlSystem' as any
+    const DOCKING = 'ROOM#DockingRing' as EphemeraRoomId
+
+    beforeEach(() => {
+        jest.clearAllMocks()
+        ;(commitStepSequence as jest.Mock).mockResolvedValue({ ok: true, beatAnchorTime: 1_700_000_000_000, steps: [], captures: new Map() })
+    })
+
+    it('aligns in the same commit: a member already seen in a room brings the system into that room', async () => {
+        const systemGraph = testLudicGraph(SYSTEM, { nodes: [presenceBindingNode('Base'), { tag: 'Object', universalKey: 'OBJECT#Terminal1' as any, hostingKind: 'Associated' }] })
+        const terminalGraph = testLudicGraph('OBJECT#Terminal1' as any, { nodes: [presenceBindingNode('in-room', DOCKING)] })
+        ;(internalCache.Positions.getLudicGraph as jest.Mock).mockImplementation(async (hostId: string) =>
+            hostId === SYSTEM ? systemGraph : hostId === 'OBJECT#Terminal1' ? terminalGraph : testLudicGraph(hostId as any, { nodes: [] })
+        )
+
+        await populateContainmentAtCache(SYSTEM, [{ universalKey: 'OBJECT#Terminal1' }], { messageBus, streamEvent })
+
+        const [{ steps }] = (commitStepSequence as jest.Mock).mock.calls[0]
+        expect(steps.filter((step: any) => step.kind === 'addPresenceBinding').map((step: any) => step.hostId)).toEqual([SYSTEM, 'OBJECT#Terminal1'])
+    })
+})

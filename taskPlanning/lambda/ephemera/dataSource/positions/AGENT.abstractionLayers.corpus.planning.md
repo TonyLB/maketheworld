@@ -435,6 +435,10 @@ Under ports there is exactly **one** system graph either way, and the rope is no
 
 **Rows grounded.** PR-21 (the remainder, and intangibility as structure), PR-9 (its tag-scoping route retired).
 
+#### Annotation 2026-11-01: the system and the library are Concepts
+
+C10's conclusion ("no structural predicate separates them, so it must be declared") is now built as a declaration: the `Concept` component kind ([vocabulary](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#concept); hosting-kind and pairing rules in the [positions contract](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#relation-kinds)). The system and the design library are Concepts, because both are conceptual by kind. The terminals, door control and drone stay Objects, each `Associated` with the system. The system has a binding in each room one of its members is in. The library has none, and is covered by the system's hostless Base, which is the remainder reading above with Base in the remainder's place. Apprehension scale stays open.
+
 ### C11. The Rube Goldberg machine
 
 **Origin:** proposed 2026-08-07, **as a direct challenge to an assessment made in this plan hours earlier.** An argument for retaining [H1](AGENT.abstractionLayers.proposals.rejected.planning.md#h1-is-a-conjunction-and-its-clauses-are-tested-separately)'s H1 clause 1a leaned on parts and wholes being different kinds of thing with different hosting rules; the objection was that a scale-invariant system cannot be built on that basis, because **whole and part are consequences of point of view and positioning, not attributes of an item.** No case C1--C10 could settle it: every one of them has exactly two levels, so nothing in the corpus had ever occupied both roles at once. **This case was built to supply the missing level.**
@@ -525,6 +529,10 @@ The machine's reason for existing is a **causal chain that crosses a room bounda
 **Annotations.** Both sides --- **heterogeneous separable** (AB-16, descriptive; the string's own parts are homogeneous extent, so the case carries both tags at different levels, which is itself the point) --- **authored**, so neither AB-14 trigger fires, the same gap [C10](#c10-the-moonbase-computer-system) records --- mechanism, emphatically --- exercises gap 1 (**no composition relation**) at every level of the chain at once, and gap 2 for the machine's purpose.
 
 **Rows grounded.** H1 clause 1a (**falsified**), H1 clause 1b (the joint-unsatisfiability argument), AB-13 (depth where C6 gave breadth), AB-23 (position-relativity, a second challenge), AB-4, AB-6, AB-8, AB-32, AB-2, and **PQ-13** (promoted to base case) and **PQ-5** (first required, not merely permitted).
+
+#### Annotation 2026-11-01: graded physical, so not a Concept
+
+Under the `Concept` kind ([vocabulary](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#concept)), every term of this chain is physical, so all stay Objects under `PartOf`, and the four-level whole/part chain is untouched. The kind marks physical against associative, never whole against part, which this case was used to test. The machine spanning two rooms is several bindings, each with one parent host, so it satisfies the physical-forest invariant ([positions contract](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#component-updated-containment-population-cache-time)). Position-relativity stays a presentation question. The machine's *purpose* could be authored as a separate Concept associated with the pieces.
 
 ### C12. The moonbase power system, and the cut cable
 

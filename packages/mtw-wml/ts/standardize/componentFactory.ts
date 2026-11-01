@@ -11,13 +11,14 @@ import StandardMessage from "./components/message"
 import StandardMoment from "./components/moment"
 import StandardArea from "./components/area"
 import StandardObject from "./components/object"
+import StandardConcept from "./components/concept"
 import StandardRoom from "./components/room"
 import StandardMark, { StandardLens } from "./components/worldState"
 import { isSchemaCharacter, SchemaTag } from "@tonylb/mtw-base/ts/schema"
 import { isSchemaTreeNode } from "../schema"
 import { StandardComponentInputData } from "./baseClasses"
-import { isStandardCharacterData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardAreaData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData, isStandardObjectData } from "./components/dataTypes"
-import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaArea, isSchemaRoom, isSchemaSituation, isSchemaObject } from "@tonylb/mtw-base/ts/schema/components"
+import { isStandardCharacterData, isStandardFeatureData, isStandardGuidanceInputData, isStandardImageData, isStandardKnowledgeData, isStandardMapInputData, isStandardMessageData, isStandardMomentData, isStandardAreaData, isStandardRoomInputData, isStandardMarkData, isStandardLensInputData, isStandardSituationInputData, isStandardObjectData, isStandardConceptData } from "./components/dataTypes"
+import { isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaArea, isSchemaRoom, isSchemaSituation, isSchemaObject, isSchemaConcept } from "@tonylb/mtw-base/ts/schema/components"
 import { isSchemaImage } from "@tonylb/mtw-base/ts/schema/image"
 import { isSchemaMark, isSchemaLens } from "@tonylb/mtw-base/ts/schema/worldState"
 
@@ -71,6 +72,9 @@ export const standardComponentFactory = (
         }
         if (isStandardObjectData(arg)) {
             return { component: new StandardObject(arg), remainder: [] }
+        }
+        if (isStandardConceptData(arg)) {
+            return { component: new StandardConcept(arg), remainder: [] }
         }
         if (isStandardImageData(arg)) {
             return { component: new StandardImage(arg), remainder: [] }
@@ -143,6 +147,11 @@ export const standardComponentFactory = (
     }
     if (treeNodeTypeguard(isSchemaObject)(node)) {
         const instance = new StandardObject(undefined as any)
+        const remainder = instance.fromSchema(node)
+        return { component: instance, remainder }
+    }
+    if (treeNodeTypeguard(isSchemaConcept)(node)) {
+        const instance = new StandardConcept(undefined as any)
         const remainder = instance.fromSchema(node)
         return { component: instance, remainder }
     }

@@ -14,6 +14,7 @@ export {
     getObjectLudicGraphFromDynamo,
     getFeatureLudicGraphFromDynamo,
     getAreaLudicGraphFromDynamo,
+    getConceptLudicGraphFromDynamo,
     isPositionsComponentId,
 } from './fetch'
 

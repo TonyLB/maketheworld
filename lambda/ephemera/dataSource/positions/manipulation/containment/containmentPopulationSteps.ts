@@ -1,11 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraAreaId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraConceptId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraHostingKind, EphemeraPresenceParentPointer } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { BASE_PRESENCE_ID } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { BASE_PRESENCE_ID, admissibleHostingKinds } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { nodeFromId } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelSetHostingKindStep, MutationKernelStep } from '../kernel/kernelStep'
 
@@ -37,6 +38,19 @@ export const rootStep = (
             cover: { members: [] },
         }),
     }
+}
+
+/**
+ * The hosting kind an authored child takes in its parent. Where a Concept is on either side the
+ * pairing rule (`admissibleHostingKinds`) fixes it: `Associated` across physical and Concept,
+ * `PartOf` between Concepts. Otherwise Objects are mobile, so they sit `In` their authored parent;
+ * Rooms and Features nest `PartOf`.
+ */
+const authoredHostingKind = (parentId: EphemeraMembershipHostId, childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId): EphemeraHostingKind => {
+    if (isEphemeraConceptId(parentId) || isEphemeraConceptId(childId)) {
+        return admissibleHostingKinds(nodeFromId(parentId).tag, nodeFromId(childId).tag)[0]
+    }
+    return isEphemeraObjectId(childId) ? 'In' : 'PartOf'
 }
 
 /**
@@ -75,7 +89,7 @@ export const rootStep = (
  */
 export const containmentPopulationSteps = (
     parentId: EphemeraMembershipHostId,
-    childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId,
+    childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId,
     parentGraph: EphemeraLudicGraph,
     childGraph: EphemeraLudicGraph
 ): MutationKernelStep[] => {
@@ -103,8 +117,10 @@ export const containmentPopulationSteps = (
 
     const existing = childGraph.presenceNodes.find((node) => bindingHasParentOn(node, parentId))
     // A first placement re-points a hostless root rather than minting beside it, so the child's own
-    // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead.
-    const unplacedRoot = existing || isEphemeraRoomId(childId) ? undefined : unpointedBindingOf(childGraph)
+    // children keep naming it. A Room's remainder never moves: it gets an Area carve-out instead. A
+    // Concept's Base stays hostless too (it covers members present nowhere, like a design library),
+    // so a Concept takes a further binding under its parent.
+    const unplacedRoot = existing || isEphemeraRoomId(childId) || isEphemeraConceptId(childId) ? undefined : unpointedBindingOf(childGraph)
     if (unplacedRoot) {
         const placeStep: MutationKernelRepairPresenceBindingStep = {
             kind: 'repairPresenceBinding',
@@ -144,8 +160,7 @@ export const containmentPopulationSteps = (
         steps.push(repairStep)
     }
 
-    // Objects are mobile, so they sit `In` their authored parent; Rooms and Features nest `PartOf`.
-    const hostingKind: EphemeraHostingKind = isEphemeraObjectId(childId) ? 'In' : 'PartOf'
+    const hostingKind = authoredHostingKind(parentId, childId)
     if (parentGraph.hostingKindOf(childId) !== hostingKind) {
         const kindStep: MutationKernelSetHostingKindStep = {
             kind: 'setHostingKind',

@@ -1,7 +1,7 @@
 import { SchemaAssetTag, SchemaStoryTag } from "./asset"
 import { isSchemaGrant, SchemaGrantTag } from "./authorization"
 import { isSchemaPronouns, SchemaCharacterLegalContents, SchemaCharacterTag, SchemaPronounsTag } from "./character"
-import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaObject, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaGloss, isSchemaInstructions, isSchemaDefault, isSchemaForward, isSchemaBack, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaObjectTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaGlossTag, SchemaInstructionsTag, SchemaDefaultTag, SchemaForwardTag, SchemaBackTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "./components"
+import { isSchemaExit, isSchemaFeature, isSchemaGuidance, isSchemaKnowledge, isSchemaMap, isSchemaMessage, isSchemaMoment, isSchemaObject, isSchemaConcept, isSchemaPosition, isSchemaRoom, isSchemaShortName, isSchemaGloss, isSchemaInstructions, isSchemaDefault, isSchemaForward, isSchemaBack, isSchemaParent, isSchemaFrom, isSchemaTo, isSchemaKey, isSchemaSituation, isSchemaArea, isSchemaRender, SchemaExitTag, SchemaFeatureTag, SchemaGuidanceTag, SchemaKnowledgeTag, SchemaMapTag, SchemaMessageTag, SchemaMomentTag, SchemaObjectTag, SchemaConceptTag, SchemaPositionTag, SchemaRoomTag, SchemaShortNameTag, SchemaGlossTag, SchemaInstructionsTag, SchemaDefaultTag, SchemaForwardTag, SchemaBackTag, SchemaParentTag, SchemaFromTag, SchemaToTag, SchemaKeyTag, SchemaSituationTag, SchemaAreaTag, SchemaRenderTag } from "./components"
 import { isSchemaMatch, isSchemaMark, isSchemaLens, SchemaMatchTag, SchemaMarkTag, SchemaLensTag } from "./worldState"
 
 import { isSchemaEdit, isSchemaRemove, isSchemaReplace, isSchemaReplaceMatch, isSchemaReplacePayload, SchemaEditTag, SchemaReplaceTag } from "./edit"
@@ -80,7 +80,7 @@ export type SchemaTag = SchemaAssetTag |
     SchemaFromTag |
     SchemaToTag |
     SchemaKeyTag |
-    SchemaObjectTag |
+    SchemaObjectTag | SchemaConceptTag |
     SchemaRenderTag
 
 export type SchemaWithContents = SchemaAssetTag |
@@ -122,13 +122,13 @@ export const isImportableTag = (tag: string): boolean => (
     ['Room', 'Feature', 'Knowledge', 'Map', 'Message', 'Moment', 'Mark', 'Lens', 'Area'].includes(tag)
 )
 
-export type SchemaWithKey = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaObjectTag
+export type SchemaWithKey = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaObjectTag | SchemaConceptTag
 export const isSchemaWithKey = (value: SchemaTag): value is SchemaWithKey => (
-    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area', 'Object'].includes(value.tag)
+    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area', 'Object', 'Concept'].includes(value.tag)
 )
-export type SchemaComponent = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaObjectTag
+export type SchemaComponent = SchemaRoomTag | SchemaFeatureTag | SchemaKnowledgeTag | SchemaCharacterTag | SchemaMapTag | SchemaImageTag | SchemaMarkTag | SchemaLensTag | SchemaMessageTag | SchemaMomentTag | SchemaGuidanceTag | SchemaSituationTag | SchemaAreaTag | SchemaObjectTag | SchemaConceptTag
 export const isSchemaComponentTag = (tag: string): tag is SchemaComponent["tag"] => (
-    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area', 'Object'].includes(tag)
+    ['Room', 'Feature', 'Knowledge', 'Character', 'Map', 'Image', 'Mark', 'Lens', 'Message', 'Moment', 'Guidance', 'Situation', 'Area', 'Object', 'Concept'].includes(tag)
 )
 export const isSchemaComponent = (value: SchemaTag): value is SchemaComponent => (
     isSchemaComponentTag(value.tag)
@@ -191,6 +191,7 @@ export const isSchemaTag = (value: any): value is SchemaTag => {
         isSchemaTo(value) ||
         isSchemaKey(value) ||
         isSchemaObject(value) ||
+        isSchemaConcept(value) ||
         isSchemaRender(value)
 }
 
