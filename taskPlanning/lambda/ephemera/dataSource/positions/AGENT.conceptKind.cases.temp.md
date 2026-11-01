@@ -8,7 +8,7 @@ Worked cases for [the Concept kind plan](AGENT.conceptKind.planning.md)'s Slice 
 
 **The test.** The new kind passes if every rule it carries is keyed on what a component *is* (physical or conceptual, AK-5), and no rule is keyed on whether it is the whole or the part in a given hosting edge. It fails, and the plan stops, if any case makes something a Concept *because* it is an assembly of other things.
 
-**The structural check, before the cases.** AK-4's pairing rule decides the hosting kind from the **unordered pair** of the two sides' kinds: Concept with Concept is `PartOf` or `SectionOf`; physical with Concept is `Associated` *with either side hosting*; physical with physical is a physical kind. Swapping host and member never changes the answer. So the rule cannot give a whole and a part different behaviour, which is exactly the property the lock asks for. "Never moved" (AK-4's consequence) and "present where a member is" (AK-3) attach to every Concept, whether it hosts or is hosted.
+**The structural check, before the cases.** AK-4's pairing rule decides the hosting kind from the **unordered pair** of the two sides' kinds: Concept with Concept is `PartOf` or `SectionOf`; physical with Concept is `Associated` *with either side hosting*; physical with physical is a physical kind. Swapping host and member never changes the answer. So the rule cannot give a whole and a part different behaviour, which is exactly the property the lock asks for. "Never placed" (AK-4's consequence) and "present where a member is" (AK-3) attach to every Concept, whether it hosts or is hosted.
 
 ### C11: the Rube Goldberg machine
 
@@ -26,7 +26,7 @@ Worked cases for [the Concept kind plan](AGENT.conceptKind.planning.md)'s Slice 
 The Moonbase Control System hosts a Life Support Subsystem (`PartOf`), which hosts an Air Recycling module (`PartOf`); the module is `Associated` with a physical scrubber in the hydroponics bay.
 
 - **The subsystem is a part of the system and a whole of the module, at once**, under the same Concept-to-Concept kinds that Objects use with each other. Whole and part are roles inside the kind, as they are among Objects.
-- **The system and the module carry the same rules**: never moved, present where a member is. Neither gains or loses a rule by being the outer or the inner one.
+- **The system and the module carry the same rules**: never placed, present where a member is. Neither gains or loses a rule by being the outer or the inner one.
 
 **Verdict: passes.**
 

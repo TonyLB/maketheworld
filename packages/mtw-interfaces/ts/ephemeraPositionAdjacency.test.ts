@@ -1,4 +1,4 @@
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from './baseClasses'
 import {
     buildPositionAdjacencyDataCategory,
     EPHEMERA_POSITION_ADJACENCY_PREFIX,
@@ -15,6 +15,8 @@ const roomId = 'ROOM#Cafe' as EphemeraRoomId
 const featureId = 'FEATURE#Niche' as EphemeraFeatureId
 const featureHostId = 'FEATURE#Wall' as EphemeraFeatureId
 const areaHostId = 'AREA#Downtown' as EphemeraAreaId
+const conceptId = 'CONCEPT#DesignLibrary' as EphemeraConceptId
+const conceptHostId = 'CONCEPT#HabitatControl' as EphemeraConceptId
 
 describe('ephemeraPositionAdjacency key helpers', () => {
     it('buildPositionAdjacencyDataCategory prefixes room host id', () => {
@@ -35,6 +37,11 @@ describe('ephemeraPositionAdjacency key helpers', () => {
 
     it('buildPositionAdjacencyDataCategory prefixes area host id', () => {
         expect(buildPositionAdjacencyDataCategory(areaHostId)).toBe('POSITION#AREA#Downtown')
+    })
+
+    it('buildPositionAdjacencyDataCategory prefixes concept host id, and parses it back', () => {
+        expect(buildPositionAdjacencyDataCategory(conceptHostId)).toBe('POSITION#CONCEPT#HabitatControl')
+        expect(parsePositionAdjacencyDataCategory('POSITION#CONCEPT#HabitatControl')).toBe(conceptHostId)
     })
 
     it('parsePositionAdjacencyDataCategory round-trips host room id', () => {
@@ -109,9 +116,27 @@ describe('isEphemeraPositionAdjacencyRow', () => {
         })).toBe(true)
     })
 
-    it('rejects row with invalid contained id', () => {
+    it('accepts a room contained in an area', () => {
         expect(isEphemeraPositionAdjacencyRow({
-            EphemeraId: 'ROOM#Wrong',
+            EphemeraId: roomId,
+            DataCategory: buildPositionAdjacencyDataCategory(areaHostId),
+        })).toBe(true)
+    })
+
+    it('accepts a concept contained by association in a room, and as a part of a concept', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: conceptHostId,
+            DataCategory: buildPositionAdjacencyDataCategory(roomId),
+        })).toBe(true)
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: conceptId,
+            DataCategory: buildPositionAdjacencyDataCategory(conceptHostId),
+        })).toBe(true)
+    })
+
+    it('rejects row with invalid contained id (an area is a host only)', () => {
+        expect(isEphemeraPositionAdjacencyRow({
+            EphemeraId: 'AREA#Wrong',
             DataCategory: buildPositionAdjacencyDataCategory(roomId),
         })).toBe(false)
     })

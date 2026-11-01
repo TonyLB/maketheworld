@@ -4,8 +4,8 @@ import {
     extractObjectIdsFromLudicGraph,
     projectComponentGraphFromStoredLudicGraph,
 } from '@tonylb/mtw-gateways/ts/ephemera/positions'
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraCharacterId, EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraConceptId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type {
     EphemeraHostingKind,
@@ -22,7 +22,7 @@ import type {
     EphemeraRoomActiveCharacter,
 } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraCrossingPortId, EphemeraLudicRootId } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
-import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicEdgeTerminal, isEphemeraLudicRelationalEdgeData, isHostingKindLegalOnHost } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
+import { ephemeraLudicTerminalOwner, ephemeraLudicTerminalRefersTo, ephemeraLudicTerminalsEqual, isEphemeraLudicEdgeTerminal, isEphemeraLudicRelationalEdgeData, admissibleHostingKinds } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { StandardLudicNavigationEdge } from '@tonylb/mtw-wml/ts/standardize/keys/edges/ludicEdge'
 
 import type { HostRelationalPatch } from '../manipulation/types'
@@ -63,18 +63,24 @@ export const areaNode = (universalKey: EphemeraAreaId): EphemeraLudicGraphCompon
     universalKey,
 })
 
+export const conceptNode = (universalKey: EphemeraConceptId): EphemeraLudicGraphComponentNode => ({
+    tag: 'Concept',
+    universalKey,
+})
+
 /**
  * Dispatches an arbitrary terminal primitive to its correctly-tagged node --- the
  * construction-time half of clause 3's root-in-nodes requirement. `rootId` is always one of
- * these five kinds for a host-bound graph (`rootId === hostId`), so every fresh-construction
+ * these component kinds for a host-bound graph (`rootId === hostId`), so every fresh-construction
  * factory below uses this to seed the root's own node alongside whatever else it builds.
  */
-export const nodeFromId = (id: EphemeraLudicNodeTerminal): EphemeraLudicGraphNode => {
+export const nodeFromId = (id: EphemeraLudicNodeTerminal): EphemeraLudicGraphComponentNode => {
     if (isEphemeraCharacterId(id)) return characterNode(id)
     if (isEphemeraObjectId(id)) return objectNode(id)
     if (isEphemeraRoomId(id)) return roomNode(id)
     if (isEphemeraFeatureId(id)) return featureNode(id)
     if (isEphemeraAreaId(id)) return areaNode(id)
+    if (isEphemeraConceptId(id)) return conceptNode(id)
     throw new Error(`nodeFromId: unrecognized terminal primitive: ${id}`)
 }
 
@@ -86,7 +92,7 @@ export const nodeFromId = (id: EphemeraLudicNodeTerminal): EphemeraLudicGraphNod
  */
 export class RelationalEdgeStillReferencedError extends Error {
     constructor(
-        public readonly id: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId,
+        public readonly id: EphemeraPositionAdjacencyContainedId,
         public readonly hostId: EphemeraMembershipHostId
     ) {
         super(`${id} still has a relational edge on host ${hostId} --- an explicit dissolveRelation step should have run first`)
@@ -429,7 +435,8 @@ export class EphemeraLudicGraph {
 
     /**
      * The one add path behind the typed `add*` methods. A kind is required for every member except
-     * the root (which carries none) and is checked against this host (`isHostingKindLegalOnHost`);
+     * the root (which carries none) and is checked against this host and the member's kind
+     * (`admissibleHostingKinds`);
      * an illegal or missing kind throws. One kind per membership: re-adding a present node
      * with the same kind (or, for the root, none) is a no-op, but a *different* kind is a change of
      * kind, not an add, and throws.
@@ -440,7 +447,7 @@ export class EphemeraLudicGraph {
             throw new Error(`${node.universalKey} needs a hosting kind to join ${this.hostId}`)
         }
         if (hostingKind !== undefined) {
-            this.assertHostingKindLegal(node.universalKey, hostingKind)
+            this.assertHostingKindLegal(node, hostingKind)
         }
         const existing = this._nodes.find((entry) => entry.tag === node.tag && entry.universalKey === node.universalKey)
         if (existing) {
@@ -453,14 +460,17 @@ export class EphemeraLudicGraph {
         return this.withNodes([...this._nodes, hostingKind !== undefined ? { ...node, hostingKind } : node])
     }
 
-    /** Throws unless `hostingKind` may be carried by `memberId` in this host (not the root; legal on the root's tag). */
-    private assertHostingKindLegal(memberId: EphemeraLudicNodeTerminal, hostingKind: EphemeraHostingKind): void {
-        if (memberId === ephemeraLudicTerminalOwner(this.rootId)) {
-            throw new Error(`${memberId} is the root of ${this.hostId} and carries no hosting kind`)
+    /** Throws unless `hostingKind` may be carried by `member` in this host (not the root; admissible for the root's tag and the member's). */
+    private assertHostingKindLegal(member: EphemeraLudicGraphComponentNode, hostingKind: EphemeraHostingKind): void {
+        if (member.universalKey === ephemeraLudicTerminalOwner(this.rootId)) {
+            throw new Error(`${member.universalKey} is the root of ${this.hostId} and carries no hosting kind`)
         }
         const hostTag = this._nodes.find((entry) => entry.universalKey === ephemeraLudicTerminalOwner(this.rootId))?.tag
-        if (hostTag && hostTag !== 'Presence' && !isHostingKindLegalOnHost(hostingKind, hostTag)) {
-            throw new Error(`Hosting kind ${hostingKind} is not legal on a ${hostTag} host (${this.hostId})`)
+        if (hostTag && hostTag !== 'Presence') {
+            const admissible = admissibleHostingKinds(hostTag, member.tag)
+            if (!admissible.includes(hostingKind)) {
+                throw new Error(`Hosting kind ${hostingKind} is not legal on a ${hostTag} host (${this.hostId}) for the ${member.tag} member ${member.universalKey}; admissible: ${admissible.join(', ')}`)
+            }
         }
     }
 
@@ -476,118 +486,76 @@ export class EphemeraLudicGraph {
         if (index < 0) {
             throw new Error(`Cannot set hosting kind of ${id}: not a member of ${this.hostId}`)
         }
-        this.assertHostingKindLegal(id, hostingKind)
         const node = this._nodes[index]
-        if (node.tag !== 'Presence' && node.hostingKind === hostingKind) {
+        if (node.tag === 'Presence') {
+            throw new Error(`Cannot set hosting kind of ${id}: it is a presence node`)
+        }
+        this.assertHostingKindLegal(node, hostingKind)
+        if (node.hostingKind === hostingKind) {
             return this
         }
         return this.withNodes(this._nodes.map((entry, entryIndex) => entryIndex === index ? { ...entry, hostingKind } as EphemeraLudicGraphNode : entry))
     }
 
-    addCharacter(characterId: EphemeraCharacterId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
-        return this.addMember(characterNode(characterId), hostingKind)
-    }
-
     /**
-     * BD-36's character half of the assert-and-throw contract --- vacuously satisfied today, since
-     * `HostRelationalEdge` is `EphemeraObjectId`-typed and a character node can never be referenced
-     * by one (the widening that would make this load-bearing, character-relation authoring, is
-     * explicitly deferred; see `ludicGraph/AGENT.md` --- Known limitation (deferred)). No
-     * edge-stripping of any kind follows the (currently vacuous) assert.
-     */
-    removeCharacter(characterId: EphemeraCharacterId): EphemeraLudicGraph {
-        this.assertNoRelationalEdgesReferencing(characterId)
-        return this.withNodes(
-            this._nodes.filter((node) => !(node.tag === 'Character' && node.universalKey === characterId))
-        )
-    }
-
-    addObject(objectId: EphemeraObjectId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
-        return this.addMember(objectNode(objectId), hostingKind)
-    }
-
-    /**
-     * BD-33/BD-35 assert-and-throw contract: checks no relational edge still references `objectId`
-     * (throwing `RelationalEdgeStillReferencedError` if one does, since an explicit
-     * `dissolveRelation` step should have run first) rather than silently stripping it, as the
-     * retired plain `removeObject`/`applyTransferSet.ts`/`applyMembershipEffect` (deleted 2026-07-23,
-     * once `applyHostEffects` --- their last live caller --- retired) used to. Play-only/exit edges
-     * are a distinct invariant, untouched by this contract --- they keep the old silent-strip
-     * behavior here too, since nothing upstream of them establishes a dissolve-first contract for
-     * those edges. (Renamed from `removeObjectAsserted` 2026-07-23, once the plain silent-strip
-     * `removeObject` it was disambiguated from was itself deleted --- this is the only
-     * implementation now.)
-     */
-    removeObject(objectId: EphemeraObjectId): EphemeraLudicGraph {
-        this.assertNoRelationalEdgesReferencing(objectId)
-        const withoutNode = this.withNodes(
-            this._nodes.filter((node) => !(node.tag === 'Object' && node.universalKey === objectId))
-        )
-        return withoutNode.withoutPlayOnlyEdgesReferencingObject(objectId)
-    }
-
-    /**
-     * The structural half of cache-time containment population: a Room or Feature becomes a node
-     * of its parent's graph (Area-for-Room, Room-or-Feature-for-Feature) the same way an object or
-     * character becomes a node of a host it moves into --- idempotent-add, mirroring
-     * `addObject`/`addCharacter` exactly. Unlike those two, a Room/Feature node is never removed by
-     * this slice --- removal-on-deauthoring is deliberately out of scope, per
-     * `../AGENT.contract.md`'s `Component Updated` section --- but `removeRoom`/
-     * `removeFeature` are added alongside for symmetry with `removeObject`/`removeCharacter` rather
-     * than left as a half-built pair --- both idle today, since population is additive-only.
-     */
-    addRoom(roomId: EphemeraRoomId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
-        return this.addMember(roomNode(roomId), hostingKind)
-    }
-
-    removeRoom(roomId: EphemeraRoomId): EphemeraLudicGraph {
-        this.assertNoRelationalEdgesReferencing(roomId)
-        return this.withNodes(
-            this._nodes.filter((node) => !(node.tag === 'Room' && node.universalKey === roomId))
-        )
-    }
-
-    addFeature(featureId: EphemeraFeatureId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
-        return this.addMember(featureNode(featureId), hostingKind)
-    }
-
-    removeFeature(featureId: EphemeraFeatureId): EphemeraLudicGraph {
-        this.assertNoRelationalEdgesReferencing(featureId)
-        return this.withNodes(
-            this._nodes.filter((node) => !(node.tag === 'Feature' && node.universalKey === featureId))
-        )
-    }
-
-    /**
-     * Kind-dispatching add/remove, added alongside the four typed methods above rather than
-     * replacing them --- a caller that already knows its entity's kind (`addCharacter` in
-     * `seedFromActiveCharacters`, `addObject`/`removeObject` inside `applyDeparture`) keeps
-     * using the typed form directly, since each kind's method still carries its own distinct
-     * behavior (`removeObject`'s extra play-only-edge stripping, in particular). This pair exists
-     * for the one caller that doesn't and shouldn't have to know which kind it's holding:
-     * `settleMembership.ts`'s arrival (and population's add before it), which used to be
-     * four near-identical loops (one per kind) purely because nothing dispatched generically ---
-     * collapsed to one loop over `nodeIds`/`addNode`/`removeNode` instead of kept as four to spell
-     * out a distinction nothing downstream needed spelled out. Typed to
-     * `EphemeraPositionAdjacencyContainedId` (Character/Object/Feature/Room) rather than the wider
-     * `EphemeraLudicNodeTerminal` --- Area is a host only and never itself a member, so it has
-     * no add/remove case here (see that type's own doc comment).
+     * The membership mutators: one generic pair over every member kind. A node joins and leaves a
+     * host the same way whatever its kind; `nodeFromId` is the one place a kind is turned into a
+     * tagged node, so a new kind needs no new mutator.
+     *
+     * Removal is assert-and-throw for relational edges (BD-33/BD-35/BD-36): it checks no relational
+     * edge still references `id`, and throws `RelationalEdgeStillReferencedError` if one does, since
+     * an explicit `dissolveRelation` step should have run first. Play-only (Exit) edges are a
+     * distinct invariant, and object-only: removing an Object also strips the play-only edges on
+     * this host that reference it, since nothing upstream establishes a dissolve-first contract for
+     * those edges. Typed to `EphemeraPositionAdjacencyContainedId` rather than the wider
+     * `EphemeraLudicNodeTerminal`: Area is a host only and never itself a member.
      */
     addNode(id: EphemeraPositionAdjacencyContainedId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
-        if (isEphemeraObjectId(id)) return this.addObject(id, hostingKind)
-        if (isEphemeraCharacterId(id)) return this.addCharacter(id, hostingKind)
-        if (isEphemeraRoomId(id)) return this.addRoom(id, hostingKind)
-        return this.addFeature(id, hostingKind)
+        return this.addMember(nodeFromId(id), hostingKind)
     }
 
     removeNode(id: EphemeraPositionAdjacencyContainedId): EphemeraLudicGraph {
-        if (isEphemeraObjectId(id)) return this.removeObject(id)
-        if (isEphemeraCharacterId(id)) return this.removeCharacter(id)
-        if (isEphemeraRoomId(id)) return this.removeRoom(id)
-        return this.removeFeature(id)
+        this.assertNoRelationalEdgesReferencing(id)
+        const withoutNode = this.withNodes(
+            this._nodes.filter((node) => !(node.tag !== 'Presence' && node.universalKey === id))
+        )
+        return isEphemeraObjectId(id) ? withoutNode.withoutPlayOnlyEdgesReferencingObject(id) : withoutNode
     }
 
-    private assertNoRelationalEdgesReferencing(id: EphemeraObjectId | EphemeraCharacterId | EphemeraRoomId | EphemeraFeatureId): void {
+    /** Typed aliases of `addNode`/`removeNode`, for callers that already hold a narrowed id. */
+    addCharacter(characterId: EphemeraCharacterId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addNode(characterId, hostingKind)
+    }
+
+    removeCharacter(characterId: EphemeraCharacterId): EphemeraLudicGraph {
+        return this.removeNode(characterId)
+    }
+
+    addObject(objectId: EphemeraObjectId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addNode(objectId, hostingKind)
+    }
+
+    removeObject(objectId: EphemeraObjectId): EphemeraLudicGraph {
+        return this.removeNode(objectId)
+    }
+
+    addRoom(roomId: EphemeraRoomId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addNode(roomId, hostingKind)
+    }
+
+    removeRoom(roomId: EphemeraRoomId): EphemeraLudicGraph {
+        return this.removeNode(roomId)
+    }
+
+    addFeature(featureId: EphemeraFeatureId, hostingKind?: EphemeraHostingKind): EphemeraLudicGraph {
+        return this.addNode(featureId, hostingKind)
+    }
+
+    removeFeature(featureId: EphemeraFeatureId): EphemeraLudicGraph {
+        return this.removeNode(featureId)
+    }
+
+    private assertNoRelationalEdgesReferencing(id: EphemeraPositionAdjacencyContainedId): void {
         if (this.relationalEdges.some((edge) => ephemeraLudicTerminalRefersTo(edge.from, id) || ephemeraLudicTerminalRefersTo(edge.to, id))) {
             throw new RelationalEdgeStillReferencedError(id, this.hostId)
         }
@@ -821,9 +789,9 @@ export const fromRoomMeta = (
 /**
  * MD-1(c)'s shared plain serde: a direct `ludicGraph` field read with a trivial empty default,
  * no reconstruction from any second source. Every non-Room host kind (Character; Object as of MK2;
- * Feature as of MK3; Area as of MK4) is this same body --- `fromCharacterMeta`/`fromObjectMeta`/
- * `fromFeatureMeta`/`fromAreaMeta` are thin, host-named wrappers around it, not independent
- * implementations.
+ * Feature as of MK3; Area as of MK4; Concept) is this same body --- `fromCharacterMeta`/`fromObjectMeta`/
+ * `fromFeatureMeta`/`fromAreaMeta`/`fromConceptMeta` are thin, host-named wrappers around it, not
+ * independent implementations.
  */
 const fromPlainHostMeta = (
     meta: {
@@ -863,23 +831,29 @@ export const fromAreaMeta = (
     hostId: EphemeraMembershipHostId
 ): EphemeraLudicGraph => fromPlainHostMeta(meta, hostId)
 
+export const fromConceptMeta = (
+    meta: {
+        ludicGraph?: EphemeraLudicGraphFieldPayload;
+    } | Record<string, unknown>,
+    hostId: EphemeraMembershipHostId
+): EphemeraLudicGraph => fromPlainHostMeta(meta, hostId)
+
 /**
- * Shared Room/Character/Object/Feature/Area dispatch for kernel primitives that read/write a
- * host's `Meta::Room`/`Meta::Character`/`Meta::Object`/`Meta::Feature`/`Meta::Area` record
+ * Shared host-kind dispatch for kernel primitives that read/write a host's `Meta::<Kind>` record
  * directly (`MultiKeyUpdate` reducers). Promoted here (2026-07-15, BD-15/16 slice 3) once a third
  * call site (`applyHostRelationalPatch.ts`) needed the exact same pair already duplicated
- * in `applyObjectSetTransfer.ts`. Dispatches all five `EphemeraMembershipHostId` kinds.
+ * in `applyObjectSetTransfer.ts`. Dispatches every `EphemeraMembershipHostId` kind by name.
  */
-export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature' | 'Meta::Area' =>
-    isEphemeraRoomId(hostId)
-        ? 'Meta::Room'
-        : isEphemeraObjectId(hostId)
-        ? 'Meta::Object'
-        : isEphemeraFeatureId(hostId)
-        ? 'Meta::Feature'
-        : isEphemeraAreaId(hostId)
-        ? 'Meta::Area'
-        : 'Meta::Character'
+export const hostDataCategory = (hostId: EphemeraMembershipHostId): 'Meta::Room' | 'Meta::Character' | 'Meta::Object' | 'Meta::Feature' | 'Meta::Area' | 'Meta::Concept' => {
+    if (isEphemeraRoomId(hostId)) return 'Meta::Room'
+    if (isEphemeraObjectId(hostId)) return 'Meta::Object'
+    if (isEphemeraFeatureId(hostId)) return 'Meta::Feature'
+    if (isEphemeraAreaId(hostId)) return 'Meta::Area'
+    if (isEphemeraConceptId(hostId)) return 'Meta::Concept'
+    if (isEphemeraCharacterId(hostId)) return 'Meta::Character'
+    const unmapped: never = hostId
+    throw new Error(`hostDataCategory: unmapped host kind ${String(unmapped)}`)
+}
 
 export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMembershipHostId): EphemeraLudicGraph => {
     if (isEphemeraRoomId(hostId)) {
@@ -894,5 +868,12 @@ export const graphFromMeta = (meta: Record<string, unknown>, hostId: EphemeraMem
     if (isEphemeraAreaId(hostId)) {
         return fromAreaMeta(meta, hostId)
     }
-    return fromCharacterMeta(meta, hostId)
+    if (isEphemeraConceptId(hostId)) {
+        return fromConceptMeta(meta, hostId)
+    }
+    if (isEphemeraCharacterId(hostId)) {
+        return fromCharacterMeta(meta, hostId)
+    }
+    const unmapped: never = hostId
+    throw new Error(`graphFromMeta: unmapped host kind ${String(unmapped)}`)
 }

@@ -10,6 +10,8 @@ import {
     type EphemeraFeatureId,
     isEphemeraAreaId,
     type EphemeraAreaId,
+    isEphemeraConceptId,
+    type EphemeraConceptId,
     isEphemeraPresenceNodeId,
     type EphemeraPresenceNodeId,
 } from './baseClasses'
@@ -227,6 +229,35 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
     return true
 }
 
+/**
+ * ephemeraDB play meta for CONCEPT#: a thing that is conceptual by kind. Like `Meta::Area`, it
+ * carries no non-ludicGraph fields.
+ */
+export type EphemeraMetaConcept = {
+    EphemeraId: EphemeraConceptId;
+    DataCategory: 'Meta::Concept';
+
+    //
+    // Concept-hosted play membership graph: the same EphemeraLudicGraphFieldPayload shape as every
+    // other host's, through the one shared serde.
+    //
+    ludicGraph?: EphemeraLudicGraphFieldPayload;
+}
+
+export const isEphemeraMetaConcept = (entry: unknown): entry is EphemeraMetaConcept => {
+    if (typeof entry !== 'object' || entry === null) {
+        return false
+    }
+    const c = entry as Record<string, unknown>
+    if (typeof c.EphemeraId !== 'string' || !isEphemeraConceptId(c.EphemeraId) || c.DataCategory !== 'Meta::Concept') {
+        return false
+    }
+    if ('ludicGraph' in c && !isEphemeraLudicGraphFieldPayload(c.ludicGraph)) {
+        return false
+    }
+    return true
+}
+
 //
 // Ludic graph edge/port terminals. A terminal is one of five named kinds (the fifth, an edge named
 // by `edgeId`, is defined below `EphemeraLudicOwnedTerminal`; it has no owner):
@@ -249,13 +280,14 @@ export const isEphemeraMetaArea = (entry: unknown): entry is EphemeraMetaArea =>
 export type EphemeraLudicNodeTerminal =
     | EphemeraRoomId | EphemeraCharacterId
     | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
+    | EphemeraConceptId
     | EphemeraPresenceNodeId
 
 export const isEphemeraLudicNodeTerminal = (value: unknown): value is EphemeraLudicNodeTerminal =>
     typeof value === 'string' && (
         isEphemeraRoomId(value) || isEphemeraCharacterId(value) ||
         isEphemeraObjectId(value) || isEphemeraFeatureId(value) || isEphemeraAreaId(value) ||
-        isEphemeraPresenceNodeId(value)
+        isEphemeraConceptId(value) || isEphemeraPresenceNodeId(value)
     )
 
 /** owner is the whole that ALLOCATED this port --- deliberately not named `host`, which already
@@ -472,22 +504,28 @@ export type EphemeraLudicGraphComponentNodeBase =
         tag: 'Area';
         universalKey: EphemeraAreaId;
     }
+    | {
+        tag: 'Concept';
+        universalKey: EphemeraConceptId;
+    }
 
 /**
  * A member's hosting kind: how this node sits in the host whose
  * graph holds it. *Placement* kinds (`On`, `In`, `Held`) say where a distinct thing sits relative
  * to its host; *composition* kinds (`PartOf`, `SectionOf`) say a distinct part, or a fungible
- * stretch, of the host read as an abstraction. It is a node field, set by the
- * `setHostingKind` kernel step; no relation instruction or stored edge carries one.
+ * stretch, of the host read as an abstraction. *Association* (`Associated`) is the crossing
+ * between a physical thing and a Concept, and only that: the Concept side is the abstraction over
+ * the other, whichever side hosts. It is a node field, set by the `setHostingKind` kernel step; no
+ * relation instruction or stored edge carries one.
  */
-export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf'] as const
+export const HOSTING_KINDS = ['On', 'In', 'Held', 'PartOf', 'SectionOf', 'Associated'] as const
 export type EphemeraHostingKind = typeof HOSTING_KINDS[number]
 export const isEphemeraHostingKind = (value: unknown): value is EphemeraHostingKind =>
     typeof value === 'string' && (HOSTING_KINDS as readonly string[]).includes(value)
 
-export type EphemeraHostingFamily = 'placement' | 'composition'
+export type EphemeraHostingFamily = 'placement' | 'composition' | 'association'
 
-/** Total over the five kinds: consumers that care about the distinction read the family, never a list of kinds. */
+/** Total over the kinds: consumers that care about the distinction read the family, never a list of kinds. */
 export const hostingFamily = (kind: EphemeraHostingKind): EphemeraHostingFamily => {
     switch (kind) {
         case 'On':
@@ -497,6 +535,8 @@ export const hostingFamily = (kind: EphemeraHostingKind): EphemeraHostingFamily 
         case 'PartOf':
         case 'SectionOf':
             return 'composition'
+        case 'Associated':
+            return 'association'
         default: {
             const unmapped: never = kind
             throw new Error(`hostingFamily: unmapped hosting kind ${String(unmapped)}`)
@@ -505,15 +545,31 @@ export const hostingFamily = (kind: EphemeraHostingKind): EphemeraHostingFamily 
 }
 
 /**
- * Per-host legality. A node cannot know its host, so this takes the host's tag: `Held` only
- * on a character host; `In`, `PartOf` and `SectionOf` never on one (`On` on a character is worn,
- * or a coating); `On` anywhere.
+ * The hosting kinds a member may carry in a host, from the two sides' kinds. A node cannot know
+ * its host, so the caller passes both tags. The pairing depends on the unordered pair of
+ * physical-or-Concept, so swapping host and member never changes which family applies:
+ * - a Concept with a Concept: `PartOf` or `SectionOf`, as between Objects;
+ * - a Concept with a physical component, whichever side hosts: `Associated`, and only that, so a
+ *   Concept is never placed or carried;
+ * - physical with physical: never `Associated`. `Held` only on a character host; `In`, `PartOf`
+ *   and `SectionOf` never on one (`On` on a character is worn, or a coating); `On` anywhere.
  */
-export const isHostingKindLegalOnHost = (kind: EphemeraHostingKind, hostTag: EphemeraLudicGraphComponentNodeBase['tag']): boolean => {
-    if (hostTag === 'Character') {
-        return kind === 'On' || kind === 'Held'
+export const admissibleHostingKinds = (
+    hostTag: EphemeraLudicGraphComponentNodeBase['tag'],
+    memberTag: EphemeraLudicGraphComponentNodeBase['tag']
+): readonly EphemeraHostingKind[] => {
+    const hostIsConcept = hostTag === 'Concept'
+    const memberIsConcept = memberTag === 'Concept'
+    if (hostIsConcept && memberIsConcept) {
+        return ['PartOf', 'SectionOf']
     }
-    return kind !== 'Held'
+    if (hostIsConcept || memberIsConcept) {
+        return ['Associated']
+    }
+    if (hostTag === 'Character') {
+        return ['On', 'Held']
+    }
+    return ['On', 'In', 'PartOf', 'SectionOf']
 }
 
 /**
@@ -562,7 +618,7 @@ export const UNPLACED_PRESENCE_ID = 'PRESENCE#Unplaced' as EphemeraPresenceNodeI
 
 /**
  * A presence node (presenceNodes plan / PN-5, 2026-09-15): the reified boundary site that used
- * to be carried as a presence *port*. Unlike the five component arms above, its `universalKey`
+ * to be carried as a presence *port*. Unlike the component arms above, its `universalKey`
  * is a minted `PRESENCE#{uuid}`, not a real component id, and it carries a parent pointer which
  * no component arm has a field for. `kind: 'Present'` is not carried here; `tag: 'Presence'` is
  * already the discriminant, and a second constant field would be a discriminant with no second
@@ -588,7 +644,7 @@ export type EphemeraLudicGraphStructureNode = {
 
 /**
  * The union of every kind a `ludicGraph` node list may hold. Partitioned (PN-5) rather than a
- * flat six-arm union, so that call sites which mean "one of the five real components" (e.g.
+ * flat union, so that call sites which mean "one of the real components" (e.g.
  * `factory.ts`'s mint-time tag parameters) can say `EphemeraLudicGraphComponentNode['tag']` and
  * have the compiler refuse a structure tag, instead of silently widening alongside this union.
  */
@@ -865,6 +921,9 @@ export const isEphemeraLudicGraphComponentNode = (value: unknown): value is Ephe
     if (entry.tag === 'Area') {
         return isEphemeraAreaId(entry.universalKey)
     }
+    if (entry.tag === 'Concept') {
+        return isEphemeraConceptId(entry.universalKey)
+    }
     return false
 }
 
@@ -875,7 +934,8 @@ const isEphemeraPresenceCoverEntry = (entry: unknown): entry is EphemeraPresence
     const { host, presence } = entry as EphemeraPresenceCoverEntry
     return typeof host === 'string' && typeof presence === 'string' && isEphemeraPresenceNodeId(presence) && (
         isEphemeraCharacterId(host) || isEphemeraObjectId(host) ||
-        isEphemeraRoomId(host) || isEphemeraFeatureId(host) || isEphemeraAreaId(host)
+        isEphemeraRoomId(host) || isEphemeraFeatureId(host) || isEphemeraAreaId(host) ||
+        isEphemeraConceptId(host)
     )
 }
 
@@ -991,8 +1051,8 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
     if (!graph.nodes.some((entry) => entry.universalKey === rootOwner)) {
         return false
     }
-    // the root carries no hosting kind, and every member's kind must be legal for the host
-    // kind. A node cannot see its host, so the per-host rule lives here, where `rootId` is known.
+    // the root carries no hosting kind, and every member's kind must be admissible for the pair
+    // of kinds. A node cannot see its host, so the pairing rule lives here, where `rootId` is known.
     const rootNode = graph.nodes.find((entry) => entry.universalKey === rootOwner)
     const hostTag = rootNode && rootNode.tag !== 'Presence' ? rootNode.tag : undefined
     for (const entry of graph.nodes) {
@@ -1006,7 +1066,7 @@ export const isEphemeraLudicGraphFieldPayload = (value: unknown): value is Ephem
             continue
         }
         // Required on every non-root component member (Slice 3): no kind is no longer read as `In`.
-        if (entry.hostingKind === undefined || !hostTag || !isHostingKindLegalOnHost(entry.hostingKind, hostTag)) {
+        if (entry.hostingKind === undefined || !hostTag || !admissibleHostingKinds(hostTag, entry.tag).includes(entry.hostingKind)) {
             return false
         }
     }

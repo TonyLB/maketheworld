@@ -1,6 +1,5 @@
 import { DeferredCache } from '@tonylb/mtw-lambda-patterns/ts/internalCache'
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraCharacterId, isEphemeraConceptId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type {
     EphemeraMembershipHostId,
     EphemeraPositionAdjacencyContainedId,
@@ -11,6 +10,7 @@ import type { EphemeraPositionsReadDB } from './fetch'
 import {
     getAreaLudicGraphFromDynamo,
     getCharacterLudicGraphFromDynamo,
+    getConceptLudicGraphFromDynamo,
     getFeatureLudicGraphFromDynamo,
     getObjectLudicGraphFromDynamo,
     getRoomLudicGraphFromDynamo,
@@ -72,7 +72,7 @@ export const normalizeStoredLudicGraph = (
  *
  * **Caches the stored payload verbatim** (`EphemeraLudicGraphFieldPayload`), not a projection of
  * it. Until 2026-09-03 this memo held the authored `StandardLudicGraphData` shape, so every load
- * and every `set` silently dropped `ports` (and `rootId`, and Room/Feature/Area nodes) --- see
+ * and every `set` silently dropped `ports` (and `rootId`, and every non-Character/Object node) --- see
  * `project.ts`. Ports are runtime-minted and have no authored counterpart, so any consumer
  * reading crossings through this cache saw none.
  */
@@ -96,7 +96,7 @@ export class PositionsCacheHandler {
     }
 
     async getLudicGraph(
-        componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId
+        componentId: EphemeraMembershipHostId
     ): Promise<EphemeraLudicGraphFieldPayload> {
         const key = ludicGraphCacheKey(componentId)
         if (!this._LudicGraphCache.isCached(key)) {
@@ -166,6 +166,10 @@ export class PositionsCacheHandler {
             const stored = await getAreaLudicGraphFromDynamo(this.db, componentId)
             return normalizeStoredLudicGraph(stored, componentId, 'Area')
         }
+        if (isEphemeraConceptId(componentId)) {
+            const stored = await getConceptLudicGraphFromDynamo(this.db, componentId)
+            return normalizeStoredLudicGraph(stored, componentId, 'Concept')
+        }
         // Unreachable in practice (componentId's declared type is exhausted above). No host kind
         // is known here, so there is no honest node tag to mint a root with --- an empty node list
         // is the one shape that does not invent a kind the caller never named. This payload does
@@ -198,7 +202,7 @@ export class PositionsCacheHandler {
         this._MembershipContainersCache.set(Infinity, key, params.containers)
     }
 
-    invalidate(componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId): void {
+    invalidate(componentId: EphemeraMembershipHostId): void {
         const key = ludicGraphCacheKey(componentId)
         delete this._LudicGraphStore[key]
         this._LudicGraphCache.invalidate(key)

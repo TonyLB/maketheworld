@@ -1,7 +1,6 @@
-import type { EphemeraAreaId, EphemeraCharacterId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import type { EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
-export const ludicGraphCacheKey = (componentId: EphemeraCharacterId | EphemeraRoomId | EphemeraObjectId | EphemeraFeatureId | EphemeraAreaId): string =>
+export const ludicGraphCacheKey = (componentId: EphemeraMembershipHostId): string =>
     `${componentId}::ludicGraph`
 
 export const membershipContainersCacheKey = (componentId: EphemeraPositionAdjacencyContainedId): string =>
