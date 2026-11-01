@@ -41,9 +41,9 @@ const roomsOf = (tree: AlignmentTree): Map<EphemeraRoomId, EphemeraPresenceNodeI
 }
 
 /**
- * The pure alignment rule (AK-10, first iteration): room state in, the Concept bindings that
+ * The pure alignment rule (add-only, the first iteration of the alignment process): room state in, the Concept bindings that
  * should exist out, as kernel steps. A Concept is present in a room because one of its members is
- * (AK-3), so the **outermost** Concept holds the room's binding and everything nested sits beneath it, as a
+ * there, so the **outermost** Concept holds the room's binding and everything nested sits beneath it, as a
  * physical whole's room binding carries its parts. Under that binding go a binding for each nested
  * Concept that has a member in the room, and under each Concept's binding an `Associated` binding of each of
  * its members in that room.

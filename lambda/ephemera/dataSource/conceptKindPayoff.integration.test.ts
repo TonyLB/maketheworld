@@ -1,5 +1,5 @@
 /**
- * Payoff test for the Concept kind (ISS8349, AK-8 option B): a room holds a terminal and the Concept it is associated
+ * Payoff test for the Concept kind (ISS8349; rules in the positions and actions contracts): a room holds a terminal and the Concept it is associated
  * with ("habitat control system"). The Concept is internal reasoning structure, not a player-facing thing:
  *
  * - the room affordance header lists the terminal and not the Concept;
@@ -40,7 +40,7 @@ const TERMINAL_ID = 'OBJECT#Terminal' as EphemeraObjectId
 
 const names: Record<string, string> = { [SYSTEM_ID]: 'habitat control system', [TERMINAL_ID]: 'terminal' }
 
-/** AK-3's stored shape: the room hosts the terminal (`In`) and the Concept (`Associated`); the Concept hosts the terminal (`Associated`). */
+/** The stored shape: the room hosts the terminal (`In`) and the Concept (`Associated`); the Concept hosts the terminal (`Associated`). */
 const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
     [ROOM_ID, testLudicGraph(ROOM_ID, {
         nodes: [

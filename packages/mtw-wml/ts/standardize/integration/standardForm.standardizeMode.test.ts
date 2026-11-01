@@ -56,7 +56,7 @@ describe('StandardForm.standardizeMode', () => {
         expect(() => new StandardForm(wml)).toThrow(/Authored objects in rooms are intended but unbuilt/)
     })
 
-    // Concepts share the LG-7 gate (AK-6): the WML parses in every mode, and assetWirePolicy
+    // Concepts share the LG-7 gate: the WML parses in every mode, and assetWirePolicy
     // refuses each authored Concept membership in asset mode until LG-7's mechanism lifts it.
     it('rejects a Concept node on a Room in asset mode', () => {
         const wml = deIndentWML(`

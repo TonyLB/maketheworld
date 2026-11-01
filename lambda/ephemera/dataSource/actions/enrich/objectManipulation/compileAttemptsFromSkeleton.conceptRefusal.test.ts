@@ -1,5 +1,5 @@
 /**
- * The name-only Concept refusal (AK-8, option B; `actions/AGENT.contract.md`): a span that names a Concept and
+ * The name-only Concept refusal (`actions/AGENT.contract.md`): a span that names a Concept and
  * matches nothing physical answers an Error, not an Abstain that climbs the ladder.
  */
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -73,7 +73,7 @@ describe('the Concept refusal', () => {
         expect(result).toMatchObject({ type: 'Error', errorMessage: conceptErrorMessages.notPhysical })
     })
 
-    it('refuses a look at a Concept: it is not a command, only a courteous refusal (AK-9)', async () => {
+    it('refuses a look at a Concept: it is not a command, only a courteous refusal', async () => {
         const result = await compile(lookSkeleton('the habitat control system'), 'look at the habitat control system', [terminal])
         expect(result).toMatchObject({ type: 'Error', errorMessage: conceptErrorMessages.notPhysical })
     })

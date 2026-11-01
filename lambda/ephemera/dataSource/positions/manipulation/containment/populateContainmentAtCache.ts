@@ -68,7 +68,7 @@ export const populateContainmentAtCache = async (
             return containmentPopulationSteps(parentId, childId, root.graph, childGraph)
         })
     )
-    // A Concept is present in each room one of its members is (AK-3, AK-10): add-only, over the
+    // A Concept is present in each room one of its members is: add-only, over the
     // state as stored. Members this pass places have no room yet, so they contribute on a later run.
     const alignmentSteps = isEphemeraConceptId(parentId)
         ? alignConceptBindings(await loadAlignmentTree(parentId, (hostId) => internalCache.Positions.getLudicGraph(hostId)))

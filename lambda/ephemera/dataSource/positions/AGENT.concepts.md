@@ -11,7 +11,7 @@ This file records **mental models and vocabulary** for `mtw.ephemera.positions` 
 | Term | Meaning |
 | --- | --- |
 | **Ludic graph** | One host's shard of the world: `{ rootId, nodes, edges, ports }` --- the host's own node as **root**, its member **nodes** (components, plus presence nodes), typed **relational edges** between them, and the **crossing ports** through which the outside reaches in. Every host kind stores the same shape, the same node/edge pattern as Area `ludicGraph` in WML |
-| **Host** | A component that stores a `ludicGraph`: Room, Character, Object, Feature, Area. That a kind can host says nothing about where it sits in a containment ladder |
+| **Host** | A component that stores a `ludicGraph`: Room, Character, Object, Feature, Area, Concept. That a kind can host says nothing about where it sits in a containment ladder |
 | **Graph role** | Which question a graph instance answers and **who may mutate it** --- see [Graph roles](#graph-roles-shared-shape-different-authority). Same shape, different authority boundary |
 | **Scale** | Which host's graph a statement is made in. The same object is a member at its container's scale and a root at its own; truth may differ between scales and both be correct ([Wholes, parts, and ports](#wholes-parts-and-ports)) |
 | **Port / crossing port** | A single-use boundary slot a host publishes; a relation crossing the boundary is stored as **legs** in each graph meeting at a crossing port, addressed as `{ owner, port }`. See [Wholes, parts, and ports](#wholes-parts-and-ports) |
@@ -141,7 +141,7 @@ The organizing principle for composition above and below the human-convenience s
 
 | Departure | Nature |
 | --- | --- |
-| **A DAG, not a tree** | Permanent. One part, two wholes, neither containing the other, is a requirement --- so traversal is a DAG walk, not tree recursion |
+| **A DAG, not a tree** | Permanent. One part, two wholes, neither containing the other, is a requirement --- so traversal is a DAG walk, not tree recursion. Physical placement alone is a forest: a part with two wholes that are both physical is placed in one *through* the other, and two hosts that contain neither each other means at least one is a [Concept](#concept) |
 | **Finite depth, with a base case** | A real fractal recurses infinitely; this one bottoms out at leaf objects. The bottom is uniform: a plain lantern and a rope are present by the same mechanism --- a binding per host, with the lantern's cover simply every node it has |
 | **The room is a special level** | The ladder is written the same way at every level it has --- a binding per host, with the cover saying where the whole sits --- from object interiors up through Area. The room is special in one stated way: **perspective stops at the room.** A room's binding into an Area carves out nothing, so a member's bucket is the room itself, and every Room and Area keeps its own root. **A wide host union is still not a ladder**: that a kind can host says nothing about where it sits |
 
@@ -161,6 +161,20 @@ An abstraction is a **cognitive tool, not an objective feature of the world.** T
 **There is no `Abstraction` supertype.** As with [Abstraction Fractal](#abstraction-fractal), the name is the principle.
 
 **What licenses a mint is not modelled.** Composition licenses on parts, an arrangement on edges, a derived member set on a predicate --- and *useful right now* is not a licensing condition anywhere. Nothing here authorizes a recognition path to write.
+
+### Concept
+
+A **Concept** (`CONCEPT#`, `<Concept />`) is a component that is **conceptual by kind**: a design, a collection, a category, a body of information. Its only connections to physical things are associations. An `<Object>` is physical by kind, whether or not anyone has placed it yet.
+
+**Kind, not placement.** Whether a thing is physical or conceptual is what it is. Whether it has a determined host is its placement, a separate axis open to every kind: an unplaced Object is still physical, and a Concept relevant nowhere yet is still conceptual.
+
+**Kind, not role.** *Abstraction* is a role: a thing is an abstraction when it describes its members at a higher level. A physical whole is an abstraction over its parts and stays an Object. A Concept is always an abstraction over what it is associated with, whichever side hosts. So every Concept is an abstraction, and an abstraction is a Concept only when it is conceptual by kind. The kind marks physical against associative, never whole against part ([Wholes, parts, and ports](#wholes-parts-and-ports)): a Concept is part and whole among Concepts exactly as Objects are among Objects.
+
+**Never placed, not never changed.** A Concept never takes a placement kind, so nothing puts it somewhere or carries it. It is present wherever it is associated: a room hosts its binding because a member is there, or because an author nested it under the room. Its memberships are still added and re-homed, by ingest and by alignment.
+
+**Physical forest.** Drop every Concept and each binding's parents lie on one host, so physical placement is a forest over hosts and every remaining multi-host shape is an association. Readers rely on it; nothing enforces it.
+
+**Not a referent.** Concepts are internal reasoning structure: the player acts on the physical members, never on the Concept.
 
 ### Wholes, parts, and ports
 

@@ -465,7 +465,7 @@ describe('placement', () => {
     })
 })
 
-describe('a Concept bound in a room (AK-7, AK-8)', () => {
+describe('a Concept bound in a room', () => {
     const systemId = 'CONCEPT#ControlSystem' as EphemeraConceptId
     const terminalId = 'OBJECT#Terminal' as EphemeraObjectId
     const farTerminalId = 'OBJECT#FarTerminal' as EphemeraObjectId
@@ -513,7 +513,7 @@ describe('a Concept bound in a room (AK-7, AK-8)', () => {
         expect(readingsOf(terminalId, terminal!.placement!).map(({ bindings }) => bindings)).toEqual([['PRESENCE#Base']])
     })
 
-    it('offers its name to the name-only refusal (AK-8) and nothing else', async () => {
+    it('offers its name to the name-only refusal and nothing else', async () => {
         const deps = { ...graphsAsDeps(graphs()), ...namedShortNameDeps(names) }
 
         const { cache } = await buildLudicCache(roomA, [], deps)
@@ -521,7 +521,7 @@ describe('a Concept bound in a room (AK-7, AK-8)', () => {
         expect(conceptNamesFromCache(cache)).toEqual(['control system'])
     })
 
-    // AK-7 promises nothing about members bound only in another room: `enumerateLudicCacheShards` walks every
+    // The cache promises nothing about members bound only in another room: `enumerateLudicCacheShards` walks every
     // node of a shard, so `OBJECT#FarTerminal` (bound only under the system's binding in room B) also enters room
     // A's cache today. Over-delivery is accepted (user, 2026-11-01); there is no contract to omit it.
 })

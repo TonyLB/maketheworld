@@ -1,5 +1,5 @@
 /**
- * The physical-forest invariant (conceptKind AK-2), pinned over the worked cases: drop every Concept node, and
+ * The physical-forest invariant (positions contract), pinned over the worked cases: drop every Concept node, and
  * each remaining binding's parents all belong to one host (a join may have several parents, all bindings of one
  * host). The invariant is relied on by the scene's rendering and is NOT enforced by a write-time guard, so these
  * tests state the rule and show that each modelling the plan accepts satisfies it; the negative cases show the
@@ -21,7 +21,7 @@ const physicalParentHosts = (b: Binding): string[] => [...new Set(b.parents.map(
 /** Every binding whose physical parents lie on more than one host. */
 const violations = (bindings: Binding[]): Binding[] => bindings.filter((b) => physicalParentHosts(b).length > 1)
 
-describe('the physical-forest invariant (AK-2)', () => {
+describe('the physical-forest invariant', () => {
     it('the rope end on a table: the end is read through the rope, so the rope has one parent host', () => {
         const bindings = [
             binding('OBJECT#Table', 'onFloor', ['ROOM#Lab', 'Base']),

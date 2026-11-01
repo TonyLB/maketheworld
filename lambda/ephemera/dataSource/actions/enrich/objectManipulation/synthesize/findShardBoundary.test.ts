@@ -1,4 +1,4 @@
-import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraConceptId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId, EphemeraPositionAdjacencyContainedId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import { findShardBoundary, walkAncestryContainers } from './findShardBoundary'
@@ -10,6 +10,7 @@ const ROPE_ID = 'OBJECT#Rope' as EphemeraObjectId
 const CUP_ID = 'OBJECT#Cup' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
 const PLACE_SETTING_ID = 'OBJECT#PlaceSetting' as EphemeraObjectId
+const HEIRLOOMS_ID = 'CONCEPT#FamilyHeirlooms' as EphemeraConceptId
 const HOST_P_ID = 'ROOM#P' as EphemeraRoomId
 const HOST_Q_ID = 'ROOM#Q' as EphemeraRoomId
 const HOST_M_ID = 'OBJECT#M' as EphemeraObjectId
@@ -101,12 +102,15 @@ describe('findShardBoundary', () => {
         expect(result).toEqual({ verdict: 'notFound' })
     })
 
-    it('walks through a multiply-contained intermediate host without erroring (cup on table AND in a place setting, both in the room)', () => {
+    it('walks a multiply-contained endpoint without erroring (cup in a place setting on the table, and associated with a family-heirlooms Concept in the room)', () => {
+        // the cup's one physical host is the place setting, which is on the table; its second container is an
+        // association, the only way a binding gains a parent on a second host (the physical-forest invariant)
         const getMembershipContainers = containersFrom({
             [ROPE_ID]: [ROOM_ID],
-            [CUP_ID]: [TABLE_ID, PLACE_SETTING_ID],
+            [CUP_ID]: [PLACE_SETTING_ID, HEIRLOOMS_ID],
+            [PLACE_SETTING_ID]: [TABLE_ID],
             [TABLE_ID]: [ROOM_ID],
-            [PLACE_SETTING_ID]: [ROOM_ID],
+            [HEIRLOOMS_ID]: [ROOM_ID],
         })
 
         const result = findShardBoundary({ subjectId: ROPE_ID, targetId: CUP_ID }, getMembershipContainers)

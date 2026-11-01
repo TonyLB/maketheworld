@@ -22,7 +22,7 @@
  * seen in the room without one). Still flat scalars, and still not
  * a filter: this records where each thing is seen and drops nothing.
  *
- * **Physical presence only (AK-8).** The cache may reach an Object through a Concept (room -> Concept -> member), and
+ * **Physical presence only.** The cache may reach an Object through a Concept (room -> Concept -> member), and
  * delivers more than it promises, but the catalog is built on physical presence: placements come only from the bindings a
  * walk down the DAG reaches from the rooms and characters (`physicallyReachedBindings`), and the walk treats a Concept as a
  * leaf it neither records nor passes through. So a terminal in the room and associated with a Concept has one reading (its
@@ -57,7 +57,7 @@ const bindingKey = (host: string, presence: string) => `${host}|${presence}`
 /**
  * The bindings a walk down the DAG reaches from the rooms and characters in the cache, through each binding's cover. A Concept
  * is a leaf the walk never records and never passes through, so a binding that hangs only under a Concept's (an associated
- * member's) is never reached (AK-8). Rooms the seed walk never reached still root the walk, so a whole bound into several rooms
+ * member's) is never reached. Rooms the seed walk never reached still root the walk, so a whole bound into several rooms
  * keeps every part (the cache over-delivers, and the catalog keeps what it is given); so does a non-Concept parent the cache
  * does not hold, the edge of what was walked.
  */
@@ -173,7 +173,7 @@ export const handlesFromCache = (
 }
 
 /**
- * The short names of the Concepts the cache reaches, flat (AK-8): the name-only lookup behind the kind-aware refusal
+ * The short names of the Concepts the cache reaches, flat: the name-only lookup behind the kind-aware refusal
  * reads these and nothing else. They never enter the catalog, so a Concept cannot compete with an object in ranking.
  */
 export const conceptNamesFromCache = (cache: EphemeraLudicCacheData): string[] => (

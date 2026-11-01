@@ -9,7 +9,7 @@ export const conceptErrorMessages = {
 } as const
 
 /**
- * The name-only refusal for a Concept (AK-8, option B): a Concept is never a referent, so a span that finds no
+ * The name-only refusal for a Concept: a Concept is never a referent, so a span that finds no
  * physical match but names one exactly (short name, leading article peeled) is refused kindly rather than "not
  * understood". A small replaceable seam, not a general mechanism: the user expects to elaborate it as error
  * reporting is upgraded. A span a catalog entry also matches exactly is a real object's, and the Concept never

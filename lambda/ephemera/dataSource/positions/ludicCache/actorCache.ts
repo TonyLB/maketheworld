@@ -66,7 +66,7 @@ export class ActorLudicCache {
         })
     }
 
-    /** The short names of the Concepts in the cache: not catalog entries, read only by the kind-aware refusal (AK-8). */
+    /** The short names of the Concepts in the cache: not catalog entries, read only by the kind-aware refusal. */
     conceptNames(): string[] {
         return conceptNamesFromCache(this.data)
     }

@@ -3,7 +3,7 @@ import { checkAll, checkTypes } from "./typeguards"
 import { StandardEditableData } from "@tonylb/mtw-base/ts/editable"
 import { isStandardLudicGraphData, StandardLudicGraphData } from "./ludicGraph"
 
-/** A Concept has no render and no situations: describing one is AK-9 (open). */
+/** A Concept has no render and no situations: a Concept is not addressable, so it has no render path. */
 export type StandardConceptData = {
     tag: 'Concept';
     shortName?: StandardEditableData<string>;

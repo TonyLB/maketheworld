@@ -44,10 +44,10 @@ import { renderReference } from "./utils/schema"
 const LUDIC_GRAPH_NODE_TAG_SET = new Set<string>(LUDIC_GRAPH_NODE_TAGS)
 
 /**
- * A Concept is present only by association (AK-1). It names its members the way every other
+ * A Concept is present only by association. It names its members the way every other
  * component does: nested references become `ludicGraph.nodes` memberships, and an inline
  * definition is promoted to a top-level component. It carries no render and no situations
- * (describing one is AK-9, open).
+ * (a Concept is not addressable, so it has no render path).
  */
 export class StandardConceptPayload implements ComponentConstructorMethods<StandardConceptData, StandardConceptData> {
     _shortName?: StandardLiteral;

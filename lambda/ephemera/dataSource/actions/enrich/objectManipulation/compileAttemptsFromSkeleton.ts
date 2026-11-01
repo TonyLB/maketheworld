@@ -201,7 +201,7 @@ export async function compileAttemptsFromSkeleton(
     if (result.type !== 'Abstain') {
         return result
     }
-    // A span that names a Concept and nothing physical is refused by kind (AK-8), not handed up as not understood.
+    // A span that names a Concept and nothing physical is refused by kind (actions contract), not handed up as not understood.
     return refusals.find((refused) => refused.type === 'Error')
         ?? conceptRefusalFor(input.fills.map(({ skeleton }) => skeleton), input.objectCatalog ?? [], input.actorCache?.conceptNames?.() ?? [])
         ?? result
