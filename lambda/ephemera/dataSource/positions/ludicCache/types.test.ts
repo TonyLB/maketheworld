@@ -222,6 +222,7 @@ describe('isEphemeraLudicCacheEdge', () => {
             from: 'OBJECT#boulder',
             to: 'OBJECT#rope',
             kind: 'ConnectedTo',
+            endHosts: { from: 'ROOM#Test', to: 'ROOM#Test' },
         })).toBe(true)
     })
 
@@ -254,11 +255,12 @@ describe('EphemeraLudicCacheEdge terminals (compile-time)', () => {
     const room = 'ROOM#Test' as EphemeraRoomId
     const boulder = 'OBJECT#boulder' as EphemeraObjectId
     const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
+    const endHosts = { from: room, to: room }
 
     it('refuses a bare presence id and accepts the owner-qualified form', () => {
         // @ts-expect-error a bare own-binding id is not a cache terminal
-        const bare: EphemeraLudicCacheEdge = { tag: 'Relational', from: boulder, to: binding, kind: 'ConnectedTo' }
-        const lifted: EphemeraLudicCacheEdge = { tag: 'Relational', from: boulder, to: { owner: room, port: binding }, kind: 'ConnectedTo' }
+        const bare: EphemeraLudicCacheEdge = { tag: 'Relational', from: boulder, to: binding, kind: 'ConnectedTo', endHosts }
+        const lifted: EphemeraLudicCacheEdge = { tag: 'Relational', from: boulder, to: { owner: room, port: binding }, kind: 'ConnectedTo', endHosts }
         expect(isEphemeraLudicCacheEdge(bare)).toBe(false)
         expect(isEphemeraLudicCacheEdge(lifted)).toBe(true)
     })
@@ -276,6 +278,7 @@ describe('isEphemeraLudicCacheData', () => {
         from: 'OBJECT#boulder',
         to: 'OBJECT#rope',
         kind: 'ConnectedTo' as const,
+        endHosts: { from: 'ROOM#Test', to: 'ROOM#Test' },
     }
 
     it('accepts a well-formed cache', () => {
@@ -438,6 +441,13 @@ describe('isEphemeraLudicCacheData', () => {
                 to: { owner: 'OBJECT#helmet', port: 'PRESENCE#not-pulled' },
             }],
         })).toBe(true)
+    })
+
+    it('rejects an edge without endHosts, so a stored row from before the field reads as malformed', () => {
+        const { endHosts, ...legacy } = validEdge
+        expect(isEphemeraLudicCacheData({ hostId: 'ROOM#Test', nodes: [validNode], edges: [legacy] })).toBe(false)
+        expect(isEphemeraLudicCacheData({ hostId: 'ROOM#Test', nodes: [validNode], edges: [{ ...validEdge, endHosts: { from: 'ROOM#Test' } }] })).toBe(false)
+        expect(isEphemeraLudicCacheData({ hostId: 'ROOM#Test', nodes: [validNode], edges: [{ ...validEdge, endHosts: { from: 'ROOM#Test', to: 'not a host' } }] })).toBe(false)
     })
 
     it('rejects an edge terminating at a bare presence terminal', () => {

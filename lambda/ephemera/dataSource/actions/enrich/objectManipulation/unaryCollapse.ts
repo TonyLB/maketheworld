@@ -1,6 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { ObjectManipulationCatalogScope } from './catalogMerge'
+import type { ObjectManipulationCatalogScope } from '../../actorObjectCatalog'
 import { selectSingleSpanFromPool, spanResolutionErrorReason } from './selectSingleSpanFromPool'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import type { SpanCandidateLocus, SpanCandidatePool } from './spanResolution'

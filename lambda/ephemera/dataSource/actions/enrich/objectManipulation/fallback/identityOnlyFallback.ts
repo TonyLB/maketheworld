@@ -2,7 +2,7 @@ import { isEphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import type { CommandAttempt } from '../../../commandAttempt'
 import { invokeBedrockObjectManipulationEnrich } from '../../../../../generateExample/invokeBedrockObjectManipulationEnrich'
-import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../../actorObjectCatalog'
 import { identityPlanCandidateFromSpan, type IdentityPlanCandidate } from '../identityPlanCandidate'
 import { objectManipulationErrorMessages } from '../resolveObjectSpan'
 import type { ObjectSpanCandidate } from '../spanResolution'

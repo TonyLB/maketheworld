@@ -10,7 +10,7 @@ import { glossToJSON, isGlossHost } from '@tonylb/mtw-wml/ts/standardize/compone
 import type { StandardComponent } from '@tonylb/mtw-wml/ts/standardize/components/baseClasses'
 
 /**
- * Shared component shortName resolution --- extracted from `actions/roomObjectCatalogForCharacter.ts` so
+ * Shared component shortName resolution --- extracted from the former `actions/roomObjectCatalogForCharacter.ts` so
  * `renderCache/ensureObjectShortNameCacheRecord.ts` (the Object description stub) can resolve the same
  * perspective-merged shortName without duplicating the asset-merge logic. `shortName` is a member of
  * `StandardComponent` itself, not Object-specific, so any component kind resolves the same way.

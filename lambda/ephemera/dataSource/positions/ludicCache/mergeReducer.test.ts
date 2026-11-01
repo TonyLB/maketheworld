@@ -7,11 +7,31 @@ import type { EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@
 import type { EphemeraCrossingPortId, EphemeraLudicGraphComponentNode, EphemeraLudicGraphPort, EphemeraLudicGraphStructureNode, EphemeraLudicRelationalEdgeData, EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
 import type { EphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import { nodesFromPresenceBinding, subGraphFromNodes } from '../ludicGraph/presenceSubGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { collapseCrossingPorts, collapsedEdgeIdentityKey, foldSameHostBuckets, mergeSameHostBucket } from './mergeReducer'
+import { collapsedEdgeIdentityKey, joinCrossingLegs, mergeSameHostBucket } from './mergeReducer'
+import { cacheFromHostGraph } from './cacheFromHostGraph'
+import { toStoredRelationalEdge, type HostRelationalEdge } from '../ludicGraph'
+import type { EphemeraLudicCacheEdge, EphemeraLudicCacheTerminalId } from './types'
 import { isEphemeraLudicCacheEdge } from './types'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
+import type { EphemeraLudicGraph } from '../ludicGraph'
+import { unionAllLudicCaches } from './unionCaches'
+
+/**
+ * What the retired `collapseCrossingPorts(parent, child)` did, through the one composition rule: each graph's edges as a
+ * cache contribution, unioned. Legs with no partner stay in the result as open legs. (These fixtures carry no bindings, so
+ * they skip `cacheFromHostGraph`; lifting a bare presence terminal to its exterior form is tested there, below.)
+ */
+const collapseCrossingPorts = (parentGraph: EphemeraLudicGraph, childGraph: EphemeraLudicGraph) => unionAllLudicCaches(
+    parentGraph.hostId as EphemeraMembershipHostId,
+    [parentGraph, childGraph].map((graph) => ({
+        hostId: graph.hostId as EphemeraMembershipHostId,
+        nodes: [],
+        edges: graph.relationalEdges.map((edge) => ({ ...toStoredRelationalEdge(edge), endHosts: { from: graph.hostId, to: graph.hostId } }) as EphemeraLudicCacheEdge),
+    }))
+).edges
 
 const roomId = 'ROOM#Root' as EphemeraRoomId
 const boxId = 'OBJECT#Box' as EphemeraObjectId
@@ -66,7 +86,7 @@ const childLeg = (portId: EphemeraCrossingPortId, to: EphemeraLudicRelationalEdg
     kind,
 } as EphemeraLudicRelationalEdgeData)
 
-describe('collapseCrossingPorts', () => {
+describe('the union joins a crossing port\'s two legs (formerly collapseCrossingPorts)', () => {
     it('collapses a single matched leg pair into one edge with the port terminal rewritten', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
@@ -84,6 +104,7 @@ describe('collapseCrossingPorts', () => {
                 from: boulder,
                 to: pebble,
                 kind: 'ConnectedTo',
+                endHosts: { from: roomId, to: boxId },
             },
         ])
     })
@@ -129,56 +150,6 @@ describe('collapseCrossingPorts', () => {
         expect(result.map((edge) => edge.edgeId).sort()).toEqual(['edge_1', 'edge_2'])
     })
 
-    // The payoff for tagging the exterior address (PN-24), reversed by PNR-2 (Slice 3). One
-    // presence binding has two addresses --- its bare node id, and the exterior
-    // `{ owner, port: 'PRESENCE#...' }` form --- so two legs reaching the SAME binding by different
-    // addresses must land on one cache record, not two records asserting one edge
-    // twice. `collapsedEdgeIdentityKey` now normalizes UP to the exterior form (nesting made a
-    // binding's cache lookup a path, so the owner must travel with the port id), which is why the
-    // surviving record's `to` is the owner-qualified form, not the bare id --- `liftPresenceTerminal`
-    // widens the bare leg (`childLeg('PORT-port_1', binding)`) to match the already-qualified one.
-    it('dedups two legs reaching one presence binding by its two different addresses', () => {
-        const binding = 'PRESENCE#b1' as EphemeraPresenceNodeId
-        const parentGraph = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
-            edges: [parentLeg('PORT-port_1'), parentLeg('PORT-port_2')],
-        })
-        const childGraph = testLudicGraph(boxId, {
-            nodes: [{ tag: 'Object', universalKey: boxId }, presenceNode('b1', enumeratedCover(boxId))],
-            edges: [
-                childLeg('PORT-port_1', binding),
-                childLeg('PORT-port_2', { owner: boxId, port: binding }),
-            ],
-            ports: [crossingPort('PORT-port_1'), crossingPort('PORT-port_2')],
-        })
-
-        const result = collapseCrossingPorts(parentGraph, childGraph)
-        expect(result).toHaveLength(1)
-        expect(result[0]).toMatchObject({ from: boulder, to: { owner: boxId, port: binding }, kind: 'ConnectedTo' })
-    })
-
-    // The parent leg's other end is cache-bound too (contract: "Every reference to a binding names its owner"). A bare
-    // `PRESENCE#` there is legal in the parent's own graph, but would reach the cache bare, so it
-    // is lifted to the exterior form with the parent's host as owner.
-    it("lifts a parent leg's bare presence end to the parent's exterior form", () => {
-        const parentBinding = 'PRESENCE#p1' as EphemeraPresenceNodeId
-        const parentGraph = testLudicGraph(roomId, {
-            nodes: [{ tag: 'Room', universalKey: roomId }, presenceNode('p1', enumeratedCover(boulder))],
-            edges: [{ tag: 'Relational', from: parentBinding, to: { owner: boxId, port: 'PORT-port_1' }, kind: 'ConnectedTo' }],
-        })
-        const childGraph = testLudicGraph(boxId, {
-            nodes: [{ tag: 'Object', universalKey: boxId }, { tag: 'Object', universalKey: pebble }],
-            edges: [childLeg('PORT-port_1', pebble)],
-            ports: [crossingPort('PORT-port_1')],
-        })
-
-        const result = collapseCrossingPorts(parentGraph, childGraph)
-        expect(result).toEqual([
-            { tag: 'Relational', from: { owner: roomId, port: parentBinding }, to: pebble, kind: 'ConnectedTo' },
-        ])
-        expect(result.every((edge) => isEphemeraLudicCacheEdge(edge))).toBe(true)
-    })
-
     it('does not collapse two edges that only coincidentally reach the same identity if their kinds disagree', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }, { tag: 'Object', universalKey: boulder }],
@@ -193,7 +164,7 @@ describe('collapseCrossingPorts', () => {
         expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
     })
 
-    it('skips a crossing port with no matching leg on the parent side', () => {
+    it('keeps a crossing port with no matching leg on the parent side as an open leg', () => {
         const parentGraph = testLudicGraph(roomId, {
             nodes: [{ tag: 'Room', universalKey: roomId }],
             edges: [],
@@ -204,7 +175,9 @@ describe('collapseCrossingPorts', () => {
             ports: [crossingPort('PORT-port_1')],
         })
 
-        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([])
+        expect(collapseCrossingPorts(parentGraph, childGraph)).toEqual([
+            { tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: feather, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } },
+        ])
     })
 
     // Slice 3f (ISS8149): `edgeId` used to be invisible to `legsAgree`, so two legs carrying
@@ -223,6 +196,56 @@ describe('collapseCrossingPorts', () => {
         })
 
         expect(() => collapseCrossingPorts(parentGraph, childGraph)).toThrow(/disagree/)
+    })
+})
+
+describe('joinCrossingLegs', () => {
+    const port = { owner: boxId, port: 'PORT-p1' as const }
+    const leg = (from: EphemeraLudicCacheTerminalId, to: EphemeraLudicCacheTerminalId, extra: Partial<HostRelationalEdge<EphemeraLudicCacheTerminalId>> = {}): HostRelationalEdge<EphemeraLudicCacheTerminalId> =>
+        ({ from, to, kind: 'ConnectedTo', ...extra }) as HostRelationalEdge<EphemeraLudicCacheTerminalId>
+
+    it('joins two distinct legs on one crossing-port address into one edge (cache-edge terminals)', () => {
+        const result = joinCrossingLegs([leg(boulder, port), leg(port, pebble)])
+        expect(result.edges).toEqual([leg(boulder, pebble)])
+        expect(result.joinedPorts).toEqual([port])
+    })
+
+    it('does not splice a transit leg to its own copy', () => {
+        const transit = leg({ owner: roomId, port: 'PORT-a' }, { owner: roomId, port: 'PORT-b' })
+        const result = joinCrossingLegs([transit, { ...transit }])
+        expect(result.edges).toEqual([transit])
+        expect(result.joinedPorts).toEqual([])
+    })
+
+    it('does not join an exact duplicate leg to its copy', () => {
+        const result = joinCrossingLegs([leg(boulder, port), leg(boulder, port)])
+        expect(result.edges).toEqual([leg(boulder, port)])
+        expect(result.joinedPorts).toEqual([])
+    })
+
+    it('leaves a port with one leg open', () => {
+        const result = joinCrossingLegs([leg(boulder, port), leg(pebble, feather)])
+        expect(result.edges).toEqual([leg(boulder, port), leg(pebble, feather)])
+        expect(result.joinedPorts).toEqual([])
+    })
+
+    it('puts joined edges first, then untouched legs', () => {
+        const result = joinCrossingLegs([leg(pebble, feather), leg(boulder, port), leg(port, objC)])
+        expect(result.edges).toEqual([leg(boulder, objC), leg(pebble, feather)])
+    })
+
+    it('throws when the two legs disagree on edgeId, kind or chainId', () => {
+        expect(() => joinCrossingLegs([leg(boulder, port, { edgeId: 'E1' }), leg(port, pebble, { edgeId: 'E2' })])).toThrow(/disagree/)
+        expect(() => joinCrossingLegs([leg(boulder, port), leg(port, pebble, { kind: 'Custom', relationLabel: 'x' } as any)])).toThrow(/disagree/)
+        expect(() => joinCrossingLegs([leg(boulder, port, { chainId: 'C1' }), leg(port, pebble, { chainId: 'C2' })])).toThrow(/disagree/)
+    })
+
+    it('never joins binding addresses, even with two distinct legs', () => {
+        const binding = { owner: boxId, port: 'PRESENCE#b1' as EphemeraPresenceNodeId }
+        const legs = [leg(boulder, binding), leg(binding, pebble)]
+        const result = joinCrossingLegs(legs)
+        expect(result.edges).toEqual(legs)
+        expect(result.joinedPorts).toEqual([])
     })
 })
 
@@ -329,14 +352,36 @@ describe('mergeSameHostBucket', () => {
     })
 })
 
-describe('foldSameHostBuckets', () => {
+describe('cacheFromHostGraph', () => {
+    it('keeps a leg still open at an authored crossing port of the host (the union joins it or leaves it open)', () => {
+        const childGraph = testLudicGraph(boxId, {
+            nodes: [
+                { tag: 'Object', universalKey: boxId },
+                { tag: 'Object', universalKey: pebble },
+                presenceNode('b1', { members: [{ host: pebble, presence: ownBinding(pebble) }] }),
+            ],
+            edges: [childLeg('PORT-port_1', pebble)],
+            ports: [crossingPort('PORT-port_1')],
+        })
+
+        const { edges } = cacheFromHostGraph(childGraph)
+
+        expect(edges).toEqual([{ tag: 'Relational', from: { owner: boxId, port: 'PORT-port_1' }, to: pebble, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } }])
+    })
+
     // Three presence buckets on one host. `objC -[Custom: under]-> objD` straddles the adjacent pair
     // (bucket 1/bucket 2). `objE
     // -[Custom: against]-> objF` straddles bucket 1 and bucket 3 with bucket 2 contributing nothing to
     // it at all --- the case that forces a real walk to carry bucket 1's unmatched stub *through*
     // bucket 2 (which cannot resolve it) rather than only comparing each bucket to its immediate
     // predecessor.
-    const graph = testLudicGraph(roomId, {
+    const bindings = [
+        presenceNode('port_1', enumeratedCover(charA, objC, objE)),
+        presenceNode('port_2', enumeratedCover(charB, objD)),
+        presenceNode('port_3', enumeratedCover(charC, objF)),
+    ]
+    // The walk visits buckets in the order the graph lists its presence nodes.
+    const graphWithBindings = (presenceNodes: EphemeraLudicGraphStructureNode[]) => testLudicGraph(roomId, {
         nodes: [
             { tag: 'Room', universalKey: roomId },
             { tag: 'Character', universalKey: charA },
@@ -346,31 +391,32 @@ describe('foldSameHostBuckets', () => {
             { tag: 'Object', universalKey: objD },
             { tag: 'Object', universalKey: objE },
             { tag: 'Object', universalKey: objF },
-            presenceNode('port_1', enumeratedCover(charA, objC, objE)),
-            presenceNode('port_2', enumeratedCover(charB, objD)),
-            presenceNode('port_3', enumeratedCover(charC, objF)),
+            ...presenceNodes,
         ],
         edges: [
             { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
             { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
         ],
     })
+    const graph = graphWithBindings(bindings)
 
     const expectedEdges = [
-        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under' },
-        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against' },
+        { tag: 'Relational', from: objC, to: objD, kind: 'Custom', relationLabel: 'under', endHosts: { from: roomId, to: roomId } },
+        { tag: 'Relational', from: objE, to: objF, kind: 'Custom', relationLabel: 'against', endHosts: { from: roomId, to: roomId } },
     ]
 
     it('reconstructs both interior edges via a single accumulating fold walk, cutting one bucket at a time', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+        const result = cacheFromHostGraph(graph)
 
         expect(result.edges).toHaveLength(2)
         expect(result.edges).toEqual(expect.arrayContaining(expectedEdges))
     })
 
     it('does not depend on the order buckets are visited in --- a still-open stub is carried in the walk\'s own state, not compared only to the immediately preceding bucket', () => {
-        const forward = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
-        const shuffled = foldSameHostBuckets(graph, ['port_3', 'port_1', 'port_2'])
+        const shuffledGraph = graphWithBindings([bindings[2], bindings[0], bindings[1]])
+        expect(shuffledGraph.presenceNodes.map((node) => node.universalKey)).toEqual(['PRESENCE#port_3', 'PRESENCE#port_1', 'PRESENCE#port_2'])
+        const forward = cacheFromHostGraph(graph)
+        const shuffled = cacheFromHostGraph(shuffledGraph)
 
         expect(forward.edges).toHaveLength(2)
         expect(shuffled.edges).toHaveLength(2)
@@ -394,15 +440,15 @@ describe('foldSameHostBuckets', () => {
             ],
         })
 
-        const result = foldSameHostBuckets(bareGraph, ['port_1'])
+        const result = cacheFromHostGraph(bareGraph)
 
         expect(result.edges).toEqual([
-            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'ConnectedTo' },
+            { tag: 'Relational', from: pebble, to: { owner: boxId, port: 'PRESENCE#port_1' }, kind: 'ConnectedTo', endHosts: { from: boxId, to: boxId } },
         ])
     })
 
-    it('mints one cache binding per binding folded, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])
+    it('mints one cache binding per binding of the host, with an Enumerated cover copying the graph-side entries, each naming the member\'s own binding (item 3, PN-7/PN-15/PN-19)', () => {
+        const result = cacheFromHostGraph(graph)
 
         expect(result.presenceNodes).toHaveLength(3)
         expect(result.presenceNodes).toEqual(expect.arrayContaining([
@@ -442,24 +488,6 @@ describe('foldSameHostBuckets', () => {
             },
         ]))
     })
-
-    it('mints nothing for a presenceUuid with no matching graph node (degenerate: no node minted, or a stale/legacy binding), given every real binding is otherwise consolidated', () => {
-        const result = foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3', 'nonexistent'])
-
-        expect(result.presenceNodes).toHaveLength(3)
-        expect(result.presenceNodes.map((node) => node.universalKey).sort()).toEqual([
-            'PRESENCE#port_1', 'PRESENCE#port_2', 'PRESENCE#port_3',
-        ])
-    })
-
-    it("throws when presenceUuids consolidates a proper subset of the host's real presence bindings (clause 3: zero or all, never some)", () => {
-        expect(() => foldSameHostBuckets(graph, ['port_1'])).toThrow(/zero or all/)
-    })
-
-    it('does not throw when presenceUuids is empty (unexamined) or names every real binding (fully consolidated)', () => {
-        expect(() => foldSameHostBuckets(graph, [])).not.toThrow()
-        expect(() => foldSameHostBuckets(graph, ['port_1', 'port_2', 'port_3'])).not.toThrow()
-    })
 })
 
 //
@@ -477,7 +505,7 @@ describe('foldSameHostBuckets', () => {
 // stated wholly inside OBJECT#C's own graph (both D and E are its members, interior, no port)
 // or stated at ROOM#A's level as a boundary-crossing edge between B's and C's exterior ports
 // (since only D, not E, is reachable from inside B). Only the second route ever reaches
-// `collapseCrossingPorts` at all -- the first route has no crossing port for the reducer to
+// the union at all -- the first route has no crossing port for the reducer to
 // act on, and surfacing it is Slice 2/3's job (node enumeration and the real fold), neither
 // built yet. So the fixtures below encode the *routed-through-ports* reading, which is the one
 // this slice can actually run against shipped code; the interior-to-C reading is recorded as a
@@ -550,8 +578,10 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const parentAfterB = testLudicGraph(roomId, { nodes: roomNodes, edges: [afterB[0]] })
         const afterC = collapseCrossingPorts(parentAfterB, cGraphWithPort)
 
+        // (The threaded partial edge is re-read as a graph edge, which carries no `endHosts`, so the hand-threaded
+        // end is stamped with the parent's host: an artifact of this fixture, not of the union.)
         expect(afterC).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', endHosts: { from: roomId, to: objC } },
         ])
 
         // The order variant: merge C first against the same unmodified parent, then thread that
@@ -564,7 +594,7 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
         const afterBSecond = collapseCrossingPorts(parentAfterC, bGraphWithPort)
 
         expect(afterBSecond).toEqual([
-            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against' },
+            { tag: 'Relational', from: objD, to: objE, kind: 'Custom', relationLabel: 'against', endHosts: { from: objB, to: roomId } },
         ])
     })
 
@@ -587,16 +617,17 @@ describe('LC8/LC10/LC11: the box-and-contraption diamond', () => {
 })
 
 describe('collapsedEdgeIdentityKey: ConnectedTo symmetry', () => {
+    const endHosts = { endHosts: { from: 'OBJECT#Rope' as EphemeraMembershipHostId, to: 'OBJECT#Rope' as EphemeraMembershipHostId } }
     const a = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#a' as const }
     const b = { owner: 'OBJECT#Rope' as EphemeraObjectId, port: 'PRESENCE#b' as const }
 
     it('hashes a ConnectedTo edge alike in either endpoint order', () => {
-        expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'ConnectedTo' }))
-            .toEqual(collapsedEdgeIdentityKey({ tag: 'Relational', from: b, to: a, kind: 'ConnectedTo' }))
+        expect(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: a, to: b, kind: 'ConnectedTo' }))
+            .toEqual(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: b, to: a, kind: 'ConnectedTo' }))
     })
 
     it('keeps Custom directional', () => {
-        expect(collapsedEdgeIdentityKey({ tag: 'Relational', from: a, to: b, kind: 'Custom', relationLabel: 'tied to' }))
-            .not.toEqual(collapsedEdgeIdentityKey({ tag: 'Relational', from: b, to: a, kind: 'Custom', relationLabel: 'tied to' }))
+        expect(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: a, to: b, kind: 'Custom', relationLabel: 'tied to' }))
+            .not.toEqual(collapsedEdgeIdentityKey({ ...endHosts, tag: 'Relational', from: b, to: a, kind: 'Custom', relationLabel: 'tied to' }))
     })
 })

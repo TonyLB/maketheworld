@@ -6,9 +6,9 @@ import {
 
 import {
     attachEmbeddingsToCatalogEntries,
-    catalogObjectIdsUnion,
+    catalogObjectIds,
 } from './attachEmbeddingsToCatalogEntries'
-import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
+import type { RoomInPlayObjectCatalogEntry } from './actorObjectCatalog'
 
 const TEST_MODEL_ID = 'amazon.titan-embed-text-v2:0'
 
@@ -22,22 +22,20 @@ const makeEmbedding = (axis: number): SemanticEmbedding => {
     return SemanticEmbedding.fromFloat32(values, { modelId: TEST_MODEL_ID })
 }
 
-describe('catalogObjectIdsUnion', () => {
-    it('returns deduped union of room and held objectIds', () => {
-        const room: RoomInPlayObjectCatalogEntry[] = [
+describe('catalogObjectIds', () => {
+    it('returns the deduped objectIds', () => {
+        const entries: RoomInPlayObjectCatalogEntry[] = [
             { objectId: broomId, normalizedShortName: 'broom' },
             { objectId: anvilId, normalizedShortName: 'anvil' },
-        ]
-        const held: RoomInPlayObjectCatalogEntry[] = [
-            { objectId: broomId, normalizedShortName: 'held broom' },
+            { objectId: broomId, normalizedShortName: 'broom again' },
             { objectId: pouchId, normalizedShortName: 'pouch' },
         ]
 
-        expect(catalogObjectIdsUnion(room, held)).toEqual([broomId, anvilId, pouchId])
+        expect(catalogObjectIds(entries)).toEqual([broomId, anvilId, pouchId])
     })
 
-    it('returns empty array when both catalogs are empty', () => {
-        expect(catalogObjectIdsUnion([], [])).toEqual([])
+    it('returns empty array when the catalog is empty', () => {
+        expect(catalogObjectIds([])).toEqual([])
     })
 })
 

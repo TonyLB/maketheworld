@@ -14,6 +14,7 @@ import type { ParseSkeleton } from './parse/parseToken'
 import type { SemanticEmbedding } from '@tonylb/mtw-lambda-patterns/ts/semanticEmbedding'
 import { makeEmbeddingFromAxis } from './embeddingMatch/testing/mockVectors'
 import { planSkeleton } from './plan/attemptTemplateFixture'
+import { containersCache, scopedCatalog } from '../../objectCatalogTestSupport'
 
 jest.mock('../../../../internalCache', () => ({
     __esModule: true,
@@ -38,8 +39,11 @@ const tableId = 'OBJECT#Table' as EphemeraObjectId
 const entry = (objectId: EphemeraObjectId, normalizedShortName: string, embedding?: SemanticEmbedding) => ({ objectId, normalizedShortName, ...(embedding !== undefined ? { embedding } : {}) })
 
 const readsWith = (hostsOf: Record<string, EphemeraRoomId[] | string[]> = {}) => ({
-    getMembershipContainers: jest.fn(async (id: string) => (hostsOf[id] ?? [roomId]) as any),
-    getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+    actorCache: containersCache((id) => hostsOf[id] ?? [roomId]),
+    positionsReadDeps: {
+        getMembershipContainers: jest.fn(async (id: string) => (hostsOf[id] ?? [roomId]) as any),
+        getLudicGraph: jest.fn(async (hostId: string) => testLudicGraph(hostId as EphemeraRoomId)),
+    },
 })
 
 const takeSkeleton = (span: string): ParseSkeleton => [
@@ -61,9 +65,9 @@ const compile = (
     extra: { startPass?: 'pure' | 'full'; answers?: { referentAnswers: Record<string, string> } } = {},
     reads = readsWith()
 ) => compileAttemptsFromSkeleton(
-    { command, fills: planSkeleton(skeleton, command).fills, characterId: actor, hostRoomId: roomId, roomObjectCatalog: catalog, ...extra },
+    { command, fills: planSkeleton(skeleton, command).fills, characterId: actor, hostRoomId: roomId, objectCatalog: scopedCatalog(catalog), actorCache: reads.actorCache, ...extra },
     0.9,
-    { positionsReadDeps: reads }
+    { positionsReadDeps: reads.positionsReadDeps }
 )
 
 const takenObjectOf = (result: { type: string; attempt?: unknown }): any => {
@@ -145,13 +149,13 @@ describe('compileAttemptsFromSkeleton pure pass', () => {
             referentAnswers: answers,
             challengeAnswers: {},
         })
-        const world = (catalog: ReturnType<typeof entry>[]) => ({ characterId: actor, hostRoomId: roomId, roomObjectCatalog: catalog })
+        const world = (catalog: ReturnType<typeof entry>[]) => ({ characterId: actor, hostRoomId: roomId, objectCatalog: scopedCatalog(catalog), actorCache: readsWith().actorCache })
 
         it('answers a pure Consult without an embed', async () => {
             const { root, pass, answers } = await consulted()
             expect(pass).toBe('pure')
 
-            const result = await resumePersistentCommand(rowFor(root, answers, pass), world(twoCups), { positionsReadDeps: readsWith() })
+            const result = await resumePersistentCommand(rowFor(root, answers, pass), world(twoCups), { positionsReadDeps: readsWith().positionsReadDeps })
 
             expect(result.type).toBe('CommandAttempt')
             expect(takenObjectOf(result)).toBe(redCupId)
@@ -161,7 +165,7 @@ describe('compileAttemptsFromSkeleton pure pass', () => {
         it.each([['full', 'full' as const], ['no pass', undefined]])('starts at the full pass for a payload with %s', async (_label, pass) => {
             const { root, answers } = await consulted()
 
-            await resumePersistentCommand(rowFor(root, answers, pass), world(twoCups), { positionsReadDeps: readsWith() })
+            await resumePersistentCommand(rowFor(root, answers, pass), world(twoCups), { positionsReadDeps: readsWith().positionsReadDeps })
 
             expect(mockGet).toHaveBeenCalled()
         })
@@ -169,7 +173,7 @@ describe('compileAttemptsFromSkeleton pure pass', () => {
         it('falls through to the full pass when the world changed so the pure pass no longer succeeds', async () => {
             const { root, pass, answers } = await consulted()
 
-            await resumePersistentCommand(rowFor(root, answers, pass), world([entry(redCupId, 'teapot'), entry(blueCupId, 'kettle')]), { positionsReadDeps: readsWith() })
+            await resumePersistentCommand(rowFor(root, answers, pass), world([entry(redCupId, 'teapot'), entry(blueCupId, 'kettle')]), { positionsReadDeps: readsWith().positionsReadDeps })
 
             expect(mockGet).toHaveBeenCalled()
         })

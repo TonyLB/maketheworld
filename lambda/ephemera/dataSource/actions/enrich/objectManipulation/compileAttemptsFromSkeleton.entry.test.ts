@@ -12,6 +12,7 @@ import { planFillOf } from './plan/attemptTemplateFixture'
 import { peerRelationFixture } from './peerRelationFixture'
 import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
 import { tokenize } from '../../deterministicTemplate/granuleTokens'
+import { containersCache, scopedCatalog } from '../../objectCatalogTestSupport'
 
 const relationalSkeleton = (
     verb: string,
@@ -88,7 +89,8 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [peerRelationFixture('put the broom under the table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: relationalCatalog,
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog(relationalCatalog),
             },
             0.9,
             {
@@ -122,10 +124,11 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'), attempts: [peerRelationFixture('wrap the string around the top', relationalSkeleton('put', 'string', 'stringRef', 'around', 'top', 'topRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })] }],
                 characterId,
                 hostRoomId: roomId,
-                heldInventoryCatalog: [
+                actorCache: containersCache(() => [characterId]),
+                objectCatalog: scopedCatalog([], [
                     { objectId: stringId, normalizedShortName: 'string' },
                     { objectId: topId, normalizedShortName: 'top' },
-                ],
+                ]),
             },
             0.9,
             {
@@ -161,7 +164,8 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), attempts: [peerRelationFixture('lean rope against anvil', relationalSkeleton('lean', 'rope', 'ropeRef', 'against', 'anvil', 'anvilRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: anvilCatalog,
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog(anvilCatalog),
             },
             0.88,
             {
@@ -191,10 +195,11 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'), attempts: [peerRelationFixture('tie cord around crate', relationalSkeleton('tie', 'cord', 'cordRef', 'around', 'crate', 'crateRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'around' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog([
                     { objectId: cordId, normalizedShortName: 'cord' },
                     { objectId: crateId, normalizedShortName: 'crate' },
-                ],
+                ]),
             },
             0.87,
             {
@@ -223,6 +228,19 @@ describe('compileAttemptsFromSkeleton', () => {
     it('grounds dissolve fixture take rope off crate via the native skeleton pipeline', async () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: crateId },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: ropeId,
+                to: crateId,
+                kind: 'Custom',
+                relationLabel: 'off',
+            }],
+        })
 
         const result = await compileAttemptsFromSkeleton(
             {
@@ -230,28 +248,17 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), attempts: [peerRelationFixture('take rope off crate', relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), { primitive: 'dissolveRelation', relationKind: 'Custom', relationLabel: 'off' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                actorCache: containersCache(() => [roomId], [roomGraph]),
+                objectCatalog: scopedCatalog([
                     { objectId: ropeId, normalizedShortName: 'rope' },
                     { objectId: crateId, normalizedShortName: 'crate' },
-                ],
+                ]),
             },
             0.86,
             {
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getLudicGraph: jest.fn().mockResolvedValue(testLudicGraph(roomId, {
-                        nodes: [
-                            { tag: 'Object' as const, universalKey: ropeId },
-                            { tag: 'Object' as const, universalKey: crateId },
-                        ],
-                        edges: [{
-                            tag: 'Relational',
-                            from: ropeId,
-                            to: crateId,
-                            kind: 'Custom',
-                            relationLabel: 'off',
-                        }],
-                    })),
+                    getLudicGraph: jest.fn().mockResolvedValue(roomGraph),
                 },
             }
         )
@@ -276,10 +283,11 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), attempts: [peerRelationFixture('lean the ladder leaning against the wall', relationalSkeleton('lean', 'ladder', 'ladderRef', 'leaning against', 'wall', 'wallRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'against' })] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: [
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog([
                     { objectId: ladderId, normalizedShortName: 'ladder' },
                     { objectId: wallId, normalizedShortName: 'wall' },
-                ],
+                ]),
             },
             0.9,
             {
@@ -323,7 +331,8 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
                 command: 'look broom',
                 fills: [{ skeleton: lookSkeleton, attempts: [planned(takeSkeleton), planned(lookSkeleton)] }],
                 characterId,
-                roomObjectCatalog: catalog,
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog(catalog),
             },
             0.9
         )
@@ -341,7 +350,8 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
                 fills: [{ skeleton: lookSkeleton, attempts: [peerRelationFixture('look broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' }), planned(lookSkeleton)] }],
                 characterId,
                 hostRoomId: roomId,
-                roomObjectCatalog: relationalCatalog,
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog(relationalCatalog),
             },
             0.9,
             {
@@ -361,7 +371,8 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
                 command: 'take broom',
                 fills: [{ skeleton: takeSkeleton, attempts: [planned(takeSkeleton), peerRelationFixture('take broom', relationSkeletonForPool, { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
-                roomObjectCatalog: relationalCatalog,
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog(relationalCatalog),
             },
             0.9
         )
@@ -376,7 +387,8 @@ describe('compileAttemptsFromSkeleton (a mixed pool, ISS8203 slice 4.5)', () => 
                 command,
                 fills: planTokens(tokenize(COMMAND_GRANULES, command), command),
                 characterId,
-                roomObjectCatalog: catalog,
+                actorCache: containersCache(() => [roomId]),
+                objectCatalog: scopedCatalog(catalog),
             },
             0.9
         )

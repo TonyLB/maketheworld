@@ -1,6 +1,6 @@
 import type { CommandAttempt } from '../../../commandAttempt'
 import type { ParseObjectManipulationEnrichPromptParts } from '../buildPrompt'
-import type { ObjectManipulationCatalogEntry } from '../catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../../actorObjectCatalog'
 
 const IDENTITY_ONLY_FALLBACK_INVARIANT_PREFIX = `You ground a player object noun phrase to catalog object ids, ranked by confidence.
 

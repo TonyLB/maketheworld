@@ -119,6 +119,9 @@ const commandExpand = (
         if (result.verdict === 'crossed') {
             return { kind: 'retire', output: { kind: 'relationalChain', operationKind: step.primitive, steps: result.chain } }
         }
+        if (result.verdict === 'found') {
+            return { kind: 'retire', output: { kind: 'relationFound', operationKind: 'dissolveRelation', edge: result.edge } }
+        }
         if (result.verdict === 'defer') {
             return { kind: 'defer', decidable: result.decidable, reason: result.reason }
         }

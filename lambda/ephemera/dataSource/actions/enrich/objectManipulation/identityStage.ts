@@ -1,4 +1,4 @@
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { resolveCatalogSpanToPool, type SpanResolver } from './resolveCatalogSpanToPool'
 import type { SpanStructure } from './parse/parseToken'
 import type { SpanCandidatePool } from './spanResolution'

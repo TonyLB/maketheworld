@@ -3,7 +3,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { runIdentityStageOverReferenceKeys, runIdentityStageOverSkeleton } from './identifySkeletonSpans'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { resolvePureSpanToPool } from './resolvePureSpanToPool'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import type { ParseSkeleton } from './parse/parseToken'
 
 import internalCache from '../../../../internalCache'

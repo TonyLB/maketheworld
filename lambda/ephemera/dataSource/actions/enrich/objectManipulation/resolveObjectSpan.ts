@@ -1,6 +1,6 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
-import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
+import type { RoomInPlayObjectCatalogEntry } from '../../actorObjectCatalog'
 import { spanMatchForms } from './spanMatchForms'
 
 export const objectManipulationErrorMessages = {

@@ -3,7 +3,7 @@ import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { runIdentityStage } from './identityStage'
 import { objectManipulationErrorMessages } from './resolveObjectSpan'
 import { isSpanCandidatePool } from './spanResolution'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import {
     buildCandidatesFromIdentityCase,
     makeEmbeddingFromAxis,

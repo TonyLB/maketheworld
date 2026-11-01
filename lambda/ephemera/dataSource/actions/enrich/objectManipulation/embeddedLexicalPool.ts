@@ -1,5 +1,5 @@
 import internalCache from '../../../../internalCache'
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { buildSpanCandidatePool } from './embeddingMatch/buildSpanCandidatePool'
 import type { SpanStructure } from './parse/parseToken'
 import { peelLeadingArticleWhenTail } from './spanMatchForms'

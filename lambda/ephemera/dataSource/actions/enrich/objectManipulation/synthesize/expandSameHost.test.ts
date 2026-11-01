@@ -5,6 +5,7 @@ import type { EphemeraCrossingPort } from '@tonylb/mtw-interfaces/ts/ephemeraMet
 import { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import { expandSameHost } from './expandSameHost'
 import { lowerRelationalChain } from './buildCrossingLegs'
+import { relationsCacheOfGraphs } from '../../../objectCatalogTestSupport'
 
 const TRAY_ID = 'OBJECT#Tray' as EphemeraObjectId
 const TABLE_ID = 'OBJECT#Table' as EphemeraObjectId
@@ -294,5 +295,69 @@ describe('expandSameHost', () => {
             expect(result.verdict).toBe('defer')
         })
 
+    })
+})
+
+describe('expandSameHost: planning asks the actor\'s cache', () => {
+    const STRING_ID = 'OBJECT#String' as EphemeraObjectId
+    const HOOK_ID = 'OBJECT#Hook' as EphemeraObjectId
+    const WALL_ID = 'OBJECT#Wall' as EphemeraObjectId
+    const portAddress = { owner: WALL_ID, port: 'PORT-wall' as const }
+    const port: EphemeraCrossingPort = { portId: 'PORT-wall', fromHostId: ROOM_ID, kind: 'Custom', exteriorRelationLabel: 'is tied to' }
+    // The string in the room is tied, through a port on the wall, to a hook the wall holds.
+    const roomGraph = EphemeraLudicGraph.empty(ROOM_ID)
+        .addObject(STRING_ID, 'In')
+        .addObject(WALL_ID, 'In')
+        .addRelationalEdge({ from: STRING_ID, to: portAddress, kind: 'Custom', relationLabel: 'is tied to' })
+    const wallGraph = EphemeraLudicGraph.empty(WALL_ID)
+        .addObject(HOOK_ID, 'In')
+        .addPort(port)
+        .addRelationalEdge({ from: portAddress, to: HOOK_ID, kind: 'Custom', relationLabel: 'is tied to' })
+    const graphs: Record<string, EphemeraLudicGraph> = { [ROOM_ID]: roomGraph, [WALL_ID]: wallGraph }
+    const dissolve = { subjectId: STRING_ID, objectId: HOOK_ID, relationKind: 'Custom' as const, relationLabel: 'is tied to', operationKind: 'dissolveRelation' as const }
+    // Neither the subject's nor the target's host is known: a graph walk would find nothing, so a hit is the cache's.
+    const noHosts = { getCurrentHost: () => undefined, getMembershipContainers: () => [] }
+
+    it('finds a joined crossing as its one edge, reading no graph', () => {
+        const getGraph = jest.fn((hostId: EphemeraMembershipHostId) => graphs[hostId])
+
+        const result = expandSameHost(dissolve, { ...noHosts, getGraph, relations: relationsCacheOfGraphs([roomGraph, wallGraph]) })
+
+        expect(result).toEqual({ verdict: 'found', edge: { from: STRING_ID, to: HOOK_ID, kind: 'Custom', relationLabel: 'is tied to' } })
+        expect(getGraph).not.toHaveBeenCalled()
+    })
+
+    it('follows an open leg through its own legs (the bounded read) to the far end', () => {
+        const result = expandSameHost(dissolve, { ...noHosts, getGraph: (hostId) => graphs[hostId], relations: relationsCacheOfGraphs([roomGraph]) })
+
+        expect(result.verdict).toBe('crossed')
+        expect(result.verdict === 'crossed' && result.chain.filter((step) => step.type === 'edge').map((step) => step.type === 'edge' && step.hostId)).toEqual([ROOM_ID, WALL_ID])
+    })
+
+    it('defers when the cache holds no such relation, or the open leg cannot be walked', () => {
+        const noRelation = expandSameHost({ ...dissolve, relationLabel: 'is glued to' }, { ...noHosts, getGraph: (hostId) => graphs[hostId], relations: relationsCacheOfGraphs([roomGraph, wallGraph]) })
+        const unwalkable = expandSameHost(dissolve, { ...noHosts, getGraph: () => undefined, relations: relationsCacheOfGraphs([roomGraph]) })
+
+        expect(noRelation.verdict).toBe('defer')
+        expect(unwalkable.verdict).toBe('defer')
+    })
+
+    it('defers when two chains carry the relation: ambiguous, as the graph walk is', () => {
+        const twice = EphemeraLudicGraph.empty(ROOM_ID)
+            .addObject(STRING_ID, 'In')
+            .addObject(HOOK_ID, 'In')
+            .addRelationalEdge({ from: STRING_ID, to: HOOK_ID, kind: 'Custom', relationLabel: 'is tied to', chainId: 'c1' })
+            .addRelationalEdge({ from: HOOK_ID, to: STRING_ID, kind: 'Custom', relationLabel: 'is tied to', chainId: 'c2' })
+
+        expect(expandSameHost(dissolve, { ...noHosts, relations: relationsCacheOfGraphs([twice]) }).verdict).toBe('defer')
+    })
+
+    it('refuses to establish a relation the cache already holds', () => {
+        const result = expandSameHost(
+            { ...dissolve, operationKind: 'establishRelation' },
+            { ...noHosts, relations: relationsCacheOfGraphs([roomGraph, wallGraph]) }
+        )
+
+        expect(result).toEqual(expect.objectContaining({ verdict: 'error', reason: expect.stringContaining('already present') }))
     })
 })

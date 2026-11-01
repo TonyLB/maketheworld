@@ -12,7 +12,7 @@ import { CommandAttempt } from '../../commandAttempt'
 import { adjudicateAttempt } from '../../commandAttempt/adjudicate'
 import { attemptActionsFromTransfer } from '../../commandAttempt/expandBoundaryChallenges'
 
-import type { ObjectManipulationCatalogEntry } from './catalogMerge'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
 import { enumerateIdentityAssignments } from './enumerateIdentityAssignments'
 import type { IdentityPlanIdentity } from './identityPlanCandidate'
 import { defaultReading, placementHostsOfView, readingLabel, readingsHere, readingsOf, wholeReadingLabel, type ViewAnswer } from '../../objectViews'
@@ -23,8 +23,9 @@ import { buildReferentAssignment } from './synthesize/buildReferentAssignment'
 import { groundPlanStep } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
-import { walkAncestryContainers } from './synthesize/findShardBoundary'
-import { fetchRelationalReachability } from '../../../positions/manipulation/relational/findRelationalChainsForRemoval'
+import { isPositionAdjacencyContainedId } from './synthesize/findShardBoundary'
+import type { ActorContainers, ActorPlanningReads } from '../../../positions/ludicCache/actorCache'
+import { crossingSeedHosts, fetchChainGraphs } from './crossingGraphs'
 import { edgeRelationSteps, edgeRelationsHost } from '../../../positions/manipulation/relational/edgeRelationSteps'
 import type { SpanName } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
@@ -40,10 +41,9 @@ import type { ParseSkeleton } from './parse/parseToken'
  * `compileAttemptsFromSkeleton.ts` is its one entry.
  */
 
-export type AttemptPositionsReads = Pick<ObjectManipulationPositionsReadDeps, 'getLudicGraph' | 'getMembershipContainers'>
+export type AttemptPositionsReads = Pick<ObjectManipulationPositionsReadDeps, 'getLudicGraph'>
 
 export const defaultPositionsReads = (): AttemptPositionsReads => ({
-    getMembershipContainers: (objectId) => internalCache.Positions.getMembershipContainers(objectId),
     getLudicGraph: (hostId) => internalCache.Positions.getLudicGraph(hostId),
 })
 
@@ -518,30 +518,44 @@ const candidateObjectIds = (candidates: readonly GroundedAttemptCandidate[]): Ep
 }
 
 /**
+ * Each host the candidates sit under, to its own direct containers, read from the actor's cache. A walk up from every
+ * candidate until a Room (or anything the cache has no node for) ends the branch; `visited` guards a containment cycle.
+ */
+export const containersFromCache = (
+    objectIds: readonly EphemeraObjectId[],
+    actorCache: ActorContainers | undefined
+): Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]> => {
+    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
+    const frontier: EphemeraMembershipHostId[] = [...objectIds]
+    while (frontier.length > 0) {
+        const hostId = frontier.pop()!
+        if (containersByHostId.has(hostId) || !isPositionAdjacencyContainedId(hostId)) continue
+        const containers = actorCache?.containersOf(hostId) ?? []
+        containersByHostId.set(hostId, containers)
+        frontier.push(...containers)
+    }
+    return containersByHostId
+}
+
+/**
  * The per-command environment: the room graph, plus each candidate object's host graph
- * found by an eager, depth-capped ancestry walk. Built once for the whole pool. A
+ * found by walking its ancestry in the actor's cache. Built once for the whole pool. A
  * `findShardBoundary` walk reaches past intermediate hosts, so one-hop lookups would dead-end.
- * Also every shard a relation touching a candidate can cross into (`fetchRelationalReachability`,
- * the same walk chain-aware removal uses): Expansion and the dry run follow a crossing to its far
- * end, which may sit in a shard no ancestry walk reaches.
+ * Also the shards a candidate relation that the actor's cache shows crossing can continue into
+ * (`fetchChainGraphs`, seeded by the cache's relations): the dry run follows that chain to its far end through
+ * the graphs, since a cache edge does not record a chain's ports. A candidate with no crossing relation
+ * reads no relational graph.
  */
 export const buildAttemptEnvironment = async (
     candidates: readonly GroundedAttemptCandidate[],
     hostRoomId: EphemeraRoomId,
     roomGraph: EphemeraLudicGraph | undefined,
     reads: AttemptPositionsReads,
+    actorCache: ActorPlanningReads | undefined,
     catalog: readonly ObjectManipulationCatalogEntry[] = []
 ): Promise<ExpansionEnvironment> => {
     const objectIds = candidateObjectIds(candidates)
-    const getMembershipContainersForWalk = (id: EphemeraPositionAdjacencyContainedId): Promise<EphemeraMembershipHostId[]> =>
-        // Candidates, and everything their walk can reach, are Objects until a Room/Area ends the branch.
-        reads.getMembershipContainers(id as EphemeraObjectId)
-
-    const containersByHostId = new Map<EphemeraMembershipHostId, EphemeraMembershipHostId[]>()
-    const ancestryMaps = await Promise.all(objectIds.map((objectId) => walkAncestryContainers(objectId, getMembershipContainersForWalk)))
-    ancestryMaps.forEach((ancestryMap) => ancestryMap.forEach((containers, hostId) => {
-        containersByHostId.set(hostId, containers)
-    }))
+    const containersByHostId = containersFromCache(objectIds, actorCache)
 
     const hostByObjectId = new Map<EphemeraObjectId, EphemeraMembershipHostId>()
     for (const objectId of objectIds) {
@@ -559,10 +573,11 @@ export const buildAttemptEnvironment = async (
             hostGraphMap.set(hostId, await reads.getLudicGraph(hostId))
         }
     }
-    const reachable = await fetchRelationalReachability(
-        new Set(objectIds),
-        (id) => reads.getMembershipContainers(id as EphemeraObjectId),
-        async (hostId) => hostGraphMap.get(hostId) ?? reads.getLudicGraph(hostId)
+    // Only a candidate relation the cache shows crossing shards is followed through the graphs (the bounded read).
+    const reachable = await fetchChainGraphs(
+        crossingSeedHosts(objectIds, actorCache),
+        hostGraphMap,
+        (hostId) => reads.getLudicGraph(hostId)
     )
     for (const [hostId, graph] of reachable) {
         if (hostGraphMap.get(hostId) === undefined) {
@@ -578,6 +593,7 @@ export const buildAttemptEnvironment = async (
             const placement = catalog.find(({ objectId }) => objectId === id)?.placement
             return placement === undefined ? undefined : placementHostsOfView(id, placement, view)
         },
+        ...(actorCache !== undefined ? { relations: actorCache } : {}),
     }
 }
 
@@ -716,7 +732,11 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
     }
 
-    // The one edge seeded retires as its one chain.
+    // A relation the actor's cache found is legal as it stands: the dry run judges the verdict, and commit rebuilds the chain.
+    if (outcome.steps.some((step) => step.kind === 'relationFound')) {
+        return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
+    }
+    // Otherwise the one edge seeded retires as its one chain.
     const chain = outcome.steps.find((step): step is ExecutorRelationalChain => step.kind === 'relationalChain')
     if (chain === undefined) {
         return { verdict: 'illegal', decidable: true, reason: 'No relational chain found for this candidate' }
@@ -880,7 +900,11 @@ export const expandAndAdjudicateCandidates = (
     if (graphs.length === 0 || graphs.length < sourceHosts.length) {
         return candidate
     }
-    const expanded = attemptActionsFromTransfer(primary, objectId, graphs, env.getGraph)
+    // Without the actor's cache no relation is known, so the transfer stays unexpanded (as with a missing source graph).
+    if (env.relations === undefined) {
+        return candidate
+    }
+    const expanded = attemptActionsFromTransfer(primary, objectId, graphs, env.relations, env.getGraph)
     return {
         ...candidate,
         attempt: adjudicateAttempt(CommandAttempt.create(

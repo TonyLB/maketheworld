@@ -2,7 +2,7 @@
  * Stored-cache payoff, at the observable output: what a player's command resolves.
  * A command resolves a nested object by name from the room's stored row with zero graph reads; the
  * object is moved (a kernel commit bumps the room's marker); the next command resolves it in its new
- * place, through a rebuild. The real consumer (`getRoomObjectCatalogForCharacter`) and the real
+ * place, through a rebuild. The real consumer (`getActorObjectCatalog`) and the real
  * `readLudicCacheWithOutcome` run; only the leaves are in memory (the two rows, the fresh graph read,
  * the Canon stack, the names), so the assertion is on the resolved referent, never on the row.
  */
@@ -15,7 +15,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { parentRemainderKey, testLudicGraph } from '../positions/ludicGraph/testFixtures'
 import { readLudicCacheWithOutcome, type LudicCacheRow } from '../positions/ludicCache/store'
-import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
+import { getActorObjectCatalog } from './actorObjectCatalog'
 
 const characterId = 'CHARACTER#Test' as EphemeraCharacterId
 const roomId = 'ROOM#Kitchen' as EphemeraRoomId
@@ -79,8 +79,11 @@ describe('a player command resolving a nested object from the stored cache', () 
         const state: { version: number; row?: { builtAtVersion: number; cache: LudicCacheRow['cache'] } } = { version: 1 }
         const getFreshLudicGraph = jest.fn(async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) as EphemeraLudicGraph)
         const outcomes: string[] = []
-        const catalog = () => getRoomObjectCatalogForCharacter(characterId, {
+        const catalog = async () => ({ entries: await getActorObjectCatalog(characterId, {
             getMembershipContainers: async () => [roomId],
+            // The actor's own fold: the character stands in no graph of this fixture, so it carries nothing.
+            resolveCanonStack: async () => ['ASSET#canon'],
+            buildDeps: { getLudicGraph: async (hostId) => graphs.get(hostId) ?? testLudicGraph(hostId), getComponentAggregate },
             readLudicCache: async (id) => {
                 const read = await readLudicCacheWithOutcome(id, {
                     readRows: async () => ({ version: state.version, row: state.row && JSON.parse(JSON.stringify(state.row)) }),
@@ -97,12 +100,12 @@ describe('a player command resolving a nested object from the stored cache', () 
                 outcomes.push(read.outcome)
                 return read
             },
-        })
+        }) })
         const cupEntry = (entries: Awaited<ReturnType<typeof catalog>>['entries']) => entries.find(({ objectId }) => objectId === cupId)
         const log = jest.spyOn(console, 'log').mockImplementation(() => {})
 
         // First command: no row yet, so the room is rebuilt (and written); the cup resolves on the table.
-        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', placement: [{ host: tableId, bindings: [{ presence: tableBinding }] }], presence: [{ host: tableId, presence: tableBinding }] })
+        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', catalogScope: 'room', placement: [{ host: tableId, bindings: [{ presence: tableBinding }] }], presence: [{ host: tableId, presence: tableBinding }] })
         const readsToBuild = getFreshLudicGraph.mock.calls.length
         expect(readsToBuild).toBeGreaterThan(0)
 
@@ -115,7 +118,7 @@ describe('a player command resolving a nested object from the stored cache', () 
         state.version += 1
 
         // Next command: the row is stale, rebuilt, and the cup resolves in its new place.
-        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', placement: [{ host: roomId, bindings: [] }], presence: [roomId] })
+        expect(cupEntry((await catalog()).entries)).toEqual({ objectId: cupId, normalizedShortName: 'cup', catalogScope: 'room', placement: [{ host: roomId, bindings: [] }], presence: [roomId] })
         expect(outcomes).toEqual(['absent', 'hit', 'stale'])
         // a present character is no referent, and what it carries is not in the room
         const referents = (await catalog()).entries.map(({ objectId }) => objectId)

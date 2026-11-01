@@ -15,6 +15,7 @@ import { tokenize } from '../../deterministicTemplate/granuleTokens'
 import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
 
 import { embedObjectSpan } from '../../../../internalCache/spanEmbeddings/embedObjectSpan'
+import { scopedCatalog } from '../../objectCatalogTestSupport'
 
 jest.mock('../../../../internalCache/spanEmbeddings/embedObjectSpan')
 jest.mock('../../../../internalCache', () => {
@@ -45,7 +46,7 @@ const compile = (command: string) => compileAttemptsFromSkeleton(
         fills: planTokens(tokenize(COMMAND_GRANULES, command), command),
         characterId: actor,
         hostRoomId: roomId,
-        roomObjectCatalog: [{ objectId: teapotId, normalizedShortName: 'teapot' }],
+        objectCatalog: scopedCatalog([{ objectId: teapotId, normalizedShortName: 'teapot' }]),
     },
     1,
     {

@@ -59,8 +59,10 @@ export const readingsOf = (objectId: string, placement: readonly PresencePlaceme
 
 /**
  * Whether a reading is at the actor's position: its parents reach the actor's room without passing
- * through another room, or it is held by the actor. A room's cache holds no character, so a held part's
- * walk upward stops at the character; the actor is known by id, so it needs no walk.
+ * through another room, or it is held by the actor. In the actor's cache a held part's walk does reach the
+ * room (a stored character binding has a room parent, checked live 2026-10-30), so the held clause is not
+ * needed in production. It stays because unit fixtures (`objectViews`, `attemptCandidates`) and
+ * `objectSpreadPayoff`'s world build character bindings with no room parent; removing it means fixing those first.
  */
 const atActorPosition = ({ rooms, under }: ObjectReading, actorRoom: EphemeraRoomId, actorCharacter?: EphemeraCharacterId): boolean => (
     rooms.includes(actorRoom) || (actorCharacter !== undefined && under.some(({ host }) => host === actorCharacter))

@@ -8,11 +8,11 @@ import type {
     ParseCommandErrorResult,
     ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
-import type { RoomInPlayObjectCatalogEntry } from '../../roomObjectCatalogForCharacter'
+import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
+import type { ActorPlanningReads } from '../../../positions/ludicCache/actorCache'
 import type { AttemptKind, CommandAttempt } from '../../commandAttempt'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 
-import { mergeObjectManipulationCatalogs } from './catalogMerge'
 import { adjudicateDeferred } from '../../commandAttempt/adjudicate'
 import { runIdentityStageOverReferenceKeys } from './identifySkeletonSpans'
 import { resolvePureSpanToPool } from './resolvePureSpanToPool'
@@ -34,6 +34,7 @@ import {
     attemptSpanKeys,
     buildAttemptEnvironment,
     defaultPositionsReads,
+    type AttemptPositionsReads,
     expandAndAdjudicateCandidates,
     groundedObjectIdOf,
     proposeAttemptCandidates,
@@ -57,8 +58,10 @@ export type CompileAttemptsFromSkeletonInput = {
     fills: readonly SkeletonFill[]
     characterId?: EphemeraCharacterId
     hostRoomId?: EphemeraRoomId
-    roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
-    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** Everything the actor can reach, room and hand, each entry scoped by placement (`actorObjectCatalog.ts`). */
+    objectCatalog?: readonly ObjectManipulationCatalogEntry[]
+    /** The cache the catalog came from: ancestry for the step environment. Absent, nothing has a container. */
+    actorCache?: ActorPlanningReads
     /** The exits from the actor's room: what an exit span grounds against, and what the dry run judges a navigation by. */
     roomExits?: readonly RoomExit[]
     /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */
@@ -255,10 +258,7 @@ async function compileReadings(
         return firstRefusal(refusals)
     }
 
-    const catalog = mergeObjectManipulationCatalogs(
-        input.roomObjectCatalog ?? [],
-        input.heldInventoryCatalog ?? []
-    )
+    const catalog = input.objectCatalog ?? []
 
     const ctx: ProducerContext = { input, intentConfidence, answers, hostRoomId, positionsReads, roomGraph, catalog }
     // Each pass keeps its own refusals, and only the returned pass's join the once-only ones: a discarded
@@ -285,9 +285,9 @@ type ProducerContext = {
     intentConfidence: number
     answers: ResumeAnswers | undefined
     hostRoomId: EphemeraRoomId | undefined
-    positionsReads: ObjectManipulationPositionsReadDeps
+    positionsReads: AttemptPositionsReads
     roomGraph: Awaited<ReturnType<ObjectManipulationPositionsReadDeps['getLudicGraph']>> | undefined
-    catalog: ReturnType<typeof mergeObjectManipulationCatalogs>
+    catalog: readonly ObjectManipulationCatalogEntry[]
 }
 
 /** One Identify over every surviving fill's spans: a key shared by two fills is one span text, so one pool. */
@@ -424,7 +424,7 @@ async function proposeToResult(
     // A pool of plain looks has no steps, so the shared dry run never reads its environment and none is built.
     const env = roomGraph === undefined || hostRoomId === undefined || !survivors.some(hasStep)
         ? undefined
-        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads, catalog)
+        : await buildAttemptEnvironment(proposed.candidates, hostRoomId, roomGraph, positionsReads, input.actorCache, catalog)
     const expanded = env === undefined ? proposed.candidates : expandAndAdjudicateCandidates(proposed.candidates, env)
     const candidates = answers?.challengeAnswers === undefined ? expanded : applyChallengeAnswers(expanded, answers.challengeAnswers)
     const dryRun = (candidate: GroundedAttemptCandidate) => attemptDryRun(candidate, env, {

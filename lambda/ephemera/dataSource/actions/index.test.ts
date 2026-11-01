@@ -12,8 +12,8 @@ import { navigationIntentErrorMessages, objectManipulationErrorMessages } from '
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
-import { getHeldInventoryCatalogForCharacter } from './heldInventoryCatalogForCharacter'
-import { getRoomObjectCatalogForCharacter } from './roomObjectCatalogForCharacter'
+import { getActorCache } from './actorObjectCatalog'
+import { actorCacheStub } from './objectCatalogTestSupport'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
@@ -53,11 +53,8 @@ jest.mock('../../internalCache')
 jest.mock('./roomExitTargetsForCharacter', () => ({
     getRoomExitTargetsForCharacter: jest.fn(),
 }))
-jest.mock('./roomObjectCatalogForCharacter', () => ({
-    getRoomObjectCatalogForCharacter: jest.fn(),
-}))
-jest.mock('./heldInventoryCatalogForCharacter', () => ({
-    getHeldInventoryCatalogForCharacter: jest.fn(),
+jest.mock('./actorObjectCatalog', () => ({
+    getActorCache: jest.fn(),
 }))
 jest.mock('./resolveHomeTargetForCharacter', () => ({
     resolveHomeTargetForCharacter: jest.fn(),
@@ -85,8 +82,7 @@ const mockSendRenderRequested = sendRenderRequested as jest.MockedFunction<typeo
 const mockedParseCommand = jest.mocked(parseCommand)
 const mockedCollectCoyoteOccupiedStableKeys = jest.mocked(collectCoyoteOccupiedStableKeys)
 const mockedGetRoomExitTargetsForCharacter = jest.mocked(getRoomExitTargetsForCharacter)
-const mockedGetRoomObjectCatalogForCharacter = jest.mocked(getRoomObjectCatalogForCharacter)
-const mockedGetHeldInventoryCatalogForCharacter = jest.mocked(getHeldInventoryCatalogForCharacter)
+const mockedGetActorCache = jest.mocked(getActorCache)
 const mockedResolveHomeTargetForCharacter = jest.mocked(resolveHomeTargetForCharacter)
 const mockedRunCoyoteEngineTestHarness = jest.mocked(runCoyoteEngineTestHarness)
 const mockedIsCoyoteGameRoom = jest.mocked(isCoyoteGameRoom)
@@ -109,8 +105,7 @@ describe('ephemeraActionsDataSource', () => {
             toRoomIds: [],
             exits: [],
         })
-        mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({ roomId: null, entries: [] })
-        mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [] })
+        mockedGetActorCache.mockResolvedValue(undefined)
         mockedResolveHomeTargetForCharacter.mockResolvedValue({ type: 'NoExitContext' })
         internalCacheMock.CharacterMeta.get.mockResolvedValue(undefined as any)
         internalCacheMock.ObjectEmbedding.get.mockResolvedValue({})
@@ -1417,17 +1412,16 @@ describe('ephemeraActionsDataSource', () => {
                     command: 'order widget',
                     characterId: 'CHARACTER#123',
                     roomExits: [],
-                    roomObjectCatalog: [],
-                    heldInventoryCatalog: [],
+                    objectCatalog: [],
                     occupiedStableKeys: ['alpha', 'beta'],
                 },
                 { messageBus: mockMessageBus }
             )
         })
 
-        it('passes heldInventoryCatalog from parallel fetch into parseCommand', async () => {
-            const heldEntry = { objectId: 'OBJECT#Broom' as const, normalizedShortName: 'broom' }
-            mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [heldEntry] })
+        it('passes the actor object catalog (held entries included) into parseCommand', async () => {
+            const heldEntry = { objectId: 'OBJECT#Broom' as const, normalizedShortName: 'broom', catalogScope: 'held' as const }
+            mockedGetActorCache.mockResolvedValue(actorCacheStub([heldEntry]))
             mockedParseCommand.mockResolvedValue({
                 type: 'Error',
                 errorMessage: 'held only',
@@ -1450,10 +1444,10 @@ describe('ephemeraActionsDataSource', () => {
                 streamEnvelope: jest.fn(async () => {}),
             })
 
-            expect(mockedGetHeldInventoryCatalogForCharacter).toHaveBeenCalledWith('CHARACTER#123')
+            expect(mockedGetActorCache).toHaveBeenCalledWith('CHARACTER#123')
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    heldInventoryCatalog: [{ ...heldEntry, embedding: undefined }],
+                    objectCatalog: [{ ...heldEntry, embedding: undefined }],
                 }),
                 { messageBus: mockMessageBus }
             )
@@ -1471,19 +1465,11 @@ describe('ephemeraActionsDataSource', () => {
                 Array.from({ length: SEMANTIC_EMBEDDING_V1_DIMENSIONS }, (_, index) => (index === 1 ? 1 : 0)),
                 { modelId: 'amazon.titan-embed-text-v2:0' }
             )
-            mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({
-                roomId: 'ROOM#Bridge' as EphemeraRoomId,
-                entries: [
-                    { objectId: broomId, normalizedShortName: 'broom' },
-                    { objectId: anvilId, normalizedShortName: 'anvil' },
-                ],
-            })
-            mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({
-                entries: [
-                    { objectId: broomId, normalizedShortName: 'held broom' },
-                    { objectId: pouchId, normalizedShortName: 'pouch' },
-                ],
-            })
+            mockedGetActorCache.mockResolvedValue(actorCacheStub([
+                { objectId: broomId, normalizedShortName: 'broom', catalogScope: 'room' },
+                { objectId: anvilId, normalizedShortName: 'anvil', catalogScope: 'room' },
+                { objectId: pouchId, normalizedShortName: 'pouch', catalogScope: 'held' },
+            ]))
             internalCacheMock.ObjectEmbedding.get.mockResolvedValue({
                 [broomId]: broomEmbedding,
                 [pouchId]: pouchEmbedding,
@@ -1513,22 +1499,18 @@ describe('ephemeraActionsDataSource', () => {
             expect(internalCacheMock.ObjectEmbedding.get).toHaveBeenCalledWith([broomId, anvilId, pouchId])
             expect(mockedParseCommand).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    roomObjectCatalog: [
-                        { objectId: broomId, normalizedShortName: 'broom', embedding: broomEmbedding },
-                        { objectId: anvilId, normalizedShortName: 'anvil', embedding: undefined },
-                    ],
-                    heldInventoryCatalog: [
-                        { objectId: broomId, normalizedShortName: 'held broom', embedding: broomEmbedding },
-                        { objectId: pouchId, normalizedShortName: 'pouch', embedding: pouchEmbedding },
+                    objectCatalog: [
+                        { objectId: broomId, normalizedShortName: 'broom', catalogScope: 'room', embedding: broomEmbedding },
+                        { objectId: anvilId, normalizedShortName: 'anvil', catalogScope: 'room', embedding: undefined },
+                        { objectId: pouchId, normalizedShortName: 'pouch', catalogScope: 'held', embedding: pouchEmbedding },
                     ],
                 }),
                 { messageBus: mockMessageBus }
             )
         })
 
-        it('skips ObjectEmbedding.get when both catalogs are empty', async () => {
-            mockedGetRoomObjectCatalogForCharacter.mockResolvedValue({ roomId: null, entries: [] })
-            mockedGetHeldInventoryCatalogForCharacter.mockResolvedValue({ entries: [] })
+        it('skips ObjectEmbedding.get when the catalog is empty', async () => {
+            mockedGetActorCache.mockResolvedValue(undefined)
             mockedParseCommand.mockResolvedValue({
                 type: 'Error',
                 errorMessage: 'empty catalogs',

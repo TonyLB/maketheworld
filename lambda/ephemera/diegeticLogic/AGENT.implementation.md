@@ -76,7 +76,7 @@ Normative contracts: [`../dataSource/positions/AGENT.contract.md`](../dataSource
 
 Classify: [`buildIntentClassificationPrompt.ts`](../dataSource/actions/discriminateIntent/buildIntentClassificationPrompt.ts).
 
-Enrich: [`roomObjectCatalogForCharacter.ts`](../dataSource/actions/roomObjectCatalogForCharacter.ts), [`heldInventoryCatalogForCharacter.ts`](../dataSource/actions/heldInventoryCatalogForCharacter.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
+Enrich: [`actorObjectCatalog.ts`](../dataSource/actions/actorObjectCatalog.ts), [`enrich/objectManipulation/`](../dataSource/actions/enrich/objectManipulation/).
 
 Apply: [`planObjectMoveTransfer.ts`](../dataSource/positions/manipulation/membership/planObjectMoveTransfer.ts) (both move directions, via [`commitAttempt`](../dataSource/positions/manipulation/commitAttempt.ts); replaced `executeObjectMove.ts` in `fb9573c8f`), [`applyObjectRelationalChange.ts`](../dataSource/positions/manipulation/relational/applyObjectRelationalChange.ts), [`buildObjectMovedFact.ts`](../dataSource/positions/manipulation/membership/buildObjectMovedFact.ts).
 

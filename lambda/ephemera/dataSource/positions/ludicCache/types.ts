@@ -76,7 +76,7 @@ export type EphemeraLudicCacheNode = EphemeraLudicGraphComponentNodeBase & {
  * entries only, as the graph-side cover is, so a complement ("every unclaimed node of the host", which
  * has no referent in a multi-host merge, loss (A)) is unrepresentable *by construction* rather
  * than by a runtime guard someone could forget. Minted by
- * `mergeReducer.ts`'s `foldSameHostBuckets` (via its
+ * `cacheFromHostGraph.ts` (via its
  * `presenceCacheNodesFromFold` helper), one per binding folded. Each cover
  * entry names the member's own binding into this binding's host (`EphemeraLudicCacheCoverEntry`).
  */
@@ -107,7 +107,7 @@ export type EphemeraLudicCacheCoverEntry = Omit<EphemeraPresenceCoverEntry, 'pre
  * A terminal on a cache edge: every kind of terminal except the own binding (a bare
  * `PRESENCE#...`). Nesting makes a binding's lookup in the cache a path --- the owner's node, then
  * that binding on it --- so a cache edge ending at a binding names it through its binding address,
- * which carries the owner. `liftPresenceTerminal` (`mergeReducer.ts`) rewrites an own binding to that
+ * which carries the owner. `liftPresenceTerminal` (`cacheFromHostGraph.ts`) rewrites an own binding to that
  * form at the point each cache edge is minted.
  */
 export type EphemeraLudicCacheTerminalId =
@@ -119,12 +119,22 @@ export const isEphemeraLudicCacheTerminalId = (value: unknown): value is Ephemer
     isEphemeraLudicTerminalId(value) && !(isEphemeraLudicNodeTerminal(value) && isEphemeraPresenceNodeId(value))
 
 /**
- * Cache edge: a plain relational edge, on cache terminals. The cache keeps no maintenance state (which routes
+ * Where an edge's ends sit: for each end, the host whose graph holds the leg touching that end. Set when
+ * each leg is minted from its host's graph and kept through a crossing join (each outer leg's host survives), so a
+ * single-leg edge names one host twice. Chain interiors (intermediate hosts, ports) are not recorded. A fact about
+ * where the ends are, not maintenance state.
+ */
+export type EphemeraLudicCacheEndHosts = { from: EphemeraMembershipHostId; to: EphemeraMembershipHostId }
+
+/**
+ * Cache edge: a relational edge on cache terminals, plus its `endHosts`. The cache keeps no maintenance state (which routes
  * justify a composed edge, which buckets were pulled): a stale cache is rebuilt whole. The
  * shelved design for incremental maintenance lives in `AGENT.implementation.md`, "Shelved:
  * incremental `ludicCache` maintenance".
  */
-export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData<EphemeraLudicCacheTerminalId>
+export type EphemeraLudicCacheEdge = EphemeraLudicRelationalEdgeData<EphemeraLudicCacheTerminalId> & {
+    endHosts: EphemeraLudicCacheEndHosts
+}
 
 export type EphemeraLudicCacheData = {
     hostId: EphemeraMembershipHostId;
@@ -185,7 +195,7 @@ export const isEphemeraLudicCacheNode = (value: unknown): value is EphemeraLudic
 
 // A bare presence-tagged terminal is illegal on a cache edge (PNR-2(a), Slice 3): the type
 // (`EphemeraLudicCacheTerminalId`) refuses it at compile time, and this guard refuses it in stored
-// rows. `foldSameHostBuckets` and `collapseCrossingPorts` lift every such terminal at mint time; a
+// rows. `cacheFromHostGraph` lifts every such terminal at mint time; a
 // bare one reaching this guard is corruption, not an unpulled-binding case (that case is an
 // owner-qualified terminal whose binding is simply absent from `nodes`, which the
 // referential-integrity pass below already permits).
@@ -193,7 +203,12 @@ export const isEphemeraLudicCacheEdge = (value: unknown): value is EphemeraLudic
     if (!isEphemeraLudicRelationalEdgeData(value)) {
         return false
     }
+    // A stored row without `endHosts` fails here, so it reads as malformed and is rebuilt (no migration).
+    const endHosts = (value as { endHosts?: { from?: unknown; to?: unknown } }).endHosts
     return isEphemeraLudicCacheTerminalId(value.from) && isEphemeraLudicCacheTerminalId(value.to)
+        && !!endHosts && typeof endHosts === 'object'
+        && typeof endHosts.from === 'string' && isEphemeraMembershipHostId(endHosts.from)
+        && typeof endHosts.to === 'string' && isEphemeraMembershipHostId(endHosts.to)
 }
 
 export const isEphemeraLudicCacheData = (value: unknown): value is EphemeraLudicCacheData => {

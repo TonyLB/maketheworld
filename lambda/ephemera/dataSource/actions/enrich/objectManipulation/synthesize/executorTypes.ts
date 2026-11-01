@@ -13,6 +13,8 @@ import type { EphemeraLudicGraph } from '../../../../positions/ludicGraph'
 import type { DissolveRelationChange, EstablishRelationChange, GroundedReferent } from '../plan/planStep'
 import type { TransferMembershipStep } from '../parsePlanStep'
 import type { RelationalChainStep } from './findRelationalChain'
+import type { HostRelationalEdge } from '../../../../positions/ludicGraph/baseClasses'
+import type { ActorBoundaryRelations } from '../../../../positions/ludicCache/actorCache'
 
 /**
  * A relational effect step: one leg of a chain, lowered from it by
@@ -107,8 +109,19 @@ export type ExecutorRelationalChain = {
     steps: readonly RelationalChainStep[]
 }
 
-/** What a worklist run retires: an executor step, or a relational edge's whole chain. */
-export type ExecutorOutputStep = ExecutorParsePlanStep | ExecutorRelationalChain
+/**
+ * A dissolve's relation as the actor's cache found it (ISS8314): the one joined edge, with no legs or
+ * ports. Planning only (an environment with `relations`); it is a verdict and an edge, never lowered to kernel steps, since
+ * commit rebuilds every chain against the live graphs.
+ */
+export type ExecutorRelationFound = {
+    kind: 'relationFound'
+    operationKind: 'dissolveRelation'
+    edge: HostRelationalEdge
+}
+
+/** What a worklist run retires: an executor step, a relational edge's whole chain, or a relation the cache found. */
+export type ExecutorOutputStep = ExecutorParsePlanStep | ExecutorRelationalChain | ExecutorRelationFound
 
 /** Stable per-instruction identity --- causal tracking and settled-groups ledger keys. */
 export type InstructionId = string
@@ -165,6 +178,11 @@ export type ExpansionEnvironment = {
      * (the room's cache); `undefined` when the placement does not hold the part. Absent, no part is known.
      */
     getViewHosts?: (id: EphemeraObjectId, view: readonly EphemeraPresenceNodeId[]) => EphemeraMembershipHostId[] | undefined
+    /**
+     * What moving an object severs, read from the actor's cache (ISS8314): Expansion's boundary dissolves and
+     * `SecuredTo` blocks. Absent, no boundary relation is known and a transfer is left unexpanded.
+     */
+    relations?: ActorBoundaryRelations
 }
 
 export const isExecutorParsePlanStep = (

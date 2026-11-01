@@ -27,7 +27,8 @@ import { invokeBedrockAcmeOrderEnrich } from '../../generateExample/invokeBedroc
 import { invokeBedrockObjectManipulationEnrich } from '../../generateExample/invokeBedrockObjectManipulationEnrich'
 import { invokeBedrockParseCommand } from '../../generateExample/invokeBedrockParseCommand'
 import type { CharacterSpeechDisplayProtocol } from './publishedEvents'
-import type { RoomInPlayObjectCatalogEntry } from './roomObjectCatalogForCharacter'
+import type { ObjectManipulationCatalogEntry } from './actorObjectCatalog'
+import type { ActorPlanningReads } from '../positions/ludicCache/actorCache'
 import { isCompilePass, isPersistentCommandRoot, type CompilePass, type PersistentCommandRoot } from './persistentCommand/payload'
 import type { ObjectManipulationPositionsReadDeps } from './enrich/objectManipulation/membershipObservation'
 import type { MutationKernelStep } from '../positions/manipulation/kernel/kernelStep'
@@ -715,10 +716,10 @@ export type ParseCommandInput = {
     /** Actor's current room ludicGraph host (BD-6 relational compiler). */
     hostRoomId?: EphemeraRoomId
     roomExits?: readonly RoomExit[]
-    /** In-room object catalog for enrich and deterministic resolve (D6). */
-    roomObjectCatalog?: readonly RoomInPlayObjectCatalogEntry[]
-    /** Character-held inventory catalog for object-manipulation identity stage (O5). */
-    heldInventoryCatalog?: readonly RoomInPlayObjectCatalogEntry[]
+    /** The one object catalog (room and hand) for enrich and deterministic resolve (`actorObjectCatalog.ts`). */
+    objectCatalog?: readonly ObjectManipulationCatalogEntry[]
+    /** The cache `objectCatalog` was read from: what planning reads for ancestry (`actorObjectCatalog.ts`). Absent where there is no room. */
+    actorCache?: ActorPlanningReads
     /** Coyote-wide **`stableKey`** occupancy for Acme order enrich (omit or **[]** when unknown). */
     occupiedStableKeys?: readonly string[]
 }

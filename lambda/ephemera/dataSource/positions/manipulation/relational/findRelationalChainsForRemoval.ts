@@ -11,6 +11,10 @@ import {
 } from '../../../actions/enrich/objectManipulation/synthesize/findRelationalChain'
 
 /**
+ * **Commit's read, not planning's** (ISS8314): planning no longer calls this. It reads a candidate's relations from the
+ * actor's cache and follows only the chains the cache shows crossing (`crossingGraphs.ts`). Chain-aware removal at commit
+ * (`planRelationalEdgeTransfer`, `repairAdministrativeChainDissolve`) is the engine reading truth, so it keeps this walk.
+ *
  * depth-capped async BFS that fetches every graph a relational chain touching any of
  * `entityIds` might reach, mirroring `walkAncestryContainers`'s own precedent
  * (`synthesize/findShardBoundary.ts`) but following relational edges/ports instead of

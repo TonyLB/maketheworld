@@ -7,8 +7,8 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 
 import { EphemeraLudicGraph } from '../ludicGraph'
 import { testLudicGraph } from '../ludicGraph/testFixtures'
-import { ludicCacheObjectHandles, ludicCacheRoomObjectHandles } from './catalogHandles'
-import { buildLudicCache } from './fold'
+import { handlesFromCache } from './catalogHandles'
+import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { roomsForReferent } from '../ludicGraph/presenceRooms'
 import { audienceBuckets, defaultReading, readingsOf } from '../../actions/objectViews'
 import { parentRemainderKey } from '../ludicGraph/testFixtures'
@@ -50,7 +50,12 @@ const graphsAsDeps = (graphs: Map<EphemeraMembershipHostId, EphemeraLudicGraph>)
     },
 })
 
-describe('ludicCacheObjectHandles', () => {
+/** A seed's handles over a cold fold of the fixture graphs. */
+const coldHandles = async (seedHostId: EphemeraMembershipHostId, deps: BuildLudicCacheDeps) => (
+    handlesFromCache((await buildLudicCache(seedHostId, [], deps)).cache, seedHostId)
+)
+
+describe('handlesFromCache', () => {
     it('returns a flat handle per object node, never the raw cache shape', async () => {
         const roomGraph = testLudicGraph(roomA, {
             nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }],
@@ -60,7 +65,7 @@ describe('ludicCacheObjectHandles', () => {
             [roomA, roomGraph], [namedId, namedGraph],
         ])
 
-        const handles = await ludicCacheObjectHandles(roomA, [], {
+        const handles = await coldHandles(roomA, {
             ...graphsAsDeps(graphs),
             ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
         })
@@ -77,7 +82,7 @@ describe('ludicCacheObjectHandles', () => {
             [roomA, roomGraph], [namedId, namedGraph],
         ])
 
-        const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(graphs), ...noShortNameDeps() })
+        const handles = await coldHandles(roomA, { ...graphsAsDeps(graphs), ...noShortNameDeps() })
 
         expect(handles).toEqual([])
     })
@@ -100,7 +105,7 @@ describe('ludicCacheObjectHandles', () => {
             [roomA, roomGraph], [boxId, boxGraph], [pebble, pebbleGraph],
         ])
 
-        const handles = await ludicCacheObjectHandles(roomA, [], {
+        const handles = await coldHandles(roomA, {
             ...graphsAsDeps(graphs),
             ...namedShortNameDeps({ [boxId]: 'Box', [pebble]: 'Pebble' }),
         })
@@ -131,7 +136,7 @@ describe('ludicCacheObjectHandles', () => {
         })
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, roomGraph], [boxId, boxGraph], [pebble, pebbleGraph]])
 
-        const handles = await ludicCacheObjectHandles(roomA, [], {
+        const handles = await coldHandles(roomA, {
             ...graphsAsDeps(graphs),
             ...namedShortNameDeps({ [boxId]: 'Box', [pebble]: 'Pebble' }),
         })
@@ -139,37 +144,6 @@ describe('ludicCacheObjectHandles', () => {
         const box = handles.find(({ objectId }) => objectId === boxId)
         expect(box?.presence?.map((bucket) => (bucket as any).host ?? bucket)).toEqual(expect.arrayContaining([roomA, boxId]))
         expect(box?.presence).toHaveLength(2)
-    })
-
-    // Slice 5 (PC-3): the handler is the instrumentation boundary --- buildLudicCache/
-    // enumerateLudicCacheShards stay pure, so this is the only place that can time a rebuild or
-    // count its objects. Assert the log fires with the right counts, not that behavior changed.
-    it('logs one structured rebuild line carrying counts, never cache structure', async () => {
-        const roomGraph = testLudicGraph(roomA, {
-            nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }],
-        })
-        const namedGraph = testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })
-        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
-            [roomA, roomGraph], [namedId, namedGraph],
-        ])
-        const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
-
-        await ludicCacheObjectHandles(roomA, [], {
-            ...graphsAsDeps(graphs),
-            ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
-        })
-
-        expect(spy).toHaveBeenCalledWith('[mtw.ephemera.ludicCache] rebuild', expect.objectContaining({
-            event: 'rebuild',
-            seedHostId: roomA,
-            shardFetchCount: 2,
-            maxDepth: 1,
-            objectCount: 1,
-        }))
-        const [, fields] = spy.mock.calls[0]
-        expect(typeof (fields as { wallTimeMs: unknown }).wallTimeMs).toBe('number')
-
-        spy.mockRestore()
     })
 
     // Each handle names the bucket the walk saw it in, so Grounding can stamp it.
@@ -210,7 +184,7 @@ describe('ludicCacheObjectHandles', () => {
         // A host is the root of its own graph, so it is in each of its own buckets even though
         // `cover` leaves the root out: the box's handle names its own binding, not the room.
         it('names the box\'s own binding for the box, and that binding for a thing inside it', async () => {
-            const handles = await ludicCacheObjectHandles(roomA, [], {
+            const handles = await coldHandles(roomA, {
                 ...graphsAsDeps(boxInRoom([{ key: boxBinding, from: roomA }])),
                 ...names,
             })
@@ -232,7 +206,7 @@ describe('ludicCacheObjectHandles', () => {
 
         // The payoff: a whole bound into several rooms ("kick the table") is seen in every one.
         it('names every one of a whole\'s own bindings, including one into a room the walk never reached', async () => {
-            const handles = await ludicCacheObjectHandles(roomA, [], {
+            const handles = await coldHandles(roomA, {
                 ...graphsAsDeps(boxInRoom([{ key: boxOtherBinding, from: roomB }, { key: boxBinding, from: roomA }])),
                 ...names,
             })
@@ -254,7 +228,7 @@ describe('ludicCacheObjectHandles', () => {
                 ],
             }))
 
-            const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(graphs), ...names })
+            const handles = await coldHandles(roomA, { ...graphsAsDeps(graphs), ...names })
 
             expect(presenceOf(handles, pebble)).toEqual(expect.arrayContaining([ofBox(boxBinding), { host: pebble, presence: pebbleInBox }]))
             expect(presenceOf(handles, pebble)).toHaveLength(2)
@@ -263,7 +237,7 @@ describe('ludicCacheObjectHandles', () => {
         // Perspective picks which thing a phrase means, not who can see it change: a box bound into
         // two rooms with `Full` covers shows the pebble in both, walked or not.
         it('lists every bucket that holds it, including one bound into a room the walk never reached', async () => {
-            const handles = await ludicCacheObjectHandles(roomA, [], {
+            const handles = await coldHandles(roomA, {
                 ...graphsAsDeps(boxInRoom([{ key: boxOtherBinding, from: roomB }, { key: boxBinding, from: roomA }])),
                 ...names,
             })
@@ -273,7 +247,7 @@ describe('ludicCacheObjectHandles', () => {
 
         // A straddling whole partitions its contents: each half's things are in that half's bucket only.
         it('names only the bucket whose Enumerated cover holds it', async () => {
-            const handles = await ludicCacheObjectHandles(roomA, [], {
+            const handles = await coldHandles(roomA, {
                 ...graphsAsDeps(boxInRoom([
                     { key: boxBinding, from: roomA, cover: { members: [{ host: pebble, presence: PresenceKey('pebble-in-box') }] } },
                     { key: boxOtherBinding, from: roomB, cover: { members: [{ host: stone, presence: PresenceKey('stone-in-box') }] } },
@@ -286,7 +260,7 @@ describe('ludicCacheObjectHandles', () => {
         })
 
         it('falls back to the seed room when the containing host has no binding', async () => {
-            const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(boxInRoom([])), ...names })
+            const handles = await coldHandles(roomA, { ...graphsAsDeps(boxInRoom([])), ...names })
 
             expect(presenceOf(handles, pebble)).toEqual([roomA])
         })
@@ -320,7 +294,7 @@ describe('ludicCacheObjectHandles', () => {
             ])
             const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
 
-            const handles = await ludicCacheObjectHandles(roomA, [], {
+            const handles = await coldHandles(roomA, {
                 ...graphsAsDeps(graphs),
                 ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
             })
@@ -352,7 +326,7 @@ describe('ludicCacheObjectHandles', () => {
             ])
             const getGraph = async (hostId: EphemeraMembershipHostId) => graphs.get(hostId) ?? testLudicGraph(hostId, { nodes: [] })
 
-            const handles = await ludicCacheObjectHandles(town, [], {
+            const handles = await coldHandles(town, {
                 ...graphsAsDeps(graphs),
                 ...namedShortNameDeps({ [namedId]: 'Named Thing' }),
             })
@@ -363,53 +337,16 @@ describe('ludicCacheObjectHandles', () => {
     })
 })
 
-describe('ludicCacheRoomObjectHandles', () => {
-    it('reads the stored row as the command reader, so a rebuild it pays for is logged under that name', async () => {
-        const readLudicCache = jest.fn(async () => ({ cache: { hostId: roomA, nodes: [], edges: [] }, outcome: 'hit' as const }))
-
-        await ludicCacheRoomObjectHandles(roomA, { readLudicCache })
-
-        expect(readLudicCache).toHaveBeenCalledWith(roomA, { reader: 'command' })
-    })
-
-    const roomWithNamed = async () => {
+describe('handlesFromCache over a stored row', () => {
+    it('returns the same handles from a stored cache as a cold rebuild does', async () => {
         const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
             [roomA, testLudicGraph(roomA, { nodes: [{ tag: 'Room', universalKey: roomA }, { tag: 'Object', universalKey: namedId }] })],
             [namedId, testLudicGraph(namedId, { nodes: [{ tag: 'Object', universalKey: namedId }] })],
         ])
-        return (await buildLudicCache(roomA, [], { ...graphsAsDeps(graphs), ...namedShortNameDeps({ [namedId]: 'Named Thing' }) })).cache
-    }
+        const { cache } = await buildLudicCache(roomA, [], { ...graphsAsDeps(graphs), ...namedShortNameDeps({ [namedId]: 'Named Thing' }) })
+        const stored = JSON.parse(JSON.stringify(cache))
 
-    it('returns the same handles from a stored cache as a cold rebuild does', async () => {
-        const cache = await roomWithNamed()
-
-        const handles = await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'hit' }) })
-
-        expect(handles).toEqual([{ objectId: namedId, shortName: 'Named Thing', placement: [{ host: roomA, bindings: [] }], presence: [roomA] }])
-    })
-
-    it('logs the outcome, with the stored size on a rebuild and none on a hit', async () => {
-        const cache = await roomWithNamed()
-        const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
-
-        await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'hit' }) })
-        await ludicCacheRoomObjectHandles(roomA, { readLudicCache: async () => ({ cache, outcome: 'stale' }) })
-
-        const [hit, stale] = spy.mock.calls.map(([, fields]) => fields as Record<string, unknown>)
-        expect(hit).toMatchObject({ seedHostId: roomA, outcome: 'hit', objectCount: 1 })
-        expect(hit).not.toHaveProperty('storedBytes')
-        expect(stale).toMatchObject({ outcome: 'stale', storedBytes: Buffer.byteLength(JSON.stringify(cache)) })
-        spy.mockRestore()
-    })
-
-    it('tags a per-request rebuild as cold', async () => {
-        const graphs = new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[roomA, testLudicGraph(roomA)]])
-        const spy = jest.spyOn(console, 'log').mockImplementation(() => {})
-
-        await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(graphs), ...noShortNameDeps() })
-
-        expect(spy.mock.calls[0][1]).toMatchObject({ outcome: 'cold' })
-        spy.mockRestore()
+        expect(handlesFromCache(stored, roomA)).toEqual([{ objectId: namedId, shortName: 'Named Thing', placement: [{ host: roomA, bindings: [] }], presence: [roomA] }])
     })
 })
 
@@ -420,7 +357,7 @@ describe('placement', () => {
     const ropeId = 'OBJECT#Rope' as EphemeraObjectId
     const base = parentRemainderKey(roomA)
     const names = namedShortNameDeps({ [tableId]: 'Table', [ropeId]: 'Rope' })
-    const rope = (handles: Awaited<ReturnType<typeof ludicCacheObjectHandles>>) => handles.find(({ objectId }) => objectId === ropeId)!
+    const rope = (handles: ReturnType<typeof handlesFromCache>) => handles.find(({ objectId }) => objectId === ropeId)!
 
     // A rope spread over a table: one binding under the room (on the floor), one under the table.
     const tableBinding = PresenceKey('table-in-a')
@@ -452,7 +389,7 @@ describe('placement', () => {
     ])
 
     it('pairs each of the rope\'s own bindings with the parent it sits under, one entry per owner', async () => {
-        const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(ropeOverTable()), ...names })
+        const handles = await coldHandles(roomA, { ...graphsAsDeps(ropeOverTable()), ...names })
 
         expect(rope(handles).placement).toEqual([
             { host: roomA, bindings: [{ presence: base }] },
@@ -468,7 +405,7 @@ describe('placement', () => {
     })
 
     it('projects the flat set the audience readers have always read', async () => {
-        const handles = await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(ropeOverTable()), ...names })
+        const handles = await coldHandles(roomA, { ...graphsAsDeps(ropeOverTable()), ...names })
 
         expect(rope(handles).presence).toEqual([
             { host: roomA, presence: base },
@@ -480,7 +417,7 @@ describe('placement', () => {
     })
 
     it('reads two readings, both in the actor\'s room, so no default (the command would ask)', async () => {
-        const { placement } = rope(await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(ropeOverTable()), ...names }))
+        const { placement } = rope(await coldHandles(roomA, { ...graphsAsDeps(ropeOverTable()), ...names }))
 
         expect(readingsOf(ropeId, placement!).map(({ bindings }) => bindings)).toEqual([[ropeOnFloor], [ropeOnTable]])
         expect(defaultReading(ropeId, placement!, roomA)).toBeUndefined()
@@ -506,7 +443,7 @@ describe('placement', () => {
     ])
 
     it('takes the end in the actor\'s room as the default, though both ends are in the set', async () => {
-        const handles = await ludicCacheObjectHandles(roomB, [], { ...graphsAsDeps(ropeAcrossRooms()), ...names })
+        const handles = await coldHandles(roomB, { ...graphsAsDeps(ropeAcrossRooms()), ...names })
         const { placement, presence } = rope(handles)
 
         expect(presence).toEqual([
@@ -522,7 +459,7 @@ describe('placement', () => {
         const single = new Map(ropeOverTable()).set(ropeId, testLudicGraph(ropeId, {
             nodes: [{ tag: 'Object', universalKey: ropeId }, { tag: 'Presence', universalKey: ropeOnFloor, fromHostPresences: [{ host: roomA, presence: base }], cover: { members: [] } }],
         }))
-        const { placement } = rope(await ludicCacheObjectHandles(roomA, [], { ...graphsAsDeps(single), ...names }))
+        const { placement } = rope(await coldHandles(roomA, { ...graphsAsDeps(single), ...names }))
 
         expect(defaultReading(ropeId, placement!, roomA)?.bindings).toEqual([ropeOnFloor])
     })
