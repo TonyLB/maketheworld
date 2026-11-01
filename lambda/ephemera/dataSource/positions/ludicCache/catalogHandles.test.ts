@@ -1,4 +1,4 @@
-import type { EphemeraAreaId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraAreaId, EphemeraConceptId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { EphemeraPresenceCover } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
@@ -6,7 +6,7 @@ import { mergedComponentResult } from '@tonylb/mtw-gateways/ts/assets/components
 import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object'
 
 import { EphemeraLudicGraph } from '../ludicGraph'
-import { testLudicGraph } from '../ludicGraph/testFixtures'
+import { presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
 import { handlesFromCache } from './catalogHandles'
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { roomsForReferent } from '../ludicGraph/presenceRooms'
@@ -463,4 +463,47 @@ describe('placement', () => {
 
         expect(defaultReading(ropeId, placement!, roomA)?.bindings).toEqual([ropeOnFloor])
     })
+})
+
+describe('a Concept bound in a room (AK-7, AK-8)', () => {
+    const systemId = 'CONCEPT#ControlSystem' as EphemeraConceptId
+    const terminalId = 'OBJECT#Terminal' as EphemeraObjectId
+    const farTerminalId = 'OBJECT#FarTerminal' as EphemeraObjectId
+
+    const graphs = () => new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+        [roomA, testLudicGraph(roomA, {
+            nodes: [
+                { tag: 'Room', universalKey: roomA },
+                { tag: 'Concept', universalKey: systemId, hostingKind: 'Associated' },
+                { tag: 'Object', universalKey: terminalId, hostingKind: 'In' },
+                presenceBindingNode(parentRemainderKey(roomA), undefined, { members: [{ host: systemId, presence: 'PRESENCE#here' as any }, { host: terminalId, presence: 'PRESENCE#Base' as any }] }),
+            ],
+        })],
+        [systemId, testLudicGraph(systemId, {
+            nodes: [
+                { tag: 'Concept', universalKey: systemId },
+                { tag: 'Object', universalKey: terminalId, hostingKind: 'Associated' },
+                { tag: 'Object', universalKey: farTerminalId, hostingKind: 'Associated' },
+                presenceBindingNode('Base'),
+                presenceBindingNode('here', roomA, { members: [{ host: terminalId, presence: 'PRESENCE#assoc' as any }] }),
+                presenceBindingNode('there', roomB, { members: [{ host: farTerminalId, presence: 'PRESENCE#assoc' as any }] }),
+            ],
+        })],
+        [terminalId, testLudicGraph(terminalId, { nodes: [{ tag: 'Object', universalKey: terminalId }, presenceBindingNode('Base', roomA), presenceBindingNode('assoc', { host: systemId, presence: 'PRESENCE#here' as any })] })],
+        [farTerminalId, testLudicGraph(farTerminalId, { nodes: [{ tag: 'Object', universalKey: farTerminalId }, presenceBindingNode('assoc', { host: systemId, presence: 'PRESENCE#there' as any })] })],
+    ])
+    const names = { [systemId]: 'control system', [terminalId]: 'terminal', [farTerminalId]: 'far terminal' }
+
+    it('reaches the cache as a named node; the catalog keeps the physically present terminal, and drops the Concept and a member bound only through it', async () => {
+        const deps = { ...graphsAsDeps(graphs()), ...namedShortNameDeps(names) }
+
+        const { cache } = await buildLudicCache(roomA, [], deps)
+
+        expect(cache.nodes.find((node) => node.universalKey === systemId)?.shortName).toBe('control system')
+        expect(handlesFromCache(cache, roomA).map((handle) => handle.objectId)).toEqual([terminalId])
+    })
+
+    // AK-7 promises nothing about members bound only in another room: `enumerateLudicCacheShards` walks every
+    // node of a shard, so `OBJECT#FarTerminal` (bound only under the system's binding in room B) also enters room
+    // A's cache today. Over-delivery is accepted (user, 2026-11-01); there is no contract to omit it.
 })

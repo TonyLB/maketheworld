@@ -1,5 +1,5 @@
-import type { EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraAreaId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import type { EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraAreaId, isEphemeraConceptId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 import type { StreamEventFunction } from '@tonylb/mtw-lambda-patterns/ts/dataSource'
 
@@ -9,6 +9,7 @@ import type { PositionsPublishedPayload } from '../../publishedEvents'
 import { streamEventFromMessageBus } from '../../publishedEvents'
 import { commitStepSequence } from '../kernel/commitStepSequence'
 import type { MutationKernelStep } from '../kernel/kernelStep'
+import { alignConceptBindings, loadAlignmentTree } from './alignConceptBindings'
 import { containmentPopulationSteps, rootStep } from './containmentPopulationSteps'
 
 /**
@@ -50,8 +51,8 @@ export const populateContainmentAtCache = async (
 ): Promise<void> => {
     const childIds = childReferences
         .map(universalKeyOf)
-        .filter((key): key is EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId =>
-            typeof key === 'string' && (isEphemeraRoomId(key) || isEphemeraFeatureId(key) || isEphemeraObjectId(key))
+        .filter((key): key is EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId =>
+            typeof key === 'string' && (isEphemeraRoomId(key) || isEphemeraFeatureId(key) || isEphemeraObjectId(key) || isEphemeraConceptId(key))
         )
 
     // A Room or Area is populated even with no children: its hostless remainder is the root of its
@@ -67,7 +68,12 @@ export const populateContainmentAtCache = async (
             return containmentPopulationSteps(parentId, childId, root.graph, childGraph)
         })
     )
-    const steps: MutationKernelStep[] = [...(root.step ? [root.step] : []), ...stepsByChild.flat()]
+    // A Concept is present in each room one of its members is (AK-3, AK-10): add-only, over the
+    // state as stored. Members this pass places have no room yet, so they contribute on a later run.
+    const alignmentSteps = isEphemeraConceptId(parentId)
+        ? alignConceptBindings(await loadAlignmentTree(parentId, (hostId) => internalCache.Positions.getLudicGraph(hostId)))
+        : []
+    const steps: MutationKernelStep[] = [...(root.step ? [root.step] : []), ...stepsByChild.flat(), ...alignmentSteps]
 
     if (steps.length === 0) {
         return

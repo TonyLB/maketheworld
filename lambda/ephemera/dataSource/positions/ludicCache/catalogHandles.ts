@@ -22,12 +22,17 @@
  * seen in the room without one). Still flat scalars, and still not
  * a filter: this records where each thing is seen and drops nothing.
  *
+ * **Physical presence only (AK-8).** The cache may reach an Object through a Concept (room -> Concept -> member), and
+ * delivers more than it promises, but the catalog is built on physical presence: an Object whose only
+ * appearances in the cache are under Concept-owned bindings is not a handle. An Object that is also
+ * physically here (covered by a non-Concept binding, or in no cover at all) is unaffected.
+ *
  * The rebuild log (`logLudicCacheRebuild`) is written where the cache is read, in `actorCache.ts`, and carries only counts
  * --- never `cache.nodes`/`edges` --- so log output stays as narrow as the handle boundary.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraConceptId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicCacheData, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
@@ -97,6 +102,19 @@ const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, Presence
     )
 }
 
+/** The Objects the cache reaches only through Concept-owned bindings: associated here, not physically present. */
+const reachedOnlyThroughConcepts = (cache: EphemeraLudicCacheData): Set<string> => {
+    const covered = new Set<string>()
+    const physical = new Set<string>()
+    cache.nodes.forEach((node) => node.presenceNodes.forEach((binding) => binding.cover.members.forEach(({ host }) => {
+        covered.add(host)
+        if (!isEphemeraConceptId(node.universalKey)) {
+            physical.add(host)
+        }
+    })))
+    return new Set([...covered].filter((host) => !physical.has(host)))
+}
+
 export const handlesFromCache = (
     cache: EphemeraLudicCacheData,
     seedHostId: EphemeraMembershipHostId
@@ -104,8 +122,9 @@ export const handlesFromCache = (
     const handles: LudicCacheObjectHandle[] = []
     const placements = placementsByMember(cache)
     const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
+    const associatedOnly = reachedOnlyThroughConcepts(cache)
     for (const node of cache.nodes) {
-        if (!isEphemeraObjectId(node.universalKey)) {
+        if (!isEphemeraObjectId(node.universalKey) || associatedOnly.has(node.universalKey)) {
             continue
         }
         if (node.shortName === undefined) {
