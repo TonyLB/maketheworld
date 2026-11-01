@@ -28,7 +28,7 @@ import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import type { ObjectManipulationCatalogEntry } from '../../actions/actorObjectCatalog'
 import { normalizeExitName } from '../../actions/normalizeExitName'
 import { boundaryRelationsOfEdges, presencesOfNode, relationsBetweenEdges, securedToSupportEdgeIdsOfEdges, type BoundaryRelation, type RelationsBetween } from './boundaryRelations'
-import { handlesFromCache, type LudicCacheObjectHandle } from './catalogHandles'
+import { conceptNamesFromCache, handlesFromCache, type LudicCacheObjectHandle } from './catalogHandles'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
 import { readLudicCacheWithOutcome } from './store'
 import { unionLudicCaches } from './unionCaches'
@@ -64,6 +64,11 @@ export class ActorLudicCache {
                 ...(placement !== undefined ? { placement } : {}),
             }]
         })
+    }
+
+    /** The short names of the Concepts in the cache: not catalog entries, read only by the kind-aware refusal (AK-8). */
+    conceptNames(): string[] {
+        return conceptNamesFromCache(this.data)
     }
 
     /** Every named object the actor can reach, in the room or in hand, as flat handles. */
@@ -144,8 +149,11 @@ export type ActorContainers = Pick<ActorLudicCache, 'containersOf'>
 /** What Expansion asks of the actor's cache about a mover's relations; tests supply a bare object. */
 export type ActorBoundaryRelations = Pick<ActorLudicCache, 'boundaryRelationsOf' | 'relationsBetween' | 'securedToSupportEdgeIds' | 'presencesOf'>
 
-/** Everything planning asks of the actor's cache: ancestry and a mover's relations. */
-export type ActorPlanningReads = ActorContainers & ActorBoundaryRelations
+/** What the name-only Concept refusal asks of the actor's cache; optional on the planning reads, so a bare test object need not supply it. */
+export type ActorConcepts = Pick<ActorLudicCache, 'conceptNames'>
+
+/** Everything planning asks of the actor's cache: ancestry and a mover's relations, and (optionally) the Concepts' names. */
+export type ActorPlanningReads = ActorContainers & ActorBoundaryRelations & Partial<ActorConcepts>
 
 export type ActorLudicCacheDeps = {
     readLudicCache?: typeof readLudicCacheWithOutcome

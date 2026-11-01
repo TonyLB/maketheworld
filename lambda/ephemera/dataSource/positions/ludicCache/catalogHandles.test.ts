@@ -7,7 +7,7 @@ import { StandardObject } from '@tonylb/mtw-wml/ts/standardize/components/object
 
 import { EphemeraLudicGraph } from '../ludicGraph'
 import { presenceBindingNode, testLudicGraph } from '../ludicGraph/testFixtures'
-import { handlesFromCache } from './catalogHandles'
+import { conceptNamesFromCache, handlesFromCache } from './catalogHandles'
 import { buildLudicCache, type BuildLudicCacheDeps } from './fold'
 import { roomsForReferent } from '../ludicGraph/presenceRooms'
 import { audienceBuckets, defaultReading, readingsOf } from '../../actions/objectViews'
@@ -501,6 +501,14 @@ describe('a Concept bound in a room (AK-7, AK-8)', () => {
 
         expect(cache.nodes.find((node) => node.universalKey === systemId)?.shortName).toBe('control system')
         expect(handlesFromCache(cache, roomA).map((handle) => handle.objectId)).toEqual([terminalId])
+    })
+
+    it('offers its name to the name-only refusal (AK-8) and nothing else', async () => {
+        const deps = { ...graphsAsDeps(graphs()), ...namedShortNameDeps(names) }
+
+        const { cache } = await buildLudicCache(roomA, [], deps)
+
+        expect(conceptNamesFromCache(cache)).toEqual(['control system'])
     })
 
     // AK-7 promises nothing about members bound only in another room: `enumerateLudicCacheShards` walks every

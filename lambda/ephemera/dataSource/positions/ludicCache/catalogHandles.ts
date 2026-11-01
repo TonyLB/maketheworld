@@ -140,3 +140,11 @@ export const handlesFromCache = (
     }
     return handles
 }
+
+/**
+ * The short names of the Concepts the cache reaches, flat (AK-8): the name-only lookup behind the kind-aware refusal
+ * reads these and nothing else. They never enter the catalog, so a Concept cannot compete with an object in ranking.
+ */
+export const conceptNamesFromCache = (cache: EphemeraLudicCacheData): string[] => (
+    cache.nodes.flatMap((node) => (isEphemeraConceptId(node.universalKey) && node.shortName !== undefined ? [node.shortName] : []))
+)
