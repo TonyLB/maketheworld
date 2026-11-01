@@ -192,13 +192,18 @@ const useWorld = (objects: WorldObjects) => {
      * A real parse, its positions reads answered by `containersOf` and the live graphs. `catalog` stands in for the
      * production one (`actorCatalogFromCache`); the default carries no `presence` or `placement`, so nothing is ever asked by position.
      */
+    /** The world's actor cache over the graphs as committed so far: ancestry from `containersOf`, relations from the live edges. */
+    const liveCache = async (containersOf: Parameters<typeof containersCache>[0]) => containersCache(
+        containersOf,
+        await Promise.all([ROOM_ID, CHARACTER_ID, ...objects.map(([objectId]) => objectId)].map((hostId) => internalCache.Positions.getLudicGraph(hostId as any)))
+    )
     const parseAny = async (command: string, containersOf: (id: string) => string[], catalog?: readonly RoomInPlayObjectCatalogEntry[]) => {
         return parseCommand(
             {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                actorCache: containersCache(containersOf),
+                actorCache: await liveCache(containersOf),
                 objectCatalog: scopedCatalog(catalog ?? objects.map(([objectId, name]) => ({ objectId, normalizedShortName: name }))),
             },
             {
@@ -267,7 +272,7 @@ const useWorld = (objects: WorldObjects) => {
     /** The question's option labels, then the command resumed at the option at `index`: the attempt the player's answer makes. */
     const resumeAt = async (consult: Awaited<ReturnType<typeof parseAny>>, index: number, command: string, catalog: readonly RoomInPlayObjectCatalogEntry[], containersOf: (id: string) => string[]) => {
         const { payload } = answered(consult, index, command)
-        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, objectCatalog: scopedCatalog(catalog), actorCache: containersCache(containersOf) }, {
+        const resumed = await resumePersistentCommand(payload as any, { characterId: CHARACTER_ID, hostRoomId: ROOM_ID, objectCatalog: scopedCatalog(catalog), actorCache: await liveCache(containersOf) }, {
             positionsReadDeps: {
                 getMembershipContainers: async (id: string) => containersOf(id) as any,
                 getLudicGraph: (hostId: string) => internalCache.Positions.getLudicGraph(hostId as any),

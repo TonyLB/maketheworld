@@ -24,8 +24,8 @@ import { groundPlanStep } from './synthesize/groundChange'
 import { runExecutor, seedFromGroundedSteps } from './synthesize/executor'
 import type { ExecutorRelationalChain, ExpansionEnvironment } from './synthesize/executorTypes'
 import { isPositionAdjacencyContainedId } from './synthesize/findShardBoundary'
-import type { ActorContainers } from '../../../positions/ludicCache/actorCache'
-import { fetchRelationalReachability } from '../../../positions/manipulation/relational/findRelationalChainsForRemoval'
+import type { ActorContainers, ActorPlanningReads } from '../../../positions/ludicCache/actorCache'
+import { crossingSeedHosts, fetchChainGraphs } from './crossingGraphs'
 import { edgeRelationSteps, edgeRelationsHost } from '../../../positions/manipulation/relational/edgeRelationSteps'
 import type { SpanName } from './stampCandidateReferents'
 import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from './spanResolution'
@@ -541,16 +541,17 @@ export const containersFromCache = (
  * The per-command environment: the room graph, plus each candidate object's host graph
  * found by walking its ancestry in the actor's cache. Built once for the whole pool. A
  * `findShardBoundary` walk reaches past intermediate hosts, so one-hop lookups would dead-end.
- * Also every shard a relation touching a candidate can cross into (`fetchRelationalReachability`,
- * the same walk chain-aware removal uses): Expansion and the dry run follow a crossing to its far
- * end, which may sit in a shard no ancestry walk reaches.
+ * Also the shards a candidate relation that the actor's cache shows crossing can continue into
+ * (`fetchChainGraphs`, seeded by the cache's relations): the dry run follows that chain to its far end through
+ * the graphs, since a cache edge does not record a chain's ports. A candidate with no crossing relation
+ * reads no relational graph.
  */
 export const buildAttemptEnvironment = async (
     candidates: readonly GroundedAttemptCandidate[],
     hostRoomId: EphemeraRoomId,
     roomGraph: EphemeraLudicGraph | undefined,
     reads: AttemptPositionsReads,
-    actorCache: ActorContainers | undefined,
+    actorCache: ActorPlanningReads | undefined,
     catalog: readonly ObjectManipulationCatalogEntry[] = []
 ): Promise<ExpansionEnvironment> => {
     const objectIds = candidateObjectIds(candidates)
@@ -572,10 +573,11 @@ export const buildAttemptEnvironment = async (
             hostGraphMap.set(hostId, await reads.getLudicGraph(hostId))
         }
     }
-    const reachable = await fetchRelationalReachability(
-        new Set(objectIds),
-        async (id) => containersByHostId.get(id) ?? actorCache?.containersOf(id) ?? [],
-        async (hostId) => hostGraphMap.get(hostId) ?? reads.getLudicGraph(hostId)
+    // Only a candidate relation the cache shows crossing shards is followed through the graphs (the bounded read).
+    const reachable = await fetchChainGraphs(
+        crossingSeedHosts(objectIds, actorCache),
+        hostGraphMap,
+        (hostId) => reads.getLudicGraph(hostId)
     )
     for (const [hostId, graph] of reachable) {
         if (hostGraphMap.get(hostId) === undefined) {
@@ -591,6 +593,7 @@ export const buildAttemptEnvironment = async (
             const placement = catalog.find(({ objectId }) => objectId === id)?.placement
             return placement === undefined ? undefined : placementHostsOfView(id, placement, view)
         },
+        ...(actorCache !== undefined ? { relations: actorCache } : {}),
     }
 }
 
@@ -729,7 +732,11 @@ export const attemptDryRun = (candidate: GroundedAttemptCandidate, env: Expansio
         return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
     }
 
-    // The one edge seeded retires as its one chain.
+    // A relation the actor's cache found is legal as it stands: the dry run judges the verdict, and commit rebuilds the chain.
+    if (outcome.steps.some((step) => step.kind === 'relationFound')) {
+        return { verdict: 'legal', decidable: true, plan: { steps: outcome.steps } }
+    }
+    // Otherwise the one edge seeded retires as its one chain.
     const chain = outcome.steps.find((step): step is ExecutorRelationalChain => step.kind === 'relationalChain')
     if (chain === undefined) {
         return { verdict: 'illegal', decidable: true, reason: 'No relational chain found for this candidate' }
@@ -893,7 +900,11 @@ export const expandAndAdjudicateCandidates = (
     if (graphs.length === 0 || graphs.length < sourceHosts.length) {
         return candidate
     }
-    const expanded = attemptActionsFromTransfer(primary, objectId, graphs, env.getGraph)
+    // Without the actor's cache no relation is known, so the transfer stays unexpanded (as with a missing source graph).
+    if (env.relations === undefined) {
+        return candidate
+    }
+    const expanded = attemptActionsFromTransfer(primary, objectId, graphs, env.relations, env.getGraph)
     return {
         ...candidate,
         attempt: adjudicateAttempt(CommandAttempt.create(

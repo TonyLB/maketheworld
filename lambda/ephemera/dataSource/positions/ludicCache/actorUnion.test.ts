@@ -1,5 +1,5 @@
 /**
- * Slice 0 evidence for the actor's cache (ISS8314, `AGENT.actorCache.planning.md`, AC-1): the union of the room's
+ * Evidence for the actor's cache (ISS8314): the union of the room's
  * cache and a cache seeded at the actor equals one fold over both walks, and a held binding's parent chain reaches
  * the room. Hand-authored graphs, no `jest.mock`, as the rest of this directory.
  */
@@ -32,7 +32,7 @@ const unionOf = unionLudicCaches
 const byKey = (nodes: EphemeraLudicCacheNode[]) => [...nodes].sort((a, b) => a.universalKey.localeCompare(b.universalKey))
 const edgeSort = (edges: EphemeraLudicCacheEdge[]) => [...edges].sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b)))
 
-describe('the actor\'s cache as a union of two folds (AC-1)', () => {
+describe('the actor\'s cache as a union of two folds', () => {
     it('equals one fold over both walks', async () => {
         const graphs = actorCacheGraphs()
         const getLudicGraph = graphReader(graphs)
@@ -98,7 +98,7 @@ describe('the actor\'s cache reaches the room (the actor special case)', () => {
         expect(ownBinding(ropeId, ropeHeld)?.rooms).toEqual([roomId])
         // Finding: the tied part names the table's binding as its parent, but the table is not in an actor-seeded walk, so
         // an actor-only cache cannot resolve `rooms` for it. The room half of the union supplies the table, which is why
-        // the actor's cache is the union and not the actor fold alone (AC-1).
+        // the actor's cache is the union and not the actor fold alone.
         expect(ownBinding(ropeId, ropeAtTable)?.under).toEqual([{ host: tableId, presence: tableInRoom }])
         expect(ownBinding(ropeId, ropeAtTable)?.rooms).toEqual([])
     })

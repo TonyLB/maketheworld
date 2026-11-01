@@ -119,7 +119,7 @@ export const isEphemeraLudicCacheTerminalId = (value: unknown): value is Ephemer
     isEphemeraLudicTerminalId(value) && !(isEphemeraLudicNodeTerminal(value) && isEphemeraPresenceNodeId(value))
 
 /**
- * Where an edge's ends sit: for each end, the host whose graph holds the leg touching that end (AC-7 (a)). Set when
+ * Where an edge's ends sit: for each end, the host whose graph holds the leg touching that end. Set when
  * each leg is minted from its host's graph and kept through a crossing join (each outer leg's host survives), so a
  * single-leg edge names one host twice. Chain interiors (intermediate hosts, ports) are not recorded. A fact about
  * where the ends are, not maintenance state.

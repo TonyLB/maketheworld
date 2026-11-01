@@ -36,7 +36,8 @@ describe('persistentCommand payoff: state survives into another module instance'
                     edges: [{ tag: 'Relational', from: ropeId, to: postId, kind: 'Custom', relationLabel: 'is lashed to' }],
                 })
                 const primary = new PositionAttemptAction('primary', [], undefined, 'Take: rope')
-                ids = [exitGraph, lashedGraph].flatMap((graph) => attemptActionsFromTransfer(primary, ropeId, [graph], () => undefined)
+                const { relationsCacheOfGraphs } = require('../objectCatalogTestSupport')
+                ids = [exitGraph, lashedGraph].flatMap((graph) => attemptActionsFromTransfer(primary, ropeId, [graph], relationsCacheOfGraphs([graph]), () => undefined)
                     .actions.flatMap((action: any) => action.challenges().map((challenge: any) => challenge.id)))
             })
             return ids

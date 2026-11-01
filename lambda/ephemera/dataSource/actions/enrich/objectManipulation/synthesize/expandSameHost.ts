@@ -6,6 +6,44 @@ import { buildCrossingLegs } from './buildCrossingLegs'
 import { findRelationalChain } from './findRelationalChain'
 import type { RelationalChainStep } from './findRelationalChain'
 import type { ExpansionEnvironment } from './executorTypes'
+import { findRelationalChainFromLeg } from './findRelationalChain'
+import type { HostRelationalEdge } from '../../../../positions/ludicGraph/baseClasses'
+
+/**
+ * A named relation between two things, read from the actor's cache (ISS8314): each joined edge is one
+ * match, and each open leg touching either end is followed through its own legs (the bounded read) and matches when its far
+ * end is the other thing. `undefined` when none matches; `ambiguous` when several do (two chains for one relation).
+ */
+const relationFromCache = (
+    relations: NonNullable<ExpansionEnvironment['relations']>,
+    getGraph: ExpansionEnvironment['getGraph'],
+    subjectId: EphemeraObjectId,
+    targetId: EphemeraObjectId,
+    relationKind: HostRelationalEdgeKind,
+    relationLabel: string | undefined
+): { verdict: 'notFound' } | { verdict: 'ambiguous' } | Extract<ExpandSameHostResult, { verdict: 'crossed' | 'found' }> => {
+    const { joined, openLegs } = relations.relationsBetween(subjectId, targetId, relationKind, relationLabel)
+    const viaLegs = openLegs.flatMap(({ hostId, edge }) => {
+        const chain = findRelationalChainFromLeg({ hostId, edge }, { getGraph })
+        if (chain.verdict !== 'found') {
+            return []
+        }
+        const [from, to] = chain.endpoints
+        return (from === subjectId && to === targetId) || (from === targetId && to === subjectId) ? [chain] : []
+    })
+    // Both legs of one chain can be open in this cache (neither half joined): one relation, found once.
+    const chains = [...new Map(viaLegs.map((chain) => [JSON.stringify(chain.steps.map((step) => step.type === 'edge' ? [step.hostId, step.edge] : step)), chain])).values()]
+    const count = joined.length + chains.length
+    if (count === 0) {
+        return { verdict: 'notFound' }
+    }
+    if (count > 1) {
+        return { verdict: 'ambiguous' }
+    }
+    return joined.length === 1
+        ? { verdict: 'found', edge: joined[0] }
+        : { verdict: 'crossed', chain: chains[0].steps }
+}
 
 /**
  * `error` is hard-terminal and `defer` today only ever escalates to an LLM
@@ -20,6 +58,8 @@ import type { ExpansionEnvironment } from './executorTypes'
  */
 export type ExpandSameHostResult =
     | { verdict: 'crossed'; chain: RelationalChainStep[] }
+    /** A dissolve's relation found as one joined edge in the actor's cache (planning only): no legs to report. */
+    | { verdict: 'found'; edge: HostRelationalEdge }
     | { verdict: 'defer'; decidable: boolean; reason: string }
     | { verdict: 'error'; reason: string }
 
@@ -79,7 +119,7 @@ export const expandSameHost = (
          */
         operationKind: 'establishRelation' | 'dissolveRelation'
     },
-    envArg: Partial<Pick<ExpansionEnvironment, 'getMembershipContainers' | 'getGraph' | 'getCurrentHost'>> = {}
+    envArg: Partial<Pick<ExpansionEnvironment, 'getMembershipContainers' | 'getGraph' | 'getCurrentHost' | 'relations'>> = {}
 ): ExpandSameHostResult => {
     const { subjectId, objectId, relationKind, relationLabel, operationKind } = input
     // Every caller (establish-side tests included) that never seeds a `sameHost` assertion of
@@ -114,10 +154,13 @@ export const expandSameHost = (
             // that did not newly form; and a crossing's legs carry freshly minted port ids, so a
             // second one would commit a parallel chain (which a later dissolve would find twice).
             // Asked of the existing chain, so a crossing is caught the same way as a same-host edge.
-            const existing = findRelationalChain(
-                { subjectId, targetId: objectId, relationKind, relationLabel },
-                { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost }
-            )
+            // Planning asks the actor's cache; commit (no `relations`) asks the graphs.
+            const existing = envArg.relations !== undefined
+                ? relationFromCache(envArg.relations, env.getGraph, subjectId, objectId, relationKind, relationLabel)
+                : findRelationalChain(
+                    { subjectId, targetId: objectId, relationKind, relationLabel },
+                    { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost }
+                )
             if (existing.verdict !== 'notFound') {
                 return {
                     verdict: 'error',
@@ -152,12 +195,23 @@ export const expandSameHost = (
             // that coincidence. `findRelationalChain` takes the flat `relationKind`/
             // `relationLabel` pairing directly (unlike `buildCrossingLegs`, it has no
             // discriminated-union parameter to narrow into).
-            const chain = findRelationalChain(
-                { subjectId, targetId: objectId, relationKind, relationLabel },
-                { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost, getMembershipContainers: env.getMembershipContainers }
-            )
-            if (chain.verdict === 'found') {
-                return { verdict: 'crossed', chain: chain.steps }
+            //
+            // At planning (an environment with the actor's cache, `relations`) the question is asked of the cache: the dry run
+            // needs only the verdict, since commit rebuilds the chain against live graphs. Only an open leg is followed
+            // through the graphs. Commit has no `relations`, and walks the graphs as before.
+            if (envArg.relations !== undefined) {
+                const found = relationFromCache(envArg.relations, env.getGraph, subjectId, objectId, relationKind, relationLabel)
+                if (found.verdict === 'found' || found.verdict === 'crossed') {
+                    return found
+                }
+            } else {
+                const chain = findRelationalChain(
+                    { subjectId, targetId: objectId, relationKind, relationLabel },
+                    { getGraph: env.getGraph, getCurrentHost: env.getCurrentHost, getMembershipContainers: env.getMembershipContainers }
+                )
+                if (chain.verdict === 'found') {
+                    return { verdict: 'crossed', chain: chain.steps }
+                }
             }
         }
     }

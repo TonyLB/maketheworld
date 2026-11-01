@@ -228,6 +228,19 @@ describe('compileAttemptsFromSkeleton', () => {
     it('grounds dissolve fixture take rope off crate via the native skeleton pipeline', async () => {
         const ropeId = 'OBJECT#Rope' as EphemeraObjectId
         const crateId = 'OBJECT#Crate' as EphemeraObjectId
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: ropeId },
+                { tag: 'Object' as const, universalKey: crateId },
+            ],
+            edges: [{
+                tag: 'Relational',
+                from: ropeId,
+                to: crateId,
+                kind: 'Custom',
+                relationLabel: 'off',
+            }],
+        })
 
         const result = await compileAttemptsFromSkeleton(
             {
@@ -235,7 +248,7 @@ describe('compileAttemptsFromSkeleton', () => {
                 fills: [{ skeleton: relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), attempts: [peerRelationFixture('take rope off crate', relationalSkeleton('take', 'rope', 'ropeRef', 'off', 'crate', 'crateRef'), { primitive: 'dissolveRelation', relationKind: 'Custom', relationLabel: 'off' })] }],
                 characterId,
                 hostRoomId: roomId,
-                actorCache: containersCache(() => [roomId]),
+                actorCache: containersCache(() => [roomId], [roomGraph]),
                 objectCatalog: scopedCatalog([
                     { objectId: ropeId, normalizedShortName: 'rope' },
                     { objectId: crateId, normalizedShortName: 'crate' },
@@ -245,19 +258,7 @@ describe('compileAttemptsFromSkeleton', () => {
             {
                 positionsReadDeps: {
                     getMembershipContainers: jest.fn().mockResolvedValue([roomId]),
-                    getLudicGraph: jest.fn().mockResolvedValue(testLudicGraph(roomId, {
-                        nodes: [
-                            { tag: 'Object' as const, universalKey: ropeId },
-                            { tag: 'Object' as const, universalKey: crateId },
-                        ],
-                        edges: [{
-                            tag: 'Relational',
-                            from: ropeId,
-                            to: crateId,
-                            kind: 'Custom',
-                            relationLabel: 'off',
-                        }],
-                    })),
+                    getLudicGraph: jest.fn().mockResolvedValue(roomGraph),
                 },
             }
         )

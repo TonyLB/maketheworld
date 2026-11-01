@@ -136,7 +136,7 @@ describe('crossing take payoff (integration)', () => {
                 command,
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                actorCache: containersCache(world.containers),
+                actorCache: containersCache(world.containers, Object.values(world.graphs)),
                 objectCatalog: scopedCatalog(labels.map(([objectId, normalizedShortName]) => ({ objectId, normalizedShortName }))),
             },
             {

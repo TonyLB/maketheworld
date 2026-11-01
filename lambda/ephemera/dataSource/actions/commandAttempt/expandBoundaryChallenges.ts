@@ -1,7 +1,10 @@
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { ephemeraLudicTerminalKey, ephemeraLudicTerminalsEqual, isEphemeraLudicEdgeTerminal, relationKindAndLabelOf } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 import type { EphemeraLudicGraph } from '../../positions/ludicGraph'
-import { boundaryEdgeOutcomes } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import { classifyInteractionUnderTransfer } from '../../positions/ludicGraph/expandValidate/interactionUnderTransfer'
+import type { ActorBoundaryRelations } from '../../positions/ludicCache/actorCache'
+import type { BoundaryRelation } from '../../positions/ludicCache/boundaryRelations'
 import type { HostRelationalEdge } from '../../positions/ludicGraph/baseClasses'
 import { presencesHolding } from '../../positions/ludicGraph/presenceSubGraph'
 import type { DissolveRelationChange, GroundedReferent } from '../enrich/objectManipulation/plan/planStep'
@@ -48,19 +51,6 @@ const securedToChallengeId = (primaryActionId: string, edge: HostRelationalEdge)
 
 const describeSecuredToChallenge = (): string =>
     'Secured: the moved object is secured to something, and cannot be moved until it is freed.'
-
-/**
- * The `edgeId`s of the `Custom` edges that justify a `SecuredTo` in `graph` (the manner half of a
- * tie triple). The block covers them, so they produce no facilitating dissolve of their own.
- */
-const securedToSupportEdgeIds = (graph: EphemeraLudicGraph): ReadonlySet<string> => {
-    const securedIds = new Set(graph.relationalEdges.flatMap((edge) => edge.kind === 'SecuredTo' && edge.edgeId !== undefined ? [edge.edgeId] : []))
-    return new Set(graph.relationalEdges.flatMap((edge) => (
-        edge.kind === 'Justifies' && isEphemeraLudicEdgeTerminal(edge.from) && isEphemeraLudicEdgeTerminal(edge.to) && securedIds.has(edge.to.edgeId)
-            ? [edge.from.edgeId]
-            : []
-    )))
-}
 
 const describeExitEdgeChallenge = (): string =>
     'Exit contact: the moved object touches an exit, which has no graph rule for moving it.'
@@ -110,15 +100,14 @@ const dissolveNarrationUnit = (
  * boundary edges these actions do not cover.
  *
  * Each dissolve's referents are grounded (`graphNode`s): Expansion finds the relation's far end
- * in the graph, and no phrase named it. A boundary edge's far end may be a crossing port (the
- * relation reaches another shard), so the two ends are the relation's true endpoints, walked
- * through any ports by `findRelationalChainFromLeg`. `subject`/`target` follow the relation's
+ * in the actor's cache, and no phrase named it. A joined crossing in the cache names both true
+ * ends directly; a boundary edge whose far end is an open leg (the relation reaches a shard the
+ * cache did not walk) is followed through the graphs by `nameFarEnd`, the bounded read. `subject`/`target` follow the relation's
  * own direction, whichever end is the moved object. Expansion grounds them, so it also learns
- * where each is seen: every bucket holding that end (`presencesHolding`) **in the shard whose
- * graph holds that end's own leg**, each end on its own. For an edge inside `graph` that is
- * `graph` for both, and an `Enumerated` split can still put the two ends in different buckets (a
+ * where each is seen (`presencesOf`): every bucket holding that end **in the host whose leg touches that
+ * end** (`endHosts`), each end on its own. An `Enumerated` split can still put the two ends in different buckets (a
  * wire in one room's half of a breadboard, connected to a spot in the other's); for a crossing,
- * the far end's shard can lead to a different room entirely. The Change carries no `host`: the
+ * the far end's host can lead to a different room entirely. The Change carries no `host`: the
  * executor's `dissolveRelation` command-expansion rediscovers this exact relation by chain
  * discovery (`findRelationalChain`), the same mechanism the ingress relational route uses.
  *
@@ -126,85 +115,122 @@ const dissolveNarrationUnit = (
  * not a thing (a presence binding, PR-15) gets no dissolve: the move's commit-time recheck then
  * refuses it as uncovered, rather than Expansion guessing an end it cannot name.
  *
- * `graphs` are the hosts the object leaves: one for most moves, several for a take of a thing in
- * several hosts (the take rule), whose boundary edges are found in each.
+ * `sourceHosts` are the hosts the object leaves: one for most moves, several for a take of a thing in
+ * several hosts (the take rule), whose boundary edges are the cache's relations with a leg held there.
  */
 export const attemptActionsFromBoundaryOutcomes = (
     primaryAction: AttemptAction,
     objectId: EphemeraObjectId,
-    graphs: readonly EphemeraLudicGraph[],
+    sourceHosts: readonly EphemeraMembershipHostId[],
+    cache: ActorBoundaryRelations,
     getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
-    const boundary = graphs.flatMap((graph) => boundaryActionsInGraph(primaryAction, objectId, graph, getGraph))
+    // The mover's hosting kind is a field of its node, not an edge, so it is never a boundary edge.
+    const supports = cache.securedToSupportEdgeIds()
+    const boundary = cache.boundaryRelationsOf(objectId, sourceHosts)
+        .flatMap((relation) => boundaryActionForRelation(primaryAction, objectId, relation, supports, cache, getGraph))
     return {
         actions: [...boundary.map(({ action }) => action), primaryAction],
         narrationUnits: boundary.map(({ narrationUnit }) => narrationUnit),
     }
 }
 
-/** One source host's boundary dissolves, each with its narration unit. */
-const boundaryActionsInGraph = (
+/**
+ * The relation's two true ends, each with where it is seen. A joined crossing in the cache names both directly; an open leg
+ * (the cache holds only "something hosted by that owner") is followed through the graphs by `nameFarEnd`.
+ */
+const relationEnds = (
+    objectId: EphemeraObjectId,
+    relation: BoundaryRelation,
+    cache: ActorBoundaryRelations,
+    getGraph: ExpansionEnvironment['getGraph']
+): { moved: GroundedReferent; other: GroundedReferent; subject: GroundedReferent; target: GroundedReferent } | undefined => {
+    const moved = graphNodeRef(objectId, cache.presencesOf(objectId, relation.moverHost))
+    const far = relation.far.kind === 'named' ? relation.far.id : undefined
+    const other = far !== undefined
+        ? isEphemeraThingId(far) ? graphNodeRef(far, cache.presencesOf(far, relation.farHost)) : undefined
+        : nameFarEnd(relation, objectId, getGraph)
+    if (other === undefined) {
+        return undefined
+    }
+    const [subject, target] = relation.movedRole === 'subject' ? [moved, other] : [other, moved]
+    return { moved, other, subject, target }
+}
+
+/**
+ * The bounded graph read (ISS8314): a changed edge whose far end the cache cannot name (an open leg) is followed
+ * through its own legs in the graphs, from the mover's leg, to the relation's true far end. Bounded by the chain, not a search,
+ * so it is the one place planning reads graphs for a relation, and it never digs for something it has not got. `undefined` when
+ * the chain cannot be walked (a shard `getGraph` does not have) or its far end is not a thing: the move's commit-time recheck then
+ * refuses it as uncovered, rather than Expansion guessing an end it cannot name.
+ */
+export const nameFarEnd = (
+    relation: BoundaryRelation,
+    objectId: EphemeraObjectId,
+    getGraph: ExpansionEnvironment['getGraph']
+): GroundedReferent | undefined => {
+    const chain = findRelationalChainFromLeg({ hostId: relation.moverHost, edge: relation.edge }, { getGraph })
+    if (chain.verdict !== 'found') {
+        return undefined
+    }
+    const farId = chain.endpoints.find((endpoint) => !ephemeraLudicTerminalsEqual(endpoint, objectId))
+    if (farId === undefined || !isEphemeraThingId(farId)) {
+        return undefined
+    }
+    // The far end is seen from the shard holding its own leg: the chain's edge step touching it.
+    const leg = chain.steps.find((step) => step.type === 'edge'
+        && (ephemeraLudicTerminalsEqual(step.edge.from, farId) || ephemeraLudicTerminalsEqual(step.edge.to, farId)))
+    const legGraph = leg === undefined ? undefined : getGraph(leg.hostId)
+    return graphNodeRef(farId, legGraph === undefined ? undefined : presencesHolding(legGraph, farId))
+}
+
+/** One boundary relation's dissolve, with its narration unit; nothing for a block, a covered support, or an end that cannot be named. */
+const boundaryActionForRelation = (
     primaryAction: AttemptAction,
     objectId: EphemeraObjectId,
-    graph: EphemeraLudicGraph,
+    relation: BoundaryRelation,
+    supports: ReadonlySet<string>,
+    cache: ActorBoundaryRelations,
     getGraph: ExpansionEnvironment['getGraph']
 ): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
-    // The mover's hosting kind is a field of its node, not an edge, so it is never a boundary edge.
-    const supports = securedToSupportEdgeIds(graph)
-    const outcomes = boundaryEdgeOutcomes(objectId, graph)
-    return outcomes.flatMap((entry): { action: AttemptAction; narrationUnit: NarrationUnit }[] => {
-        // A block is a challenge on the primary action (`attemptActionsFromTransfer`), never a dissolve,
-        // and it covers the `Custom` support that justifies it.
-        if (entry.outcome === 'block' || (entry.edge.edgeId !== undefined && supports.has(entry.edge.edgeId))) {
-            return []
-        }
-        const chain = findRelationalChainFromLeg({ hostId: graph.hostId, edge: entry.edge }, { getGraph })
-        if (chain.verdict !== 'found') {
-            return []
-        }
-        const [subjectId, targetId] = chain.endpoints
-        if (!isEphemeraThingId(subjectId) || !isEphemeraThingId(targetId)) {
-            return []
-        }
-        // Each end is seen from the shard holding its own leg: the chain's edge step touching it.
-        const presenceOf = (endId: typeof subjectId) => {
-            const leg = chain.steps.find((step) => step.type === 'edge'
-                && (ephemeraLudicTerminalsEqual(step.edge.from, endId) || ephemeraLudicTerminalsEqual(step.edge.to, endId)))
-            const legGraph = leg === undefined ? undefined : leg.hostId === graph.hostId ? graph : getGraph(leg.hostId)
-            return legGraph === undefined ? undefined : presencesHolding(legGraph, endId)
-        }
-        const subject = graphNodeRef(subjectId, presenceOf(subjectId))
-        const target = graphNodeRef(targetId, presenceOf(targetId))
-        const desiredResult: DissolveRelationChange<GroundedReferent> = {
-            kind: 'change',
-            primitive: 'dissolveRelation',
-            subject,
-            target,
-            ...relationKindAndLabelOf(entry.edge),
-        }
+    const { edge } = relation
+    const outcome = classifyInteractionUnderTransfer(edge.kind, relation.movedRole)
+    // A block is a challenge on the primary action (`attemptActionsFromTransfer`), never a dissolve,
+    // and it covers the `Custom` support that justifies it.
+    if (outcome === 'block' || (edge.edgeId !== undefined && supports.has(edge.edgeId))) {
+        return []
+    }
+    const ends = relationEnds(objectId, relation, cache, getGraph)
+    if (ends === undefined) {
+        return []
+    }
+    const desiredResult: DissolveRelationChange<GroundedReferent> = {
+        kind: 'change',
+        primitive: 'dissolveRelation',
+        subject: ends.subject,
+        target: ends.target,
+        ...relationKindAndLabelOf(edge),
+    }
 
-        let challenges: Challenge[] = []
-        if (entry.outcome === 'defer') {
-            // The classifier defers `Custom` (the one peer kind) and `ConnectedTo`; only `Custom` has a
-            // challenge type. A `ConnectedTo` defer (a part leaving its whole) has no producer yet, so
-            // reaching it is an invariant break until a challenge for it exists.
-            if (entry.edge.kind !== 'Custom') {
-                throw new Error(`attemptActionsFromBoundaryOutcomes: a '${entry.edge.kind}' boundary edge deferred, but only 'Custom' has a challenge`)
-            }
-            challenges = [new CustomEdgeChallenge(customEdgeChallengeId(primaryAction.id, entry.edge), entry.edge, describeCustomEdgeChallenge(entry.edge))]
+    let challenges: Challenge[] = []
+    if (outcome === 'defer') {
+        // The classifier defers `Custom` (the one peer kind) and `ConnectedTo`; only `Custom` has a
+        // challenge type. A `ConnectedTo` defer (a part leaving its whole) has no producer yet, so
+        // reaching it is an invariant break until a challenge for it exists.
+        if (edge.kind !== 'Custom') {
+            throw new Error(`attemptActionsFromBoundaryOutcomes: a '${edge.kind}' boundary edge deferred, but only 'Custom' has a challenge`)
         }
+        challenges = [new CustomEdgeChallenge(customEdgeChallengeId(primaryAction.id, edge), edge, describeCustomEdgeChallenge(edge))]
+    }
 
-        const action = new PositionAttemptAction(
-            mintActionId(),
-            challenges,
-            desiredResult,
-            entry.edge.kind === 'Custom' ? `Dissolve: ${entry.edge.relationLabel}` : `Dissolve: ${entry.edge.kind}`
-        )
-        // A boundary edge has the moved object at exactly one end.
-        const subjectMoves = ephemeraLudicTerminalsEqual(subjectId, objectId)
-        const [moved, other] = subjectMoves ? [subject, target] : [target, subject]
-        return [{ action, narrationUnit: dissolveNarrationUnit(action.id, derivedReferentKey(moved), derivedReferentKey(other)) }]
-    })
+    const action = new PositionAttemptAction(
+        mintActionId(),
+        challenges,
+        desiredResult,
+        edge.kind === 'Custom' ? `Dissolve: ${edge.relationLabel}` : `Dissolve: ${edge.kind}`
+    )
+    // A boundary edge has the moved object at exactly one end.
+    return [{ action, narrationUnit: dissolveNarrationUnit(action.id, derivedReferentKey(ends.moved), derivedReferentKey(ends.other)) }]
 }
 
 /**
@@ -213,19 +239,21 @@ const boundaryActionsInGraph = (
  * action, and one with a `SecuredTo` boundary edge gets a {@link SecuredToChallenge} per edge; each
  * stays pending (the take or drop abstains); then the boundary dissolves are added
  * as {@link attemptActionsFromBoundaryOutcomes} does. `graphs` are the object's source hosts (several
- * for a take of a thing in several hosts: an exit contact in any one challenges the take);
- * `getGraph` reaches the shards a crossing relation continues into.
+ * for a take of a thing in several hosts: an exit contact in any one challenges the take). They are
+ * read for exits only, which are not cache edges (they stay a room-graph read), and name the hosts the cache's relations
+ * are limited to; `getGraph` reaches the shards a crossing relation continues into (the bounded read).
  */
 export const attemptActionsFromTransfer = (
     primaryAction: AttemptAction,
     objectId: EphemeraObjectId,
     graphs: readonly EphemeraLudicGraph[],
+    cache: ActorBoundaryRelations,
     getGraph: ExpansionEnvironment['getGraph']
 ): ExpandedAttemptActions => {
+    const sourceHosts = graphs.map(({ hostId }) => hostId)
     const exitChallenged = graphs.some((graph) => objectTouchesExitEdgeOnGraph(graph, objectId))
-    const securedChallenges = graphs
-        .flatMap((graph) => boundaryEdgeOutcomes(objectId, graph))
-        .filter(({ outcome }) => outcome === 'block')
+    const securedChallenges = cache.boundaryRelationsOf(objectId, sourceHosts)
+        .filter(({ edge, movedRole }) => classifyInteractionUnderTransfer(edge.kind, movedRole) === 'block')
         .map(({ edge }) => new SecuredToChallenge(securedToChallengeId(primaryAction.id, edge), describeSecuredToChallenge()))
     const added: Challenge[] = [
         ...(exitChallenged ? [new ExitEdgeChallenge(exitEdgeChallengeId(primaryAction.id), describeExitEdgeChallenge())] : []),
@@ -234,5 +262,5 @@ export const attemptActionsFromTransfer = (
     const primary = added.length > 0
         ? primaryAction.withChallenges([...primaryAction.challenges(), ...added])
         : primaryAction
-    return attemptActionsFromBoundaryOutcomes(primary, objectId, graphs, getGraph)
+    return attemptActionsFromBoundaryOutcomes(primary, objectId, sourceHosts, cache, getGraph)
 }

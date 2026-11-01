@@ -1,5 +1,5 @@
 /**
- * The actor's cache (ISS8314, `AGENT.actorCache.planning.md`, Slice 1): the stored room row unioned with a fold seeded at
+ * The actor's cache (ISS8314): the stored room row unioned with a fold seeded at
  * the actor. Hand-authored graphs, no `jest.mock`, injected deps, as `actorUnion.test.ts`.
  */
 import type { EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -46,7 +46,7 @@ describe('buildActorLudicCache', () => {
         expect(roomsOf(ropeId, ropeHeld)).toEqual([roomId])
     })
 
-    it('names the wholly held objects: nested in held is held, half-held and room objects are not (AC-3)', async () => {
+    it('names the wholly held objects: nested in held is held, half-held and room objects are not', async () => {
         const cache = await build(await roomRow())
         const scopeOf = (objectId: string) => cache.entries().find((entry) => entry.objectId === objectId)?.catalogScope
 
@@ -56,7 +56,7 @@ describe('buildActorLudicCache', () => {
         expect(scopeOf(tableId)).toBe('room')
     })
 
-    it('lets the actor half\'s node win a collision (AC-4)', async () => {
+    it('lets the actor half\'s node win a collision', async () => {
         const cache = await build(await roomRow({ [ropeId]: 'room rope' }), { [ropeId]: 'actor rope' })
         expect(cache.entries().find((entry) => entry.objectId === ropeId)?.normalizedShortName).toBe('actor rope')
     })
@@ -76,7 +76,7 @@ describe('buildActorLudicCache', () => {
         expect(room).toEqual(before)
     })
 
-    it('names the actor half with the room\'s Canon stack, and reads the ordinary graphs (AC-2, AC-4)', async () => {
+    it('names the actor half with the room\'s Canon stack, and reads the ordinary graphs', async () => {
         const resolveCanonStack = jest.fn(async () => ['ASSET#Canon'])
         const buildSpy = jest.fn(buildLudicCache)
         const buildDeps = { getLudicGraph: graphReader(actorCacheGraphs()), getComponentAggregate: aggregateNamed() }
@@ -110,7 +110,7 @@ describe('buildActorLudicCache', () => {
 })
 
 describe('ActorLudicCache.containersOf', () => {
-    // What the stored membership adjacency says of the same world: the cache's ancestry must equal it (ISS8314 Slice 5).
+    // What the stored membership adjacency says of the same world: the cache's ancestry must equal it.
     const adjacency: Record<string, string[]> = {
         [actorId]: [roomId],
         [bagId]: [actorId],

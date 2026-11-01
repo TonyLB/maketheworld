@@ -165,7 +165,7 @@ describe('getActorObjectCatalog', () => {
         })).entries
         const scopeOf = (entries: Awaited<ReturnType<typeof heldCatalog>>, objectId: EphemeraObjectId) => entries.find((entry) => entry.objectId === objectId)?.catalogScope
 
-        it('lists what is nested inside a held container, scoped held (AC-3 i)', async () => {
+        it('lists what is nested inside a held container, scoped held', async () => {
             const entries = await heldCatalog()
 
             expect(entries.map(({ objectId }) => objectId)).toEqual(expect.arrayContaining([fixtureTableId, bagId, coinId, ropeId]))
@@ -173,7 +173,7 @@ describe('getActorObjectCatalog', () => {
             expect(scopeOf(entries, coinId)).toBe('held')
         })
 
-        it('scopes a half-held object and a room object as room (AC-3 ii)', async () => {
+        it('scopes a half-held object and a room object as room', async () => {
             const entries = await heldCatalog()
 
             expect(scopeOf(entries, ropeId)).toBe('room')

@@ -196,15 +196,14 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
     })
 
     it('errors with the world\'s reason when the relation is already present: a refusal the world gives is an answer, not an Abstain', async () => {
-        const getLudicGraph = jest.fn().mockResolvedValue(
-            testLudicGraph(roomId, {
-                nodes: [
-                    { tag: 'Object' as const, universalKey: broomId },
-                    { tag: 'Object' as const, universalKey: tableId },
-                ],
-                edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Custom', relationLabel: 'under' }] as any,
-            })
-        )
+        const roomGraph = testLudicGraph(roomId, {
+            nodes: [
+                { tag: 'Object' as const, universalKey: broomId },
+                { tag: 'Object' as const, universalKey: tableId },
+            ],
+            edges: [{ tag: 'Relational', from: broomId, to: tableId, kind: 'Custom', relationLabel: 'under' }] as any,
+        })
+        const getLudicGraph = jest.fn().mockResolvedValue(roomGraph)
 
         const result = await compileAttemptsFromSkeleton(
             {
@@ -212,7 +211,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), attempts: [peerRelationFixture('put broom under table', relationalSkeleton('put', 'broom', 'broomRef', 'under', 'table', 'tableRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'under' })] }],
                 characterId,
                 hostRoomId: roomId,
-                actorCache: containersCache(() => [roomId]),
+                actorCache: containersCache(() => [roomId], [roomGraph]),
                 objectCatalog: scopedCatalog([
                     { objectId: broomId, normalizedShortName: 'broom' },
                     { objectId: tableId, normalizedShortName: 'table' },
@@ -373,7 +372,7 @@ describe('compileAttemptsFromSkeleton (relational)', () => {
                 fills: [{ skeleton: relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'), attempts: [peerRelationFixture('tie string to cup', relationalSkeleton('tie', 'string', 'stringRef', 'to', 'cup', 'cupRef'), { primitive: 'establishRelation', relationKind: 'Custom', relationLabel: 'to' })] }],
                 characterId,
                 hostRoomId: roomId,
-                actorCache: { containersOf },
+                actorCache: { ...containersCache({}), containersOf },
                 objectCatalog: scopedCatalog([
                     { objectId: stringId, normalizedShortName: 'string' },
                     { objectId: cupId, normalizedShortName: 'cup' },

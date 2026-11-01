@@ -1,9 +1,9 @@
 /**
- * Payoff test for the actor's cache (ISS8314, `AGENT.actorCache.planning.md`, Phase 1): an actor holding a bag with
+ * Payoff test for the actor's cache (ISS8314): an actor holding a bag with
  * a coin in it types `take coin from bag`, and the command grounds the coin and reaches its egress, the
  * `CommandAttempt` that `handleParseRequested` publishes as `Ludic Network Change Requested`.
  *
- * **Slice 2 turned it green.** The coin is a node of the bag's graph. The room walk never enters a character's shard, so the
+ * **Why it is green.** The coin is a node of the bag's graph. The room walk never enters a character's shard, so the
  * coin used to be in no catalog. The one catalog is now read from the actor's cache, which folds the held bag, so the coin
  * grounds. The control case ("drop bag") runs the same harness, so a red `take coin from bag` is the missing coin, not a
  * broken harness.

@@ -52,6 +52,22 @@ export type BoundaryEdgeOutcome = {
 }
 
 /**
+ * The mover's role on an edge, or `undefined` when it is at neither end or at both (not a boundary edge). Shared by the
+ * graph read here (commit) and the actor cache's boundary relations (planning), so the two agree on what a boundary edge is.
+ */
+export const moverRoleOnEdge = (
+    edge: { from: unknown; to: unknown },
+    moverId: EphemeraObjectId
+): TransferEndpointRole | undefined => {
+    // `edge.from`/`.to` are widened to `EphemeraLudicNodeTerminal`, but the mover is
+    // Object-only: `applyDeparture.ts` calls in here only for an object. See
+    // `ludicGraph/AGENT.md`'s "Character-relation widening" note.
+    const fromIsMover = edge.from === moverId
+    const toIsMover = edge.to === moverId
+    return fromIsMover === toIsMover ? undefined : fromIsMover ? 'subject' : 'target'
+}
+
+/**
  * The mover's boundary edges --- relational edges with the mover at one end and something staying
  * behind at the other --- each classified. A move names one object (anything it hosts lives in its
  * own shard and travels with it), so no edge has both ends moving.
@@ -60,22 +76,8 @@ export function boundaryEdgeOutcomes(
     moverId: EphemeraObjectId,
     graph: EphemeraLudicGraph
 ): BoundaryEdgeOutcome[] {
-    const results: BoundaryEdgeOutcome[] = []
-    for (const edge of graph.relationalEdges) {
-        // `edge.from`/`.to` are widened to `EphemeraLudicNodeTerminal`, but the mover is
-        // Object-only: `applyDeparture.ts` calls in here only for an object. See
-        // `ludicGraph/AGENT.md`'s "Character-relation widening" note.
-        const fromIsMover = edge.from === moverId
-        const toIsMover = edge.to === moverId
-        if (fromIsMover === toIsMover) {
-            continue
-        }
-        const movedRole: TransferEndpointRole = fromIsMover ? 'subject' : 'target'
-        results.push({
-            edge,
-            movedRole,
-            outcome: classifyInteractionUnderTransfer(edge.kind, movedRole),
-        })
-    }
-    return results
+    return graph.relationalEdges.flatMap((edge): BoundaryEdgeOutcome[] => {
+        const movedRole = moverRoleOnEdge(edge, moverId)
+        return movedRole === undefined ? [] : [{ edge, movedRole, outcome: classifyInteractionUnderTransfer(edge.kind, movedRole) }]
+    })
 }

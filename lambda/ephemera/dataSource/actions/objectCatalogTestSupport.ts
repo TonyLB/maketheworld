@@ -2,7 +2,11 @@ import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemer
 
 import type { EphemeraLudicGraph } from '../positions/ludicGraph'
 import { buildLudicCache, type BuildLudicCacheDeps } from '../positions/ludicCache/fold'
-import type { ActorContainers, ActorLudicCache } from '../positions/ludicCache/actorCache'
+import { ActorLudicCache, type ActorPlanningReads } from '../positions/ludicCache/actorCache'
+import { cacheFromHostGraph } from '../positions/ludicCache/cacheFromHostGraph'
+import { unionAllLudicCaches } from '../positions/ludicCache/unionCaches'
+import { toStoredRelationalEdge } from '../positions/ludicGraph'
+import type { EphemeraLudicCacheEdge, EphemeraLudicCacheNode } from '../positions/ludicCache/types'
 import type { ActorObjectCatalogDeps, ObjectManipulationCatalogEntry, RoomInPlayObjectCatalogEntry } from './actorObjectCatalog'
 
 type ColdCatalogDeps = {
@@ -42,16 +46,54 @@ export const scopedCatalog = (
 
 /**
  * Test support: the ancestry a planning test's world has, as the actor's cache answers it (`containersOf`). Pass the world's
- * `{ id: [its containers] }` map, or a function for a rule (every object sits in the room).
+ * `{ id: [its containers] }` map, or a function for a rule (every object sits in the room). Pass the world's host graphs as
+ * `graphs` too when the case has relations: a mover's relations are then read from a cache built from them
+ * (`relationsCacheOfGraphs`); without graphs the world has none.
  */
 export const containersCache = (
-    hostsOf: Record<string, readonly string[]> | ((id: string) => readonly string[])
-): ActorContainers => ({
-    containersOf: (id) => [...(typeof hostsOf === 'function' ? hostsOf(id) : hostsOf[id] ?? [])] as EphemeraMembershipHostId[],
-})
+    hostsOf: Record<string, readonly string[]> | ((id: string) => readonly string[]),
+    graphs: readonly EphemeraLudicGraph[] = []
+): ActorPlanningReads => {
+    const containersOf: ActorPlanningReads['containersOf'] = (id) => [...(typeof hostsOf === 'function' ? hostsOf(id) : hostsOf[id] ?? [])] as EphemeraMembershipHostId[]
+    return graphs.length === 0
+        ? { containersOf, boundaryRelationsOf: () => [], relationsBetween: () => ({ joined: [], openLegs: [] }), securedToSupportEdgeIds: () => new Set(), presencesOf: () => undefined }
+        : { ...relationsCacheOfGraphs(graphs), containersOf }
+}
 
 /** A stand-in for `getActorCache`'s result: the given catalog, and ancestry from `hostsOf` (none by default). */
 export const actorCacheStub = (
     entries: ObjectManipulationCatalogEntry[],
     hostsOf: Parameters<typeof containersCache>[0] = {}
 ): ActorLudicCache => ({ entries: () => entries, ...containersCache(hostsOf) }) as unknown as ActorLudicCache
+
+/**
+ * Test support: the planning reads of an actor's cache built from hand-authored host graphs, as the fold would
+ * (`cacheFromHostGraph` per graph, then the union that joins crossing legs). A graph is one walked host: its
+ * bindings nest on a node named for it. A mover's relations come from the graphs' edges; ancestry is `containersCache`'s.
+ */
+export const relationsCacheOfGraphs = (
+    graphs: readonly EphemeraLudicGraph[]
+): Omit<ActorPlanningReads, 'containersOf'> => {
+    const contributions = graphs.map((graph) => {
+        // The fold reads edges through a host's bindings, and every stored host has one (Base). A hand-authored graph with
+        // none is read edge by edge instead, so a fixture need not mint a binding to hold a relation.
+        const { presenceNodes, edges } = graph.presenceNodes.length > 0
+            ? cacheFromHostGraph(graph)
+            : {
+                presenceNodes: [],
+                edges: graph.relationalEdges.map((edge): EphemeraLudicCacheEdge => ({ ...toStoredRelationalEdge(edge), endHosts: { from: graph.hostId, to: graph.hostId } } as EphemeraLudicCacheEdge)),
+            }
+        return { hostId: graph.hostId, nodes: [{ universalKey: graph.hostId, presenceNodes } as unknown as EphemeraLudicCacheNode], edges }
+    })
+    const cache = new ActorLudicCache(
+        'CHARACTER#Actor' as never,
+        'ROOM#Room' as never,
+        unionAllLudicCaches(graphs[0]?.hostId ?? ('ROOM#Room' as EphemeraMembershipHostId), contributions)
+    )
+    return {
+        boundaryRelationsOf: (moverId, sourceHosts) => cache.boundaryRelationsOf(moverId, sourceHosts),
+        relationsBetween: (subjectId, targetId, kind, label) => cache.relationsBetween(subjectId, targetId, kind, label),
+        securedToSupportEdgeIds: () => cache.securedToSupportEdgeIds(),
+        presencesOf: (nodeId, host) => cache.presencesOf(nodeId, host),
+    }
+}

@@ -1,7 +1,7 @@
 import type { EphemeraCharacterId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 
 import { CommandAttempt } from '../commandAttempt'
-import type { ActorContainers } from '../../positions/ludicCache/actorCache'
+import type { ActorPlanningReads } from '../../positions/ludicCache/actorCache'
 import type { ObjectManipulationCatalogEntry } from '../actorObjectCatalog'
 import { compileAttemptsFromSkeleton } from '../enrich/objectManipulation/compileAttemptsFromSkeleton'
 import type {
@@ -16,7 +16,7 @@ export type PersistentCommandWorld = {
     characterId?: EphemeraCharacterId
     hostRoomId?: EphemeraRoomId
     objectCatalog?: readonly ObjectManipulationCatalogEntry[]
-    actorCache?: ActorContainers
+    actorCache?: ActorPlanningReads
     roomExits?: readonly RoomExit[]
 }
 

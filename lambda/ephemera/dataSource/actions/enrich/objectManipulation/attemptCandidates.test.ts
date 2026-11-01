@@ -9,7 +9,7 @@ import type { SpanCandidatePool } from './spanResolution'
 import { CommandAttempt } from '../../commandAttempt'
 import type { NarrationUnit } from '../../commandAttempt'
 import { PositionAttemptAction } from '../../commandAttempt/action'
-import { containersCache } from '../../objectCatalogTestSupport'
+import { containersCache, relationsCacheOfGraphs } from '../../objectCatalogTestSupport'
 import { testLudicGraph } from '../../../positions/ludicGraph/testFixtures'
 import { actingCharacterRef, currentHostRef } from './plan/planStep'
 import { COMMAND_GRANULES, planTokens } from './plan/planSkeleton'
@@ -479,6 +479,7 @@ describe('a spread (extend, then a move of the minted binding)', () => {
             getGraph: (hostId: string) => (hostId === roomId ? graph : undefined),
             getCurrentHost: (id: string) => (id === ropeId ? roomId : undefined),
             getMembershipContainers: () => [],
+            relations: relationsCacheOfGraphs([graph]),
         }
         const expand = (minted: boolean) => expandAndAdjudicateCandidates(
             [{ attempt: CommandAttempt.create('spread', 'move rope', minted ? [extend, transfer(true)] : [transfer(false)]), confidence: 1, alternative: { label: 'rope', proposedCommand: 'move the rope' } }],
@@ -571,6 +572,7 @@ describe('narration units through candidate building and Expansion', () => {
                 getGraph: (hostId) => (hostId === roomId ? graph : undefined),
                 getCurrentHost: (id) => (id === ropeId ? roomId : undefined),
                 getMembershipContainers: () => [],
+                relations: relationsCacheOfGraphs([graph]),
             }
         )
 

@@ -1759,7 +1759,7 @@ describe('characterization fixture: published attempt (ISS8203 slice 0)', () => 
             {
                 characterId: CHARACTER,
                 hostRoomId: ROOM,
-                actorCache: containersCache((id) => containers[id] ?? (id === CHARACTER ? [] : [ROOM])),
+                actorCache: containersCache((id) => containers[id] ?? (id === CHARACTER ? [] : [ROOM]), Object.values(graphs)),
                 objectCatalog: scopedCatalog([]),
                 ...input,
             } as ParseInput,

@@ -9,7 +9,7 @@ import type {
     ParseCommandCommandAttemptResult,
 } from '../../baseClasses'
 import type { ObjectManipulationCatalogEntry } from '../../actorObjectCatalog'
-import type { ActorContainers } from '../../../positions/ludicCache/actorCache'
+import type { ActorPlanningReads } from '../../../positions/ludicCache/actorCache'
 import type { AttemptKind, CommandAttempt } from '../../commandAttempt'
 import { NarrateAttemptAction } from '../../commandAttempt/action'
 
@@ -61,7 +61,7 @@ export type CompileAttemptsFromSkeletonInput = {
     /** Everything the actor can reach, room and hand, each entry scoped by placement (`actorObjectCatalog.ts`). */
     objectCatalog?: readonly ObjectManipulationCatalogEntry[]
     /** The cache the catalog came from: ancestry for the step environment. Absent, nothing has a container. */
-    actorCache?: ActorContainers
+    actorCache?: ActorPlanningReads
     /** The exits from the actor's room: what an exit span grounds against, and what the dry run judges a navigation by. */
     roomExits?: readonly RoomExit[]
     /** A resumed command's stored answers (`persistentCommand/resume.ts`); absent on a first run. */

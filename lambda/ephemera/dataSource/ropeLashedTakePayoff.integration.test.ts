@@ -139,7 +139,7 @@ describe('lashed rope take payoff (integration)', () => {
                 command: 'get rope',
                 characterId: CHARACTER_ID,
                 hostRoomId: ROOM_ID,
-                actorCache: containersCache(() => [ROOM_ID]),
+                actorCache: containersCache(() => [ROOM_ID], Object.values(graphsByHost)),
                 objectCatalog: scopedCatalog([
                     { objectId: ROPE_ID, normalizedShortName: 'rope' },
                     { objectId: POST_ID, normalizedShortName: 'post' },

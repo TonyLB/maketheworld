@@ -1,5 +1,5 @@
 /**
- * Test fixture for the actor's cache (ISS8314, `AGENT.actorCache.planning.md`): a room with a table, and an
+ * Test fixture for the actor's cache (ISS8314): a room with a table, and an
  * actor standing in it who holds a bag with a coin in it, plus a rope bound twice (one binding in hand, one tied
  * to the table). The room's graph holds no character (a bystander is not in its room's graph), so a room walk
  * never reaches the bag or the coin; a walk seeded at the actor does.

@@ -4,8 +4,8 @@
  *
  * The model: a participant's node is in the room's graph, the room walk never expands a character other
  * than its seed, and the actor's own walk joins in through the union. The payoff asserts through `unionLudicCaches`, the
- * function `buildActorLudicCache` composes with, since `ActorLudicCache` exposes no edges until Phase 2 designs that
- * boundary (AC-5).
+ * function `buildActorLudicCache` composes with, since `ActorLudicCache` exposes no edges (its
+ * accessors return flat records).
  */
 import type { EphemeraLudicGraph } from '../ludicGraph'
 import { unionLudicCaches } from './actorCache'
@@ -25,7 +25,7 @@ const namesPort = (port: { owner: string; port: string }) => (edge: EphemeraLudi
     [edge.from, edge.to].some((terminal) => JSON.stringify(terminal) === JSON.stringify(port))
 const nodeKeys = (cache: EphemeraLudicCacheData) => cache.nodes.map((node) => node.universalKey)
 
-describe('character-to-room crossings: the halves (Slice 0 pins, updated by Slice 2)', () => {
+describe('character-to-room crossings: each half on its own, before the union', () => {
     it('the room\'s own fold keeps its legs to a participant\'s port, unchanged', () => {
         const roomGraph = actorCrossingGraphs().get(roomId) as EphemeraLudicGraph
         const { edges } = cacheFromHostGraph(roomGraph)
@@ -64,7 +64,7 @@ describe('character-to-room crossings: the payoff', () => {
         // The actor's crossing: one joined edge, no leg left over.
         expect(union.edges.filter((edge) => edge.from === tableId && edge.to === bagId)).toHaveLength(1)
         expect(union.edges.some(namesPort(tetherPort))).toBe(false)
-        // The table end sits in the room's graph, the bag end in the actor's (`endHosts`, AC-7 (a)).
+        // The table end sits in the room's graph, the bag end in the actor's (`endHosts`).
         expect(union.edges.find((edge) => edge.from === tableId && edge.to === bagId)?.endHosts).toEqual({ from: roomId, to: actorId })
         // The other character is outside the union: its crossing stays an open leg.
         expect(union.edges).toEqual(expect.arrayContaining([tiedTo(tableId, leashPort)]))

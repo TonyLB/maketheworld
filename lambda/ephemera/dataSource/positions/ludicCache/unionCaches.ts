@@ -3,7 +3,7 @@
  * `EphemeraLudicCacheData` from each host's `ludicGraph` and reduces them through this union; the actor's cache
  * combines the room's stored row with the actor's fold through the same function.
  *
- * Nodes are keyed by `universalKey` (a later cache's node wins a collision, AC-4, and keeps its first position).
+ * Nodes are keyed by `universalKey` (a later cache's node wins a collision, and keeps its first position).
  * Edges are concatenated, then run once through the leg-matching rule (`joinCrossingLegs`: two distinct legs naming
  * one crossing-port address become the one joined edge), then an open leg already covered by a joined edge is dropped
  * (`isHalfOf`), then deduped by identity. Matching all the legs at once, not
