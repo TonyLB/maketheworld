@@ -23,16 +23,18 @@
  * a filter: this records where each thing is seen and drops nothing.
  *
  * **Physical presence only (AK-8).** The cache may reach an Object through a Concept (room -> Concept -> member), and
- * delivers more than it promises, but the catalog is built on physical presence: an Object whose only
- * appearances in the cache are under Concept-owned bindings is not a handle. An Object that is also
- * physically here (covered by a non-Concept binding, or in no cover at all) is unaffected.
+ * delivers more than it promises, but the catalog is built on physical presence: placements come only from the bindings a
+ * walk down the DAG reaches from the rooms and characters (`physicallyReachedBindings`), and the walk treats a Concept as a
+ * leaf it neither records nor passes through. So a terminal in the room and associated with a Concept has one reading (its
+ * binding under the room), not a second part under the Concept; and an Object reached only through a Concept has no
+ * placement and is not a handle.
  *
  * The rebuild log (`logLudicCacheRebuild`) is written where the cache is read, in `actorCache.ts`, and carries only counts
  * --- never `cache.nodes`/`edges` --- so log output stays as narrow as the handle boundary.
  */
 import type { EphemeraObjectId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
-import { isEphemeraConceptId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
+import { isEphemeraCharacterId, isEphemeraConceptId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
 
 import type { EphemeraLudicCacheData, EphemeraLudicCacheNode, EphemeraLudicCachePresenceNode } from './types'
@@ -50,14 +52,51 @@ export type LudicCacheObjectHandle = {
     presence?: GroundedPresence[]
 }
 
+const bindingKey = (host: string, presence: string) => `${host}|${presence}`
+
+/**
+ * The bindings a walk down the DAG reaches from the rooms and characters in the cache, through each binding's cover. A Concept
+ * is a leaf the walk never records and never passes through, so a binding that hangs only under a Concept's (an associated
+ * member's) is never reached (AK-8). Rooms the seed walk never reached still root the walk, so a whole bound into several rooms
+ * keeps every part (the cache over-delivers, and the catalog keeps what it is given); so does a non-Concept parent the cache
+ * does not hold, the edge of what was walked.
+ */
+const physicallyReachedBindings = (cache: EphemeraLudicCacheData): Set<string> => {
+    // A binding's children are the bindings whose parent pointers name it (which govern), and the cover entries that name a binding.
+    const children = cache.nodes
+        .filter(({ universalKey }) => !isEphemeraConceptId(universalKey))
+        .flatMap((node) => node.presenceNodes.flatMap((binding) => [
+            ...binding.fromHostPresences.map((parent) => [bindingKey(parent.host, parent.presence), bindingKey(node.universalKey, binding.universalKey)] as const),
+            ...binding.cover.members.flatMap(({ host, presence }) => (
+                presence === undefined || isEphemeraConceptId(host) ? [] : [[bindingKey(node.universalKey, binding.universalKey), bindingKey(host, presence)] as const]
+            )),
+        ]))
+        .reduce((byParent, [parent, child]) => byParent.set(parent, [...(byParent.get(parent) ?? []), child]), new Map<string, string[]>())
+    // A room or character roots the walk whether or not its node is in the cache, and so does any other host the cache does not
+    // hold (the edge of what was walked, such as the table a half-held rope is tied to, in an actor-only fold), unless it is a Concept.
+    const held = new Set(cache.nodes.map(({ universalKey }) => universalKey as string))
+    const isRoot = (host: string) => isEphemeraRoomId(host) || isEphemeraCharacterId(host) || (!held.has(host) && !isEphemeraConceptId(host))
+    const roots = [
+        ...cache.nodes.filter(({ universalKey }) => isRoot(universalKey))
+            .flatMap((node) => node.presenceNodes.map((binding) => bindingKey(node.universalKey, binding.universalKey))),
+        ...cache.nodes.flatMap((node) => node.presenceNodes.flatMap((binding) => binding.fromHostPresences))
+            .filter(({ host }) => isRoot(host))
+            .map(({ host, presence }) => bindingKey(host, presence)),
+    ]
+    const walk = (reached: Set<string>, key: string): Set<string> => (
+        reached.has(key) ? reached : (children.get(key) ?? []).reduce(walk, new Set([...reached, key]))
+    )
+    return roots.reduce(walk, new Set<string>())
+}
+
 /**
  * Each host's placement: its own bindings and every binding in the cache whose cover holds it, deduped, in cache order (which the fold keeps byte-identical),
  * as runs of one owner's bindings (`audienceBuckets` flattens them back, in the same order).
  * Each bucket names its owner (the node whose binding it is), since the binding lives on the owner's graph, not the member's.
  * An own binding also records the parents it sits under and the rooms they reach (`PlacementBinding`), read from the binding's own parent pointers, which govern.
+ * Only the bindings in `reached` count, as buckets and as own bindings, and a Concept is never a member here.
  */
-const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, PresencePlacement[]> => {
-    const bindingKey = (host: string, presence: string) => `${host}|${presence}`
+const placementsByMember = (cache: EphemeraLudicCacheData, reached: ReadonlySet<string>): Map<string, PresencePlacement[]> => {
     const bindings = new Map(cache.nodes.flatMap((node) => node.presenceNodes.map((binding) => [bindingKey(node.universalKey, binding.universalKey), binding] as const)))
     const roomsReached = (host: EphemeraMembershipHostId, presence: EphemeraPresenceNodeId, seen: ReadonlySet<string> = new Set()): EphemeraRoomId[] => {
         if (isEphemeraRoomId(host)) {
@@ -91,8 +130,8 @@ const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, Presence
         )
     }
     return cache.nodes.reduce(
-        (byNode, node) => node.presenceNodes.reduce(
-            (byBinding, binding) => [node.universalKey, ...binding.cover.members.map(({ host }) => host)].reduce(
+        (byNode, node) => node.presenceNodes.filter((binding) => reached.has(bindingKey(node.universalKey, binding.universalKey))).reduce(
+            (byBinding, binding) => [node.universalKey, ...binding.cover.members.map(({ host }) => host).filter((host) => !isEphemeraConceptId(host))].reduce(
                 (byHost, host) => addBucket(byHost, host, node.universalKey as EphemeraMembershipHostId, placementBinding(node, binding, host)),
                 byBinding
             ),
@@ -102,35 +141,27 @@ const placementsByMember = (cache: EphemeraLudicCacheData): Map<string, Presence
     )
 }
 
-/** The Objects the cache reaches only through Concept-owned bindings: associated here, not physically present. */
-const reachedOnlyThroughConcepts = (cache: EphemeraLudicCacheData): Set<string> => {
-    const covered = new Set<string>()
-    const physical = new Set<string>()
-    cache.nodes.forEach((node) => node.presenceNodes.forEach((binding) => binding.cover.members.forEach(({ host }) => {
-        covered.add(host)
-        if (!isEphemeraConceptId(node.universalKey)) {
-            physical.add(host)
-        }
-    })))
-    return new Set([...covered].filter((host) => !physical.has(host)))
-}
-
 export const handlesFromCache = (
     cache: EphemeraLudicCacheData,
     seedHostId: EphemeraMembershipHostId
 ): LudicCacheObjectHandle[] => {
     const handles: LudicCacheObjectHandle[] = []
-    const placements = placementsByMember(cache)
+    const placements = placementsByMember(cache, physicallyReachedBindings(cache))
     const seedRoom = isEphemeraRoomId(seedHostId) ? seedHostId : undefined
-    const associatedOnly = reachedOnlyThroughConcepts(cache)
+    // Bound or covered somewhere, but in no binding the walk reached: present only through a Concept, so not a handle.
+    const placed = new Set(cache.nodes.flatMap((node) => [
+        ...(node.presenceNodes.length > 0 ? [node.universalKey as string] : []),
+        ...node.presenceNodes.flatMap((binding) => binding.cover.members.map(({ host }) => host as string)),
+    ]))
     for (const node of cache.nodes) {
-        if (!isEphemeraObjectId(node.universalKey) || associatedOnly.has(node.universalKey)) {
+        if (!isEphemeraObjectId(node.universalKey) || node.shortName === undefined) {
             continue
         }
-        if (node.shortName === undefined) {
+        const reachedPlacement = placements.get(node.universalKey)
+        if (reachedPlacement === undefined && placed.has(node.universalKey)) {
             continue
         }
-        const placement: PresencePlacement[] | undefined = placements.get(node.universalKey) ?? (seedRoom !== undefined ? [{ host: seedRoom, bindings: [] }] : undefined)
+        const placement: PresencePlacement[] | undefined = reachedPlacement ?? (seedRoom !== undefined ? [{ host: seedRoom, bindings: [] }] : undefined)
         handles.push({
             objectId: node.universalKey,
             shortName: node.shortName,

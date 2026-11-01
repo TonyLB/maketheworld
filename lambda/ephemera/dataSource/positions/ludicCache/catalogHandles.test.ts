@@ -503,6 +503,16 @@ describe('a Concept bound in a room (AK-7, AK-8)', () => {
         expect(handlesFromCache(cache, roomA).map((handle) => handle.objectId)).toEqual([terminalId])
     })
 
+    it('is a leaf of the walk: the terminal is seen only through its physical binding, so it has one reading, not a part under the Concept', async () => {
+        const deps = { ...graphsAsDeps(graphs()), ...namedShortNameDeps(names) }
+
+        const { cache } = await buildLudicCache(roomA, [], deps)
+        const [terminal] = handlesFromCache(cache, roomA)
+
+        expect(terminal?.placement?.map(({ host }) => host)).not.toContain(systemId)
+        expect(readingsOf(terminalId, terminal!.placement!).map(({ bindings }) => bindings)).toEqual([['PRESENCE#Base']])
+    })
+
     it('offers its name to the name-only refusal (AK-8) and nothing else', async () => {
         const deps = { ...graphsAsDeps(graphs()), ...namedShortNameDeps(names) }
 
