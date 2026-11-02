@@ -9,7 +9,7 @@ import { buildSceneFixture, expectedAnswer, sceneFixture, sceneFixtureNames, sce
 const handles = (...values: string[]): SceneAnswer => ({ handles: values })
 const thing = (handle: string, hostingKind: 'On' | 'In' | 'Held' = 'On') => ({ kind: 'thing' as const, handle, hostingKind })
 
-const expected: Record<string, SceneAnswer[]> = {
+const expected: Record<string, (SceneAnswer | undefined)[]> = {
     tavern: [
         handles('saucer1', 'candle1'),
         { locations: [thing('saucer1')] },
@@ -100,6 +100,23 @@ const expected: Record<string, SceneAnswer[]> = {
         handles('altar1', 'hymnal1'),
         handles('candle1'),
         { locations: [thing('altar1')] },
+    ],
+    sideboard: [
+        handles('candle1', 'saucer1', 'mug1', 'tray1', 'box1', 'lamp1'),
+        handles('cup1'),
+        handles('coffee1'),
+        { locations: [thing('cup1', 'In')] },
+        { locations: [thing('sideboard1')] },
+        handles('cup1', 'tea1'),
+        handles('fork1', 'knife1', 'spoon1'),
+    ],
+    teaTable: [
+        undefined,
+        undefined,
+        undefined,
+        handles('teapot1'),
+        handles('saucer1', 'teapot1'),
+        { count: 2 },
     ],
 }
 

@@ -1,4 +1,9 @@
-export type NovaModel = 'NovaMicro' | 'Nova2Lite'
+export const NOVA_MODELS = ['NovaMicro', 'Nova2Lite'] as const
+
+export type NovaModel = (typeof NOVA_MODELS)[number]
+
+export const isNovaModel = (value: unknown): value is NovaModel =>
+    typeof value === 'string' && (NOVA_MODELS as readonly string[]).includes(value)
 
 export const BEDROCK_NOVA_MICRO_MODEL_ID = 'us.amazon.nova-micro-v1:0' as const
 export const BEDROCK_NOVA_2_LITE_MODEL_ID = 'us.amazon.nova-2-lite-v1:0' as const

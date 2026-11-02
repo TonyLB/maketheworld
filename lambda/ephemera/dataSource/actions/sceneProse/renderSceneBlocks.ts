@@ -11,7 +11,7 @@ import type { SceneEntry, SceneModel } from '../../positions/ludicCache/sceneMod
 import { bracket, blockHeader, chainTail, conceptText, exitsLine, headText, heading, lineNotes, lineRelations, roomRef } from './sceneWording'
 
 /** The entries grouped by hosting kind, in the order each kind first appears. */
-const byHostingKind = (entries: readonly SceneEntry[]): { hostingKind: EphemeraHostingKind; entries: SceneEntry[] }[] => {
+export const byHostingKind = (entries: readonly SceneEntry[]): { hostingKind: EphemeraHostingKind; entries: SceneEntry[] }[] => {
     const groups: { hostingKind: EphemeraHostingKind; entries: SceneEntry[] }[] = []
     for (const entry of entries) {
         const group = groups.find(({ hostingKind }) => hostingKind === entry.hostingKind)

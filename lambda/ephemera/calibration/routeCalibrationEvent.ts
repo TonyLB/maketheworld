@@ -4,6 +4,8 @@ import { handleEmbeddingCompare } from './objectMatch/handlers/comparePair'
 import { handleEmbeddingCalibrationCorpus } from './objectMatch/handlers/runCorpus'
 import { handleEmbeddingSimulateIdentity } from './objectMatch/handlers/simulateIdentity'
 import { handleEmbeddingVerifyRepeat } from './objectMatch/handlers/verifyRepeatEmbed'
+import { handleSceneReasoningFixtures } from './sceneReasoning/handlers/runFixtures'
+import { handleSceneReasoningProbe } from './sceneReasoning/handlers/runProbe'
 import { calibrationJsonResponse, type CalibrationRouteResponse } from './calibrationResponse'
 
 export const CALIBRATION_EVENT_TYPES = [
@@ -13,6 +15,8 @@ export const CALIBRATION_EVENT_TYPES = [
     'EmbeddingVerifyRepeat',
     'EmbeddingDistanceLadder',
     'EmbeddingAsymmetricLadder',
+    'SceneReasoningFixtures',
+    'SceneReasoningProbe',
 ] as const
 
 export type CalibrationEventType = (typeof CALIBRATION_EVENT_TYPES)[number]
@@ -49,6 +53,14 @@ export async function routeCalibrationEvent(event: {
         case 'EmbeddingAsymmetricLadder':
             return handleEmbeddingAsymmetricLadder(
                 event as Parameters<typeof handleEmbeddingAsymmetricLadder>[0]
+            )
+        case 'SceneReasoningFixtures':
+            return handleSceneReasoningFixtures(
+                event as Parameters<typeof handleSceneReasoningFixtures>[0]
+            )
+        case 'SceneReasoningProbe':
+            return handleSceneReasoningProbe(
+                event as Parameters<typeof handleSceneReasoningProbe>[0]
             )
         default:
             return calibrationJsonResponse(400, {

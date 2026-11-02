@@ -8,10 +8,10 @@ import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta
 import type { SceneEntry, SceneModel } from '../../positions/ludicCache/sceneModel'
 import { bracket, conceptText, exitsLine, heading, headText, hostingClause, lineNotes, lineRelations, roomRef } from './sceneWording'
 
-type Parent = { kind: 'room' } | { kind: 'held' } | { kind: 'thing'; handle: string }
+export type Parent = { kind: 'room' } | { kind: 'held' } | { kind: 'thing'; handle: string }
 
 /** D's parent clause. A join names the host its parents all belong to (SP-9), not the line it happens to sit under. */
-const parentClause = (scene: SceneModel, entry: SceneEntry, parent: Parent): string => {
+export const parentClause = (scene: SceneModel, entry: SceneEntry, parent: Parent): string => {
     const hostingKind: EphemeraHostingKind = entry.hostingKind
     if (entry.kind === 'join') {
         return hostingClause(hostingKind, bracket(entry.host))

@@ -5,6 +5,9 @@
  *
  * `asked` words a question about a known thing by description ("Where is the china teacup?"); the answer is still
  * computed for its `subject`.
+ *
+ * An `open` question asks the reader to reason over the scene (can a thing be done, and what would change), so it has no
+ * computed answer; its `rubric`, written before any batch, says what a good answer must notice, and the user grades by it.
  */
 import type { SceneEntry, SceneHandle, SceneLocation, SceneModel, SceneRelationTarget } from '../sceneModel'
 
@@ -33,6 +36,8 @@ export type SceneQuestion = Asked & (
     | { type: 'associatedWith'; subject: SceneHandle }
     /** How many things have this name. */
     | { type: 'howMany'; name: string }
+    /** A question that reasons over the scene: no computed answer, graded by hand against its rubric. */
+    | { type: 'open'; asked: string; rubric?: string }
 )
 
 export type SceneAnswer =
@@ -70,7 +75,8 @@ const descendants = (placed: readonly PlacedEntry[], subject: SceneHandle, seen:
     ))
 )
 
-export const expectedAnswer = (scene: SceneModel, question: SceneQuestion): SceneAnswer => {
+/** The answer computed from the scene model; `undefined` for an `open` question, which has none. */
+export const expectedAnswer = (scene: SceneModel, question: SceneQuestion): SceneAnswer | undefined => {
     const placed = placedEntries(scene)
     const relations = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.map((relation) => ({ subject, relation })))
     switch (question.type) {
@@ -118,5 +124,7 @@ export const expectedAnswer = (scene: SceneModel, question: SceneQuestion): Scen
             }
         case 'howMany':
             return { count: Object.values(scene.things).filter(({ name }) => name?.toLowerCase() === question.name.toLowerCase()).length }
+        case 'open':
+            return undefined
     }
 }

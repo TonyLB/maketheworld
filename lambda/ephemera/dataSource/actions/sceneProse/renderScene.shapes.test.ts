@@ -11,6 +11,56 @@ const model = (partial: Partial<SceneModel> & Pick<SceneModel, 'things'>): Scene
 })
 
 describe('scene renderers: shapes without a fixture', () => {
+    it('hoists a one-deep chain into its parent\'s block in blocksD, relation and all, and promotes a two-deep one', () => {
+        const scene = model({
+            contents: [line('table1', 'In', [line('box1', 'On', [line('bag1', 'In')])])],
+            things: {
+                table1: thing('Table'),
+                box1: thing('Box'),
+                bag1: thing('Bag', [{ kind: 'Custom', label: 'tied to', target: { kind: 'notShown' }, secured: false }]),
+            },
+        })
+        expect(renderScene('blocksD', scene)).toBe([
+            'The room',
+            'In the room:',
+            '- [table1] Table, in the room (see below)',
+            'On [table1]:',
+            '- [box1] Box, on [table1]',
+            '- [bag1] Bag, in [box1], tied to something not shown here',
+            'You are holding: nothing.',
+        ].join('\n'))
+    })
+
+    it('in blocksDLabelled, gives a two-deep run a layers block that hands off to a fan block where it fans out, and a one-deep chain a fan block', () => {
+        const scene = model({
+            contents: [line('table1', 'In', [
+                line('box1', 'On', [line('bag1', 'In', [line('pouch1', 'In', [line('coin1', 'In'), line('ring1', 'In')])])]),
+                line('mug1', 'On', [line('coffee1', 'In')]),
+            ])],
+            things: {
+                table1: thing('Table'), box1: thing('Box'), bag1: thing('Bag'), pouch1: thing('Pouch'),
+                coin1: thing('Coin'), ring1: thing('Ring'), mug1: thing('Mug'), coffee1: thing('Coffee'),
+            },
+        })
+        expect(renderScene('blocksDLabelled', scene)).toBe([
+            'The room',
+            'Directly in the room:',
+            '- [table1] Table, in the room (see below)',
+            'Directly on [table1]:',
+            '- [box1] Box, on [table1] (see below)',
+            '- [mug1] Mug, on [table1] (see below)',
+            '[box1] and what is on or in it, in layers:',
+            '- [bag1] Bag, in [box1]',
+            '- [pouch1] Pouch, in [bag1] (see below)',
+            'Directly in [pouch1]:',
+            '- [coin1] Coin, in [pouch1]',
+            '- [ring1] Ring, in [pouch1]',
+            'Directly in [mug1]:',
+            '- [coffee1] Coffee, in [mug1]',
+            'You are holding: nothing.',
+        ].join('\n'))
+    })
+
     it('promotes a chained child that carries a relation, in Blocks (and nests it plainly in A and D)', () => {
         const scene = model({
             contents: [line('table1', 'In', [line('box1', 'On', [line('bag1', 'In')])])],
