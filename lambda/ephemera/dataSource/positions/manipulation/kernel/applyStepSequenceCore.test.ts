@@ -1154,7 +1154,7 @@ describe('applyStepSequenceCore', () => {
             })
 
             describe('a shared binding (parent sets, PR-25)', () => {
-                // the backgammon-set shape: a table with two bindings (as the chest has), and a tray binding sitting under both
+                // a table with two bindings, and a tray binding sitting under both (a bowl on the seam of a cloth spread over two tables)
                 const key = (name: string) => PresenceKey(name) as EphemeraPresenceNodeId
                 const graphsOf = (outcome: ReturnType<typeof applyStepSequenceCore>) => {
                     if (outcome.verdict !== 'legal') {

@@ -11,6 +11,8 @@ Each scene has five parts:
 
 Expected answers are written from the setup, not from the renders.
 
+**Since Slice 1 the setups and question sets live in code**, in [`positions/ludicCache/sceneFixtures/`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/sceneFixtures/index.ts), with each question's answer computed from the scene model. That code is the authority for setups and questions; this file still holds the hand-written renders until Slice 2's golden tests pin them. Two fixtures were added there with no renders here yet: `join` (SP-9) and `feature` (SP-4 as amended).
+
 ## Conventions
 
 Every format shares these. Only the way nesting is shown differs between them.
@@ -89,7 +91,7 @@ A chain of more than one link reads right-branching: `[table1] Table, with [box1
 
 ### Relation phrases (SP-3)
 
-A relation is read as English about its subject. It is printed on the subject's line only, never repeated on the object's line. When one subject has several relations with the same phrase, the objects are joined with "and": `tied to [bag1] and something someone else is holding`.
+A relation is read as English about its subject. It is printed on the subject's line only, never repeated on the object's line. When one subject has several relations with the same phrase, the objects are joined with "and": `tied to [bag1] and something someone else is holding`. A spread subject's relations go on its first line in walk order, as its gloss does, and its other lines carry none (scene 6).
 
 | Edge | Phrase |
 |---|---|
@@ -113,7 +115,7 @@ An object with several **physical** bindings gets one line per binding, each und
 
 A binding whose parent is not rendered (another room) gets no line of its own; only the note mentions it.
 
-**Bindings that differ only by association** are merged into one line. See scene 13 and its note. This refines SP-2's "once per binding" and is up for review.
+**Association is not placement.** Only a physical binding places a thing, so an `Associated` binding never gives its member a placement line. Associations are still scene content: Concepts exist to inform reasoning, and the scene shows them. The object catalog's rule (a Concept is a leaf, since the catalog serves player commands) does not bind the scene. See scene 13.
 
 ---
 
@@ -482,16 +484,17 @@ The invariant holds. Pinned already: "the primer's spring", modelled with a Conc
 
 **Notes**
 - The far end, `RopeEndB`, is in the cache under binding `p2`, whose parent (the Hall) is not rendered. It gets no line, and only the rope's spread note mentions it. Is that enough for a reader asking "what is the far end of [rope1] tied to"?
-- The spring's `assoc` binding renders no line of its own (see "Bindings that differ only by association" under Spread objects). It shows up only as the association phrase.
+- The spring's `assoc` binding renders no line of its own (see "Association is not placement" under Spread objects). It shows up only as the association phrase.
 
 ---
 
 ## 6. Held inventory and a half-held rope
 
-**Setup:** `actorCacheGraphs` in [`actorCacheTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/actorCacheTestFixtures.ts), with three changes:
+**Setup:** `actorCacheGraphs` in [`actorCacheTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/actorCacheTestFixtures.ts), with two changes:
 - shortNames are added;
-- hosting kinds are made explicit;
-- **the `rope -ConnectedTo-> bag.PORT-held -> coin` crossing is dropped.** That fixture uses it to exercise crossing composition. It joins two separate wholes, which the contract says `ConnectedTo` never does, so it isn't scene content.
+- hosting kinds are made explicit.
+
+The fixture's `rope -[tied to]-> bag.PORT-held -> coin` crossing is part of the scene. It was a `ConnectedTo` between two separate wholes, which the contract forbids, until the fixture was corrected to a `Custom` "tied to" (2026-11-02).
 
 ```text
 ROOM#Kitchen "Kitchen"
@@ -505,9 +508,14 @@ OBJECT#Rope "Rope" (gloss: "a coil of thick hemp rope")     member of Table, On;
   binding ropeHeld <- Actor.actorInRoom
 CHARACTER#Actor (the actor)
   binding actorInRoom <- Kitchen.Base; cover: Bag.bagHeld, Rope.ropeHeld
+  edge: Rope -Custom "tied to"-> {owner: Bag, port: PORT-held}
 OBJECT#Bag "Bag" (gloss: "a drawstring leather pouch")       member of Actor, Held; binding bagHeld <- Actor.actorInRoom; cover: Coin.coinInBag
+  port PORT-held (fromHostId Actor, Custom, "tied to")
+  edge: {owner: Bag, port: PORT-held} -Custom "tied to"-> Coin
 OBJECT#Coin "Coin"     member of Bag, In; binding coinInBag <- Bag.bagHeld
 ```
+
+In the cache, `Rope -tied to-> Coin` is composed.
 
 **A**
 
@@ -516,7 +524,7 @@ The Kitchen
 Contents of the Kitchen:
 - [table1] Table (scrubbed pine, knife-scarred)
   - [lamp1] Lamp (an oil lamp, unlit), is near [rope1]
-  - [rope1] Rope (a coil of thick hemp rope) (also held by you)
+  - [rope1] Rope (a coil of thick hemp rope) (also held by you), tied to [coin1]
 You are holding:
 - [bag1] Bag (a drawstring leather pouch)
   - [coin1] Coin
@@ -530,7 +538,7 @@ The Kitchen
 Contents of the Kitchen:
 - [table1] Table (scrubbed pine, knife-scarred), in the Kitchen
   - [lamp1] Lamp (an oil lamp, unlit), on [table1], is near [rope1]
-  - [rope1] Rope (a coil of thick hemp rope), on [table1] (also held by you)
+  - [rope1] Rope (a coil of thick hemp rope), on [table1] (also held by you), tied to [coin1]
 You are holding:
 - [bag1] Bag (a drawstring leather pouch), held by you
   - [coin1] Coin, in [bag1]
@@ -542,7 +550,7 @@ You are holding:
 ```text
 The Kitchen
 In the Kitchen: [table1] Table (scrubbed pine, knife-scarred) (see below).
-On [table1]: [lamp1] Lamp (an oil lamp, unlit), is near [rope1]; [rope1] Rope (a coil of thick hemp rope) (also held by you).
+On [table1]: [lamp1] Lamp (an oil lamp, unlit), is near [rope1]; [rope1] Rope (a coil of thick hemp rope) (also held by you), tied to [coin1].
 You are holding: [bag1] Bag (a drawstring leather pouch), with [coin1] Coin in it; [rope1] Rope (also on [table1]).
 ```
 
@@ -553,11 +561,14 @@ You are holding: [bag1] Bag (a drawstring leather pouch), with [coin1] Coin in i
 | what is held | What are you holding? | [bag1] (with [coin1] in it), and one end of [rope1] |
 | where is X | Where is [rope1]? | partly on [table1] and partly held by you |
 | what is X in | What is [coin1] in? | [bag1] |
+| what is X tied to | What is [rope1] tied to? | [coin1] |
+| what is tied to X | What is tied to [coin1]? | [rope1] |
 | what moves if X is taken | If [table1] is taken, what moves with it? | [lamp1]; [rope1] is also held by you, so only its end on the table goes along |
 
 **Forest check:** each rope binding has one physical parent host (Table; Actor). The invariant holds. The shape is already pinned by "the plank on two sawhorses".
 
 **Notes**
+- The rope is spread, so its relation `tied to [coin1]` goes on its first line in walk order (the table line), as its gloss does; its held line carries none (user, 2026-11-02).
 - `catalogScope` is `room` for the half-held rope. The scene doesn't show it, and the spread note carries the same fact.
 - `is near` is printed as given (`Lamp, is near [rope1]`). A label that reads as a verb phrase sits awkwardly after the comma. If it needs fixing, that's for SP-3's wording, not the format.
 
@@ -693,7 +704,7 @@ You are holding: nothing.
 
 ## 9. Open legs
 
-**Setup:** `actorCrossingGraphs` in [`actorCacheTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/actorCacheTestFixtures.ts), with the same three changes as scene 6.
+**Setup:** `actorCrossingGraphs` in [`actorCacheTestFixtures.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/actorCacheTestFixtures.ts), with the same two changes as scene 6 (the rope stays tied to the coin).
 - The table is tied across the actor's boundary to the bag. That crossing composes in the cache.
 - The table is also tied across another character's boundary to that character's leash. The other character's shard is never expanded, so the leg stays open and ends at `{owner: CHARACTER#Other, port: PORT-leash}`.
 
@@ -721,7 +732,7 @@ The Kitchen
 Contents of the Kitchen:
 - [table1] Table (scrubbed pine, knife-scarred), tied to [bag1] and something someone else is holding
   - [lamp1] Lamp (an oil lamp, unlit), is near [rope1]
-  - [rope1] Rope (a coil of thick hemp rope) (also held by you)
+  - [rope1] Rope (a coil of thick hemp rope) (also held by you), tied to [coin1]
 You are holding:
 - [bag1] Bag (a drawstring leather pouch)
   - [coin1] Coin
@@ -735,7 +746,7 @@ The Kitchen
 Contents of the Kitchen:
 - [table1] Table (scrubbed pine, knife-scarred), in the Kitchen, tied to [bag1] and something someone else is holding
   - [lamp1] Lamp (an oil lamp, unlit), on [table1], is near [rope1]
-  - [rope1] Rope (a coil of thick hemp rope), on [table1] (also held by you)
+  - [rope1] Rope (a coil of thick hemp rope), on [table1] (also held by you), tied to [coin1]
 You are holding:
 - [bag1] Bag (a drawstring leather pouch), held by you
   - [coin1] Coin, in [bag1]
@@ -747,7 +758,7 @@ You are holding:
 ```text
 The Kitchen
 In the Kitchen: [table1] Table (scrubbed pine, knife-scarred) (see below), tied to [bag1] and something someone else is holding.
-On [table1]: [lamp1] Lamp (an oil lamp, unlit), is near [rope1]; [rope1] Rope (a coil of thick hemp rope) (also held by you).
+On [table1]: [lamp1] Lamp (an oil lamp, unlit), is near [rope1]; [rope1] Rope (a coil of thick hemp rope) (also held by you), tied to [coin1].
 You are holding: [bag1] Bag (a drawstring leather pouch), with [coin1] Coin in it; [rope1] Rope (also on [table1]).
 ```
 
@@ -825,7 +836,7 @@ You are holding: nothing.
 
 **Notes**
 - The `ConnectedTo` between the cloth's bindings gets no phrase. The spread note carries it, as SP-3 decided.
-- Untested here: a thing joined under *both* of the cloth's bindings (the forest test's candle). SP-2 says a join renders once under its host, but a spread host has several lines. Which line does the join go under? This is recorded as a question.
+- Untested here: a thing joined under *both* of the cloth's bindings (the forest test's candle). SP-2 says a join renders once under its host, but a spread host has several lines. Which line does the join go under? Decided as SP-9 in the plan: described once, after its last parent line, with a reference at each parent line.
 
 ---
 
@@ -925,41 +936,36 @@ You are holding: nothing.
 
 ---
 
-## 13. The steamer chest: placed only through associations
+## 13. The steamer chest: association is not placement
 
-**Setup:** the world of [`presenceParentSets.concepts.payoff.test.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/presenceParentSets.concepts.payoff.test.ts) (PR-C5 with its Concepts). Tess is the actor.
+**The rule this scene pins (user, 2026-11-02).** Only physical placement puts a thing in a room. An association says a Concept is relevant here; it never places its members. Placement lines come only from physical covers walked from the room and the actor. Associations are reasoning content, which is what Concepts are for, so the scene shows them: a Concept is rendered under `Concepts here:`, and a placed member's line carries the association phrase. The scene is **not** aligned with the object catalog, whose rule that a Concept is a leaf serves player commands (user, 2026-11-02: aligning the reasoning engine's exposure with the player command's is a mistake).
+
+**Setup:** PR-C5's world as corrected (user, 2026-11-02: as first written, with the chest in the attic only through its associations, it was a modelling error), matching [`presenceParentSets.concepts.payoff.test.ts`](../../../../../lambda/ephemera/dataSource/positions/manipulation/membership/presenceParentSets.concepts.payoff.test.ts). The chest has a physical binding on the attic floor and an empty `Associated` binding under each Concept. The backgammon set and the chess set sit under the physical binding. Tess is the actor.
 
 ```text
 ROOM#Attic "Attic"
-  members: CONCEPT#InheritedFurniture (Associated), CONCEPT#Boardgames (Associated)
-  binding Base (hostless); cover: InheritedFurniture.inAttic, Boardgames.inAttic
+  members: SteamerChest (In), CONCEPT#InheritedFurniture (Associated), CONCEPT#Boardgames (Associated)
+  binding Base (hostless); cover: SteamerChest.onFloor, InheritedFurniture.inAttic, Boardgames.inAttic
 CONCEPT#InheritedFurniture "Inherited Furniture" (gloss: "the things Gran left to the family")
   members: SteamerChest (Associated)
-  binding inAttic <- Attic.Base; cover: SteamerChest.chestA
+  binding inAttic <- Attic.Base; cover: SteamerChest.asFurniture
 CONCEPT#Boardgames "Boardgames"
   members: SteamerChest (Associated)
-  binding inAttic <- Attic.Base; cover: SteamerChest.chestB
+  binding inAttic <- Attic.Base; cover: SteamerChest.asBoardgames
 OBJECT#SteamerChest "Steamer Chest" (gloss: "brass-cornered, labels peeling")
   members: Backgammon (In), Chess (In)
-  binding chestA <- InheritedFurniture.inAttic; cover: Backgammon.bg
-  binding chestB <- Boardgames.inAttic;         cover: Backgammon.bg, Chess.chess
+  binding onFloor <- Attic.Base; cover: Backgammon.bg, Chess.chess
+  binding asFurniture <- InheritedFurniture.inAttic; empty cover
+  binding asBoardgames <- Boardgames.inAttic; empty cover
 OBJECT#Backgammon "Backgammon Set" (gloss: "a folding wooden board")
   members: Die (In)
-  binding bg <- SteamerChest.chestA, SteamerChest.chestB   (a join); cover: Die.die
-OBJECT#Chess "Chess Set"     binding chess <- SteamerChest.chestB
+  binding bg <- SteamerChest.onFloor; cover: Die.die
+OBJECT#Chess "Chess Set"     binding chess <- SteamerChest.onFloor
 OBJECT#Die "Die"             binding die <- Backgammon.bg
 CHARACTER#Tess (the actor)
-  binding inAttic <- Attic.Base (the test leaves Tess hostless; here she is in the attic); cover: SpareDie.spare
+  binding inAttic <- Attic.Base; cover: SpareDie.spare
 OBJECT#SpareDie "Spare Die" (gloss: "an ivory die, one pip worn away")  member of Tess, Held; binding spare <- Tess.inAttic
 ```
-
-**SP-2 check result.** Taken literally, SP-2 gives two lines for the chest ("once per binding"), and nothing physical to nest either line under. Both bindings differ only in their association, so two lines would be wrong: a reader would see two chests. **This corpus therefore merges bindings that have no physical parent into one line**, which:
-- sits in the room's contents (the fiction has the chest in the attic);
-- has no placement clause in D;
-- carries all of its associations;
-- holds the union of the bindings' covers as its contents.
-
-The backgammon set is joined under both chest bindings and renders once under the chest, as SP-2 says.
 
 **A**
 
@@ -977,12 +983,12 @@ You are holding:
 - [spare-die1] Spare Die (an ivory die, one pip worn away)
 ```
 
-**D** (the chest line has no parent clause: nothing physical places it)
+**D**
 
 ```text
 The Attic
 Contents of the Attic:
-- [steamer-chest1] Steamer Chest (brass-cornered, labels peeling), associated with [inherited-furniture1] and [boardgames1]
+- [steamer-chest1] Steamer Chest (brass-cornered, labels peeling), in the Attic, associated with [inherited-furniture1] and [boardgames1]
   - [backgammon-set1] Backgammon Set (a folding wooden board), in [steamer-chest1]
     - [die1] Die, in [backgammon-set1]
   - [chess-set1] Chess Set, in [steamer-chest1]
@@ -1009,16 +1015,13 @@ You are holding: [spare-die1] Spare Die (an ivory die, one pip worn away).
 |---|---|---|
 | list everything in X | What is in [steamer-chest1]? | [backgammon-set1], [chess-set1] |
 | what is associated with X | What is [steamer-chest1] associated with? | [inherited-furniture1], [boardgames1] |
-| how many | How many steamer chests are there? | one |
-| what moves if X is taken | If [steamer-chest1] is taken, what moves with it? | [backgammon-set1], [die1], [chess-set1] |
+| what is associated with X | What is associated with [boardgames1]? | [steamer-chest1] |
+| what moves if X is taken | If [steamer-chest1] is taken, what moves with it? | [backgammon-set1], [die1], [chess-set1]. Its associations don't move anything, and the Concepts stay. |
 | what is held | What are you holding? | [spare-die1] |
 
 **Forest check:**
-- The chest's two bindings have only Concept parents, so neither has a physical host.
-- The backgammon set's binding has two parents, both bindings of the chest: a join on one host.
+- The chest's `onFloor` binding has the physical host Attic.
+- Its association bindings have Concept parents only, so they have no physical host.
+- Everything else has a single parent.
 
-The invariant holds. Pinned already: "PR-C5 re-expressed".
-
-**Notes for review**
-- **The merge rule** (above) is the refinement to SP-2 that this scene forces. It assumes association-only bindings never differ physically. Beat 1 of PR-C5 (covers that differ per association) isn't modelled in the test, so whether the union of covers is right there is still open.
-- **"In the Attic:"** in Blocks and **"Contents of the Attic:"** in A and D both still imply the chest is placed in the attic. D at least drops the clause. The alternative is a separate section, such as `Here by association:`. That avoids the implied placement, but it splits "what's in the attic" across two sections.
+The invariant holds. This is the shape already pinned by "the primer's spring", modelled with a Concept.

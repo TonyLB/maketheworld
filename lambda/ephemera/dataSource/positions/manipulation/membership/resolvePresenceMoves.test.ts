@@ -38,17 +38,17 @@ const bindingsOf = (graphs: ReadonlyMap<EphemeraMembershipHostId, EphemeraLudicG
 
 describe('resolvePresenceMoves', () => {
     describe('a shared binding (M7)', () => {
-        // the die holds one binding under both bindings of the Backgammon set
+        // the die holds one binding under both bindings of the set (one binding in each room)
         const world = () => ({
             [set]: testLudicGraph(set, { nodes: [
                 { tag: 'Object', universalKey: set },
                 { tag: 'Object', universalKey: die },
-                presenceBindingNode('chestA-set', roomA, { members: [{ host: die, presence: presence('die') }] }),
-                presenceBindingNode('chestB-set', roomB, { members: [{ host: die, presence: presence('die') }] }),
+                presenceBindingNode('set-a', roomA, { members: [{ host: die, presence: presence('die') }] }),
+                presenceBindingNode('set-b', roomB, { members: [{ host: die, presence: presence('die') }] }),
             ] }),
             [die]: testLudicGraph(die, { nodes: [
                 { tag: 'Object', universalKey: die },
-                presenceBindingNode('die', [{ host: set, presence: presence('chestA-set') }, { host: set, presence: presence('chestB-set') }]),
+                presenceBindingNode('die', [{ host: set, presence: presence('set-a') }, { host: set, presence: presence('set-b') }]),
             ] }),
             [hand]: handGraph,
             [roomA]: room(roomA, [set]),
@@ -62,7 +62,7 @@ describe('resolvePresenceMoves', () => {
                 kind: 'reparentPresenceBinding',
                 hostId: die,
                 presence: presence('die'),
-                lose: [{ host: set, presence: presence('chestA-set') }, { host: set, presence: presence('chestB-set') }],
+                lose: [{ host: set, presence: presence('set-a') }, { host: set, presence: presence('set-b') }],
                 gain: [{ host: hand, presence: presence('Base') }],
             }] })
         })
@@ -81,7 +81,7 @@ describe('resolvePresenceMoves', () => {
             const placed = world()
             placed[die] = testLudicGraph(die, { nodes: [
                 { tag: 'Object', universalKey: die },
-                presenceBindingNode('die', [{ host: set, presence: presence('chestA-set') }, { host: roomB, presence: parentRemainderKey(roomB) }]),
+                presenceBindingNode('die', [{ host: set, presence: presence('set-a') }, { host: roomB, presence: parentRemainderKey(roomB) }]),
             ] })
 
             const resolved = await resolvePresenceMoves({ moved: die, froms: [set], to: null, getGraph: getGraphOf(placed) })
@@ -89,7 +89,7 @@ describe('resolvePresenceMoves', () => {
             expect(resolved).toEqual({ ok: true, steps: [expect.objectContaining({
                 kind: 'reparentPresenceBinding',
                 presence: presence('die'),
-                lose: [{ host: set, presence: presence('chestA-set') }],
+                lose: [{ host: set, presence: presence('set-a') }],
             })] })
         })
     })

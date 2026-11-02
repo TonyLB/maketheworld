@@ -217,7 +217,7 @@ describe('orphanedPointersOf', () => {
 })
 
 describe('a shared binding (parent sets, PR-25)', () => {
-    // the backgammon-set shape: the host holds two bindings, and the member's one binding sits under both
+    // the host holds two bindings, and the member's one binding sits under both
     const entry = { host: 'FEATURE#x', presence: 'PRESENCE#f' }
     const twoParents = () => room(['FEATURE#x'], [
         { universalKey: 'PRESENCE#root', fromHostPresences: [], cover: { members: [entry] } },

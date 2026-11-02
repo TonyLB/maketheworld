@@ -15,7 +15,8 @@
  * **A boundary type.** The class keeps the union private; its accessors answer one question each and return flat
  * values, never the cache: `entries` is the command's object catalog (built on the flat handles `catalogHandles.ts`
  * holds), `containersOf` is planning's ancestry, and `boundaryRelationsOf` / `securedToSupportEdgeIds` /
- * `presencesOf` are what moving an object severs and `relationsBetween` the dry run's dissolve discovery (`boundaryRelations.ts`).
+ * `presencesOf` are what moving an object severs and `relationsBetween` the dry run's dissolve discovery (`boundaryRelations.ts`),
+ * and `scene` is the format-neutral scene model an LLM reader's text is rendered from (`sceneFromCache.ts`).
  */
 import type { EphemeraCharacterId, EphemeraObjectId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
@@ -30,6 +31,8 @@ import { normalizeExitName } from '../../actions/normalizeExitName'
 import { boundaryRelationsOfEdges, presencesOfNode, relationsBetweenEdges, securedToSupportEdgeIdsOfEdges, type BoundaryRelation, type RelationsBetween } from './boundaryRelations'
 import { conceptNamesFromCache, handlesFromCache, type LudicCacheObjectHandle } from './catalogHandles'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
+import { sceneFromCache } from './sceneFromCache'
+import type { SceneExit, SceneResult } from './sceneModel'
 import { readLudicCacheWithOutcome } from './store'
 import { unionLudicCaches } from './unionCaches'
 
@@ -116,6 +119,14 @@ export class ActorLudicCache {
     /** Where `host`'s graph sees a node: the bindings of `host` that hold it, or the room itself. */
     presencesOf(nodeId: EphemeraLudicNodeTerminal, host: EphemeraMembershipHostId): ReturnType<typeof presencesOfNode> {
         return presencesOfNode(this.data, nodeId, host)
+    }
+
+    /**
+     * The scene model of what the actor can reach, with its handle table beside it (`sceneModel.ts`). Exits are not in the
+     * cache, so the caller supplies them.
+     */
+    scene({ exits }: { exits?: SceneExit[] } = {}): SceneResult {
+        return sceneFromCache(this.data, { roomId: this.roomId, actorId: this.actorId, exits })
     }
 
     /**

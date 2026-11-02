@@ -41,21 +41,22 @@ describe('the physical-forest invariant', () => {
         expect(violations(bindings)).toEqual([])
     })
 
-    it('PR-C5 re-expressed: the backgammon set joins under one host; the chest has no physical placement in the attic', () => {
-        const chestA = binding('OBJECT#SteamerChest', 'chestA', ['CONCEPT#InheritedFurniture', 'inAttic'])
-        const chestB = binding('OBJECT#SteamerChest', 'chestB', ['CONCEPT#Boardgames', 'inAttic'])
+    it('PR-C5 with its Concepts: the chest is placed on the attic floor; its associations place nothing', () => {
+        const onFloor = binding('OBJECT#SteamerChest', 'onFloor', ['ROOM#Attic', 'Base'])
+        const asFurniture = binding('OBJECT#SteamerChest', 'asFurniture', ['CONCEPT#InheritedFurniture', 'inAttic'])
+        const asBoardgames = binding('OBJECT#SteamerChest', 'asBoardgames', ['CONCEPT#Boardgames', 'inAttic'])
         const bindings = [
             binding('CONCEPT#InheritedFurniture', 'inAttic', ['ROOM#Attic', 'Base']),
             binding('CONCEPT#Boardgames', 'inAttic', ['ROOM#Attic', 'Base']),
-            chestA,
-            chestB,
-            binding('OBJECT#Backgammon', 'set', ['OBJECT#SteamerChest', 'chestA'], ['OBJECT#SteamerChest', 'chestB']),
+            onFloor,
+            asFurniture,
+            asBoardgames,
+            binding('OBJECT#Backgammon', 'set', ['OBJECT#SteamerChest', 'onFloor']),
         ]
         expect(violations(bindings)).toEqual([])
-        expect(physicalParentHosts(bindings[4])).toEqual(['OBJECT#SteamerChest'])
-        // The finding handed to the scene plan: only the associations place the chest.
-        expect(physicalParentHosts(chestA)).toEqual([])
-        expect(physicalParentHosts(chestB)).toEqual([])
+        expect(physicalParentHosts(onFloor)).toEqual(['ROOM#Attic'])
+        expect(physicalParentHosts(asFurniture)).toEqual([])
+        expect(physicalParentHosts(asBoardgames)).toEqual([])
     })
 
     describe('the cup in the place setting', () => {

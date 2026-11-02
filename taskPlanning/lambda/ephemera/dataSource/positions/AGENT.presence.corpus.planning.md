@@ -327,6 +327,14 @@ Each root is in every bucket of its own graph by definition, per PR-9's point (4
 
 ### PR-C5. The steamer chest in the attic, and the backgammon set inherited twice
 
+**Corrected (user, 2026-11-02): the setup is a modelling error.** The chest is physically in the attic, so it needs a physical binding there. Inherited Furniture and Boardgames are things the chest is *associated* with (Concepts, since the [Concept kind](../../../../../lambda/ephemera/dataSource/positions/AGENT.concepts.md#concept)), not hosts that place it: association is not placement. Placed, the chest has one physical binding holding its contents, so the backgammon set has one parent and is not inherited twice. What that leaves of the findings:
+
+- **Finding 1** (a binding is identified by what it covers; PR-25's first wording fails): no longer grounded by this case. [PR-24](AGENT.presence.planning.md#settled-register) stands on its own record (the re-open came from prototype complications traced to the complement).
+- **Findings 2 and 3** (parent sets; PR-21(c) fails): no longer grounded by this case. [PR-25](AGENT.presence.planning.md#settled-register) stands on physical joins: a join writes several parents, all bindings of one host ([positions contract](../../../../../lambda/ephemera/dataSource/positions/AGENT.contract.md#presence-nodes-cover-consolidation-and-the-single-write-path)). Its payoff, `presenceParentSets.payoff.test.ts`, now runs a fruit bowl straddling the seam of a tablecloth spread over two tables. `presenceParentSets.concepts.payoff.test.ts` runs the corrected chest: on the floor, with an empty `Associated` binding under each Concept.
+- **Not graded by the correction:** whether an association binding's cover means anything (beat 1's "Boardgames holds the chest *and* its contents"). That belongs with Concept association, not presence placement; [`AGENT.abstractionLayers.planning.md`](AGENT.abstractionLayers.planning.md) leans on it.
+
+The case below is kept as written, for the record.
+
 **Origin:** supplied by the user 2026-10-17, to ground [PR-25](AGENT.presence.planning.md#settled-register). **It tries to falsify two things:** PR-25 as first worded, *a thing that is the same thing under several parents should have one binding*; and inherited arity as it follows from [PR-21](AGENT.presence.planning.md#settled-register)(c), *a binding has one parent pointer, so a node gets one binding per covering parent binding.*
 
 **The setup.** `ROOM#Attic`. Two abstractions are multi-parented into it: `OBJECT#InheritedFurniture`, and `OBJECT#Boardgames`, a huge assortment of variously stored board games. `OBJECT#SteamerChest` is a member of both, and it is in the attic **only through them**: it has no binding of its own directly into the attic. The chest holds many board games. In the second beat, one of them, `OBJECT#Backgammon`, is inherited too; its members are all its tokens and dice.
