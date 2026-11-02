@@ -11,12 +11,12 @@ import { isKernelMutationStep } from '../kernel/kernelStep'
 import { planObjectMoveTransfer } from './planObjectMoveTransfer'
 
 /**
- * PR-C5 re-expressed with its two Concepts: Inherited Furniture (a collection) and Boardgames (a category)
- * each hold a binding in the attic, and the steamer chest is in the attic only through them --- one
- * `Associated` binding under each. The backgammon set's one binding has both chest bindings as parents, as in
- * `presenceParentSets.payoff.test.ts` (the physical-only case, which parents the chest directly on the attic).
- * Beats 2 and 3 run unchanged through the real planner, compiler and kernel apply, judged by the classifier the
- * deployed `PresenceCoverDriftSweep` uses. Beat 1 (covers that differ per association) is not modelled.
+ * PR-C5 with its two Concepts, Inherited Furniture (a collection) and Boardgames (a category). The steamer
+ * chest sits on the attic floor (a physical binding under the attic's Base) and is associated with each
+ * Concept (one `Associated` binding under each Concept's attic binding, covering nothing). The games are in
+ * the chest's physical binding. Association places nothing: the moves below run through the real planner,
+ * compiler and kernel apply, judged by the classifier the deployed `PresenceCoverDriftSweep` uses, and leave
+ * the Concepts untouched.
  */
 
 const attic = 'ROOM#Attic' as EphemeraRoomId
@@ -36,42 +36,43 @@ const concept = (universalKey: EphemeraConceptId) => ({ tag: 'Concept' as const,
 const atticBase = { host: attic, presence: presence('Base') }
 const furnitureInAttic = { host: furniture, presence: presence('inAttic') }
 const boardgamesInAttic = { host: boardgames, presence: presence('inAttic') }
-const chestA = { host: chest, presence: presence('chestA') }
-const chestB = { host: chest, presence: presence('chestB') }
+const chestOnFloor = { host: chest, presence: presence('onFloor') }
+const chestFurniture = { host: chest, presence: presence('asFurniture') }
+const chestBoardgames = { host: chest, presence: presence('asBoardgames') }
 const bgUnder = { host: set, presence: presence('bg') }
 const tessBase = { host: tess, presence: presence('Base') }
 
 const viewOf = presenceGraphViewOf
 
 const world = (): Record<string, EphemeraLudicGraph> => ({
-    // the attic hosts each Concept's binding (Associated), and nothing physical
+    // the attic hosts the chest physically, and each Concept's binding (Associated)
     [attic]: testLudicGraph(attic, { nodes: [
-        associated(concept(furniture)), associated(concept(boardgames)),
-        presenceBindingNode('Base', undefined, { members: [furnitureInAttic, boardgamesInAttic] }),
+        obj(chest), associated(concept(furniture)), associated(concept(boardgames)),
+        presenceBindingNode('Base', undefined, { members: [chestOnFloor, furnitureInAttic, boardgamesInAttic] }),
     ] }),
     // each Concept: a hostless Base, one binding in the attic, and the chest Associated under that binding
     [furniture]: testLudicGraph(furniture, { nodes: [
         concept(furniture), associated(obj(chest)),
         presenceBindingNode('Base'),
-        presenceBindingNode('inAttic', atticBase, { members: [chestA] }),
+        presenceBindingNode('inAttic', atticBase, { members: [chestFurniture] }),
     ] }),
     [boardgames]: testLudicGraph(boardgames, { nodes: [
         concept(boardgames), associated(obj(chest)),
         presenceBindingNode('Base'),
-        presenceBindingNode('inAttic', atticBase, { members: [chestB] }),
+        presenceBindingNode('inAttic', atticBase, { members: [chestBoardgames] }),
     ] }),
-    // two bindings of the chest, one under each Concept; their covers overlap on Backgammon
+    // the chest: one physical binding holding the games, and one association binding per Concept, covering nothing
     [chest]: testLudicGraph(chest, { nodes: [
         obj(chest), obj(set), obj(otherGame),
-        presenceBindingNode('chestA', furnitureInAttic, { members: [bgUnder] }),
-        presenceBindingNode('chestB', boardgamesInAttic, { members: [bgUnder, { host: otherGame, presence: presence('chess') }] }),
+        presenceBindingNode('onFloor', atticBase, { members: [bgUnder, { host: otherGame, presence: presence('chess') }] }),
+        presenceBindingNode('asFurniture', furnitureInAttic),
+        presenceBindingNode('asBoardgames', boardgamesInAttic),
     ] }),
-    // ONE binding of the set, with both chest bindings as parents
     [set]: testLudicGraph(set, { nodes: [
         obj(set), obj(die),
-        presenceBindingNode('bg', [chestA, chestB], { members: [{ host: die, presence: presence('die') }] }),
+        presenceBindingNode('bg', chestOnFloor, { members: [{ host: die, presence: presence('die') }] }),
     ] }),
-    [otherGame]: testLudicGraph(otherGame, { nodes: [presenceBindingNode('chess', chestB)] }),
+    [otherGame]: testLudicGraph(otherGame, { nodes: [presenceBindingNode('chess', chestOnFloor)] }),
     [die]: testLudicGraph(die, { nodes: [presenceBindingNode('die', bgUnder)] }),
     [spareDie]: testLudicGraph(spareDie, { nodes: [presenceBindingNode('spare', tessBase)] }),
     [tess]: testLudicGraph(tess, { nodes: [
@@ -104,22 +105,22 @@ const sweepOf = (graphs: ReadonlyMap<string, EphemeraLudicGraph>, hosts: string[
 const clean = (hosts: string[]) => hosts.map((host) => ({ host, findings: [], rebuilds: [] }))
 const swept = [attic, furniture, boardgames, chest, set, die]
 
-describe('PR-C5 with its Concepts: the chest in the attic only through Inherited Furniture and Boardgames', () => {
-    it('the fixture is sound: each chest binding sits under one Concept\'s attic binding, and the sweep is clean', () => {
+describe('PR-C5 with its Concepts: the chest on the attic floor, associated with Inherited Furniture and Boardgames', () => {
+    it('the fixture is sound: one physical chest binding and one association binding per Concept, and the sweep is clean', () => {
         const graphs = new Map(Object.entries(world()))
 
         expect(sweepOf(graphs, swept)).toEqual(clean(swept))
-        expect(graphs.get(chest)!.presenceNodes.map(({ fromHostPresences }) => fromHostPresences)).toEqual([[furnitureInAttic], [boardgamesInAttic]])
-        expect(graphs.get(set)!.presenceNodes[0].fromHostPresences).toEqual([chestA, chestB])
+        expect(graphs.get(chest)!.presenceNodes.map(({ fromHostPresences }) => fromHostPresences)).toEqual([[atticBase], [furnitureInAttic], [boardgamesInAttic]])
+        expect(graphs.get(set)!.presenceNodes[0].fromHostPresences).toEqual([chestOnFloor])
     })
 
-    it('reaches the attic from the set, through both Concepts', async () => {
+    it('reaches the attic from the set, through the chest\'s physical binding', async () => {
         const rooms = await roomsForPresenceNode(set, presence('bg'), getGraphOf(world()))
 
         expect([...rooms]).toEqual([attic])
     })
 
-    describe('beat 2: an add to the set lands once and is seen from the attic', () => {
+    describe('a die put into the set is seen from the attic', () => {
         const put = () => planObjectMoveTransfer({
             entityId: spareDie,
             fromHostId: tess,
@@ -127,7 +128,7 @@ describe('PR-C5 with its Concepts: the chest in the attic only through Inherited
             getGraph: getGraphOf(world()),
         })
 
-        it('writes one reparent onto the shared binding', async () => {
+        it('writes one reparent onto the set\'s binding', async () => {
             const planned = await put()
             if (!planned.ok) { throw new Error(planned.errorCode) }
 
@@ -139,7 +140,7 @@ describe('PR-C5 with its Concepts: the chest in the attic only through Inherited
             })])
         })
 
-        it('leaves the sweep clean and the die in the attic, through the chest and both Concepts', async () => {
+        it('leaves the sweep clean and the die in the attic, through the chest', async () => {
             const planned = await put()
             if (!planned.ok) { throw new Error(planned.errorCode) }
             const after = applyPlanned(planned.plan, world())
@@ -150,7 +151,7 @@ describe('PR-C5 with its Concepts: the chest in the attic only through Inherited
         })
     })
 
-    describe('beat 3: a die leaves the set in one move', () => {
+    describe('a die taken out of the set leaves the Concepts untouched', () => {
         const take = () => planObjectMoveTransfer({
             entityId: die,
             fromHostId: set,

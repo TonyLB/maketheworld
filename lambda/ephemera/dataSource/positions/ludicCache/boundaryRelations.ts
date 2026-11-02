@@ -87,18 +87,26 @@ export const boundaryRelationsOfEdges = (
     return [{ edge: hostEdgeOfCacheEdge(edge), movedRole, moverHost, farHost, far }]
 })
 
+/** One tie triple's two halves, by `edgeId`: the `Custom` edge (`support`) that `Justifies` the `SecuredTo` (`secured`). */
+export type SecuredToSupportPair = { support: string; secured: string }
+
+/** Every `Justifies` from an edge to a `SecuredTo`, as the pair of edges it joins. */
+export const securedToSupportPairsOfEdges = (edges: readonly EphemeraLudicCacheEdge[]): SecuredToSupportPair[] => {
+    const securedIds = new Set(edges.flatMap((edge) => edge.kind === 'SecuredTo' && edge.edgeId !== undefined ? [edge.edgeId] : []))
+    return edges.flatMap((edge) => (
+        edge.kind === 'Justifies' && isEphemeraLudicEdgeTerminal(edge.from) && isEphemeraLudicEdgeTerminal(edge.to) && securedIds.has(edge.to.edgeId)
+            ? [{ support: edge.from.edgeId, secured: edge.to.edgeId }]
+            : []
+    ))
+}
+
 /**
  * The `edgeId`s of the `Custom` edges that justify a `SecuredTo` (the manner half of a tie triple): the block covers
  * them, so they produce no facilitating dissolve of their own.
  */
-export const securedToSupportEdgeIdsOfEdges = (edges: readonly EphemeraLudicCacheEdge[]): ReadonlySet<string> => {
-    const securedIds = new Set(edges.flatMap((edge) => edge.kind === 'SecuredTo' && edge.edgeId !== undefined ? [edge.edgeId] : []))
-    return new Set(edges.flatMap((edge) => (
-        edge.kind === 'Justifies' && isEphemeraLudicEdgeTerminal(edge.from) && isEphemeraLudicEdgeTerminal(edge.to) && securedIds.has(edge.to.edgeId)
-            ? [edge.from.edgeId]
-            : []
-    )))
-}
+export const securedToSupportEdgeIdsOfEdges = (edges: readonly EphemeraLudicCacheEdge[]): ReadonlySet<string> => (
+    new Set(securedToSupportPairsOfEdges(edges).map(({ support }) => support))
+)
 
 /**
  * The bindings of `host` that hold a node: where `host`'s graph sees it (`presencesHolding` on the graph side), read from
