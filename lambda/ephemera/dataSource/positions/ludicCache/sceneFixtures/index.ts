@@ -23,14 +23,16 @@ import { heldInventoryScene, openLegsScene } from './kitchen'
 import { labScene } from './lab'
 import { drapedClothScene, featureScene, joinScene, steamerChestScene } from './placements'
 import { dockScene, unnamedScene } from './relations'
+import { sideboardScene } from './sideboard'
 import { deepChainScene, emptyRoomScene, siblingFanScene, twoCupsScene } from './simpleRooms'
 import { branchInBranchScene, tavernScene } from './tavern'
+import { teaTableScene } from './teaTable'
 import type { SceneFixture, SceneFixtureNames } from './worldBuilders'
 
 export type { SceneFixture } from './worldBuilders'
 export { expectedAnswer, type SceneAnswer, type SceneQuestion } from './questions'
 
-/** Every fixture, in corpus order, then the ones Slice 1 added. */
+/** Every fixture, in corpus order, then the ones Slice 1 added, then Slice 3's. */
 export const sceneFixtures: readonly SceneFixture[] = [
     tavernScene,
     siblingFanScene,
@@ -47,6 +49,8 @@ export const sceneFixtures: readonly SceneFixture[] = [
     steamerChestScene,
     joinScene,
     featureScene,
+    sideboardScene,
+    teaTableScene,
 ]
 
 export const sceneFixtureNames = sceneFixtures.map(({ name }) => name)

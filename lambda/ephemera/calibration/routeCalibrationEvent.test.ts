@@ -69,6 +69,8 @@ describe('routeCalibrationEvent', () => {
             'EmbeddingVerifyRepeat',
             'EmbeddingDistanceLadder',
             'EmbeddingAsymmetricLadder',
+            'SceneReasoningFixtures',
+            'SceneReasoningProbe',
         ])
     })
 
@@ -76,6 +78,18 @@ describe('routeCalibrationEvent', () => {
         expect(isCalibrationEventType('EmbeddingCompare')).toBe(true)
         expect(isCalibrationEventType('EmbeddingVerifyRepeat')).toBe(true)
         expect(isCalibrationEventType('Command')).toBe(false)
+    })
+
+    it('dispatches SceneReasoningFixtures (no Bedrock)', async () => {
+        const response = await routeCalibrationEvent({ type: 'SceneReasoningFixtures' })
+        expect(response.statusCode).toBe(200)
+        expect(JSON.parse(response.body).fixtures.length).toBeGreaterThan(0)
+    })
+
+    it('dispatches SceneReasoningProbe, refusing an unknown fixture before any call', async () => {
+        const response = await routeCalibrationEvent({ type: 'SceneReasoningProbe', scene: { fixture: 'nope' } })
+        expect(response.statusCode).toBe(400)
+        expect(JSON.parse(response.body).error).toContain('tavern')
     })
 
     it('returns 400 for unknown event type', async () => {

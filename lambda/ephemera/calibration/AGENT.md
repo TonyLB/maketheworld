@@ -1,6 +1,6 @@
-# Ephemera embedding calibration (operator tooling)
+# Ephemera calibration (operator Bedrock tooling)
 
-Dev-only **read-only** tooling for tuning object-identity embedding thresholds. Lives under [`objectMatch/`](objectMatch/); production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
+Dev-only **read-only** operator tooling reached by direct Lambda invoke. Two trees: object-identity embedding calibration under [`objectMatch/`](objectMatch/) (the bulk of this doc), and the scene format probe under [`sceneReasoning/`](sceneReasoning/) (see [Scene format probe](#scene-format-probe)). Embedding calibration tunes object-identity thresholds; production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
 
 **Layering:** this tree is Bedrock-backed operator tooling (Lambda invoke, corpus runs, snapshot JSON). Mocked parameter sweeps and admissibility A/B harnesses live in [`embeddingMatch/testing/`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/) --- see **Mocked calibration harnesses** in [`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md). Those harnesses feed the same locked constants; snapshots here are the durable record.
 
@@ -12,7 +12,7 @@ Production context: [`../dataSource/actions/enrich/objectManipulation/embeddingM
 
 Not exposed via API Gateway or WebSocket. Player sessions cannot reach these `event.type` payloads.
 
-Handlers are read-only: Bedrock embed + compare. No Dynamo writes, no `messageBus` publish, no game-state side effects. Worst case is Bedrock cost (same trust boundary as diagnostics sweeps).
+Handlers are read-only: Bedrock embed + compare (or, for the scene probe, Bedrock converse). No Dynamo writes, no `messageBus` publish, no game-state side effects. Worst case is Bedrock cost (same trust boundary as diagnostics sweeps).
 
 Routing: early return in [`app.ts`](../app.ts) via [`routeCalibrationEvent.ts`](routeCalibrationEvent.ts).
 
@@ -87,6 +87,30 @@ Optional composition override (default `shortNamePlusDescription`): `shortName`,
 Returns per-case `similarity` (asymmetric), `symmetricSimilarity` (span vs catalog shortName only), `delta`, `sortedByDelta`, tier summaries with `symmetricMedian` and `deltaMedian`, and `compositionStudyResults` on three flagged cases when `composition` is omitted. Fixtures in [`objectMatch/asymmetricIdentityLadder.ts`](objectMatch/asymmetricIdentityLadder.ts). Span side uses `normalizeShortNameForEmbedding`; catalog index text is trim-only (no exit-name normalization on prose).
 
 Responses include `corpusId`, `modelId`, `dimensions`, and `calibratedAt` so saved Console results stay interpretable after model changes.
+
+## Scene format probe
+
+Temporary tooling for sceneProjection SP-7 (which text format of the scene model ships; plan: `taskPlanning/lambda/ephemera/dataSource/actions/AGENT.sceneProjection.planning.md`). It is deleted with SP-7's decision. Same access boundary as above; worst case is Bedrock cost. No test calls Bedrock.
+
+**See what a batch would send (no Bedrock):** every fixture, its render in each format (`A`, `D`, `blocks`, `blocksD`, `blocksDLabelled`), and its questions with the prompt each sends and the expected answer.
+
+```json
+{ "type": "SceneReasoningFixtures" }
+```
+
+**Probe** (one Bedrock call per format x question x repeat, each a single prompt, no follow-up turn):
+
+```json
+{ "type": "SceneReasoningProbe", "scene": { "fixture": "tavern" }, "formats": ["D", "blocksD"], "questions": [{ "type": "placedOn", "subject": "cup1" }], "repeats": 1, "model": "NovaMicro" }
+```
+
+- `scene`: exactly one of `{ "fixture": name }` (a closed set compiled into the bundle; an unknown name is refused and the valid names listed) or `{ "characterId": "CHARACTER#..." }` (that character's live actor cache, reads only, no exits, no expected answers; `questions` required).
+- `formats` defaults to all of them; `questions` defaults to the fixture's own set (shapes in [`sceneFixtures/questions.ts`](../dataSource/positions/ludicCache/sceneFixtures/questions.ts)); `repeats` defaults to 1; `model` defaults to `NovaMicro` and takes any `NovaModel`.
+- **Cap: formats x questions x repeats <= 12**, refused before any call. Temperature is 0.1; calls run concurrently with a 15s timeout each.
+- **Spend the cap on questions and wordings, not repeats.** At temperature 0.1 repeats come back word-for-word identical, so `repeats: 1` is the useful setting. A question can carry its own `asked` wording (scored against the same expected answer): run two wordings side by side before blaming a format, since the wording moved answers more than the format did.
+- **Open questions test reasoning, not reading.** A reading question asks for structure back, which favours a format that copies the structure; an `{ "type": "open", "asked": "...", "rubric": "..." }` question asks the reader to reason over the scene (can a thing be done, and what would change). It gets its own answer instruction (optional reasoning headings "Constraints", "Blockers" and "Opportunities" first, each noted blocker solved or left standing, then explain and list changes in any notation) and up to 1024 output tokens (256 otherwise), has no expected answer and no `matches`, and is graded by hand against its `rubric`: a line written **before** the batch saying what a good answer must notice, so every format meets the same bar. The `teaTable` fixture carries three.
+- **Returns**, per call: the rendered scene, the question and its wording, the model's answer, token usage, and for a fixture scene the expected answer with `matches`. `matches` is a **reading aid only**: the reply is split on commas and lines and compared as a set of handles (plus `room` / `held`, or a count); expectations tokens cannot carry (other-room or someone-else locations, `inside` or `notShown` targets) are unscored, and prose beyond them is never computed, so it under-reports. The user judges.
+- The prompt frame (identical across formats except the scene text) is in [`sceneReasoning/sceneReasoningPrompt.ts`](sceneReasoning/sceneReasoningPrompt.ts). It opens with a grounding block for every question, reading or open: the scene is what has been established and wins where general knowledge disagrees, while general knowledge fills in what things are like and what can be done with them. Results from before the grounding block (2026-11-02) are not comparable with results after it.
 
 ## Scoring path (must match production)
 
