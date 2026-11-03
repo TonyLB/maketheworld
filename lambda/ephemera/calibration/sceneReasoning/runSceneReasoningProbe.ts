@@ -1,7 +1,7 @@
 //
 // The scene-reasoning probe's runner (sceneProjection SP-8): the scene rendered once per format, then one Bedrock call per
 // (format, question, repeat), each a single prompt with no follow-up turn. The format axis came back when SP-7 was reopened
-// (D against `fans`, 2026-11-03). The Bedrock call is injected, so tests never reach Bedrock.
+// (D against other renders, 2026-11-03). The Bedrock call is injected, so tests never reach Bedrock.
 //
 import type { SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { expectedAnswer, type SceneQuestion } from '../../dataSource/positions/ludicCache/sceneFixtures'

@@ -45,11 +45,11 @@ describe('runSceneTestHarness', () => {
     it('renders in the format named, and says which', async () => {
         const actorCache = await buildSceneFixture(sceneFixture('deepChain'))
 
-        runSceneTestHarness({ characterId: 'CHARACTER#t', messageBus, actorCache, format: 'fans' })
+        runSceneTestHarness({ characterId: 'CHARACTER#t', messageBus, actorCache, format: 'registers' })
 
         const text = publishedText()
-        expect(text).toContain('format fans')
-        expect(text).toContain(renderScene(actorCache.scene().scene, 'fans'))
+        expect(text).toContain('format registers')
+        expect(text).toContain(renderScene(actorCache.scene().scene, 'registers'))
     })
 
     it('says so when the character is in no room', () => {

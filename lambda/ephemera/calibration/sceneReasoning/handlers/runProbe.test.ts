@@ -24,13 +24,13 @@ describe('handleSceneReasoningProbe', () => {
     it('runs only the formats named, each with its own render', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'deepChain' }, formats: ['fans'], questions: [{ type: 'held' }] },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'deepChain' }, formats: ['registers'], questions: [{ type: 'held' }] },
             { invoke },
         )
         const [result, ...rest] = body(response).results
         expect(rest).toEqual([])
-        expect(result.format).toBe('fans')
-        expect(result.scene).toContain('Directly in [box1]:')
+        expect(result.format).toBe('registers')
+        expect(result.scene).toContain('The place:')
     })
 
     it('runs the SP-10 formats when they are named, and leaves them out of the default', async () => {
@@ -81,7 +81,7 @@ describe('handleSceneReasoningProbe', () => {
         )
         expect(refused.statusCode).toBe(400)
         const overCap = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D', 'fans'], questions: [open], answerFormats: ['abstain', 'twoRegisters'], repeats: 4 },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D', 'registers'], questions: [open], answerFormats: ['abstain', 'twoRegisters'], repeats: 4 },
             { invoke },
         )
         expect(overCap.statusCode).toBe(400)

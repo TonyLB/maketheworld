@@ -1,10 +1,10 @@
 import { buildSceneFixture, sceneFixture, sceneFixtureNames } from '../../positions/ludicCache/sceneFixtures'
 import { renderScene, type SceneFormat } from '.'
-import { sceneAffordanceGoldens, sceneExamplesGoldens, sceneFanGoldens, sceneFlatDGoldens, sceneGoldens, sceneRegistersGoldens } from './sceneGoldens'
+import { sceneAffordanceGoldens, sceneExamplesGoldens, sceneGoldens, sceneRegistersGoldens } from './sceneGoldens'
 
 /** The formats with a full golden per fixture. `affordance` and `examples` are `registers` plus one section: see below. */
 const goldens: Partial<Record<SceneFormat, Record<string, string>>> = {
-    D: sceneGoldens, flatD: sceneFlatDGoldens, fans: sceneFanGoldens, registers: sceneRegistersGoldens,
+    D: sceneGoldens, registers: sceneRegistersGoldens,
 }
 const gridFormats = Object.keys(goldens) as SceneFormat[]
 

@@ -1,5 +1,5 @@
 /**
- * Format D (chosen in Slice 3 by SP-7, reopened 2026-11-03 against `fans`): an indented tree whose lines each name their
+ * Format D (chosen in Slice 3 by SP-7, provisional; SP-10): an indented tree whose lines each name their
  * parent by handle, with the kind in words ("on [table1]"), so the structure does not depend on counting indentation.
  * Flat D (a probe candidate, 2026-11-03) is the same lines with no indentation, to test whether the indent's YAML-like
  * register costs the reader anything.
@@ -58,4 +58,3 @@ const renderD = (scene: SceneModel, step: string): string => [
 
 export const renderSceneD = (scene: SceneModel): string => renderD(scene, '  ')
 
-export const renderSceneFlatD = (scene: SceneModel): string => renderD(scene, '')

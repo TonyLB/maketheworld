@@ -4,7 +4,7 @@ import { sceneFormats, type SceneFormat } from '../sceneProse'
  * Canonical scene harness slash; match is case-sensitive ASCII.
  *
  * Operator usage: `/test scene` renders the scene of your own actor's cache in format D with its handle table;
- * `/test scene <format>` renders it in that format (any of `sceneFormats`, case-insensitive), while SP-7 is reopened.
+ * `/test scene <format>` renders it in that format (any of `sceneFormats`, case-insensitive).
  */
 export const SCENE_TEST_SLASH_PREFIX = '/test scene'
 
