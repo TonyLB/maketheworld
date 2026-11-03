@@ -2,6 +2,7 @@ import { calibrationJsonResponse } from '../../calibrationResponse'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildSceneFixture, sceneFixture, sceneFixtureNames, type SceneQuestion } from '../../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../../dataSource/positions/ludicCache/sceneModel'
+import { isSceneFormat, sceneFormats, type SceneFormat } from '../../../dataSource/actions/sceneProse'
 import { getActorCache } from '../../../dataSource/actions/actorObjectCatalog'
 import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
 import { PROBE_CALL_CAP, runSceneReasoningProbe, type ProbeInvoke } from '../runSceneReasoningProbe'
@@ -9,6 +10,7 @@ import { PROBE_CALL_CAP, runSceneReasoningProbe, type ProbeInvoke } from '../run
 export type SceneReasoningProbeEvent = {
     type: 'SceneReasoningProbe'
     scene?: { fixture?: unknown; characterId?: unknown }
+    formats?: unknown
     questions?: unknown
     repeats?: unknown
     model?: unknown
@@ -49,11 +51,19 @@ const isQuestion = (value: unknown): value is SceneQuestion => {
 
 const refuse = (error: string) => calibrationJsonResponse(400, { error })
 
-/** One Bedrock call per (question, repeat); every refusal happens before the first call. */
+/** One Bedrock call per (format, question, repeat); every refusal happens before the first call. */
 export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent, deps: SceneReasoningProbeDeps = {}) {
     const { fixture: fixtureName, characterId } = event.scene ?? {}
     if ((fixtureName === undefined) === (characterId === undefined)) {
         return refuse('scene must be exactly one of { "fixture": name } or { "characterId": "CHARACTER#..." }')
+    }
+
+    let formats: SceneFormat[] = [...sceneFormats]
+    if (event.formats !== undefined) {
+        if (!Array.isArray(event.formats) || event.formats.length === 0 || !event.formats.every(isSceneFormat)) {
+            return refuse(`formats must be a non-empty list drawn from: ${sceneFormats.join(', ')}`)
+        }
+        formats = [...new Set<SceneFormat>(event.formats)]
     }
 
     const repeats = event.repeats === undefined ? 1 : event.repeats
@@ -82,8 +92,8 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
         }
         const fixture = sceneFixture(fixtureName)
         questions = customQuestions ?? fixture.questions
-        if (questions.length * repeats > PROBE_CALL_CAP) {
-            return refuse(callCapMessage(questions.length, repeats))
+        if (formats.length * questions.length * repeats > PROBE_CALL_CAP) {
+            return refuse(callCapMessage(formats.length, questions.length, repeats))
         }
         scene = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
     } else {
@@ -94,8 +104,8 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
             return refuse('a characterId scene has no question set of its own; give questions')
         }
         questions = customQuestions
-        if (questions.length * repeats > PROBE_CALL_CAP) {
-            return refuse(callCapMessage(questions.length, repeats))
+        if (formats.length * questions.length * repeats > PROBE_CALL_CAP) {
+            return refuse(callCapMessage(formats.length, questions.length, repeats))
         }
         const cache = await (deps.getActorCache ?? getActorCache)(characterId)
         if (cache === undefined) {
@@ -107,6 +117,7 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
 
     const results = await runSceneReasoningProbe({
         scene,
+        formats,
         questions,
         repeats,
         model,
@@ -116,6 +127,6 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
     return calibrationJsonResponse(200, { model, calls: results.length, results })
 }
 
-const callCapMessage = (questions: number, repeats: number): string => (
-    `${questions} questions x ${repeats} repeats = ${questions * repeats} calls, over the cap of ${PROBE_CALL_CAP}; trim questions or repeats`
+const callCapMessage = (formats: number, questions: number, repeats: number): string => (
+    `${formats} formats x ${questions} questions x ${repeats} repeats = ${formats * questions * repeats} calls, over the cap of ${PROBE_CALL_CAP}; trim formats, questions or repeats`
 )

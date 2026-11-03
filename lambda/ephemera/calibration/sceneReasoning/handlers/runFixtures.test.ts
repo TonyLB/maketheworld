@@ -1,15 +1,16 @@
 import { sceneFixtureNames } from '../../../dataSource/positions/ludicCache/sceneFixtures'
-import { sceneGoldens } from '../../../dataSource/actions/sceneProse/sceneGoldens'
+import { sceneFanGoldens, sceneGoldens } from '../../../dataSource/actions/sceneProse/sceneGoldens'
 import { handleSceneReasoningFixtures } from './runFixtures'
 
 describe('handleSceneReasoningFixtures', () => {
-    it('lists every fixture with its render (the golden) and its questions', async () => {
+    it('lists every fixture with a render per format (the goldens) and its questions', async () => {
         const response = await handleSceneReasoningFixtures({ type: 'SceneReasoningFixtures' })
         expect(response.statusCode).toBe(200)
-        const { fixtures } = JSON.parse(response.body)
+        const { formats, fixtures } = JSON.parse(response.body)
+        expect(formats).toEqual(['D', 'fans'])
         expect(fixtures.map(({ name }: { name: string }) => name)).toEqual(sceneFixtureNames)
         for (const fixture of fixtures) {
-            expect(fixture.render).toBe(sceneGoldens[fixture.name])
+            expect(fixture.renders).toEqual({ D: sceneGoldens[fixture.name], fans: sceneFanGoldens[fixture.name] })
             expect(fixture.questions.length).toBeGreaterThan(0)
             for (const { question, expected, prompt } of fixture.questions) {
                 expect(expected === undefined).toBe(question.type === 'open')

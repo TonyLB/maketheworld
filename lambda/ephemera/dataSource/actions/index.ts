@@ -342,7 +342,12 @@ const respondImperativelyForIntent = async (context: ResponseContext): Promise<v
             reportCommandOutcome(context, 'Error', ['Scene test harness is currently disabled.'])
         }
         else {
-            runSceneTestHarness({ characterId, messageBus, ...(context.actorCache ? { actorCache: context.actorCache } : {}) })
+            runSceneTestHarness({
+                characterId,
+                messageBus,
+                ...(context.actorCache ? { actorCache: context.actorCache } : {}),
+                ...(parseResult.format !== undefined ? { format: parseResult.format } : {}),
+            })
         }
     }
     else if (isParseCommandUnimplementedResult(parseResult)) {

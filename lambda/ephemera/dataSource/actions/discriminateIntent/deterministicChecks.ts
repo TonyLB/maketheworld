@@ -79,7 +79,7 @@ export function deterministicIntentChecks(input: ParseCommandInput, templates: T
     if (isSceneTestSlashCommand(input.command)) {
         const parsed = parseSceneTestSlashTail(input.command.trim())
         return parsed.ok
-            ? { type: 'SceneTest', confidence: 1 }
+            ? { type: 'SceneTest', confidence: 1, ...(parsed.format !== undefined ? { format: parsed.format } : {}) }
             : { type: 'Error', errorMessage: parsed.errorMessage }
     }
 

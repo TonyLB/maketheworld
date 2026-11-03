@@ -1,6 +1,8 @@
 import { buildSceneFixture, sceneFixture, sceneFixtureNames } from '../../positions/ludicCache/sceneFixtures'
-import { renderScene } from '.'
-import { sceneGoldens } from './sceneGoldens'
+import { renderScene, type SceneFormat } from '.'
+import { sceneFanGoldens, sceneGoldens } from './sceneGoldens'
+
+const goldens: Record<SceneFormat, Record<string, string>> = { D: sceneGoldens, fans: sceneFanGoldens }
 
 describe('scene renderer: goldens', () => {
     beforeEach(() => {
@@ -9,13 +11,16 @@ describe('scene renderer: goldens', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
-    it('has a golden for every fixture', () => {
-        expect(Object.keys(sceneGoldens).sort()).toEqual([...sceneFixtureNames].sort())
+    it.each(Object.keys(goldens) as SceneFormat[])('has a %s golden for every fixture', (format) => {
+        expect(Object.keys(goldens[format]).sort()).toEqual([...sceneFixtureNames].sort())
     })
 
-    it.each(sceneFixtureNames)('renders %s\'s golden', async (name) => {
-        const fixture = sceneFixture(name)
-        const { scene } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
-        expect(renderScene(scene)).toBe(sceneGoldens[name])
-    })
+    it.each((Object.keys(goldens) as SceneFormat[]).flatMap((format) => sceneFixtureNames.map((name) => [format, name] as const)))(
+        'renders %s golden of %s',
+        async (format, name) => {
+            const fixture = sceneFixture(name)
+            const { scene } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
+            expect(renderScene(scene, format)).toBe(goldens[format][name])
+        }
+    )
 })

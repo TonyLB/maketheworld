@@ -59,4 +59,38 @@ describe('scene renderer: shapes without a fixture', () => {
         })
         expect(renderScene(scene)).toContain('- [object1] (unnamed object), in the room\n- [rope1] Rope, in the room\n')
     })
+
+    it('in fans, gives every link of a chain its own block, in pre-order, and members of two hosting kinds a block each', () => {
+        const scene = model({
+            contents: [line('table1', 'In', [
+                line('box1', 'On', [line('bag1', 'In', [line('pouch1', 'In', [line('coin1', 'In'), line('ring1', 'In')])])]),
+                line('leg1', 'PartOf'),
+                line('mug1', 'On', [line('coffee1', 'In')]),
+            ])],
+            things: {
+                table1: thing('Table'), box1: thing('Box'), bag1: thing('Bag'), pouch1: thing('Pouch'), coin1: thing('Coin'),
+                ring1: thing('Ring'), leg1: thing('Leg'), mug1: thing('Mug'), coffee1: thing('Coffee'),
+            },
+        })
+        expect(renderScene(scene, 'fans')).toBe([
+            'The room',
+            'Directly in the room:',
+            '- [table1] Table, in the room (see below)',
+            'Directly on [table1]:',
+            '- [box1] Box, on [table1] (see below)',
+            '- [mug1] Mug, on [table1] (see below)',
+            'Directly in [box1]:',
+            '- [bag1] Bag, in [box1] (see below)',
+            'Directly in [bag1]:',
+            '- [pouch1] Pouch, in [bag1] (see below)',
+            'Directly in [pouch1]:',
+            '- [coin1] Coin, in [pouch1]',
+            '- [ring1] Ring, in [pouch1]',
+            'Directly in [mug1]:',
+            '- [coffee1] Coffee, in [mug1]',
+            'Parts of [table1]:',
+            '- [leg1] Leg, part of [table1]',
+            'You are holding: nothing.',
+        ].join('\n'))
+    })
 })

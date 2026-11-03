@@ -35,6 +35,7 @@ import type { MutationKernelStep } from '../positions/manipulation/kernel/kernel
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CommandAttemptData } from './commandAttempt'
 import type { TemplateSet } from './enrich/objectManipulation/plan/templateSet'
+import type { SceneFormat } from './sceneProse'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
     'SayMessage',
@@ -258,6 +259,8 @@ export type ParseCommandObjectManipulationParseTestResult = {
 export type ParseCommandSceneTestResult = {
     type: 'SceneTest'
     confidence: ParseCommandConfidence
+    /** The render format named in the tail; absent: the default (D). */
+    format?: SceneFormat
 }
 
 export type ParseCommandUnimplementedResult = {

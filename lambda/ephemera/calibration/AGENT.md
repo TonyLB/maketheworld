@@ -90,23 +90,23 @@ Responses include `corpusId`, `modelId`, `dimensions`, and `calibratedAt` so sav
 
 ## Scene reasoning probe
 
-Standing operator tooling: puts questions about a rendered scene to a Nova model, for calibrating the prompt that reads the scene and the questions a reader can answer. Built for sceneProjection SP-7 (which text format of the scene model ships; decided: D), and kept, without its format axis, for later calibrations (user, 2026-11-03). Same access boundary as above; worst case is Bedrock cost. No test calls Bedrock.
+Standing operator tooling: puts questions about a rendered scene to a Nova model, for calibrating the prompt that reads the scene and the questions a reader can answer. Built for sceneProjection SP-7 (which text format of the scene model ships), and kept for later calibrations (user, 2026-11-03). SP-7 chose D, then was reopened the same day against `fans` (D's lines, with each host's direct members gathered into one block), so the format axis is back: `D` and `fans`. Same access boundary as above; worst case is Bedrock cost. No test calls Bedrock.
 
-**See what a batch would send (no Bedrock):** every fixture, its render, and its questions with the prompt each sends and the expected answer.
+**See what a batch would send (no Bedrock):** every fixture, its render in each format, and its questions with the prompt each sends and the expected answer.
 
 ```json
 { "type": "SceneReasoningFixtures" }
 ```
 
-**Probe** (one Bedrock call per question x repeat, each a single prompt, no follow-up turn):
+**Probe** (one Bedrock call per format x question x repeat, each a single prompt, no follow-up turn):
 
 ```json
-{ "type": "SceneReasoningProbe", "scene": { "fixture": "tavern" }, "questions": [{ "type": "placedOn", "subject": "cup1" }], "repeats": 1, "model": "NovaMicro" }
+{ "type": "SceneReasoningProbe", "scene": { "fixture": "tavern" }, "formats": ["D", "fans"], "questions": [{ "type": "placedOn", "subject": "cup1" }], "repeats": 3, "model": "NovaMicro" }
 ```
 
 - `scene`: exactly one of `{ "fixture": name }` (a closed set compiled into the bundle; an unknown name is refused and the valid names listed) or `{ "characterId": "CHARACTER#..." }` (that character's live actor cache, reads only, no exits, no expected answers; `questions` required).
-- `questions` defaults to the fixture's own set (shapes in [`sceneFixtures/questions.ts`](../dataSource/positions/ludicCache/sceneFixtures/questions.ts)); `repeats` defaults to 1; `model` defaults to `NovaMicro` and takes any `NovaModel`.
-- **Cap: questions x repeats <= 12**, refused before any call. Temperature is 0.1; calls run concurrently with a 15s timeout each.
+- `formats` defaults to every format (`D`, `fans`); an unknown name is refused. `questions` defaults to the fixture's own set (shapes in [`sceneFixtures/questions.ts`](../dataSource/positions/ludicCache/sceneFixtures/questions.ts)); `repeats` defaults to 1; `model` defaults to `NovaMicro` and takes any `NovaModel`.
+- **Cap: formats x questions x repeats <= 12**, so two formats at three repeats leave room for two questions; refused before any call. Temperature is 0.1; calls run concurrently with a 15s timeout each.
 - **Repeats vary; use at least 3 when comparing wordings.** Reading questions mostly came back identical at temperature 0.1, but open questions do not: two repeats of one open question on Nova Micro answered yes and no (2026-11-03). Every SP-7 grade was one run per wording, so read those grades as single samples. A question can carry its own `asked` wording (scored against the same expected answer): run two wordings side by side before blaming the scene, since in the SP-7 batches the wording moved answers more than the format did.
 - **Open questions test reasoning, not reading.** A reading question asks for structure back; an `{ "type": "open", "asked": "...", "rubric": "..." }` question asks the reader to reason over the scene (can a thing be done, and what would change). It gets its own answer instruction (optional reasoning headings "Constraints", "Blockers" and "Opportunities" first, each noted blocker solved or left standing, then explain and list changes in any notation) and up to 1024 output tokens (256 otherwise), has no expected answer and no `matches`, and is graded by hand against its `rubric`: a line written **before** the batch saying what a good answer must notice, so every answer meets the same bar. The `teaTable` fixture carries three.
 - **Returns**, per call: the rendered scene, the question and its wording, the model's answer, token usage, and for a fixture scene the expected answer with `matches`. `matches` is a **reading aid only**: the reply is split on commas and lines and compared as a set of handles (plus `room` / `held`, or a count); expectations tokens cannot carry (other-room or someone-else locations, `inside` or `notShown` targets) are unscored, and prose beyond them is never computed, so it under-reports. The user judges.

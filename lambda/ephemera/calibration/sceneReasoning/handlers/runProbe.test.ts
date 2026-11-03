@@ -1,4 +1,5 @@
 import { buildSceneFixture, sceneFixture } from '../../../dataSource/positions/ludicCache/sceneFixtures'
+import { sceneFormats } from '../../../dataSource/actions/sceneProse'
 import type { ProbeInvoke } from '../runSceneReasoningProbe'
 import { handleSceneReasoningProbe } from './runProbe'
 
@@ -8,16 +9,28 @@ const body = (response: { body: string }) => JSON.parse(response.body)
 describe('handleSceneReasoningProbe', () => {
     const tavernQuestions = sceneFixture('tavern').questions.length
 
-    it('runs each question once on NovaMicro by default', async () => {
+    it('runs each question once in every format on NovaMicro by default', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
             { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }] },
             { invoke },
         )
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(2)
+        expect(invoke).toHaveBeenCalledTimes(sceneFormats.length * 2)
         expect(invoke.mock.calls[0][0].modelId).toBe('us.amazon.nova-micro-v1:0')
-        expect(body(response).results).toHaveLength(2)
+        expect(body(response).results).toHaveLength(sceneFormats.length * 2)
+    })
+
+    it('runs only the formats named, each with its own render', async () => {
+        const invoke = okInvoke()
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'deepChain' }, formats: ['fans'], questions: [{ type: 'held' }] },
+            { invoke },
+        )
+        const [result, ...rest] = body(response).results
+        expect(rest).toEqual([])
+        expect(result.format).toBe('fans')
+        expect(result.scene).toContain('Directly in [box1]:')
     })
 
     it('runs on the model named at run time', async () => {
@@ -33,12 +46,12 @@ describe('handleSceneReasoningProbe', () => {
     it('defaults to the fixture\'s question set, one repeat', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' } },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'] },
             { invoke },
         )
         expect(invoke).toHaveBeenCalledTimes(tavernQuestions)
         const { results } = body(response)
-        expect(results[0]).toMatchObject({ repeat: 1 })
+        expect(results[0]).toMatchObject({ format: 'D', repeat: 1 })
         expect(results[0]).toHaveProperty('expected')
     })
 
@@ -74,7 +87,7 @@ describe('handleSceneReasoningProbe', () => {
             { invoke },
         )
         expect(response.statusCode).toBe(400)
-        expect(body(response).error).toContain('14 calls')
+        expect(body(response).error).toContain(`${sceneFormats.length * 14} calls`)
         expect(invoke).not.toHaveBeenCalled()
     })
 
@@ -82,6 +95,7 @@ describe('handleSceneReasoningProbe', () => {
         ['unknown fixture', { scene: { fixture: 'nope' } }],
         ['no scene', {}],
         ['both scenes', { scene: { fixture: 'tavern', characterId: 'CHARACTER#X' } }],
+        ['unknown format', { scene: { fixture: 'tavern' }, formats: ['A'] }],
         ['bad model', { scene: { fixture: 'tavern' }, model: 'Gpt' }],
         ['bad repeats', { scene: { fixture: 'tavern' }, repeats: 0 }],
         ['malformed question', { scene: { fixture: 'tavern' }, questions: [{ type: 'placedOn' }] }],
