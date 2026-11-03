@@ -67,25 +67,25 @@ describe('handleSceneReasoningProbe', () => {
         const invoke = okInvoke()
         const open = { type: 'open', asked: 'Can [cup1] be moved?' }
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'], questions: [open], answerFormats: ['plain', 'candidates'], brief: true },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'], questions: [open], answerFormats: ['abstain', 'twoRegisters'], brief: true },
             { invoke },
         )
-        expect(body(response).results.map(({ answerFormat }: { answerFormat: string }) => answerFormat)).toEqual(['plain', 'candidates'])
+        expect(body(response).results.map(({ answerFormat }: { answerFormat: string }) => answerFormat)).toEqual(['abstain', 'twoRegisters'])
         const prompts = invoke.mock.calls.map(([call]) => (call as unknown as { messages: { content: { text: string }[] }[] }).messages[0].content[0].text)
-        expect(prompts[0]).not.toContain('"No candidate"')
-        expect(prompts[0]).not.toContain('"Constraints"')
-        expect(prompts[1]).toContain('"No candidate"')
+        expect(prompts[0]).toContain('as short steps')
+        expect(prompts[1]).toContain('What happens:')
+        expect(prompts[0]).not.toContain('What happens:')
         const refused = await handleSceneReasoningProbe(
             { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [open], answerFormats: ['tree'] },
             { invoke },
         )
         expect(refused.statusCode).toBe(400)
         const overCap = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D', 'fans'], questions: [open], answerFormats: ['plain', 'candidates', 'headings'], repeats: 3 },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D', 'fans'], questions: [open], answerFormats: ['abstain', 'twoRegisters'], repeats: 4 },
             { invoke },
         )
         expect(overCap.statusCode).toBe(400)
-        expect(body(overCap).error).toContain('18 calls')
+        expect(body(overCap).error).toContain('16 calls')
     })
 
     it('runs on the model named at run time', async () => {

@@ -12,7 +12,7 @@ export type SceneReasoningProbeEvent = {
     type: 'SceneReasoningProbe'
     scene?: { fixture?: unknown; characterId?: unknown }
     formats?: unknown
-    /** How `open` questions are asked to answer (`headings`, `plain`, `candidates`); default `abstain`. */
+    /** How `open` questions are asked to answer (`abstain`, `twoRegisters`); default `abstain`. */
     answerFormats?: unknown
     questions?: unknown
     repeats?: unknown

@@ -40,51 +40,44 @@ describe('sceneReasoningPrompt', () => {
         expect(probePrompt('SCENE', { type: 'held' })).toContain('no explanation')
     })
 
-    it('offers an open question reasoning headings ahead of the answer, and a reading question none', () => {
-        const open = probePrompt('SCENE', { type: 'open', asked: 'Can [c1] be poured?' }, 'headings')
-        const headings = ['"Constraints"', '"Blockers"', '"Opportunities"']
-        headings.forEach((heading) => {
-            expect(open).toContain(heading)
-            expect(open.indexOf(heading)).toBeLessThan(open.indexOf('Then answer'))
-        })
-        expect(probePrompt('SCENE', { type: 'held' })).not.toContain('"Constraints"')
-    })
-
-    it('holds an open answer to solving each blocker it notes, or letting it stand', () => {
-        const open = probePrompt('SCENE', { type: 'open', asked: 'Can [c1] be poured?' }, 'headings')
-        expect(open).toContain('must be solved, with what is here, or else it stands')
-        expect(open.indexOf('must be solved')).toBeLessThan(open.indexOf('Then answer'))
-        expect(probePrompt('SCENE', { type: 'held' })).not.toContain('must be solved')
-    })
-
-    it('tells every question how a move works, subtree down and not host up, before showing the scene', () => {
+    it('tells every question how a move is recorded, as a change of place, before showing the scene', () => {
         [probePrompt('SCENE', { type: 'held' }), probePrompt('SCENE', { type: 'open', asked: 'Why?' })].forEach((prompt) => {
-            expect(prompt).toContain('(move X to On Y) or (move X to In Y) puts X on or in Y')
-            expect(prompt).toContain('Whatever is on or in X goes with X, all the way down, but not the other way round')
+            expect(prompt).toContain('(move X to On Y) or (move X to In Y) records that X is now on or in Y')
+            expect(prompt).toContain('Once you know what would happen, the records keep only what is different afterwards')
+            expect(prompt).toContain('Different actions with the same result are the same change')
+            expect(prompt).toContain('what X left only loses X')
+            expect(prompt).toContain('write one move for each thing whose own place changed, not for the things carried along with it')
+            expect(prompt).not.toContain('any way at all')
             expect(prompt).not.toContain('move together')
             expect(prompt).not.toContain('connected')
-            expect(prompt).toContain('never expect what it was resting on to come along')
             expect(prompt.indexOf('Moving things.')).toBeLessThan(prompt.indexOf('SCENE'))
         })
     })
 
     it('asks an open question in the answer format named, leaving reading questions alone', () => {
         const open = { type: 'open', asked: 'Can [c1] be poured?' } as const
-        const plain = probePrompt('SCENE', open, 'plain')
-        expect(plain).toContain('Explain briefly, then list the changes it would cause, if any')
-        expect(plain).not.toContain('"Constraints"')
-        const candidates = probePrompt('SCENE', open, 'candidates')
-        expect(candidates).toContain('list the candidate ways to do it using only what is here')
-        expect(candidates).toContain('write "No candidate" and say why in one sentence, and stop')
-        expect(candidates).toContain('If every candidate is blocked, say what would have to change first, and stop')
-        expect(candidates).not.toContain('Think it through first')
         const abstain = probePrompt('SCENE', open, 'abstain')
         expect(abstain).toContain('write "No candidate", say why in one sentence, and stop; do not assume it into existence')
-        expect(abstain).not.toContain('candidate ways')
-        expect(abstain).not.toContain('"Constraints"')
+        expect(abstain).toContain('If no way works, write "No candidate" and say what would have to change.')
         expect(probePrompt('SCENE', open)).toBe(abstain)
-        expect(probePrompt('SCENE', open)).not.toBe(probePrompt('SCENE', open, 'headings'))
-        expect(probePrompt('SCENE', { type: 'held' }, 'candidates')).toBe(probePrompt('SCENE', { type: 'held' }))
+        expect(probePrompt('SCENE', open)).not.toBe(probePrompt('SCENE', open, 'twoRegisters'))
+        expect(probePrompt('SCENE', { type: 'held' }, 'abstain')).toBe(probePrompt('SCENE', { type: 'held' }))
+    })
+
+    it('asks for the action and then the net changes in two parts under twoRegisters, with abstain\'s stop kept', () => {
+        const open = { type: 'open', asked: 'Can [c1] be poured?' } as const
+        const two = probePrompt('SCENE', open, 'twoRegisters')
+        expect(two).toContain('write "No candidate", say why in one sentence, and stop; do not assume it into existence')
+        expect(two).toContain('What happens: say in plain words, with no notation and in the order it happens')
+        expect(two.indexOf('What happens:')).toBeLessThan(two.indexOf('What changes:'))
+        expect(two).toContain('and what goes along with it. If no way works')
+        expect(two).not.toContain('stays behind')
+        expect(two).toContain('one line for each thing whose own place changed; what went along with it is already recorded by its move. Write any move in the (move X to On Y)')
+        expect(two).toContain('If everything the request names is in the scene, answer in two parts')
+        expect(two).not.toContain('First check that everything')
+        expect(two).not.toContain('as short steps')
+        expect(probePrompt('SCENE', open)).not.toBe(two)
+        expect(probePrompt('SCENE', { type: 'held' }, 'twoRegisters')).toBe(probePrompt('SCENE', { type: 'held' }))
     })
 
     it('grounds every question, reading or open, in the established scene before showing it', () => {
@@ -95,11 +88,24 @@ describe('sceneReasoningPrompt', () => {
         })
     })
 
-    it('asks for a puzzle-solver\'s register, using what is here before what would have to change', () => {
+    it('gives a way of working in positive steps, the simplest first, with the puzzle-solver only last', () => {
         const prompt = probePrompt('SCENE', { type: 'held' })
-        expect(prompt).toContain('Think like a player solving a puzzle')
-        expect(prompt).toContain('look for another way with what is here')
+        const rungs = ['1. Take the simplest way to do it', '2. If something stops a step', '3. If not, think like a player solving a puzzle']
+        rungs.forEach((rung, at) => {
+            expect(prompt).toContain(rung)
+            expect(prompt.indexOf(rung)).toBeLessThan(prompt.indexOf(rungs[at + 1] ?? 'SCENE'))
+        })
+        expect(prompt).toContain('If nothing stops any step, those steps are your answer.')
+        expect(prompt).toContain('stop at the first step that gives an answer')
+        expect(prompt).toContain('a motorcycle that cannot fit in a shoebox')
+        expect(prompt).not.toContain('when the obvious way is blocked')
         expect(prompt).not.toContain('reasonably')
+    })
+
+    it('says which register wins on what: the scene on what is here, the world on what follows', () => {
+        const prompt = probePrompt('SCENE', { type: 'held' })
+        expect(prompt).toContain('What follows from that, what goes with what and what a thing can be used for, comes from how things are in the world')
+        expect(prompt).toContain('their layout is not a rule about what moves')
     })
 
     it('differs between scenes only in the scene text', () => {

@@ -43,97 +43,69 @@ const ANSWER_FORMAT = [
     'If the answer is nothing, write "none". If the answer is a count, write only the number.',
 ].join(' ')
 
-/**
- * For an `open` question: reasoning wanted, and the changes in whatever notation the reader likes. The headings are our
- * own chain of reasoning, offered rather than required, ahead of the answer so the answer can draw on them (user,
- * 2026-11-02: in place of a model's built-in reasoning, which Nova Micro lacks). A noted blocker must be solved or
- * stand (user, 2026-11-02): Nova 2 Lite listed the glue, then poured anyway, the teapot "fixed but functional" or
- * assumed to have "a spout that can reach".
- *
- * 2026-11-03: the changes line asks for the `(move X to On/In Y)` notation (MOVING, below) for any move; the first batch under MOVING
- * had every answer write its changes in prose, so the notation was untested. Batches before this edit are not comparable.
- *
- * Suspected faults, untested (Nova Micro on `teaTable`, 2026-11-03), so this wording is a hypothesis, not a finding:
- * - Asked to pour [tea1] into [saucer1], Micro filed "[cup1] is on [saucer1]" under Constraints or Blockers in every
- *   failing answer, then could not get past it ("already in place", "an intermediary container") and answered no. The
- *   Constraints gloss "what the scene fixes in place" invites listing every placement as fixed, and solve-or-stand then
- *   lets an unsolved one stand. The grounding's chair (moved unless secured) separates placing from securing; this gloss
- *   undoes it. Candidate fix: say a thing merely on or in another is not fixed.
- * - Micro also edited the scene as a tree, not a world: lifting [cup1] left "[tea1] on [saucer1] directly", as a node's
- *   child is reparented when the node is removed (and elsewhere "place [tea1] on the floor"; Lite: "[cup1] is no longer
- *   on [saucer1] but still in it"). Suspects: every substance gets its own handled line, the outline layout reads as data,
- *   and "name each thing by its handle ... list the changes" asks for a state diff. Asking for "the tea in [cup1]"
- *   instead of [tea1] answered correctly in one run.
- * - An instruction inside `asked` ("say in plain words, without handles, what you would physically do") was ignored in
- *   both repeats: this frame, which comes after the question, wins. Test a frame change by changing the frame.
- */
-const HEADINGS_ANSWER_FORMAT = [
-    'Think it through first, under any of these headings that help, with short notes under each:',
-    '"Constraints" (what the scene fixes in place), "Blockers" (what stands in the way of what is asked),',
-    '"Opportunities" (what the scene offers that could serve it).',
-    'Each constraint or blocker you note must be solved, with what is here, or else it stands: do not wave one away as maybe unimportant.',
-    'Then answer: explain briefly, then list the changes it would cause, if any, as short steps. Write any move in the (move X to On Y) or (move X to In Y) notation above, and anything else in any notation you like.',
-    'Name each thing by its handle in square brackets, for example [a1].',
-].join(' ')
-
 const NOTATION = 'Write any move in the (move X to On Y) or (move X to In Y) notation above, and anything else in any notation you like.'
 const NAME_BY_HANDLE = 'Name each thing by its handle in square brackets, for example [a1].'
 
-/** No scaffold: the control the headings were never compared against (user, 2026-11-03). */
-const PLAIN_ANSWER_FORMAT = [
-    `Explain briefly, then list the changes it would cause, if any, as short steps. ${NOTATION}`,
-    NAME_BY_HANDLE,
-].join(' ')
-
 /**
- * Constraints and blockers per candidate (user, 2026-11-03), so each is relative to a way of doing the thing, not a restating of
- * the scene. Zero is a first-class outcome in two separate cases: no candidate at all (the request names what is not here, or
- * cannot be done with anything here) and every candidate blocked (what would have to change first), so a nonsense request is
- * neither "solved" with invented means nor forced into a list. "No candidate" with a reason mirrors the pipeline's Abstain.
- */
-const CANDIDATES_ANSWER_FORMAT = [
-    'First decide what is being asked, and list the candidate ways to do it using only what is here.',
-    'There may be none: if what is asked names something that is not here, or cannot be done with anything here, write "No candidate" and say why in one sentence, and stop.',
-    'Otherwise, for each candidate, note under "Constraints" any fact in the scene that limits what can be done with a thing it uses, and under "Blockers" any constraint that actually stands in the way of this candidate.',
-    'A blocker must be solved, with what is here, or else that candidate is blocked and you move to another.',
-    'If every candidate is blocked, say what would have to change first, and stop.',
-    'Otherwise choose the best candidate and answer: explain briefly, then list the changes it would cause as short steps.',
-    NOTATION,
-    NAME_BY_HANDLE,
-].join(' ')
-
-/**
- * `plain` with only candidates' stopping rule (user and I, 2026-11-03): the nonsense batches had `plain` assume a lighter,
+ * `plain` (retired) with only candidates' stopping rule (user and I, 2026-11-03): the nonsense batches had `plain` assume a lighter,
  * a match and a candle into the scene ("for the sake of this exercise") while `candidates` checked and answered "No
  * candidate"; `candidates` as a whole padded and over-blocked a feasible pour. So this keeps the check and the stop and
  * drops the candidate list, to see whether the stop is what helped.
  */
 const ABSTAIN_ANSWER_FORMAT = [
-    'First check that everything the request names is in the scene, and that it can be done with what is here.',
-    'If it names something that is not here, or cannot be done with anything here, write "No candidate", say why in one sentence, and stop; do not assume it into existence.',
-    `Otherwise, explain briefly, then list the changes it would cause, if any, as short steps. ${NOTATION}`,
+    'First check that everything the request names is in the scene.',
+    'If it names something that is not here, write "No candidate", say why in one sentence, and stop; do not assume it into existence.',
+    `Otherwise, work out the way to do it, explain briefly, then list the changes it would cause, if any, as short steps. ${NOTATION}`,
+    'If no way works, write "No candidate" and say what would have to change.',
     NAME_BY_HANDLE,
 ].join(' ')
 
-export type AnswerFormat = 'headings' | 'plain' | 'candidates' | 'abstain'
+/**
+ * `abstain`'s check and stop, then the answer in two registers (user, 2026-11-03): what is done in the moment (an action, open
+ * and in order, where feasibility lives) and what is different afterwards (the net edits that record it, closed and minimal).
+ * `abstain` asks for "the changes it would cause ... as short steps", which blends the two: the pour that worked wrote
+ * `(move [cup1] to held)`, `(move [tea1] to On floor)`, `(move [cup1] to On [saucer1])`, of which only the middle one is an edit
+ * (the cup nets to nothing), and the stray `On table1` set-downs and the redundant tea move after its cup were actions written
+ * as edits. Same legend (`MOVING`) as `abstain`, so the two are compared live on one prompt.
+ * Revised after 5 pick-ups: the check echoed as the first line (5 of 5), the carried tea was lost in the fiction part (3 of 5), and
+ * "What changes" came out as prose (4 of 5). So the check is a condition, the fiction part names what goes along and stays behind,
+ * and each change line is notation only.
+ * Then revised again after 3 pick-ups and 2 pours: the check and the carried tea held (echo 0 of 3, tea carried 3 of 3), but the
+ * notation-only sentence lost the notation (prose edits, 5 of 5) and "what stays behind" brought the glued teapot back into the
+ * fiction (4 of 5), while the carried tea became a redundant edit (3 of 3). So: the old edit wording, "what goes along" only, and
+ * a clause that a carried thing is recorded by its carrier's move.
+ */
+const TWO_REGISTERS_ANSWER_FORMAT = [
+    'If it names something that is not here, write "No candidate", say why in one sentence, and stop; do not assume it into existence.',
+    'If everything the request names is in the scene, answer in two parts, beginning with the first.',
+    'What happens: say in plain words, with no notation and in the order it happens, what would be done, using only what is here, and what goes along with it. If no way works, write "No candidate", say what would have to change, and stop.',
+    `What changes: then list only what is different afterwards, one line for each thing whose own place changed; what went along with it is already recorded by its move. ${NOTATION}`,
+    NAME_BY_HANDLE,
+].join(' ')
 
-/** How an `open` question asks to be answered; `headings` is the original, `abstain` the default. */
-export const answerFormats: readonly AnswerFormat[] = ['headings', 'plain', 'candidates', 'abstain']
+/**
+ * `headings` (Constraints, Blockers, Opportunities), `plain` (no scaffold) and `candidates` (a candidate list, with its own stop) were
+ * retired 2026-11-03 (user): the headings never beat the plain control and cost the most output; `plain` assumed a missing candle
+ * into the scene; `candidates` padded and over-blocked a feasible pour. Their findings stay in the scene-projection planning
+ * file ("Frame and answer-format findings"); `abstain` is `plain` plus the stop rule `candidates` showed was useful.
+ */
+export type AnswerFormat = 'abstain' | 'twoRegisters'
+
+/** How an `open` question asks to be answered; `abstain` is the default. */
+export const answerFormats: readonly AnswerFormat[] = ['abstain', 'twoRegisters']
 
 /**
  * What an `open` question uses when the probe names none: `abstain` (user, 2026-11-03), the cheapest by output and the only
- * one of the four to stop on a request for something not here without padding or over-blocking a feasible one. Single
- * samples, so the others stay selectable until SP-10 decides which survive.
+ * one of the four then tried to stop on a request for something not here without padding or over-blocking a feasible one.
+ * `twoRegisters` stays selectable beside it until the pick-up is settled.
  */
 export const defaultAnswerFormat: AnswerFormat = 'abstain'
 
 export const isAnswerFormat = (value: unknown): value is AnswerFormat => answerFormats.includes(value as AnswerFormat)
 
 const OPEN_ANSWER_FORMATS: Record<AnswerFormat, string> = {
-    headings: HEADINGS_ANSWER_FORMAT,
-    plain: PLAIN_ANSWER_FORMAT,
-    candidates: CANDIDATES_ANSWER_FORMAT,
     abstain: ABSTAIN_ANSWER_FORMAT,
+    twoRegisters: TWO_REGISTERS_ANSWER_FORMAT,
 }
 
 /**
@@ -146,8 +118,19 @@ const OPEN_ANSWER_FORMATS: Record<AnswerFormat, string> = {
  * Reworded the same day (direction audit): "placed to move together" was mutual, and "on or in X ... on or in Y" crossed two
  * relations in one sentence, so the paragraph now says what is on or in X goes with X "but not the other way round". The
  * grounding's "how things are connected" went at the same time (models reasoned "because they are directly connected").
+ * Reworded again (blocker ladder, user, 2026-11-03): "Never move its contents separately" contradicted pouring, which moves the tea alone, and the
+ * ladder batch showed invented operators (`pour`) and a redundant move of the tea after its cup, so the paragraph now says what a move
+ * stands for (any action ending in a new place: pick up, set down, pour) and that one move carries the contents.
+ * Tried and taken out (2026-11-03): "To get only part of what it holds out, move that part: to tip a fish out of a bucket onto the dock...".
+ * With it, three pours all fixated on the glued teapot (one invented a mug) and one pick-up lifted the saucer and table; the example's
+ * bucket, or "what it holds" (the teapot holds tea too), are the suspects, not separated.
+ * Then rewritten as two registers (user, 2026-11-03): the world paragraph speaks of results, not actions ("different actions with the same result
+ * are the same change"), kept to the recording side ("once you know what would happen") so it grants no feasibility, and the records
+ * paragraph speaks only of the graph. Its far-domain example (a crate, a shed, a cart) avoids the fixtures' tableware.
+ * Left out on purpose (user, 2026-11-03): how to move a thing and not its contents (move the contents to the thing's host first).
+ * No run has needed it, and it describes the end state the model reached by mistake (the tea left on the saucer); parked.
  */
-const MOVING = 'Moving things. In the records, (move X to On Y) or (move X to In Y) puts X on or in Y, using the same "on" and "in" the scene\'s lines use. For the room write In room, and for what you hold write held. Whatever is on or in X goes with X, all the way down, but not the other way round: whatever X was on or in stays where it was, and only loses X. In the world this is simply how things go: a thing carries whatever sits on or in it. A fish in a bucket goes wherever the bucket goes, but picking up the bucket does not pick up the dock it stood on. So to carry something, move only the thing you pick up. Never move its contents separately, and never expect what it was resting on to come along.'
+const MOVING = 'Moving things. Once you know what would happen, the records keep only what is different afterwards, and for a move that is where things are. A crate carried to the shed, or dragged there, or pushed there, leaves the same result: the crate is in the shed, and what was in or on the crate is in the shed with it, but the cart it stood on has not moved. Different actions with the same result are the same change.\n\nIn the records, (move X to On Y) or (move X to In Y) records that X is now on or in Y, using the same "on" and "in" the scene\'s lines use. For the room write In room, and for what you hold write held. What was on or in X stays on or in it, and what X left only loses X. So once you have worked out where things end up, write one move for each thing whose own place changed, not for the things carried along with it.'
 
 /**
  * The grounding (user, 2026-11-02): the scene is what has been established and wins over general
@@ -160,11 +143,30 @@ const MOVING = 'Moving things. In the records, (move X to On Y) or (move X to In
  * A closing line "A thing on or in another moves with it." was dropped (2026-11-03, reopened SP-7) to test whether it
  * caused D's ancestor-chain answers to "what is X in or on". Without it the chains went away on teaTable and stayed on
  * sideboard (SP-7 batches 8 and 9), so it is not their cause; restore it if lifting questions show it was needed.
+ *
+ * Reworked 2026-11-03 (user), after the render comparison under `abstain` over-moved things the request never touched (the
+ * saucer, the glued teapot, to "clear the table") and invented operators. Cause suspected in this block, not a belief of
+ * the model's: it assumed a blocker ("when the obvious way is blocked", "if what someone wants is blocked, say what
+ * blocks it") and never said "nothing blocks it" is a result. A negative added to that would not have worked, so the
+ * procedure is now an ordered, all-positive ladder: the simplest steps, checked step by step (a blocker belongs to a step,
+ * not to a thing, and is the scene's or the world's: a tie, or a motorcycle that cannot fit a shoebox); then freeing what
+ * stops a step; only then the puzzle-solver's inventive paths. "Stop at the first step that gives an answer" and "give the
+ * steps you take, not this order" guard against the model writing every rung out, as `headings` and `candidates` did.
+ * The precedence line is by register: the scene is authoritative about what is here and how it is placed, the world about
+ * what follows from that, and the records' layout is notation, not a rule about what moves (suspected: "the scene wins"
+ * made a misread graph outrank correct physics). The ladder, the precedence line and the MOVING edit went in together, so
+ * their shares are not separable. Batches before this edit are not comparable with batches after it.
  */
 const GROUNDING = [
     'You are the reasoner for a game world, working as a game master would. The scene below is what has been established about this place: what is here, where each thing is placed (for example on or in something, or held), and what other relations it has to another thing, such as being tied or glued to it. Everything it records is true, and nothing that isn\'t recorded is present.',
     '',
-    'Beyond that, use what you know about the world: what things are like and what they could physically be used for. Think like a player solving a puzzle, not necessarily like someone going about their daily life: anything here can be used for anything it could do, not only what it is usually for, and when the obvious way is blocked, look for another way with what is here before saying what would have to change. Where your general knowledge and the scene disagree, the scene wins. A chair can usually be moved, but one secured to the floor stays until it is freed. If what someone wants is blocked, say what blocks it and what would have to change first.',
+    'Beyond that, use what you know about the world: what things are like and what they could physically be used for. The scene tells you what is here and how it is placed; it is true. What follows from that, what goes with what and what a thing can be used for, comes from how things are in the world. Where your knowledge and the scene disagree about what is here or how it is placed, the scene wins. The records are the way to write it down, and their layout is not a rule about what moves. A chair can usually be moved, but one secured to the floor stays until it is freed.',
+    '',
+    'To work out how to do what someone asks, go in this order, and stop at the first step that gives an answer.',
+    '1. Take the simplest way to do it: the steps, using only the things the request involves. For each step, ask whether anything stops it: something the scene records, such as being tied or glued, or something about the things themselves, such as a motorcycle that cannot fit in a shoebox. If nothing stops any step, those steps are your answer.',
+    '2. If something stops a step, ask whether freeing or removing that one thing, and then taking the same steps, works. If so, that is your answer.',
+    '3. If not, think like a player solving a puzzle: the obstacle may suggest another way, using anything here for anything it could do, not only what it is usually for. If you find one, that is your answer; if there is none, say what would have to change first.',
+    'When you give the steps, give the steps you take, not this order.',
     '',
     MOVING,
 ].join('\n')
