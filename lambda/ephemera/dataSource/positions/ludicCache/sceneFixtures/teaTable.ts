@@ -4,7 +4,7 @@
  * (a tie: Custom "glued to", SecuredTo, and the Justifies between them). The glue says how the securing behaves, so a
  * rubric need not guess what a bare SecuredTo allows: Nova 2 Lite tilted a teapot only "secured to" the table to pour
  * it. Two things are called "Tea", so "pour tea" does not say which. The open questions have no computed answer; each
- * carries a rubric written before any batch, which the user grades every format's answer against.
+ * carries a rubric written before any batch, which the user grades every answer against.
  */
 import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
 

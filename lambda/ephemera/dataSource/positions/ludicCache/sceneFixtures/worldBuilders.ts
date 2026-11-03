@@ -1,6 +1,6 @@
 /**
- * Builders for the scene fixtures' graphs. Production code on purpose (SP-8, "Fixture module home"): the format probe
- * folds these worlds in the deployed bundle, so nothing here imports the test-only `ludicGraph/testFixtures`. Each
+ * Builders for the scene fixtures' graphs. Production code on purpose (SP-8, "Fixture module home"): the scene-reasoning
+ * probe folds these worlds in the deployed bundle, so nothing here imports the test-only `ludicGraph/testFixtures`. Each
  * builder writes the stored shape as written: covers and hosting kinds are explicit, never filled in.
  */
 import type { EphemeraCharacterId, EphemeraConceptId, EphemeraFeatureId, EphemeraObjectId, EphemeraPresenceNodeId, EphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'

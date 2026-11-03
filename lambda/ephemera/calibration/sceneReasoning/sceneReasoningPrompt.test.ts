@@ -71,7 +71,7 @@ describe('sceneReasoningPrompt', () => {
         expect(prompt).not.toContain('reasonably')
     })
 
-    it('differs between formats only in the scene text', () => {
+    it('differs between scenes only in the scene text', () => {
         const q: SceneQuestion = { type: 'held' }
         const a = probePrompt('SCENE-A', q)
         const b = probePrompt('SCENE-B', q)

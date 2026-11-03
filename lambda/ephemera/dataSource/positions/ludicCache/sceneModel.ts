@@ -1,7 +1,7 @@
 /**
  * The scene model (sceneProjection Slice 1): the actor's cache as a reader reasons over it, before any text format is
  * chosen. It is **format-neutral** (SP-5): it carries the physical forest, hosting kinds, handles and relations, and no
- * rendering decision. Every candidate renderer reads the same model, so the format probe compares nesting alone.
+ * rendering decision; the renderer (format D, SP-7) makes those.
  *
  * Nothing here is cache-shaped. A thing is named by its **handle** (SP-1: a name-derived slug with a counter, `cup1`),
  * never by its id; the ids sit in the **handle table** returned beside the scene (`SceneHandleTable`), which is never shown

@@ -1,6 +1,7 @@
 //
-// The format probe's prompt (sceneProjection SP-8): one fixed frame around the scene and the question, shared by every
-// format, so the probe compares the representation of nesting alone.
+// The scene-reasoning probe's prompt (sceneProjection SP-8): one fixed frame around the scene and the question. Its
+// grounding and open-answer wording were tuned against both Nova models in the SP-7 batches; the first production prompt
+// to read the scene should start from them.
 //
 import type { SceneQuestion } from '../../dataSource/positions/ludicCache/sceneFixtures'
 
@@ -58,7 +59,7 @@ const OPEN_ANSWER_FORMAT = [
 ].join(' ')
 
 /**
- * The grounding every format shares (user, 2026-11-02): the scene is what has been established and wins over general
+ * The grounding (user, 2026-11-02): the scene is what has been established and wins over general
  * knowledge, which fills in what things are like and what can be done with them. Without it Nova Micro answered "can you
  * pour tea" from what teapots are usually like and picked up a teapot the scene records as secured. The examples match no
  * fixture, so they teach the precedence without giving away a rubric's answer, and stay off tableware: "a lid can be
@@ -74,7 +75,7 @@ const GROUNDING = [
     'A thing on or in another moves with it.',
 ].join('\n')
 
-/** The one frame every format shares: the scene text differs, nothing else does. */
+/** The one frame: the scene text and the question differ, nothing else does. */
 export const probePrompt = (sceneText: string, question: SceneQuestion): string => [
     GROUNDING,
     '',

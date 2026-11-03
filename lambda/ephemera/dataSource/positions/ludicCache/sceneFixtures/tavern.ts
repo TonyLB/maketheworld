@@ -1,5 +1,5 @@
 /**
- * The tavern (corpus scenes 1 and 3): a table holding a saucer with a cup on it and a candle, so every format has to climb
+ * The tavern (corpus scenes 1 and 3): a table holding a saucer with a cup on it and a candle, so the reader has to climb
  * back out of a subtree; the actor holds a hammer. `branchInBranch` adds a tray with a teapot and a jug, a fan inside a fan.
  */
 import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'

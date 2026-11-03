@@ -1,6 +1,6 @@
 /**
  * The scene fixtures (sceneProjection SP-8): a closed, named set of worlds compiled into the bundle, one definition per
- * scene, read by the scene model's tests, the renderers' golden tests and the format probe alike, so the scene a reader
+ * scene, read by the scene model's tests, the renderer's golden tests and the scene-reasoning probe alike, so the scene a reader
  * reasons about is the scene the tests pin. A new situation met in dev becomes a fixture here, never a payload-defined scene.
  *
  * `buildSceneFixture` folds a world through the production path (`buildActorLudicCache`, over `buildLudicCache` for the

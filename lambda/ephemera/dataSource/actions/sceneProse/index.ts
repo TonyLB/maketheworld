@@ -1,24 +1,53 @@
 /**
- * The candidate scene renderers (sceneProjection Slice 2): the scene model as text for an LLM reader, in five formats that
- * differ only in how they show nesting. Pre-SP-7 they coexist; the format probe compares them and the losers are
- * deleted.
+ * The scene renderer (sceneProjection Slice 2; format D, chosen in Slice 3 by SP-7): the scene model as text for an LLM
+ * reader, an indented tree whose lines each name their parent by handle, with the kind in words ("on [table1]"), so the
+ * structure does not depend on counting indentation. In the probe D read nesting as well as the block formats or better,
+ * and cost fewer tokens than the grouped ones.
  */
-import type { SceneModel } from '../../positions/ludicCache/sceneModel'
-import { renderSceneBlocks } from './renderSceneBlocks'
-import { renderSceneBlocksD } from './renderSceneBlocksD'
-import { renderSceneBlocksDLabelled } from './renderSceneBlocksDLabelled'
-import { renderSceneA, renderSceneD } from './renderSceneTree'
+import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
-export type SceneFormat = 'A' | 'D' | 'blocks' | 'blocksD' | 'blocksDLabelled'
+import type { SceneEntry, SceneModel } from '../../positions/ludicCache/sceneModel'
+import { bracket, conceptText, exitsLine, heading, headText, hostingClause, lineNotes, lineRelations, roomRef } from './sceneWording'
 
-export const sceneFormats: readonly SceneFormat[] = ['A', 'D', 'blocks', 'blocksD', 'blocksDLabelled']
+type Parent = { kind: 'room' } | { kind: 'held' } | { kind: 'thing'; handle: string }
 
-export const renderScene = (format: SceneFormat, scene: SceneModel): string => {
-    switch (format) {
-        case 'A': return renderSceneA(scene)
-        case 'D': return renderSceneD(scene)
-        case 'blocks': return renderSceneBlocks(scene)
-        case 'blocksD': return renderSceneBlocksD(scene)
-        case 'blocksDLabelled': return renderSceneBlocksDLabelled(scene)
+/** The parent clause. A join names the host its parents all belong to (SP-9), not the line it happens to sit under. */
+const parentClause = (scene: SceneModel, entry: SceneEntry, parent: Parent): string => {
+    const hostingKind: EphemeraHostingKind = entry.hostingKind
+    if (entry.kind === 'join') {
+        return hostingClause(hostingKind, bracket(entry.host))
     }
+    switch (parent.kind) {
+        case 'room': return hostingClause(hostingKind, roomRef(scene))
+        case 'held': return hostingClause('Held', 'you')
+        case 'thing': return hostingClause(hostingKind, bracket(parent.handle))
+    }
+}
+
+const renderEntries = (scene: SceneModel, entries: readonly SceneEntry[], parent: Parent, depth: number): string[] => (
+    entries.flatMap((entry) => [
+        `${'  '.repeat(depth)}- ${[
+            headText(scene, entry),
+            `, ${parentClause(scene, entry, parent)}`,
+            ...lineNotes(scene, entry).map((note) => ` ${note}`),
+            ...lineRelations(scene, entry).map((phrase) => `, ${phrase}`),
+        ].join('')}`,
+        ...renderEntries(scene, entry.children, { kind: 'thing', handle: entry.handle }, depth + 1),
+    ])
+)
+
+export const renderScene = (scene: SceneModel): string => {
+    const room = roomRef(scene)
+    const lines = [
+        heading(scene),
+        ...(scene.contents.length === 0
+            ? [`Contents of ${room}: nothing.`]
+            : [`Contents of ${room}:`, ...renderEntries(scene, scene.contents, { kind: 'room' }, 0)]),
+        ...(scene.concepts.length === 0 ? [] : ['Concepts here:', ...scene.concepts.map((handle) => `- ${conceptText(scene, handle)}`)]),
+        ...(scene.held.length === 0
+            ? ['You are holding: nothing.']
+            : ['You are holding:', ...renderEntries(scene, scene.held, { kind: 'held' }, 0)]),
+        ...(exitsLine(scene) !== undefined ? [exitsLine(scene) as string] : []),
+    ]
+    return lines.join('\n')
 }

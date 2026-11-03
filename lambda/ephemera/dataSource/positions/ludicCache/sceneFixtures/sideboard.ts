@@ -1,8 +1,7 @@
 /**
- * The sideboard (added in Slice 3, to separate D from blocksD): one host whose direct members are spread apart by
- * subtrees of every shape the hybrid treats differently. A candle (a leaf); a saucer with a cup with tea in it (a chain two
- * deep, promoted); a mug with coffee in it (a chain one deep, hoisted); a tray with a teapot and a jug (a fan, promoted); a
- * box of three pieces of cutlery (a fan); and a lamp last, after all of them. No glosses below the sideboard, so nothing but
+ * The sideboard (added in Slice 3, when grouped formats were candidates against D): one host whose direct members are
+ * spread apart by subtrees of every shape. A candle (a leaf); a saucer with a cup with tea in it (a chain two deep); a mug
+ * with coffee in it (a chain one deep); a tray with a teapot and a jug (a fan); a box of three pieces of cutlery (a fan); and a lamp last, after all of them. No glosses below the sideboard, so nothing but
  * the structure says where a thing is.
  */
 import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
