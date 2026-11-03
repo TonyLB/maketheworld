@@ -9,7 +9,7 @@ const body = (response: { body: string }) => JSON.parse(response.body)
 describe('handleSceneReasoningProbe', () => {
     const tavernQuestions = sceneFixture('tavern').questions.length
 
-    it('runs every format on NovaMicro by default', async () => {
+    it('runs each question once in every format on NovaMicro by default', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
             { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }] },
@@ -21,10 +21,22 @@ describe('handleSceneReasoningProbe', () => {
         expect(body(response).results).toHaveLength(sceneFormats.length * 2)
     })
 
+    it('runs only the formats named, each with its own render', async () => {
+        const invoke = okInvoke()
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'deepChain' }, formats: ['fans'], questions: [{ type: 'held' }] },
+            { invoke },
+        )
+        const [result, ...rest] = body(response).results
+        expect(rest).toEqual([])
+        expect(result.format).toBe('fans')
+        expect(result.scene).toContain('Directly in [box1]:')
+    })
+
     it('runs on the model named at run time', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['A'], questions: [{ type: 'held' }], model: 'Nova2Lite' },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }], model: 'Nova2Lite' },
             { invoke },
         )
         expect(invoke.mock.calls[0][0].modelId).toBe('us.amazon.nova-2-lite-v1:0')
@@ -34,19 +46,19 @@ describe('handleSceneReasoningProbe', () => {
     it('defaults to the fixture\'s question set, one repeat', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['A'] },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'] },
             { invoke },
         )
         expect(invoke).toHaveBeenCalledTimes(tavernQuestions)
         const { results } = body(response)
-        expect(results[0]).toMatchObject({ format: 'A', repeat: 1 })
+        expect(results[0]).toMatchObject({ format: 'D', repeat: 1 })
         expect(results[0]).toHaveProperty('expected')
     })
 
     it('scores a reply against the expected answer as a reading aid', async () => {
         const invoke = jest.fn(async () => ({ success: true as const, body: 'none' }))
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['A'], questions: [{ type: 'held' }] },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }] },
             { invoke },
         )
         expect(body(response).results[0].matches).toBe(false)
@@ -56,7 +68,7 @@ describe('handleSceneReasoningProbe', () => {
         const invoke = jest.fn(async (_params: Parameters<ProbeInvoke>[0]) => ({ success: true as const, body: 'Yes: pour [tea1] from [cup1].' }))
         const question = { type: 'open', asked: 'Can you pour tea into [saucer1]?', rubric: 'Notices the teapot is secured.' }
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'teaTable' }, formats: ['D'], questions: [question] },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'teaTable' }, questions: [question] },
             { invoke },
         )
         expect(response.statusCode).toBe(200)
@@ -71,11 +83,11 @@ describe('handleSceneReasoningProbe', () => {
     it('refuses over the cap before any call', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }], repeats: 5 },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }, { type: 'held' }], repeats: 7 },
             { invoke },
         )
         expect(response.statusCode).toBe(400)
-        expect(body(response).error).toContain(`${sceneFormats.length * 5} calls`)
+        expect(body(response).error).toContain(`${sceneFormats.length * 14} calls`)
         expect(invoke).not.toHaveBeenCalled()
     })
 
@@ -83,7 +95,7 @@ describe('handleSceneReasoningProbe', () => {
         ['unknown fixture', { scene: { fixture: 'nope' } }],
         ['no scene', {}],
         ['both scenes', { scene: { fixture: 'tavern', characterId: 'CHARACTER#X' } }],
-        ['unknown format', { scene: { fixture: 'tavern' }, formats: ['Z'] }],
+        ['unknown format', { scene: { fixture: 'tavern' }, formats: ['A'] }],
         ['bad model', { scene: { fixture: 'tavern' }, model: 'Gpt' }],
         ['bad repeats', { scene: { fixture: 'tavern' }, repeats: 0 }],
         ['malformed question', { scene: { fixture: 'tavern' }, questions: [{ type: 'placedOn' }] }],
@@ -110,7 +122,7 @@ describe('handleSceneReasoningProbe', () => {
             .mockResolvedValueOnce({ success: false, errorMessage: 'throttled' })
             .mockResolvedValue({ success: true, body: '[cup1]' })
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['A', 'D'], questions: [{ type: 'held' }] },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }] },
             { invoke },
         )
         expect(response.statusCode).toBe(200)
@@ -124,7 +136,7 @@ describe('handleSceneReasoningProbe', () => {
         const getActorCache = jest.fn(async () => cache)
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { characterId: 'CHARACTER#ABC' }, formats: ['A'], questions: [{ type: 'held' }] },
+            { type: 'SceneReasoningProbe', scene: { characterId: 'CHARACTER#ABC' }, questions: [{ type: 'held' }] },
             { invoke, getActorCache },
         )
         expect(response.statusCode).toBe(200)

@@ -1,6 +1,6 @@
 /**
  * The scene fixtures' question sets (SP-8): a closed set of typed questions about one scene, each answered from the scene
- * model, so an expected answer is computed, never hand-kept. The format probe asks a reader the question in words and
+ * model, so an expected answer is computed, never hand-kept. The scene-reasoning probe asks a reader the question in words and
  * shows the expected answer beside the reader's; the match is a reading aid, and the user judges.
  *
  * `asked` words a question about a known thing by description ("Where is the china teacup?"); the answer is still

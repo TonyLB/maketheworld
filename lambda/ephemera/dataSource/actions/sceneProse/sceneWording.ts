@@ -1,8 +1,6 @@
 /**
- * The wording every candidate scene format shares (sceneProjection Slice 2): headings, glosses, relation phrases, spread
- * notes and the hosting-kind words. The formats differ only in how they show nesting (A and D: indentation; Blocks: a block
- * per branching host), so the probe compares that alone (SP-7). Reasoning names only: a scene never prints a display
- * label or an id.
+ * The scene's wording (sceneProjection Slice 2): headings, glosses, relation phrases, spread notes and the hosting-kind
+ * words. Reasoning names only: a scene never prints a display label or an id.
  */
 import type { EphemeraHostingKind } from '@tonylb/mtw-interfaces/ts/ephemeraMeta'
 
@@ -53,28 +51,6 @@ export const locationClause = (scene: SceneModel, location: SceneLocation): stri
         case 'held': return 'held by you'
         case 'someoneElse': return 'held by someone else'
         case 'otherRoom': return 'in another room'
-    }
-}
-
-/** Blocks' "which X goes with": the host's side of a chain link, "X on it". */
-export const chainTail = (hostingKind: EphemeraHostingKind): string => {
-    switch (hostingKind) {
-        case 'On': return 'on it'
-        case 'PartOf': return 'as a part'
-        case 'SectionOf': return 'as a section'
-        default: return 'in it'
-    }
-}
-
-/** A block's header: what the listed members are to `target` (a handle or a room ref); held items need none. */
-export const blockHeader = (hostingKind: EphemeraHostingKind, target: string): string => {
-    switch (hostingKind) {
-        case 'On': return `On ${target}:`
-        case 'Held': return 'You are holding:'
-        case 'PartOf': return `Parts of ${target}:`
-        case 'SectionOf': return `Sections of ${target}:`
-        case 'Associated': return `Associated with ${target}:`
-        default: return `In ${target}:`
     }
 }
 

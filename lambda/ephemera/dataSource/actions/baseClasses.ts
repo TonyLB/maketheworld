@@ -35,6 +35,7 @@ import type { MutationKernelStep } from '../positions/manipulation/kernel/kernel
 import type { MessageBus } from '../../messageBus/baseClasses'
 import type { CommandAttemptData } from './commandAttempt'
 import type { TemplateSet } from './enrich/objectManipulation/plan/templateSet'
+import type { SceneFormat } from './sceneProse'
 
 const CHARACTER_SPEECH_DISPLAY_PROTOCOLS: ReadonlySet<CharacterSpeechDisplayProtocol> = new Set([
     'SayMessage',
@@ -254,6 +255,14 @@ export type ParseCommandObjectManipulationParseTestResult = {
     harnessInvocation?: ObjectManipulationParseHarnessInvocation
 }
 
+/** Operator trigger for the scene harness (`/test scene`): the actor's cache rendered as an LLM reader sees it. */
+export type ParseCommandSceneTestResult = {
+    type: 'SceneTest'
+    confidence: ParseCommandConfidence
+    /** The render format named in the tail; absent: the default (D). */
+    format?: SceneFormat
+}
+
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
     confidence: ParseCommandConfidence
@@ -377,6 +386,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationParseTestResult
+    | ParseCommandSceneTestResult
     | ParseCommandCommandAttemptResult
     | ParseCommandObjectManipulationIntentResult
     | ParseCommandObjectRelateIntentResult
@@ -635,6 +645,15 @@ export function isParseCommandObjectManipulationParseTestResult(
     result: ParseCommandResult
 ): result is ParseCommandObjectManipulationParseTestResult {
     if (result.type !== 'ObjectManipulationParseTest') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandSceneTestResult(
+    result: ParseCommandResult
+): result is ParseCommandSceneTestResult {
+    if (result.type !== 'SceneTest') {
         return false
     }
     return isParseConfidence(result.confidence)

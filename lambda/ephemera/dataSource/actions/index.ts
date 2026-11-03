@@ -53,6 +53,7 @@ import {
     catalogObjectIds,
 } from './attachEmbeddingsToCatalogEntries'
 import { getActorCache } from './actorObjectCatalog'
+import type { ActorLudicCache } from '../positions/ludicCache/actorCache'
 import { resolveHomeTargetForCharacter } from './resolveHomeTargetForCharacter'
 import {
     type ParseCommandAcmeOrderLine,
@@ -67,6 +68,7 @@ import {
     isParseCommandConsultResult,
     isParseCommandCoyoteAffinitiesTestResult,
     isParseCommandObjectManipulationParseTestResult,
+    isParseCommandSceneTestResult,
     isParseCommandCoyoteEngineTestResult,
     isParseCommandErrorResult,
     isParseCommandHelpResult,
@@ -88,6 +90,7 @@ import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupi
 import { finalizeStableKeysDeterministic } from './stableKey/finalizeStableKeysDeterministic'
 import { runAcmeOrderAffinitiesHarness } from './actionHandlers/runAcmeOrderAffinitiesHarness'
 import { runObjectManipulationParseHarness } from './actionHandlers/runObjectManipulationParseHarness'
+import { runSceneTestHarness } from './actionHandlers/runSceneTestHarness'
 import { runCoyoteEngineTestHarness } from '../coyoteGame/generators/testHarness/runCoyoteEngineTestHarness'
 import { isCoyoteGameRoom } from '../coyoteGame/utilities/isCoyoteGameRoom'
 import { commitAndPresentStepSequence } from '../positions/manipulation/kernel/commitAndPresentStepSequence'
@@ -95,6 +98,7 @@ import { commitAndPresentStepSequence } from '../positions/manipulation/kernel/c
 const COYOTE_ENGINE_TEST_HARNESS_ENABLED = true
 const COYOTE_AFFINITIES_TEST_HARNESS_ENABLED = true
 const OBJECT_MANIPULATION_PARSE_TEST_HARNESS_ENABLED = true
+const SCENE_TEST_HARNESS_ENABLED = true
 
 type ParseCommandAcmeOrderValidLine = Extract<ParseCommandAcmeOrderLine, { valid: true }>
 type ParseCommandAcmeOrderInvalidLine = Extract<ParseCommandAcmeOrderLine, { valid: false }>
@@ -198,6 +202,8 @@ type ResponseContext = {
     characterId: EphemeraCharacterId
     roomExitContext: RoomExitTargetsForCharacter
     coyoteOccupiedStableKeys: ReadonlySet<string>
+    /** The actor's cache the command was parsed against, for the `/test scene` harness; absent for a character in no room. */
+    actorCache?: ActorLudicCache
     parseResult: ParseCommandResult
     /** Absent when there is no echo to attach to (no sessionId, or an assessed-action entry). */
     transcript?: TranscriptContext
@@ -328,6 +334,19 @@ const respondImperativelyForIntent = async (context: ResponseContext): Promise<v
                 ...(parseResult.harnessInvocation !== undefined
                     ? { harnessInvocation: parseResult.harnessInvocation }
                     : {}),
+            })
+        }
+    }
+    else if (isParseCommandSceneTestResult(parseResult)) {
+        if (!SCENE_TEST_HARNESS_ENABLED) {
+            reportCommandOutcome(context, 'Error', ['Scene test harness is currently disabled.'])
+        }
+        else {
+            runSceneTestHarness({
+                characterId,
+                messageBus,
+                ...(context.actorCache ? { actorCache: context.actorCache } : {}),
+                ...(parseResult.format !== undefined ? { format: parseResult.format } : {}),
             })
         }
     }
@@ -694,6 +713,7 @@ const handleParseRequested = async (
         characterId: content.characterId,
         roomExitContext,
         coyoteOccupiedStableKeys,
+        ...(actorCache ? { actorCache } : {}),
         parseResult,
         ...(transcript ? { transcript } : {}),
     }

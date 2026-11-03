@@ -1,5 +1,5 @@
 //
-// The format probe's match flag: a reading aid only (the user judges). An expected answer is canonicalised to tokens;
+// The scene-reasoning probe's match flag: a reading aid only (the user judges). An expected answer is canonicalised to tokens;
 // the model's reply is split on commas and lines. An expectation that tokens cannot carry is unscored (`undefined`).
 //
 import type { SceneAnswer } from '../../dataSource/positions/ludicCache/sceneFixtures'

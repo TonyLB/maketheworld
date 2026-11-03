@@ -1,6 +1,7 @@
 //
-// The format probe's runner (sceneProjection SP-8): one Bedrock call per (format, question, repeat), each a single prompt
-// with no follow-up turn. The Bedrock call is injected, so tests never reach Bedrock.
+// The scene-reasoning probe's runner (sceneProjection SP-8): the scene rendered once per format, then one Bedrock call per
+// (format, question, repeat), each a single prompt with no follow-up turn. The format axis came back when SP-7 was reopened
+// (D against `fans`, 2026-11-03). The Bedrock call is injected, so tests never reach Bedrock.
 //
 import type { SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { expectedAnswer, type SceneQuestion } from '../../dataSource/positions/ludicCache/sceneFixtures'
@@ -12,6 +13,7 @@ import { expectedTokens, scoreReply } from './sceneReasoningScore'
 
 /** A hard limit on formats x questions x repeats per invoke, refused before any call when exceeded. */
 export const PROBE_CALL_CAP = 12
+/** Not repeatable: at 0.1 Nova Micro's repeats of one open question split yes and no (2026-11-03). */
 export const PROBE_TEMPERATURE = 0.1
 export const PROBE_MAX_TOKENS = 256
 /** An `open` answer explains and lists changes, so it gets more room. */
@@ -45,7 +47,7 @@ export const runSceneReasoningProbe = async ({ scene, formats, questions, repeat
     expectAnswers: boolean
     invoke?: ProbeInvoke
 }): Promise<ProbeCallResult[]> => {
-    const rendered = Object.fromEntries(formats.map((format) => [format, renderScene(format, scene)])) as Record<SceneFormat, string>
+    const rendered = Object.fromEntries(formats.map((format) => [format, renderScene(scene, format)])) as Record<SceneFormat, string>
     const calls = formats.flatMap((format) => questions.flatMap((question) => (
         Array.from({ length: repeats }, (_, repeat) => ({ format, question, repeat: repeat + 1 }))
     )))
