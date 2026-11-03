@@ -9,6 +9,7 @@ import { OBJECT_MANIPULATION_PARSE_HARNESS_FIXTURES } from '../objectManipulatio
 import { isCoyoteAffinitiesTestSlashCommand } from './coyoteAffinitiesTestSlashCommand'
 import { isCoyoteEngineTestSlashCommand } from './coyoteEngineTestSlashCommand'
 import { isObjectManipulationParseTestSlashCommand } from './objectManipulationParseTestSlashCommand'
+import { isSceneTestSlashCommand, parseSceneTestSlashTail } from './sceneTestSlashCommand'
 import { parseCoyoteAffinitiesTestSlashTail } from './parseCoyoteAffinitiesTestSlash'
 import { parseCoyoteEngineTestSlashTail } from './parseCoyoteEngineTestSlash'
 import { parseObjectManipulationParseTestSlashTail } from './parseObjectManipulationParseTestSlash'
@@ -74,6 +75,12 @@ export function deterministicIntentChecks(input: ParseCommandInput, templates: T
             confidence: 1,
             ...(parsed.harnessInvocation !== undefined ? { harnessInvocation: parsed.harnessInvocation } : {}),
         }
+    }
+    if (isSceneTestSlashCommand(input.command)) {
+        const parsed = parseSceneTestSlashTail(input.command.trim())
+        return parsed.ok
+            ? { type: 'SceneTest', confidence: 1 }
+            : { type: 'Error', errorMessage: parsed.errorMessage }
     }
 
     // The intent rows first: they answer as results, not readings, so they run ahead of Plan's

@@ -254,6 +254,12 @@ export type ParseCommandObjectManipulationParseTestResult = {
     harnessInvocation?: ObjectManipulationParseHarnessInvocation
 }
 
+/** Operator trigger for the scene harness (`/test scene`): the actor's cache rendered as an LLM reader sees it. */
+export type ParseCommandSceneTestResult = {
+    type: 'SceneTest'
+    confidence: ParseCommandConfidence
+}
+
 export type ParseCommandUnimplementedResult = {
     type: 'Unimplemented'
     confidence: ParseCommandConfidence
@@ -377,6 +383,7 @@ export type ParseCommandResult =
     | ParseCommandCoyoteEngineTestResult
     | ParseCommandCoyoteAffinitiesTestResult
     | ParseCommandObjectManipulationParseTestResult
+    | ParseCommandSceneTestResult
     | ParseCommandCommandAttemptResult
     | ParseCommandObjectManipulationIntentResult
     | ParseCommandObjectRelateIntentResult
@@ -635,6 +642,15 @@ export function isParseCommandObjectManipulationParseTestResult(
     result: ParseCommandResult
 ): result is ParseCommandObjectManipulationParseTestResult {
     if (result.type !== 'ObjectManipulationParseTest') {
+        return false
+    }
+    return isParseConfidence(result.confidence)
+}
+
+export function isParseCommandSceneTestResult(
+    result: ParseCommandResult
+): result is ParseCommandSceneTestResult {
+    if (result.type !== 'SceneTest') {
         return false
     }
     return isParseConfidence(result.confidence)

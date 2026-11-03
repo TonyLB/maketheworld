@@ -1,7 +1,8 @@
 //
 // The scene-reasoning probe's prompt (sceneProjection SP-8): one fixed frame around the scene and the question. Its
-// grounding and open-answer wording were tuned against both Nova models in the SP-7 batches; the first production prompt
-// to read the scene should start from them.
+// grounding and open-answer wording were tuned against both Nova models in the SP-7 batches, one run per wording; the
+// first production prompt to read the scene should start from them, but none of it is settled. Later batches (2026-11-03,
+// below and on OPEN_ANSWER_FORMAT) showed single runs do not repeat and found faults the frame itself may cause.
 //
 import type { SceneQuestion } from '../../dataSource/positions/ludicCache/sceneFixtures'
 
@@ -48,6 +49,20 @@ const ANSWER_FORMAT = [
  * 2026-11-02: in place of a model's built-in reasoning, which Nova Micro lacks). A noted blocker must be solved or
  * stand (user, 2026-11-02): Nova 2 Lite listed the glue, then poured anyway, the teapot "fixed but functional" or
  * assumed to have "a spout that can reach".
+ *
+ * Suspected faults, untested (Nova Micro on `teaTable`, 2026-11-03), so this wording is a hypothesis, not a finding:
+ * - Asked to pour [tea1] into [saucer1], Micro filed "[cup1] is on [saucer1]" under Constraints or Blockers in every
+ *   failing answer, then could not get past it ("already in place", "an intermediary container") and answered no. The
+ *   Constraints gloss "what the scene fixes in place" invites listing every placement as fixed, and solve-or-stand then
+ *   lets an unsolved one stand. The grounding's chair (moved unless secured) separates placing from securing; this gloss
+ *   undoes it. Candidate fix: say a thing merely on or in another is not fixed.
+ * - Micro also edited the scene as a tree, not a world: lifting [cup1] left "[tea1] on [saucer1] directly", as a node's
+ *   child is reparented when the node is removed (and elsewhere "place [tea1] on the floor"; Lite: "[cup1] is no longer
+ *   on [saucer1] but still in it"). Suspects: every substance gets its own handled line, the outline layout reads as data,
+ *   and "name each thing by its handle ... list the changes" asks for a state diff. Asking for "the tea in [cup1]"
+ *   instead of [tea1] answered correctly in one run.
+ * - An instruction inside `asked` ("say in plain words, without handles, what you would physically do") was ignored in
+ *   both repeats: this frame, which comes after the question, wins. Test a frame change by changing the frame.
  */
 const OPEN_ANSWER_FORMAT = [
     'Think it through first, under any of these headings that help, with short notes under each:',

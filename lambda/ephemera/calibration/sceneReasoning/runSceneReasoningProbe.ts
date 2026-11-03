@@ -12,6 +12,7 @@ import { expectedTokens, scoreReply } from './sceneReasoningScore'
 
 /** A hard limit on questions x repeats per invoke, refused before any call when exceeded. */
 export const PROBE_CALL_CAP = 12
+/** Not repeatable: at 0.1 Nova Micro's repeats of one open question split yes and no (2026-11-03). */
 export const PROBE_TEMPERATURE = 0.1
 export const PROBE_MAX_TOKENS = 256
 /** An `open` answer explains and lists changes, so it gets more room. */

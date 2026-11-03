@@ -103,6 +103,14 @@ describe('deterministicIntentChecks', () => {
         })
     })
 
+    it('returns SceneTest for /test scene, and a Parse error for a tail', () => {
+        expect(deterministicIntentChecks({ command: ' /test scene ' })).toEqual({ type: 'SceneTest', confidence: 1 })
+        expect(deterministicIntentChecks({ command: '/test scene tavern' })).toEqual({
+            type: 'Error',
+            errorMessage: expect.stringContaining('takes no argument'),
+        })
+    })
+
     it('returns ObjectManipulationParseTest for valid /test parse commands', () => {
         expect(deterministicIntentChecks({ command: '/test parse' })).toEqual({
             type: 'ObjectManipulationParseTest',
