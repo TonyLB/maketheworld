@@ -1,8 +1,8 @@
 import { buildSceneFixture, sceneFixture, sceneFixtureNames } from '../../positions/ludicCache/sceneFixtures'
 import { renderScene, type SceneFormat } from '.'
-import { sceneFanGoldens, sceneGoldens } from './sceneGoldens'
+import { sceneFanGoldens, sceneFlatDGoldens, sceneGoldens } from './sceneGoldens'
 
-const goldens: Record<SceneFormat, Record<string, string>> = { D: sceneGoldens, fans: sceneFanGoldens }
+const goldens: Record<SceneFormat, Record<string, string>> = { D: sceneGoldens, flatD: sceneFlatDGoldens, fans: sceneFanGoldens }
 
 describe('scene renderer: goldens', () => {
     beforeEach(() => {

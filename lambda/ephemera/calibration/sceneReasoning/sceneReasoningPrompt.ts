@@ -81,13 +81,14 @@ const OPEN_ANSWER_FORMAT = [
  * lifted" had Nova Micro lifting lids on teaTable's teapot and saucer, neither of which the scene gives a lid. The
  * register is a puzzle-solver's, not everyday life's (user, 2026-11-02): asked what someone could "reasonably" do, both
  * Nova models held to the teapot as the way to pour, past a glue that blocked it, and never offered the cup's tea.
+ * A closing line "A thing on or in another moves with it." was dropped (2026-11-03, reopened SP-7) to test whether it
+ * caused D's ancestor-chain answers to "what is X in or on". Without it the chains went away on teaTable and stayed on
+ * sideboard (SP-7 batches 8 and 9), so it is not their cause; restore it if lifting questions show it was needed.
  */
 const GROUNDING = [
     'You are the reasoner for a game world, working as a game master would. The scene below is what has been established about this place: what is here, where each thing is placed, and how things are connected. Everything it records is true, and nothing that isn\'t recorded is present.',
     '',
     'Beyond that, use what you know about the world: what things are like and what they could physically be used for. Think like a player solving a puzzle, not necessarily like someone going about their daily life: anything here can be used for anything it could do, not only what it is usually for, and when the obvious way is blocked, look for another way with what is here before saying what would have to change. Where your general knowledge and the scene disagree, the scene wins. A chair can usually be moved, but one secured to the floor stays until it is freed. If what someone wants is blocked, say what blocks it and what would have to change first.',
-    '',
-    'A thing on or in another moves with it.',
 ].join('\n')
 
 /** The one frame: the scene text and the question differ, nothing else does. */

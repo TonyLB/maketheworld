@@ -22,10 +22,11 @@ describe('parseSceneTestSlashTail', () => {
     it('takes a format name, in any case', () => {
         expect(parseSceneTestSlashTail('/test scene fans')).toEqual({ ok: true, format: 'fans' })
         expect(parseSceneTestSlashTail('/test scene d')).toEqual({ ok: true, format: 'D' })
+        expect(parseSceneTestSlashTail('/test scene flatd')).toEqual({ ok: true, format: 'flatD' })
     })
 
     it('refuses any other tail, listing the formats', () => {
         const result = parseSceneTestSlashTail('/test scene tavern')
-        expect(result).toEqual({ ok: false, errorMessage: expect.stringContaining('one of: D, fans') })
+        expect(result).toEqual({ ok: false, errorMessage: expect.stringContaining('one of: D, flatD, fans') })
     })
 })

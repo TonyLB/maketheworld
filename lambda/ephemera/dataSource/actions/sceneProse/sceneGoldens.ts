@@ -347,3 +347,11 @@ Directly in [teapot1]:
 - [tea2] Tea, in [teapot1]
 You are holding: nothing.`,
 }
+
+/**
+ * The `flatD` renders (2026-11-03): D's goldens with every line's leading whitespace stripped. Derived rather than copied,
+ * because "D without the indent" is the whole of flatD's spec.
+ */
+export const sceneFlatDGoldens: Record<string, string> = Object.fromEntries(
+    Object.entries(sceneGoldens).map(([name, text]) => [name, text.split('\n').map((line) => line.trimStart()).join('\n')])
+)
