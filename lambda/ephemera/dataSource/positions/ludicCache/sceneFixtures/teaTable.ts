@@ -66,6 +66,16 @@ export const teaTableScene: SceneFixture = {
             asked: 'If I pick up [saucer1], what comes with it, what stays behind, and what would change?',
             rubric: '[cup1] and the tea in it come with [saucer1]; [teapot1], its tea and [table1] stay.',
         },
+        {
+            type: 'open',
+            asked: 'If I pick up [cup1], what comes with it, what stays behind, and what would change?',
+            rubric: '[tea1] comes with [cup1]; [saucer1], [teapot1], its tea and [table1] stay.',
+        },
+        {
+            type: 'open',
+            asked: 'Can you pour [tea1] out onto the floor? If so, how, and what would change?',
+            rubric: '[tea1] leaves [cup1] and ends up on the floor; [cup1] stays on [saucer1]; the tea in [teapot1] is untouched.',
+        },
         { type: 'securedTo', target: 'table1' },
         { type: 'directContents', subject: 'table1' },
         { type: 'howMany', name: 'tea' },

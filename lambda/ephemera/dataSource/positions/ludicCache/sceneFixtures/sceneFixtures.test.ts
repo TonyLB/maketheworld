@@ -114,6 +114,8 @@ const expected: Record<string, (SceneAnswer | undefined)[]> = {
         undefined,
         undefined,
         undefined,
+        undefined,
+        undefined,
         handles('teapot1'),
         handles('saucer1', 'teapot1'),
         { count: 2 },

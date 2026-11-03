@@ -2,7 +2,7 @@ import { calibrationJsonResponse } from '../../calibrationResponse'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildSceneFixture, sceneFixture, sceneFixtureNames, type SceneQuestion } from '../../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../../dataSource/positions/ludicCache/sceneModel'
-import { isSceneFormat, sceneFormats, type SceneFormat } from '../../../dataSource/actions/sceneProse'
+import { defaultSceneFormats, isSceneFormat, sceneFormats, type SceneFormat } from '../../../dataSource/actions/sceneProse'
 import { getActorCache } from '../../../dataSource/actions/actorObjectCatalog'
 import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
 import { PROBE_CALL_CAP, runSceneReasoningProbe, type ProbeInvoke } from '../runSceneReasoningProbe'
@@ -58,7 +58,7 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
         return refuse('scene must be exactly one of { "fixture": name } or { "characterId": "CHARACTER#..." }')
     }
 
-    let formats: SceneFormat[] = [...sceneFormats]
+    let formats: SceneFormat[] = [...defaultSceneFormats]
     if (event.formats !== undefined) {
         if (!Array.isArray(event.formats) || event.formats.length === 0 || !event.formats.every(isSceneFormat)) {
             return refuse(`formats must be a non-empty list drawn from: ${sceneFormats.join(', ')}`)

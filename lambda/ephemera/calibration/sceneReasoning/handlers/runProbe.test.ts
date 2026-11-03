@@ -1,5 +1,5 @@
 import { buildSceneFixture, sceneFixture } from '../../../dataSource/positions/ludicCache/sceneFixtures'
-import { sceneFormats } from '../../../dataSource/actions/sceneProse'
+import { defaultSceneFormats } from '../../../dataSource/actions/sceneProse'
 import type { ProbeInvoke } from '../runSceneReasoningProbe'
 import { handleSceneReasoningProbe } from './runProbe'
 
@@ -9,16 +9,16 @@ const body = (response: { body: string }) => JSON.parse(response.body)
 describe('handleSceneReasoningProbe', () => {
     const tavernQuestions = sceneFixture('tavern').questions.length
 
-    it('runs each question once in every format on NovaMicro by default', async () => {
+    it('runs each question once in each default format on NovaMicro', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
             { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }] },
             { invoke },
         )
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(sceneFormats.length * 2)
+        expect(invoke).toHaveBeenCalledTimes(defaultSceneFormats.length * 2)
         expect(invoke.mock.calls[0][0].modelId).toBe('us.amazon.nova-micro-v1:0')
-        expect(body(response).results).toHaveLength(sceneFormats.length * 2)
+        expect(body(response).results).toHaveLength(defaultSceneFormats.length * 2)
     })
 
     it('runs only the formats named, each with its own render', async () => {
@@ -31,6 +31,17 @@ describe('handleSceneReasoningProbe', () => {
         expect(rest).toEqual([])
         expect(result.format).toBe('fans')
         expect(result.scene).toContain('Directly in [box1]:')
+    })
+
+    it('runs the SP-10 formats when they are named, and leaves them out of the default', async () => {
+        const invoke = okInvoke()
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'teaTable' }, formats: ['registers', 'affordance', 'examples'], questions: [{ type: 'held' }] },
+            { invoke },
+        )
+        expect(body(response).results.map(({ format }: { format: string }) => format)).toEqual(['registers', 'affordance', 'examples'])
+        expect(body(response).results[1].scene).toContain('Rules that apply here:')
+        expect(defaultSceneFormats).not.toContain('registers')
     })
 
     it('runs on the model named at run time', async () => {
@@ -87,7 +98,7 @@ describe('handleSceneReasoningProbe', () => {
             { invoke },
         )
         expect(response.statusCode).toBe(400)
-        expect(body(response).error).toContain(`${sceneFormats.length * 14} calls`)
+        expect(body(response).error).toContain(`${defaultSceneFormats.length * 14} calls`)
         expect(invoke).not.toHaveBeenCalled()
     })
 
