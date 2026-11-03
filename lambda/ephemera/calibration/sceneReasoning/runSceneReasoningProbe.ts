@@ -8,10 +8,10 @@ import { expectedAnswer, type SceneQuestion } from '../../dataSource/positions/l
 import { renderScene, type SceneFormat } from '../../dataSource/actions/sceneProse'
 import { invokeBedrockConverseText, type InvokeBedrockConverseTextResult } from '../../llm/invokeBedrockConverseText'
 import { novaModelToBedrockModelId, type NovaModel } from '../../llm/novaModel'
-import { probePrompt, questionText } from './sceneReasoningPrompt'
+import { defaultAnswerFormat, probePrompt, questionText, type AnswerFormat } from './sceneReasoningPrompt'
 import { expectedTokens, scoreReply } from './sceneReasoningScore'
 
-/** A hard limit on formats x questions x repeats per invoke, refused before any call when exceeded. */
+/** A hard limit on formats x answer formats x questions x repeats per invoke, refused before any call when exceeded. */
 export const PROBE_CALL_CAP = 12
 /** Not repeatable: at 0.1 Nova Micro's repeats of one open question split yes and no (2026-11-03). */
 export const PROBE_TEMPERATURE = 0.1
@@ -25,6 +25,8 @@ export type ProbeInvoke = (params: Parameters<typeof invokeBedrockConverseText>[
 
 export type ProbeCallResult = {
     format: SceneFormat
+    /** Only an `open` question's instruction varies by it. */
+    answerFormat: AnswerFormat
     question: SceneQuestion
     questionText: string
     repeat: number
@@ -38,9 +40,10 @@ export type ProbeCallResult = {
     error?: string
 }
 
-export const runSceneReasoningProbe = async ({ scene, formats, questions, repeats, model, expectAnswers, invoke = invokeBedrockConverseText }: {
+export const runSceneReasoningProbe = async ({ scene, formats, answerFormats = [defaultAnswerFormat], questions, repeats, model, expectAnswers, invoke = invokeBedrockConverseText }: {
     scene: SceneModel
     formats: readonly SceneFormat[]
+    answerFormats?: readonly AnswerFormat[]
     questions: readonly SceneQuestion[]
     repeats: number
     model: NovaModel
@@ -48,14 +51,14 @@ export const runSceneReasoningProbe = async ({ scene, formats, questions, repeat
     invoke?: ProbeInvoke
 }): Promise<ProbeCallResult[]> => {
     const rendered = Object.fromEntries(formats.map((format) => [format, renderScene(scene, format)])) as Record<SceneFormat, string>
-    const calls = formats.flatMap((format) => questions.flatMap((question) => (
-        Array.from({ length: repeats }, (_, repeat) => ({ format, question, repeat: repeat + 1 }))
-    )))
-    return Promise.all(calls.map(async ({ format, question, repeat }): Promise<ProbeCallResult> => {
-        const base = { format, question, questionText: questionText(question), repeat, scene: rendered[format] }
+    const calls = formats.flatMap((format) => answerFormats.flatMap((answerFormat) => questions.flatMap((question) => (
+        Array.from({ length: repeats }, (_, repeat) => ({ format, answerFormat, question, repeat: repeat + 1 }))
+    ))))
+    return Promise.all(calls.map(async ({ format, answerFormat, question, repeat }): Promise<ProbeCallResult> => {
+        const base = { format, answerFormat, question, questionText: questionText(question), repeat, scene: rendered[format] }
         const result = await invoke({
             modelId: novaModelToBedrockModelId(model),
-            messages: [{ role: 'user', content: [{ text: probePrompt(rendered[format], question) }] }],
+            messages: [{ role: 'user', content: [{ text: probePrompt(rendered[format], question, answerFormat) }] }],
             maxTokens: question.type === 'open' ? PROBE_OPEN_MAX_TOKENS : PROBE_MAX_TOKENS,
             temperature: PROBE_TEMPERATURE,
             timeoutMs: PROBE_TIMEOUT_MS,

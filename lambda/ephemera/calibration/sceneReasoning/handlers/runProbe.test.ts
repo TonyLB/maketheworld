@@ -44,6 +44,50 @@ describe('handleSceneReasoningProbe', () => {
         expect(defaultSceneFormats).not.toContain('registers')
     })
 
+    it('returns only what grading needs when brief', async () => {
+        const invoke = okInvoke()
+        const questions = [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }]
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'], questions, repeats: 1, brief: true },
+            { invoke },
+        )
+        const { questions: wordings, results } = body(response)
+        expect(wordings).toHaveLength(2)
+        expect(results.map((result: { question: number }) => result.question)).toEqual([0, 1])
+        for (const result of results) {
+            expect(result).not.toHaveProperty('scene')
+            expect(result).not.toHaveProperty('questionText')
+            expect(result.answer).toBeDefined()
+        }
+        const refused = await handleSceneReasoningProbe({ type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, brief: 'yes' }, { invoke })
+        expect(refused.statusCode).toBe(400)
+    })
+
+    it('varies an open question\'s answer instruction by answer format, and refuses an unknown one', async () => {
+        const invoke = okInvoke()
+        const open = { type: 'open', asked: 'Can [cup1] be moved?' }
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'], questions: [open], answerFormats: ['plain', 'candidates'], brief: true },
+            { invoke },
+        )
+        expect(body(response).results.map(({ answerFormat }: { answerFormat: string }) => answerFormat)).toEqual(['plain', 'candidates'])
+        const prompts = invoke.mock.calls.map(([call]) => (call as unknown as { messages: { content: { text: string }[] }[] }).messages[0].content[0].text)
+        expect(prompts[0]).not.toContain('"No candidate"')
+        expect(prompts[0]).not.toContain('"Constraints"')
+        expect(prompts[1]).toContain('"No candidate"')
+        const refused = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [open], answerFormats: ['tree'] },
+            { invoke },
+        )
+        expect(refused.statusCode).toBe(400)
+        const overCap = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D', 'fans'], questions: [open], answerFormats: ['plain', 'candidates', 'headings'], repeats: 3 },
+            { invoke },
+        )
+        expect(overCap.statusCode).toBe(400)
+        expect(body(overCap).error).toContain('18 calls')
+    })
+
     it('runs on the model named at run time', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
