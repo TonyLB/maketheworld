@@ -67,3 +67,10 @@ export type SpanQualifier = {
 export type ParseToken = ObjectSpanToken | TextToken
 
 export type ParseSkeleton = ParseToken[]
+
+/** The command as the player typed it, with each object span replaced by its name here; a span with no name keeps its text. */
+export const skeletonWithSpanNames = (skeleton: ParseSkeleton, names: Readonly<Record<string, string>>): string => skeleton
+    .map((token) => (token.type === 'objectSpan' ? names[token.stableRefKey] ?? token.span : token.text))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim()

@@ -8,8 +8,9 @@ import { expectedAnswer, type SceneQuestion } from '../../dataSource/positions/l
 import { renderScene, type SceneFormat } from '../../dataSource/actions/sceneProse'
 import { invokeBedrockConverseText, type InvokeBedrockConverseTextResult } from '../../llm/invokeBedrockConverseText'
 import { novaModelToBedrockModelId, type NovaModel } from '../../llm/novaModel'
-import { defaultAnswerFormat, probePrompt, questionText, type AnswerFormat } from './sceneReasoningPrompt'
-import { expectedTokens, scoreReply } from './sceneReasoningScore'
+import { defaultAnswerFormat, type AnswerFormat } from '../../dataSource/actions/sceneProse/frame'
+import { probePrompt, questionText } from './sceneReasoningPrompt'
+import { expectedTokens, scoreReply, scoreTriage } from './sceneReasoningScore'
 
 /** A hard limit on formats x answer formats x questions x repeats per invoke, refused before any call when exceeded. */
 export const PROBE_CALL_CAP = 12
@@ -67,7 +68,7 @@ export const runSceneReasoningProbe = async ({ scene, formats, answerFormats = [
             return { ...base, error: result.errorMessage }
         }
         const expected = expectAnswers ? expectedAnswer(scene, question) : undefined
-        const matches = expected === undefined ? undefined : scoreReply(expectedTokens(expected), result.body)
+        const matches = question.type === 'open' ? scoreTriage(question.triage, result.body) : expected === undefined ? undefined : scoreReply(expectedTokens(expected), result.body)
         return {
             ...base,
             answer: result.body,

@@ -32,7 +32,7 @@ import type { ConsultAlternative, ObjectSpanCandidate, SpanCandidatePool } from 
 import { edgeRelationErrorMessages, objectManipulationErrorMessages, qualifierErrorMessages } from './resolveObjectSpan'
 import type { DryRunOutcome } from './validatePlanDryRun'
 import { resumeErrorMessages } from './resumeAnswers'
-import type { ParseSkeleton } from './parse/parseToken'
+import { skeletonWithSpanNames, type ParseSkeleton } from './parse/parseToken'
 
 /**
  * The shared producer for Plan's attempts (ISS8203 slices 2-4): relational, transfer (take, drop
@@ -228,12 +228,7 @@ export const disambiguationLabels = (
         return options.map(({ names }) => names[key] ?? key)
     }
     // The whole command, from the fill the option reads: options from different fills name different spans.
-    return options.map(({ names, skeleton }) => skeleton
-        .map((token) => (token.type === 'objectSpan' ? names[token.stableRefKey] ?? token.span : token.text))
-        .join(' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-    )
+    return options.map(({ names, skeleton }) => skeletonWithSpanNames(skeleton, names))
 }
 
 /** A referent's name for prose: the grounded short name, else the span text. */

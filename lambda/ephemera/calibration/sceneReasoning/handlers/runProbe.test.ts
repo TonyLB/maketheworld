@@ -135,6 +135,23 @@ describe('handleSceneReasoningProbe', () => {
         expect(result).not.toHaveProperty('matches')
     })
 
+    it('scores a triage question by its expected label, one call per answer format', async () => {
+        const invoke = jest.fn(async (params: Parameters<ProbeInvoke>[0]) => ({
+            success: true as const,
+            body: JSON.stringify(params.messages).includes('Give one sentence of reason') ? 'Nothing blocks it.\nsimple' : 'complex',
+        }))
+        const question = { type: 'open', asked: 'I said: "pick up the cup". Could I?', triage: 'simple' }
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'teaTable' }, questions: [question], answerFormats: ['triageLabel', 'triageReason'], brief: true },
+            { invoke },
+        )
+        expect(response.statusCode).toBe(200)
+        expect(invoke).toHaveBeenCalledTimes(2)
+        expect(JSON.stringify(invoke.mock.calls[0][0].messages)).toContain('Answer with only that one word.')
+        const byFormat = Object.fromEntries(body(response).results.map((result: { answerFormat: string; matches: boolean }) => [result.answerFormat, result.matches]))
+        expect(byFormat).toEqual({ triageLabel: false, triageReason: true })
+    })
+
     it('refuses over the cap before any call', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
@@ -156,6 +173,7 @@ describe('handleSceneReasoningProbe', () => {
         ['malformed question', { scene: { fixture: 'tavern' }, questions: [{ type: 'placedOn' }] }],
         ['open question without asked', { scene: { fixture: 'tavern' }, questions: [{ type: 'open' }] }],
         ['non-string rubric', { scene: { fixture: 'tavern' }, questions: [{ type: 'open', asked: 'Why?', rubric: 3 }] }],
+        ['bad triage label', { scene: { fixture: 'tavern' }, questions: [{ type: 'open', asked: 'Why?', triage: 'hard' }] }],
         ['bad characterId', { scene: { characterId: 'nope' }, questions: [{ type: 'held' }] }],
         ['characterId without questions', { scene: { characterId: 'CHARACTER#X' } }],
     ])('refuses %s before any call', async (_name, event) => {
