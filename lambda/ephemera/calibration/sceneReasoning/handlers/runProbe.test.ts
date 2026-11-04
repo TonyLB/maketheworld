@@ -1,5 +1,5 @@
 import { buildSceneFixture, sceneFixture } from '../../../dataSource/positions/ludicCache/sceneFixtures'
-import { sceneFormats } from '../../../dataSource/actions/sceneProse'
+import { defaultSceneFormats } from '../../../dataSource/actions/sceneProse'
 import type { ProbeInvoke } from '../runSceneReasoningProbe'
 import { handleSceneReasoningProbe } from './runProbe'
 
@@ -9,28 +9,83 @@ const body = (response: { body: string }) => JSON.parse(response.body)
 describe('handleSceneReasoningProbe', () => {
     const tavernQuestions = sceneFixture('tavern').questions.length
 
-    it('runs each question once in every format on NovaMicro by default', async () => {
+    it('runs each question once in each default format on NovaMicro', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
             { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }] },
             { invoke },
         )
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(sceneFormats.length * 2)
+        expect(invoke).toHaveBeenCalledTimes(defaultSceneFormats.length * 2)
         expect(invoke.mock.calls[0][0].modelId).toBe('us.amazon.nova-micro-v1:0')
-        expect(body(response).results).toHaveLength(sceneFormats.length * 2)
+        expect(body(response).results).toHaveLength(defaultSceneFormats.length * 2)
     })
 
     it('runs only the formats named, each with its own render', async () => {
         const invoke = okInvoke()
         const response = await handleSceneReasoningProbe(
-            { type: 'SceneReasoningProbe', scene: { fixture: 'deepChain' }, formats: ['fans'], questions: [{ type: 'held' }] },
+            { type: 'SceneReasoningProbe', scene: { fixture: 'deepChain' }, formats: ['registers'], questions: [{ type: 'held' }] },
             { invoke },
         )
         const [result, ...rest] = body(response).results
         expect(rest).toEqual([])
-        expect(result.format).toBe('fans')
-        expect(result.scene).toContain('Directly in [box1]:')
+        expect(result.format).toBe('registers')
+        expect(result.scene).toContain('The place:')
+    })
+
+    it('runs the SP-10 formats when they are named, and leaves them out of the default', async () => {
+        const invoke = okInvoke()
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'teaTable' }, formats: ['registers', 'affordance', 'examples'], questions: [{ type: 'held' }] },
+            { invoke },
+        )
+        expect(body(response).results.map(({ format }: { format: string }) => format)).toEqual(['registers', 'affordance', 'examples'])
+        expect(body(response).results[1].scene).toContain('Rules that apply here:')
+        expect(defaultSceneFormats).not.toContain('registers')
+    })
+
+    it('returns only what grading needs when brief', async () => {
+        const invoke = okInvoke()
+        const questions = [{ type: 'held' }, { type: 'placedOn', subject: 'cup1' }]
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'], questions, repeats: 1, brief: true },
+            { invoke },
+        )
+        const { questions: wordings, results } = body(response)
+        expect(wordings).toHaveLength(2)
+        expect(results.map((result: { question: number }) => result.question)).toEqual([0, 1])
+        for (const result of results) {
+            expect(result).not.toHaveProperty('scene')
+            expect(result).not.toHaveProperty('questionText')
+            expect(result.answer).toBeDefined()
+        }
+        const refused = await handleSceneReasoningProbe({ type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, brief: 'yes' }, { invoke })
+        expect(refused.statusCode).toBe(400)
+    })
+
+    it('varies an open question\'s answer instruction by answer format, and refuses an unknown one', async () => {
+        const invoke = okInvoke()
+        const open = { type: 'open', asked: 'Can [cup1] be moved?' }
+        const response = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D'], questions: [open], answerFormats: ['abstain', 'twoRegisters'], brief: true },
+            { invoke },
+        )
+        expect(body(response).results.map(({ answerFormat }: { answerFormat: string }) => answerFormat)).toEqual(['abstain', 'twoRegisters'])
+        const prompts = invoke.mock.calls.map(([call]) => (call as unknown as { messages: { content: { text: string }[] }[] }).messages[0].content[0].text)
+        expect(prompts[0]).toContain('as short steps')
+        expect(prompts[1]).toContain('What happens:')
+        expect(prompts[0]).not.toContain('What happens:')
+        const refused = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, questions: [open], answerFormats: ['tree'] },
+            { invoke },
+        )
+        expect(refused.statusCode).toBe(400)
+        const overCap = await handleSceneReasoningProbe(
+            { type: 'SceneReasoningProbe', scene: { fixture: 'tavern' }, formats: ['D', 'registers'], questions: [open], answerFormats: ['abstain', 'twoRegisters'], repeats: 4 },
+            { invoke },
+        )
+        expect(overCap.statusCode).toBe(400)
+        expect(body(overCap).error).toContain('16 calls')
     })
 
     it('runs on the model named at run time', async () => {
@@ -73,7 +128,7 @@ describe('handleSceneReasoningProbe', () => {
         )
         expect(response.statusCode).toBe(200)
         expect(invoke.mock.calls[0][0].maxTokens).toBe(1024)
-        expect(JSON.stringify(invoke.mock.calls[0][0].messages)).toContain('list the changes it would cause')
+        expect(JSON.stringify(invoke.mock.calls[0][0].messages)).toContain('What happens: say in plain words')
         const [result] = body(response).results
         expect(result).toMatchObject({ question, questionText: 'Can you pour tea into [saucer1]?', answer: 'Yes: pour [tea1] from [cup1].' })
         expect(result).not.toHaveProperty('expected')
@@ -87,7 +142,7 @@ describe('handleSceneReasoningProbe', () => {
             { invoke },
         )
         expect(response.statusCode).toBe(400)
-        expect(body(response).error).toContain(`${sceneFormats.length * 14} calls`)
+        expect(body(response).error).toContain(`${defaultSceneFormats.length * 14} calls`)
         expect(invoke).not.toHaveBeenCalled()
     })
 

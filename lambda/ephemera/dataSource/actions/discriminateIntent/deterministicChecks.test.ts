@@ -105,7 +105,7 @@ describe('deterministicIntentChecks', () => {
 
     it('returns SceneTest for /test scene, with a format when one is named, and a Parse error for another tail', () => {
         expect(deterministicIntentChecks({ command: ' /test scene ' })).toEqual({ type: 'SceneTest', confidence: 1 })
-        expect(deterministicIntentChecks({ command: '/test scene fans' })).toEqual({ type: 'SceneTest', confidence: 1, format: 'fans' })
+        expect(deterministicIntentChecks({ command: '/test scene registers' })).toEqual({ type: 'SceneTest', confidence: 1, format: 'registers' })
         expect(deterministicIntentChecks({ command: '/test scene tavern' })).toEqual({
             type: 'Error',
             errorMessage: expect.stringContaining('unrecognized format'),

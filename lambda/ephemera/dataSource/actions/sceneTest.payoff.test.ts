@@ -5,7 +5,7 @@ import { getRoomExitTargetsForCharacter } from './roomExitTargetsForCharacter'
 import { getActorCache } from './actorObjectCatalog'
 import { collectCoyoteOccupiedStableKeys } from './stableKey/collectCoyoteOccupiedStableKeys'
 import { buildSceneFixture, sceneFixture } from '../positions/ludicCache/sceneFixtures'
-import { sceneFanGoldens, sceneGoldens } from './sceneProse/sceneGoldens'
+import { sceneGoldens, sceneRegistersGoldens } from './sceneProse/sceneGoldens'
 
 /**
  * The `/test scene` payoff: the command through the real parse and response, from a real fold of the `tavern` scene fixture
@@ -72,11 +72,11 @@ describe('scene test payoff: /test scene publishes the actor\'s scene', () => {
     })
 
     it('renders in the format named in the tail', async () => {
-        await receive('/test scene fans')
+        await receive('/test scene registers')
 
         const [text, ...rest] = oocText()
         expect(rest).toEqual([])
-        expect(text).toContain(sceneFanGoldens.tavern.replace(/\nExits: .*$/, ''))
+        expect(text).toContain(sceneRegistersGoldens.tavern.replace(/\nExits: .*\n/, '\n'))
     })
 
     it('refuses an unknown format as a command error, with no scene', async () => {

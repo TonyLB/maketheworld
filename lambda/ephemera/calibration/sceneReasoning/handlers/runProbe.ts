@@ -2,18 +2,23 @@ import { calibrationJsonResponse } from '../../calibrationResponse'
 import { isEphemeraCharacterId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { buildSceneFixture, sceneFixture, sceneFixtureNames, type SceneQuestion } from '../../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../../dataSource/positions/ludicCache/sceneModel'
-import { isSceneFormat, sceneFormats, type SceneFormat } from '../../../dataSource/actions/sceneProse'
+import { defaultSceneFormats, isSceneFormat, sceneFormats, type SceneFormat } from '../../../dataSource/actions/sceneProse'
 import { getActorCache } from '../../../dataSource/actions/actorObjectCatalog'
+import { answerFormats, defaultAnswerFormat, isAnswerFormat, questionText, type AnswerFormat } from '../sceneReasoningPrompt'
 import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
-import { PROBE_CALL_CAP, runSceneReasoningProbe, type ProbeInvoke } from '../runSceneReasoningProbe'
+import { PROBE_CALL_CAP, runSceneReasoningProbe, type ProbeCallResult, type ProbeInvoke } from '../runSceneReasoningProbe'
 
 export type SceneReasoningProbeEvent = {
     type: 'SceneReasoningProbe'
     scene?: { fixture?: unknown; characterId?: unknown }
     formats?: unknown
+    /** How `open` questions are asked to answer (`abstain`, `twoRegisters`); default `abstain`. */
+    answerFormats?: unknown
     questions?: unknown
     repeats?: unknown
     model?: unknown
+    /** Return only what is needed to grade: each question's wording once, and per call its format, question index, answer and token counts. */
+    brief?: unknown
 }
 
 export type SceneReasoningProbeDeps = {
@@ -58,7 +63,7 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
         return refuse('scene must be exactly one of { "fixture": name } or { "characterId": "CHARACTER#..." }')
     }
 
-    let formats: SceneFormat[] = [...sceneFormats]
+    let formats: SceneFormat[] = [...defaultSceneFormats]
     if (event.formats !== undefined) {
         if (!Array.isArray(event.formats) || event.formats.length === 0 || !event.formats.every(isSceneFormat)) {
             return refuse(`formats must be a non-empty list drawn from: ${sceneFormats.join(', ')}`)
@@ -66,9 +71,21 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
         formats = [...new Set<SceneFormat>(event.formats)]
     }
 
+    let answerFormatList: AnswerFormat[] = [defaultAnswerFormat]
+    if (event.answerFormats !== undefined) {
+        if (!Array.isArray(event.answerFormats) || event.answerFormats.length === 0 || !event.answerFormats.every(isAnswerFormat)) {
+            return refuse(`answerFormats must be a non-empty list drawn from: ${answerFormats.join(', ')}`)
+        }
+        answerFormatList = [...new Set<AnswerFormat>(event.answerFormats)]
+    }
+
     const repeats = event.repeats === undefined ? 1 : event.repeats
     if (typeof repeats !== 'number' || !Number.isInteger(repeats) || repeats < 1) {
         return refuse('repeats must be an integer of at least 1')
+    }
+
+    if (event.brief !== undefined && typeof event.brief !== 'boolean') {
+        return refuse('brief must be true or false')
     }
 
     const model: NovaModel = event.model === undefined ? 'NovaMicro' : event.model as NovaModel
@@ -92,8 +109,8 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
         }
         const fixture = sceneFixture(fixtureName)
         questions = customQuestions ?? fixture.questions
-        if (formats.length * questions.length * repeats > PROBE_CALL_CAP) {
-            return refuse(callCapMessage(formats.length, questions.length, repeats))
+        if (formats.length * answerFormatList.length * questions.length * repeats > PROBE_CALL_CAP) {
+            return refuse(callCapMessage(formats.length, answerFormatList.length, questions.length, repeats))
         }
         scene = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
     } else {
@@ -104,8 +121,8 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
             return refuse('a characterId scene has no question set of its own; give questions')
         }
         questions = customQuestions
-        if (formats.length * questions.length * repeats > PROBE_CALL_CAP) {
-            return refuse(callCapMessage(formats.length, questions.length, repeats))
+        if (formats.length * answerFormatList.length * questions.length * repeats > PROBE_CALL_CAP) {
+            return refuse(callCapMessage(formats.length, answerFormatList.length, questions.length, repeats))
         }
         const cache = await (deps.getActorCache ?? getActorCache)(characterId)
         if (cache === undefined) {
@@ -118,15 +135,34 @@ export async function handleSceneReasoningProbe(event: SceneReasoningProbeEvent,
     const results = await runSceneReasoningProbe({
         scene,
         formats,
+        answerFormats: answerFormatList,
         questions,
         repeats,
         model,
         expectAnswers: fixtureName !== undefined,
         invoke: deps.invoke,
     })
-    return calibrationJsonResponse(200, { model, calls: results.length, results })
+    return calibrationJsonResponse(200, event.brief === true
+        ? { model, calls: results.length, questions: questions.map(questionText), results: results.map((result) => briefResult(questions, result)) }
+        : { model, calls: results.length, results })
 }
 
-const callCapMessage = (formats: number, questions: number, repeats: number): string => (
-    `${formats} formats x ${questions} questions x ${repeats} repeats = ${formats * questions * repeats} calls, over the cap of ${PROBE_CALL_CAP}; trim formats, questions or repeats`
+/** A result without the scene, question and rubric it would repeat on every call (`SceneReasoningFixtures` shows the scene). */
+const briefResult = (questions: readonly SceneQuestion[], { format, answerFormat, question, repeat, answer, expected, matches, usage, error }: ProbeCallResult) => {
+    const { inputTokens, outputTokens } = (usage ?? {}) as { inputTokens?: number; outputTokens?: number }
+    return {
+        format,
+        answerFormat,
+        question: questions.indexOf(question),
+        repeat,
+        ...(answer !== undefined ? { answer } : {}),
+        ...(expected !== undefined ? { expected } : {}),
+        ...(matches !== undefined ? { matches } : {}),
+        ...(inputTokens !== undefined ? { tokens: `${inputTokens} in, ${outputTokens} out` } : {}),
+        ...(error !== undefined ? { error } : {}),
+    }
+}
+
+const callCapMessage = (formats: number, answerFormats: number, questions: number, repeats: number): string => (
+    `${formats} formats x ${answerFormats} answer formats x ${questions} questions x ${repeats} repeats = ${formats * answerFormats * questions * repeats} calls, over the cap of ${PROBE_CALL_CAP}; trim formats, answer formats, questions or repeats`
 )

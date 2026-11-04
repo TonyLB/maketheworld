@@ -1,5 +1,5 @@
 /**
- * Format D (chosen in Slice 3 by SP-7, reopened 2026-11-03 against `fans`): an indented tree whose lines each name their
+ * Format D (chosen in Slice 3 by SP-7, provisional; SP-10): an indented tree whose lines each name their
  * parent by handle, with the kind in words ("on [table1]"), so the structure does not depend on counting indentation.
  * Flat D (a probe candidate, 2026-11-03) is the same lines with no indentation, to test whether the indent's YAML-like
  * register costs the reader anything.
@@ -36,10 +36,10 @@ const renderEntries = (scene: SceneModel, entries: readonly SceneEntry[], parent
     ])
 )
 
-const renderD = (scene: SceneModel, step: string): string => {
+/** D's lines after the heading and before the exits: the room's contents, the Concepts and what is held. */
+export const sceneListLines = (scene: SceneModel, step: string): string[] => {
     const room = roomRef(scene)
-    const lines = [
-        heading(scene),
+    return [
         ...(scene.contents.length === 0
             ? [`Contents of ${room}: nothing.`]
             : [`Contents of ${room}:`, ...renderEntries(scene, scene.contents, { kind: 'room' }, 0, step)]),
@@ -47,11 +47,14 @@ const renderD = (scene: SceneModel, step: string): string => {
         ...(scene.held.length === 0
             ? ['You are holding: nothing.']
             : ['You are holding:', ...renderEntries(scene, scene.held, { kind: 'held' }, 0, step)]),
-        ...(exitsLine(scene) !== undefined ? [exitsLine(scene) as string] : []),
     ]
-    return lines.join('\n')
 }
+
+const renderD = (scene: SceneModel, step: string): string => [
+    heading(scene),
+    ...sceneListLines(scene, step),
+    ...(exitsLine(scene) !== undefined ? [exitsLine(scene) as string] : []),
+].join('\n')
 
 export const renderSceneD = (scene: SceneModel): string => renderD(scene, '  ')
 
-export const renderSceneFlatD = (scene: SceneModel): string => renderD(scene, '')
