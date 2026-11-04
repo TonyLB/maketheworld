@@ -60,3 +60,31 @@ Other readings: "In hand" instead of `held` appears in D, `registers` and `affor
 ## Renders under `twoRegisters`, per cell (2026-11-03)
 
 Nova Micro, `teaTable`, `twoRegisters`, 2 runs per render; `registers` baseline from the preceding batches. **Pour** (rubric: pick up the cup, pour the tea; edits `(move [tea1] to On floor)` and `(move [cup1] to held)`): D 2/2 notated, about 142 output tokens; `flatD` facts right 2/2 but edits in prose, about 87; `fans` facts right 2/2 (one run put the cup back, one 331 tokens of bulleted narration); `affordance` 0/2 (r1 "No candidate", claiming moving the saucer would also move the cup, tea and glued teapot; r2 echoed the glue, edits in prose); `examples` 2/2 notated, 115 to 169 tokens. **Pick-up** (tea comes, saucer stays; one move, the cup to `held`), saucer wrongly carried up: D 1/2 (plus `(move [saucer1] to On [cup1])`), `flatD` 2/2, `fans` 1/2, `affordance` 2/2 (and `In hand` in both), `examples` 0/2 (tea stayed behind once, a no-op tea move once), `registers` baseline 1/3. Retired on this evidence: `flatD`, `fans`.
+
+## Hypothesis: D is mature, `registers` is a first draft (2026-11-03)
+
+Raised by the user after the `twoRegisters` render comparison. D has been through many rounds (SP-3 phrases, the SP-7 batches, the reparenting and direction fixes); `registers` was built once and pinned in goldens with no wording passes. They matched on the pour (2 of 2 each) and were within noise on the pick-up. `examples` exists only on the `registers` base. Caveats: "near the end of the line" for D is inferred from effort, not measured; `registers`' headroom is a prior (its one tuning, `affordance`, went badly); the remaining misses appeared in D, `registers` and `flatD` alike, so they may belong to the answer format and `MOVING`; the reading questions, where the structures should differ most, are not yet rerun. Treated as a hypothesis to check against each new batch, not a verdict.
+
+Reading-question retest (2026-11-03, Nova Micro, `abstain`, 4 repeats per cell): `sideboard` "what is [tea1] in or on?" (`[cup1]`) and `teaTable` "what is directly on [table1]?" (`[saucer1], [teapot1]`) were 4/4 in D, `registers` and `examples`, with identical answers each call. Input tokens: D 1016 and 884, `registers` 1203 and 1003, `examples` 1357 and 1161. The reading questions do not separate the renders, and the tea-placement misread that reopened SP-10 did not recur under the current frame (two questions, one model, so a ceiling more than a proof). The hypothesis stays open; the renders can only be told apart on the open questions. Four repeats at temperature 0.1 repeated the same answer, so one or two repeats suffice for reading questions.
+
+## Two-pass check, per cell (2026-11-03)
+
+Nova Micro, `teaTable`, `registers` against `affordance` under `twoRegisters`, 3 repeats per cell; grades are the assistant's. The foreground was as first built (no change since the commit that added it, before the `MOVING` rewrite and `twoRegisters`).
+
+| Question | `registers` | `affordance` |
+| --- | --- | --- |
+| Move [teapot1] to the floor | 2 of 3 say free it first, 1 false "No candidate"; no run mentions the tea going with it | the same 2 of 3 and 1 false "No candidate"; one invented `(unglue …)` edit |
+| Pick up [cup1] | saucer carried up 2 of 3 (1 correct, with the tea as a prose edit) | saucer carried up 3 of 3 (one `In hand`); reasons "moving [cup1] also moves [saucer1]" |
+| Pour tea into [saucer1] | 0 of 3 (two say it cannot be done, one pours the teapot's tea) | 1 of 3 right (uses [tea1], tells the teas apart), 2 false "No candidate" |
+| Pick up [saucer1] | facts 3 of 3; carried things listed as edits 3 of 3 | facts 3 of 3; one run moves cup and tea to `held` |
+| Pour [tea1] onto the floor | about 2 of 3 acceptable (cup held, tea on the floor; one puts the cup "In Parlour") | 0 of 3: false "No candidate", with an invented "moving [saucer1] would also move [teapot1]" |
+| Directly on [table1] | 3 of 3 | 3 of 3, 7% more input |
+
+Readings: no boundary advantage for `affordance` as built; harm on the simple pour 3 of 3; the foreground line "Moving X also moves Y" has no direction and is read in reverse; "cannot be moved while glued" spreads to things it does not name. The carried-edit and `In hand` misses are common to both and belong to `MOVING`.
+
+## Redesigning the foreground for `twoRegisters` (2026-11-03)
+
+Opened by the user after the check above showed the foreground had not been adjusted. Starting positions, to be argued before any build:
+
+- **Drop everything about containment nesting.** What travels with a lifted thing is what `MOVING` and the two registers already teach (the world paragraph speaks of results; the records list one move per thing whose own place changed). The foreground's "also moves" lines duplicate that, in the wrong register and without direction.
+- **State the glue as a rule on fictional action, not an affordance.** Something like "[teapot1] cannot be moved relative to [table1] beyond what a glued relationship permits", worded so it constrains the fiction register (what could be done) and, through it, the graph (the invariant the edits must keep), and not as a graph-only restriction on repositioning.

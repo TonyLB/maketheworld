@@ -128,7 +128,7 @@ describe('handleSceneReasoningProbe', () => {
         )
         expect(response.statusCode).toBe(200)
         expect(invoke.mock.calls[0][0].maxTokens).toBe(1024)
-        expect(JSON.stringify(invoke.mock.calls[0][0].messages)).toContain('list the changes it would cause')
+        expect(JSON.stringify(invoke.mock.calls[0][0].messages)).toContain('What happens: say in plain words')
         const [result] = body(response).results
         expect(result).toMatchObject({ question, questionText: 'Can you pour tea into [saucer1]?', answer: 'Yes: pour [tea1] from [cup1].' })
         expect(result).not.toHaveProperty('expected')

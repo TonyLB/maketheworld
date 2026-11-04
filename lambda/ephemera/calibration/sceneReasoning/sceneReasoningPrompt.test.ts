@@ -31,8 +31,8 @@ describe('sceneReasoningPrompt', () => {
         expect(questionText({ type: 'held', asked: 'What do I hold?' })).toBe('What do I hold?')
     })
 
-    it('asks an open question for reasoning and changes, not a bare answer', () => {
-        const open = probePrompt('SCENE', { type: 'open', asked: 'Can [c1] be poured?' })
+    it('asks an open question for reasoning and changes, not a bare answer, under abstain', () => {
+        const open = probePrompt('SCENE', { type: 'open', asked: 'Can [c1] be poured?' }, 'abstain')
         expect(open).toContain('Question: Can [c1] be poured?\nFirst check that everything the request names is in the scene')
         expect(open).toContain('explain briefly, then list the changes it would cause')
         expect(open).toContain('Write any move in the (move X to On Y) or (move X to In Y) notation above')
@@ -54,13 +54,13 @@ describe('sceneReasoningPrompt', () => {
         })
     })
 
-    it('asks an open question in the answer format named, leaving reading questions alone', () => {
+    it('asks an open question in the answer format named, twoRegisters by default, leaving reading questions alone', () => {
         const open = { type: 'open', asked: 'Can [c1] be poured?' } as const
         const abstain = probePrompt('SCENE', open, 'abstain')
         expect(abstain).toContain('write "No candidate", say why in one sentence, and stop; do not assume it into existence')
         expect(abstain).toContain('If no way works, write "No candidate" and say what would have to change.')
-        expect(probePrompt('SCENE', open)).toBe(abstain)
-        expect(probePrompt('SCENE', open)).not.toBe(probePrompt('SCENE', open, 'twoRegisters'))
+        expect(probePrompt('SCENE', open)).toBe(probePrompt('SCENE', open, 'twoRegisters'))
+        expect(probePrompt('SCENE', open)).not.toBe(abstain)
         expect(probePrompt('SCENE', { type: 'held' }, 'abstain')).toBe(probePrompt('SCENE', { type: 'held' }))
     })
 
@@ -76,7 +76,7 @@ describe('sceneReasoningPrompt', () => {
         expect(two).toContain('If everything the request names is in the scene, answer in two parts')
         expect(two).not.toContain('First check that everything')
         expect(two).not.toContain('as short steps')
-        expect(probePrompt('SCENE', open)).not.toBe(two)
+        expect(probePrompt('SCENE', open, 'abstain')).not.toBe(two)
         expect(probePrompt('SCENE', { type: 'held' }, 'twoRegisters')).toBe(probePrompt('SCENE', { type: 'held' }))
     })
 

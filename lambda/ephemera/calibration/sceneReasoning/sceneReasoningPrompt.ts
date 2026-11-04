@@ -91,15 +91,15 @@ const TWO_REGISTERS_ANSWER_FORMAT = [
  */
 export type AnswerFormat = 'abstain' | 'twoRegisters'
 
-/** How an `open` question asks to be answered; `abstain` is the default. */
+/** How an `open` question asks to be answered; `twoRegisters` is the default. */
 export const answerFormats: readonly AnswerFormat[] = ['abstain', 'twoRegisters']
 
 /**
- * What an `open` question uses when the probe names none: `abstain` (user, 2026-11-03), the cheapest by output and the only
- * one of the four then tried to stop on a request for something not here without padding or over-blocking a feasible one.
- * `twoRegisters` stays selectable beside it until the pick-up is settled.
+ * What an `open` question uses when the probe names none: `twoRegisters` (user, 2026-11-03). It fixed the pour (the fiction
+ * judges feasibility, the edits record only what changed) where `abstain`, the earlier default and the cheapest by output,
+ * fixated on the glued teapot. `abstain` stays selectable as the comparison.
  */
-export const defaultAnswerFormat: AnswerFormat = 'abstain'
+export const defaultAnswerFormat: AnswerFormat = 'twoRegisters'
 
 export const isAnswerFormat = (value: unknown): value is AnswerFormat => answerFormats.includes(value as AnswerFormat)
 
