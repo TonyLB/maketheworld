@@ -18,10 +18,10 @@
  * (`sceneExamples.test.ts`), so an example never hands a question its answer.
  */
 import type { SceneEntry, SceneHandle, SceneModel } from '../../positions/ludicCache/sceneModel'
-import { sceneListLines } from './renderSceneTree'
+import { sceneListLines, type RelationStyle } from './renderSceneTree'
 import { bracket, exitsLine, heading, headText, hostingClause, lineNotes, relationPhrases, roomRef } from './sceneWording'
 
-export type RegistersOptions = { foreground: boolean; examples: boolean }
+export type RegistersOptions = { foreground: boolean; examples: boolean; relationStyle?: RelationStyle }
 
 type Parent = { kind: 'room' } | { kind: 'held' } | { kind: 'thing'; handle: SceneHandle }
 
@@ -32,7 +32,7 @@ const listWords = (words: readonly string[]): string => (
 /** Entries in walk order, each with all it holds under it, a join where it sits (the scene model's site for it). */
 const walk = (entries: readonly SceneEntry[]): SceneEntry[] => entries.flatMap((entry) => [entry, ...walk(entry.children)])
 
-const sceneEntries = (scene: SceneModel): SceneEntry[] => [...walk(scene.contents), ...walk(scene.held)]
+export const sceneEntries = (scene: SceneModel): SceneEntry[] => [...walk(scene.contents), ...walk(scene.held)]
 
 /** What travels with a thing is only clear when nothing in it is spread over several hosts or a join: its other bindings stay. */
 const travelsCleanly = (entry: SceneEntry): boolean => [entry, ...walk(entry.children)].every((member) => (
@@ -121,7 +121,7 @@ const placeLines = (scene: SceneModel): string[] => [
     ...(exitsLine(scene) !== undefined ? [exitsLine(scene) as string] : []),
 ]
 
-const recordLines = (scene: SceneModel): string[] => ['Records:', ...sceneListLines(scene, '  ')]
+const recordLines = (scene: SceneModel, style: RelationStyle): string[] => ['Records:', ...sceneListLines(scene, '  ', style)]
 
 // -- The foreground -----------------------------------------------------------------------------------------------------
 
@@ -181,10 +181,10 @@ const examplesLines = (scene: SceneModel): string[] => {
     return lines.length === 0 ? [] : ['Worked examples, about this scene:', ...lines]
 }
 
-export const renderSceneRegisters = (scene: SceneModel, { foreground, examples }: RegistersOptions): string => [
+export const renderSceneRegisters = (scene: SceneModel, { foreground, examples, relationStyle = 'clause' }: RegistersOptions): string => [
     heading(scene),
     ...(foreground ? foregroundLines(scene) : []),
     ...placeLines(scene),
-    ...recordLines(scene),
+    ...recordLines(scene, relationStyle),
     ...(examples ? examplesLines(scene) : []),
 ].join('\n')

@@ -7,7 +7,7 @@ describe('handleSceneReasoningFixtures', () => {
         const response = await handleSceneReasoningFixtures({ type: 'SceneReasoningFixtures' })
         expect(response.statusCode).toBe(200)
         const { formats, fixtures } = JSON.parse(response.body)
-        expect(formats).toEqual(['D', 'registers', 'affordance', 'examples'])
+        expect(formats).toEqual(['D', 'registers', 'affordance', 'examples', 'rulesD', 'rules', 'rulesAction'])
         expect(fixtures.map(({ name }: { name: string }) => name)).toEqual(sceneFixtureNames)
         for (const fixture of fixtures) {
             expect(fixture.renders).toMatchObject({

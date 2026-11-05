@@ -1,4 +1,4 @@
-import { expectedTokens, replyTokens, scoreReply } from './sceneReasoningScore'
+import { expectedTokens, replyTokens, scoreReply, scoreTriage } from './sceneReasoningScore'
 
 describe('sceneReasoningScore', () => {
     it('tokenises bracketed lists, bullets, trailing dots and none', () => {
@@ -30,5 +30,18 @@ describe('sceneReasoningScore', () => {
         expect(scoreReply(expectedTokens({ handles: [] }), 'none')).toBe(true)
         expect(scoreReply({ kind: 'count', count: 2 }, '2')).toBe(true)
         expect(scoreReply({ kind: 'count', count: 2 }, 'There are three')).toBe(false)
+    })
+
+    it('scores a triage reply by its last word if that is a label, else by its first word', () => {
+        expect(scoreTriage('simple', 'simple')).toBe(true)
+        expect(scoreTriage('impossible', 'A motorcycle does not fit in a shoebox.\n"Impossible."')).toBe(true)
+        expect(scoreTriage('complex', '[complex]\n')).toBe(true)
+        expect(scoreTriage('simple', 'complex')).toBe(false)
+        expect(scoreTriage('simple', 'It is simple to do.')).toBe(false)
+        expect(scoreTriage('impossible', 'Impossible: a table does not fit in a cup.')).toBe(true)
+        expect(scoreTriage('impossible', 'impossible\nA table does not fit in a cup.')).toBe(true)
+        expect(scoreTriage('impossible', 'The table is too big, preventing it from being moved. impossible\n')).toBe(true)
+        expect(scoreTriage('complex', 'Simple on its face, but the glue matters.\ncomplex')).toBe(true)
+        expect(scoreTriage(undefined, 'simple')).toBeUndefined()
     })
 })

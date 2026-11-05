@@ -3,6 +3,7 @@
 // the model's reply is split on commas and lines. An expectation that tokens cannot carry is unscored (`undefined`).
 //
 import type { SceneAnswer } from '../../dataSource/positions/ludicCache/sceneFixtures'
+import { isTriageLabel, type TriageLabel } from '../../dataSource/actions/sceneProse/frame'
 
 export type ExpectedTokens = { kind: 'set'; tokens: string[] } | { kind: 'count'; count: number }
 
@@ -45,4 +46,21 @@ export const scoreReply = (expected: ExpectedTokens | undefined, reply: string):
     const got = new Set(replyTokens(reply))
     const want = new Set(expected.tokens.map((token) => token.toLowerCase()))
     return got.size === want.size && [...want].every((token) => got.has(token))
+}
+
+const bareWord = (text: string): string => text.replace(/[\[\]"'*`]/g, '').replace(/[.!:,]+$/, '').trim().toLowerCase()
+
+/**
+ * A triage reply's match flag. The label is the last word of the reply if that is a label (a reason sentence came first, and the
+ * model may not give the label its own line), else the first word (a reason came after it, as `triageWhyImpossible` asks). A
+ * label mid-sentence is not a match.
+ * Absent expected label: unscored.
+ */
+export const scoreTriage = (expected: TriageLabel | undefined, reply: string): boolean | undefined => {
+    if (expected === undefined) {
+        return undefined
+    }
+    const words = reply.trim().split(/\s+/)
+    const last = bareWord(words[words.length - 1] ?? '')
+    return (isTriageLabel(last) ? last : bareWord(words[0] ?? '')) === expected
 }

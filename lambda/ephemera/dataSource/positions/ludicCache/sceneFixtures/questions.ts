@@ -9,6 +9,7 @@
  * An `open` question asks the reader to reason over the scene (can a thing be done, and what would change), so it has no
  * computed answer; its `rubric`, written before any batch, says what a good answer must notice, and the user grades by it.
  */
+import type { TriageLabel } from '../../../actions/sceneProse/frame'
 import type { SceneEntry, SceneHandle, SceneLocation, SceneModel, SceneRelationTarget } from '../sceneModel'
 
 type Asked = { asked?: string }
@@ -36,8 +37,8 @@ export type SceneQuestion = Asked & (
     | { type: 'associatedWith'; subject: SceneHandle }
     /** How many things have this name. */
     | { type: 'howMany'; name: string }
-    /** A question that reasons over the scene: no computed answer, graded by hand against its rubric. */
-    | { type: 'open'; asked: string; rubric?: string }
+    /** A question that reasons over the scene: no computed answer, graded by hand against its rubric. `triage` is the expected label when the question is asked under a triage answer format. */
+    | { type: 'open'; asked: string; rubric?: string; triage?: TriageLabel }
 )
 
 export type SceneAnswer =
