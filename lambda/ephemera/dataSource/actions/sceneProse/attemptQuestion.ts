@@ -27,7 +27,13 @@ export type AttemptQuestion =
     | { kind: 'question'; text: string }
     | { kind: 'unmapped'; referents: UnmappedReferent[] }
 
-export const attemptQuestion = (attempt: CommandAttempt, handles: SceneHandleTable, skeleton?: ParseSkeleton): AttemptQuestion => {
+/**
+ * `judge` words it as the judge prompt's `Request` (judgePrompt plan, v24): no closing `Could I?`, and "I want to" without a colon, so
+ * it reads as a sentence after `Request: `. The default is the planning frame's, unchanged.
+ */
+export type AttemptQuestionStyle = 'question' | 'judge'
+
+export const attemptQuestion = (attempt: CommandAttempt, handles: SceneHandleTable, skeleton?: ParseSkeleton, style: AttemptQuestionStyle = 'question'): AttemptQuestion => {
     const handleById = new Map(handles.map(({ id, handle }) => [id as string, handle]))
     const unmapped: UnmappedReferent[] = []
     const handleOfKey: Record<string, string> = {}
@@ -62,15 +68,15 @@ export const attemptQuestion = (attempt: CommandAttempt, handles: SceneHandleTab
         return { kind: 'unmapped', referents: unmapped }
     }
     if (skeleton === undefined) {
-        return { kind: 'question', text: [`I said: "${attempt.words}".`, 'To do that I would:', ...lines, 'Could I?'].join('\n') }
+        return { kind: 'question', text: [`I said: "${attempt.words}".`, 'To do that I would:', ...lines, ...(style === 'judge' ? [] : ['Could I?'])].join('\n') }
     }
     const facilitating = lines.slice(0, -1)
     return {
         kind: 'question',
         text: [
-            `I want to: ${skeletonWithSpanNames(skeleton, handleOfKey)}.`,
+            `I want to${style === 'judge' ? '' : ':'} ${skeletonWithSpanNames(skeleton, handleOfKey)}.`,
             ...(facilitating.length > 0 ? ['To do that I would first:', ...facilitating] : []),
-            'Could I?',
+            ...(style === 'judge' ? [] : ['Could I?']),
         ].join('\n'),
     }
 }

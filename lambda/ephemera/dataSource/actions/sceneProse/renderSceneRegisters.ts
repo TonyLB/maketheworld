@@ -114,7 +114,7 @@ const placeSentences = (scene: SceneModel, entries: readonly SceneEntry[], paren
     ]
 }
 
-const placeLines = (scene: SceneModel): string[] => [
+export const placeLines = (scene: SceneModel): string[] => [
     'The place:',
     ...(scene.contents.length === 0 ? [`In ${roomRef(scene)} there is nothing.`] : placeSentences(scene, scene.contents, { kind: 'room' })),
     ...(scene.held.length === 0 ? ['You are holding nothing.'] : placeSentences(scene, scene.held, { kind: 'held' })),

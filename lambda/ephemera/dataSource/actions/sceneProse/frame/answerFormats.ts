@@ -86,10 +86,10 @@ const TRIAGE_LEGACY_ANSWER_FORMAT = [TRIAGE_DEFINITIONS, TRIAGE_ANSWER_WHY_IMPOS
  * into the scene; `candidates` padded and over-blocked a feasible pour. Their findings stay in the scene-projection planning
  * file ("Frame and answer-format findings"); `abstain` is `plain` plus the stop rule `candidates` showed was useful.
  */
-export type AnswerFormat = 'abstain' | 'twoRegisters' | 'triageLabel' | 'triageReason' | 'triageWhyImpossible' | 'triageLegacy'
+export type AnswerFormat = 'abstain' | 'twoRegisters' | 'triageLabel' | 'triageReason' | 'triageWhyImpossible' | 'triageLegacy' | 'judge'
 
 /** How an `open` question asks to be answered; `twoRegisters` is the default. */
-export const answerFormats: readonly AnswerFormat[] = ['abstain', 'twoRegisters', 'triageLabel', 'triageReason', 'triageWhyImpossible', 'triageLegacy']
+export const answerFormats: readonly AnswerFormat[] = ['abstain', 'twoRegisters', 'triageLabel', 'triageReason', 'triageWhyImpossible', 'triageLegacy', 'judge']
 
 /**
  * What an `open` question uses when the probe names none: `twoRegisters` (user, 2026-11-03). It fixed the pour (the fiction
@@ -100,6 +100,7 @@ export const defaultAnswerFormat: AnswerFormat = 'twoRegisters'
 
 export const isAnswerFormat = (value: unknown): value is AnswerFormat => answerFormats.includes(value as AnswerFormat)
 
+/** `judge` has no answer text here: its instructions come first, in `frameJudge.ts`, and `probePrompt` composes the whole prompt differently. */
 export const OPEN_ANSWER_FORMATS: Record<AnswerFormat, string> = {
     abstain: ABSTAIN_ANSWER_FORMAT,
     twoRegisters: TWO_REGISTERS_ANSWER_FORMAT,
@@ -107,4 +108,5 @@ export const OPEN_ANSWER_FORMATS: Record<AnswerFormat, string> = {
     triageReason: TRIAGE_REASON_ANSWER_FORMAT,
     triageWhyImpossible: TRIAGE_WHY_IMPOSSIBLE_ANSWER_FORMAT,
     triageLegacy: TRIAGE_LEGACY_ANSWER_FORMAT,
+    judge: '',
 }

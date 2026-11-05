@@ -1,4 +1,4 @@
-import { expectedTokens, replyTokens, scoreReply, scoreTriage } from './sceneReasoningScore'
+import { expectedTokens, parseJudgeReply, replyTokens, scoreJudge, scoreReply, scoreTriage } from './sceneReasoningScore'
 
 describe('sceneReasoningScore', () => {
     it('tokenises bracketed lists, bullets, trailing dots and none', () => {
@@ -43,5 +43,29 @@ describe('sceneReasoningScore', () => {
         expect(scoreTriage('impossible', 'The table is too big, preventing it from being moved. impossible\n')).toBe(true)
         expect(scoreTriage('complex', 'Simple on its face, but the glue matters.\ncomplex')).toBe(true)
         expect(scoreTriage(undefined, 'simple')).toBeUndefined()
+    })
+})
+
+describe('parseJudgeReply', () => {
+    const reply = ['Picture: The table is lifted.', 'Obstacle: nothing', 'Needs: nothing', 'Revises (if it happens): nothing', 'Answer: simple'].join('\n')
+
+    it('reads the label after Answer, and the lines by name', () => {
+        expect(parseJudgeReply(reply)).toEqual({ label: 'simple', lines: { picture: 'The table is lifted.', obstacle: 'nothing', needs: 'nothing', 'revises (if it happens)': 'nothing', answer: 'simple' } })
+    })
+
+    it('takes the rest of the Answer line as the sentence', () => {
+        expect(parseJudgeReply('Answer: obstructed - [teapot1] is glued to [table1].')).toMatchObject({ label: 'obstructed', sentence: '[teapot1] is glued to [table1].' })
+        expect(parseJudgeReply('5. **Answer:** "impossible" A table does not fit in a cup.')).toMatchObject({ label: 'impossible', sentence: 'A table does not fit in a cup.' })
+    })
+
+    it('has no label when there is no Answer line or its first word is no label', () => {
+        expect(parseJudgeReply('The answer is simple.').label).toBeUndefined()
+        expect(parseJudgeReply('Answer: It is simple.').label).toBeUndefined()
+    })
+
+    it('scores the label against the expected one, and leaves an absent expectation unscored', () => {
+        expect(scoreJudge('simple', reply)).toBe(true)
+        expect(scoreJudge('contingent', reply)).toBe(false)
+        expect(scoreJudge(undefined, reply)).toBeUndefined()
     })
 })

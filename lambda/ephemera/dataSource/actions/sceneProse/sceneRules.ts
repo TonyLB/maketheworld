@@ -13,7 +13,7 @@
  */
 import type { SceneHandle, SceneModel, SceneRelation, SceneRelationTarget } from '../../positions/ludicCache/sceneModel'
 import { sceneEntries } from './renderSceneRegisters'
-import { bracket } from './sceneWording'
+import { bracket, hostingClause } from './sceneWording'
 
 /** A relation's own words, if it secures its subject. */
 const securingWords = (relation: SceneRelation): string | undefined => {
@@ -106,4 +106,37 @@ export const rulesLines = (scene: SceneModel, style: 'relative' | 'action' = 're
     return sentences.length === 0
         ? []
         : ['Rules. Check the handles you are reasoning over, and consult only the rules that touch upon them.', ...sentences.map((sentence) => `- ${sentence}`)]
+}
+
+/**
+ * The judge's Rules section (judgePrompt plan, v24; notes 8 and 21): each rule states its constraint plainly, with no "until" clause
+ * and no instruction in front of the list, since `Reading the scene` has already said what rules are and that a player can set out to
+ * change the facts behind one. The hosted sentence is the agreed text. The other two are derived from it and were not agreed
+ * (M26): the pair and the not-shown cases say what cannot be done, and the pair what still can. Returns the lines of a `Rules:` section,
+ * or none when the scene has no securing.
+ */
+const judgeRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>, scene: SceneModel): string => {
+    if (target.kind !== 'thing') {
+        return `${bracket(subject)} cannot leave what it is secured to.`
+    }
+    const other = target.handle
+    const hosted = (child: SceneHandle, host: SceneHandle): string => {
+        const kind = sceneEntries(scene).find((entry) => entry.handle === host)?.children.find((member) => member.handle === child)?.hostingKind
+        return `${bracket(child)} cannot leave ${bracket(host)}. Moving ${bracket(host)} gives no reason to doubt that ${bracket(child)} is ${hostingClause(kind ?? 'On', bracket(host))}.`
+    }
+    if (hosts.get(subject)?.has(other)) {
+        return hosted(subject, other)
+    }
+    if (hosts.get(other)?.has(subject)) {
+        return hosted(other, subject)
+    }
+    return `${bracket(subject)} and ${bracket(other)} cannot be moved apart. They can still be moved together.`
+}
+
+export const judgeRulesLines = (scene: SceneModel): string[] => {
+    const hosts = hostsOf(scene)
+    const sentences = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => (
+        securingWords(relation) === undefined || relation.kind === 'Associated' ? [] : [judgeRule(subject, relation.target, hosts, scene)]
+    )))
+    return sentences.length === 0 ? [] : ['Rules:', ...sentences.map((sentence) => `- ${sentence}`)]
 }

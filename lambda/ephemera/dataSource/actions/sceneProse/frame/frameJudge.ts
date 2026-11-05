@@ -1,0 +1,53 @@
+//
+// The judge's prompt (judgePrompt plan, Slice 3): the text agreed as v24 in `taskPlanning/.../judgePromptDrafts/`, one constant per
+// module. `Reading the scene`, `Reading player intent` and `Improvising` are reusable modules; `Task` belongs to the judge. The
+// instructions hold nothing variable, so they are byte-identical across calls and can sit before a cache point.
+// Separate from `GROUNDING` and the `triage*` formats, which stay as the control.
+//
+
+export const JUDGE_ROLE =
+    `Role: You are the reasoner for a game world, working as a game master would. A player tells you what they want to do. Your goal is to determine, from what has been established about this place and what you know about the world, whether the next step in communication is (a) completing the request, (b) aligning the player's understanding, (c) bouncing the question back to the player as a puzzle, or (d) passing it to a more capable system.`
+
+export const READING_THE_SCENE = [
+    'Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. In the scene, "you" is the player. It is shown three ways, each a view of the same place:',
+    `- "Fiction" describes what has been established about this place in the story, in sentences. Reasoning is grounded in this established fiction. Everything it states is true. What it doesn't state is not established as either present or absent. This place is fiction, not a simulation: what is established is how things stand to each other, not exactly where each thing is. An established fact stays true unless something gives you a reason to doubt it, and you don't need to show that it survives.`,
+    '- "Graph" is how the game records that same place, as a list with one row for each thing. A row indented under another row is a thing on or in that other thing. It adds no facts of its own but can help disambiguate the language of the fiction section.',
+    `- "Rules" is a non-exhaustive list of fictional constraints derived from the graph. Not every common-sense rule is listed in the "Rules" section. Presence of a rule constrains explicitly, absence of a rule defers to the logic of the scene. Each rule's constraint is local to the things it names. A rule holds for as long as the established facts behind it hold, and a player can set out to change those facts.`,
+    'The scene tells you what is here and how it is placed. What things are like, and what they could physically be used for, comes from what you know about the world. Where the two disagree about what is here or how it is placed, the scene wins.',
+].join('\n')
+
+export const READING_PLAYER_INTENT = [
+    `Reading player intent: A player's request names an action on a thing. Moving a thing changes where that thing is, and the established facts about what is on or in it stay as they are. Changing those facts is something to consider only when the player specifies it, or it is otherwise obvious from context: "pull the rug out from under the crate" changes what the crate rests on.`,
+].join('\n')
+
+export const IMPROVISING = [
+    `Improvising: A detail that hasn't been mentioned can still turn out to be there, not because it has just appeared in the story, but because it has just become relevant. When an action needs such a detail, you suggest it, and whether to establish it is decided elsewhere. A detail you can suggest is one that it is plausible would be present here without having been mentioned: a farmhouse probably has a roof that nobody has brought up. How sure you are makes no difference. What a player says can make a detail more plausible.`,
+].join('\n')
+
+export const JUDGE_TASK = [
+    'Task: Judge the request below as a quick first check. Write one line for each of these steps, in order, starting each with its name.',
+    '1. Picture: Find the things the request acts on, and consult only the rules that name those things. Describe the action happening, briefly, as far as this request matters, using what you know of how things really behave. A motorcycle does not fit in a shoebox, for instance. If what you pictured shows that the player is picturing this place, or how the world works, differently from how it is, write "n/a" on the next three lines.',
+    '2. Obstacle: Name the established fact that stands in the way of the action, or write "nothing".',
+    `3. Needs: Name each detail the action could not work without that isn't established, or write "nothing".`,
+    '4. Revises (if it happens): Name the established facts this changes, directly or as a knock-on effect, or write "nothing". Everything else stands.',
+    '5. Answer: Give the first of these five words that applies, then the sentence it asks for, if any.',
+    '- "impossible": this request suggests the player is picturing this place, or how the world works, differently from how it is. Add one sentence saying what fact they seem to have missed.',
+    '- "obstructed": this makes sense, but something stands in the way, either an established fact or a need nothing here could plausibly meet, and getting past it is up to the player. Add one sentence stating what stands in the way, as a fact about this place.',
+    `- "contingent": the action would be straightforward, but it needs a detail that isn't established and that you can suggest. Add one sentence naming the detail.`,
+    '- "complex": the action is straightforward, but recording it in the graph is not.',
+    '- "simple": the action is straightforward, and so is recording it; there is nothing to figure out.',
+].join('\n')
+
+export const JUDGE_INSTRUCTIONS = [JUDGE_ROLE, READING_THE_SCENE, READING_PLAYER_INTENT, IMPROVISING, JUDGE_TASK].join('\n\n')
+
+/** In the order the judge's `Answer` line tries them: the first that applies is the answer, so `simple` comes last. */
+export const JUDGE_LABELS = ['impossible', 'obstructed', 'contingent', 'complex', 'simple'] as const
+
+export type JudgeLabel = typeof JUDGE_LABELS[number]
+
+export const isJudgeLabel = (value: unknown): value is JudgeLabel => JUDGE_LABELS.includes(value as JudgeLabel)
+
+/** The judge prompt: the fixed instructions, the scene text (which begins `Scene: `), then the request. */
+export const composeJudgePrompt = ({ sceneText, request }: { sceneText: string; request: string }): string => (
+    [JUDGE_INSTRUCTIONS, sceneText, `Request: ${request}`].join('\n\n')
+)
