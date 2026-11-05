@@ -2,12 +2,6 @@
 // Layer 2b of the prompt frame (sceneProjection SP-11): how a result is recorded as graph edits. Lifted verbatim from the probe's prompt.
 //
 
-/**
- * What a securing does in the graph (user's wording, 2026-11-04). The two ends are not restricted alike: moving a parent cannot change
- * its child's position relative to it, so only removing the child is stopped. Siblings have no such guarantee, so neither moves singly.
- */
-export const SECURED_GRAPH = 'Graph: The relative graph positions cannot be changed while the secured edge persists. Siblings must remain siblings: Neither can be moved from the shared parent singly. Parent-child relations must be preserved: The parent can be rehomed, but the child cannot be removed *from* the parent.'
-
 export const NOTATION = 'Write any move in the (move X to On Y) or (move X to In Y) notation above, and anything else in any notation you like.'
 
 /**

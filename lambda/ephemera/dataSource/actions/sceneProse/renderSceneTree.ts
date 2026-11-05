@@ -24,37 +24,48 @@ export const parentClause = (scene: SceneModel, entry: SceneEntry, parent: Paren
     }
 }
 
-const renderEntries = (scene: SceneModel, entries: readonly SceneEntry[], parent: Parent, depth: number, step: string): string[] => (
+/**
+ * How a row states its relations. `clause` is D's: comma clauses after the placement. English cannot say which subject a comma clause has,
+ * and `on [table1], glued to [table1]` contains "[table1], glued to [table1]", which readers reported as "the table is glued to the
+ * table". `subjected` (user, 2026-11-04; the `rules` renders) names the row's subject on each: `on [table1]; [teapot1] glued to [table1]`.
+ */
+export type RelationStyle = 'clause' | 'subjected'
+
+const relationText = (entry: SceneEntry, phrase: string, style: RelationStyle): string => (
+    style === 'subjected' ? `; ${bracket(entry.handle)} ${phrase}` : `, ${phrase}`
+)
+
+const renderEntries = (scene: SceneModel, entries: readonly SceneEntry[], parent: Parent, depth: number, step: string, style: RelationStyle): string[] => (
     entries.flatMap((entry) => [
         `${step.repeat(depth)}- ${[
             headText(scene, entry),
             `, ${parentClause(scene, entry, parent)}`,
             ...lineNotes(scene, entry).map((note) => ` ${note}`),
-            ...lineRelations(scene, entry).map((phrase) => `, ${phrase}`),
+            ...lineRelations(scene, entry).map((phrase) => relationText(entry, phrase, style)),
         ].join('')}`,
-        ...renderEntries(scene, entry.children, { kind: 'thing', handle: entry.handle }, depth + 1, step),
+        ...renderEntries(scene, entry.children, { kind: 'thing', handle: entry.handle }, depth + 1, step, style),
     ])
 )
 
 /** D's lines after the heading and before the exits: the room's contents, the Concepts and what is held. */
-export const sceneListLines = (scene: SceneModel, step: string): string[] => {
+export const sceneListLines = (scene: SceneModel, step: string, style: RelationStyle = 'clause'): string[] => {
     const room = roomRef(scene)
     return [
         ...(scene.contents.length === 0
             ? [`Contents of ${room}: nothing.`]
-            : [`Contents of ${room}:`, ...renderEntries(scene, scene.contents, { kind: 'room' }, 0, step)]),
+            : [`Contents of ${room}:`, ...renderEntries(scene, scene.contents, { kind: 'room' }, 0, step, style)]),
         ...(scene.concepts.length === 0 ? [] : ['Concepts here:', ...scene.concepts.map((handle) => `- ${conceptText(scene, handle)}`)]),
         ...(scene.held.length === 0
             ? ['You are holding: nothing.']
-            : ['You are holding:', ...renderEntries(scene, scene.held, { kind: 'held' }, 0, step)]),
+            : ['You are holding:', ...renderEntries(scene, scene.held, { kind: 'held' }, 0, step, style)]),
     ]
 }
 
-const renderD = (scene: SceneModel, step: string): string => [
+const renderD = (scene: SceneModel, step: string, style: RelationStyle): string => [
     heading(scene),
-    ...sceneListLines(scene, step),
+    ...sceneListLines(scene, step, style),
     ...(exitsLine(scene) !== undefined ? [exitsLine(scene) as string] : []),
 ].join('\n')
 
-export const renderSceneD = (scene: SceneModel): string => renderD(scene, '  ')
+export const renderSceneD = (scene: SceneModel, style: RelationStyle = 'clause'): string => renderD(scene, '  ', style)
 

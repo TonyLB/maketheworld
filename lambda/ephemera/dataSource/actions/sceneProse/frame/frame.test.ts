@@ -1,4 +1,4 @@
-import { SECURED, SECURED_DEFINITION, SECURED_FICTION, SECURED_GRAPH, TRIAGE_LABELS, isTriageLabel, GROUNDING, LADDER, MOVING, NOTATION, OPEN_ANSWER_FORMATS, PRECEDENCE, READING, SCENE_INTRO, composeFrame, defaultAnswerFormat, isAnswerFormat, scenePrompt } from '.'
+import { TRIAGE_LABELS, isTriageLabel, GROUNDING, LADDER, MOVING, NOTATION, OPEN_ANSWER_FORMATS, PRECEDENCE, READING, SCENE_INTRO, composeFrame, defaultAnswerFormat, isAnswerFormat, scenePrompt } from '.'
 
 const prompt = (answer: string = OPEN_ANSWER_FORMATS[defaultAnswerFormat], sceneText = 'SCENE'): string => (
     scenePrompt({ frame: GROUNDING, sceneText, question: 'Why?', answer })
@@ -6,19 +6,14 @@ const prompt = (answer: string = OPEN_ANSWER_FORMATS[defaultAnswerFormat], scene
 
 describe('frame', () => {
     it('composes the grounding from its layers in order, a blank line between blocks', () => {
-        expect(GROUNDING).toBe([READING, SECURED, PRECEDENCE, LADDER, MOVING].join('\n\n'))
+        expect(GROUNDING).toBe([READING, PRECEDENCE, LADDER, MOVING].join('\n\n'))
         expect(composeFrame({ reading: 'r', fiction: 'f', graph: 'g' })).toBe('r\n\nf\n\ng')
         expect(GROUNDING.indexOf(READING)).toBeLessThan(GROUNDING.indexOf(PRECEDENCE))
         expect(GROUNDING.indexOf(PRECEDENCE)).toBeLessThan(GROUNDING.indexOf(LADDER))
         expect(GROUNDING.indexOf(LADDER)).toBeLessThan(GROUNDING.indexOf(MOVING))
     })
 
-    it('defines secured once, with its fiction and its graph, and names no fixture word for it', () => {
-        expect(SECURED).toBe([SECURED_DEFINITION, SECURED_FICTION, SECURED_GRAPH].join('\n\n'))
-        expect(GROUNDING.indexOf(READING)).toBeLessThan(GROUNDING.indexOf(SECURED))
-        expect(SECURED_FICTION).toContain('Moving the thing secured *to* needs to also move the thing secured')
-        expect(SECURED_GRAPH).toContain('The parent can be rehomed, but the child cannot be removed *from* the parent.')
-        expect(SECURED_GRAPH).toContain('Siblings must remain siblings')
+    it('names no fixture\'s word for a securing', () => {
         expect(GROUNDING).not.toContain('glued')
         expect(GROUNDING).not.toContain('secured to the floor')
     })
@@ -102,8 +97,13 @@ describe('frame', () => {
             expect(text).not.toContain(NOTATION)
         }
         expect(triageWhyImpossible).toContain('Only if it is "impossible", add one sentence saying why.')
+        const reading = 'Read and reason about the request the way a text adventure would'
+        expect([triageLabel, triageReason, triageWhyImpossible].every((text) => text.startsWith(reading))).toBe(true)
+        expect(isAnswerFormat('triageLegacy')).toBe(true)
+        expect(OPEN_ANSWER_FORMATS.triageLegacy).not.toContain(reading)
+        expect(triageWhyImpossible.endsWith(OPEN_ANSWER_FORMATS.triageLegacy)).toBe(true)
         expect(triageLabel).toContain('Answer with only that one word.')
-        expect(triageLabel).not.toContain('reason')
+        expect(triageLabel).not.toContain('sentence')
         expect(triageReason).toContain('Give one sentence of reason, then on its own line that one word.')
         expect(prompt(triageReason).endsWith(triageReason)).toBe(true)
     })

@@ -13,7 +13,7 @@ export type SceneReasoningProbeEvent = {
     type: 'SceneReasoningProbe'
     scene?: { fixture?: unknown; characterId?: unknown }
     formats?: unknown
-    /** How `open` questions are asked to answer (`abstain`, `twoRegisters`, `triageLabel`, `triageReason`, `triageWhyImpossible`); default `twoRegisters`. */
+    /** How `open` questions are asked to answer (`abstain`, `twoRegisters`, `triageLabel`, `triageReason`, `triageWhyImpossible`, `triageLegacy`); default `twoRegisters`. */
     answerFormats?: unknown
     questions?: unknown
     repeats?: unknown

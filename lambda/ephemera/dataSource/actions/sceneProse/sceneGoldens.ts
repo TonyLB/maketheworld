@@ -545,3 +545,15 @@ Example: can [teapot1] be moved to the floor?
 - In the world: not yet, because it is glued to [table1]; it has to be freed first, and then it can be moved.
 - In the records: (untie [teapot1] from [table1]), then (move [teapot1] to the room).`,
 }
+
+/**
+ * The Rules section (`sceneRules.ts`): `rulesD` and `rules` are D and `registers` without the `secured` mark, with this appended. A
+ * fixture with no entry has no securing and renders exactly as its base (the golden test asserts both).
+ */
+export const sceneRulesGoldens: Record<string, string> = {
+    dock: `Rules. Check the handles you are reasoning over, and consult only the rules that touch upon them.
+- [boat1] is secured to [post1]; its fictional cause is "tied to". Prevents moving [boat1] or [post1] relative to the other more than "tied to" would permit. Does not prevent moving them together.
+- [barrel1] is secured to [post1]. Prevents moving [barrel1] or [post1] relative to the other more than "secured to" would permit. Does not prevent moving them together.`,
+    teaTable: `Rules. Check the handles you are reasoning over, and consult only the rules that touch upon them.
+- [teapot1] is secured to [table1]; its fictional cause is "glued to". Prevents moving [teapot1] relative to [table1] more than "glued to" would permit. Does not prevent moving [table1] and its contents as a whole.`,
+}

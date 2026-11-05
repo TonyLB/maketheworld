@@ -56,6 +56,13 @@ export type TriageLabel = typeof TRIAGE_LABELS[number]
 
 export const isTriageLabel = (value: unknown): value is TriageLabel => TRIAGE_LABELS.includes(value as TriageLabel)
 
+/**
+ * A requirement of the judge, not a tuning (user, 2026-11-04): a command is read as a text adventure reads it. Reading "pick up the table"
+ * as "take everything off the table, then pick it up" is reasonable English and wrong where containment nests, and the replies
+ * did that ("To pick up [table1], [teapot1] would need to be detached from it"). `triageLegacy` is `triageWhyImpossible` without it, for comparison.
+ */
+const TRIAGE_READING = 'Read and reason about the request the way a text adventure would: it acts on the thing as it stands, and whatever is on or in it goes along. Nothing is taken off it first.'
+
 const TRIAGE_DEFINITIONS = [
     'Decide whether it can be done in this scene, and answer with one of three words.',
     '"simple": it can be done as stated.',
@@ -63,11 +70,15 @@ const TRIAGE_DEFINITIONS = [
     '"impossible": it cannot be done.',
 ].join(' ')
 
-const TRIAGE_LABEL_ANSWER_FORMAT = [TRIAGE_DEFINITIONS, 'Answer with only that one word.'].join(' ')
+const TRIAGE_LABEL_ANSWER_FORMAT = [TRIAGE_READING, TRIAGE_DEFINITIONS, 'Answer with only that one word.'].join(' ')
 
-const TRIAGE_REASON_ANSWER_FORMAT = [TRIAGE_DEFINITIONS, 'Give one sentence of reason, then on its own line that one word.'].join(' ')
+const TRIAGE_REASON_ANSWER_FORMAT = [TRIAGE_READING, TRIAGE_DEFINITIONS, 'Give one sentence of reason, then on its own line that one word.'].join(' ')
 
-const TRIAGE_WHY_IMPOSSIBLE_ANSWER_FORMAT = [TRIAGE_DEFINITIONS, 'Answer with that word first. Only if it is "impossible", add one sentence saying why.'].join(' ')
+const TRIAGE_ANSWER_WHY_IMPOSSIBLE = 'Answer with that word first. Only if it is "impossible", add one sentence saying why.'
+
+const TRIAGE_WHY_IMPOSSIBLE_ANSWER_FORMAT = [TRIAGE_READING, TRIAGE_DEFINITIONS, TRIAGE_ANSWER_WHY_IMPOSSIBLE].join(' ')
+
+const TRIAGE_LEGACY_ANSWER_FORMAT = [TRIAGE_DEFINITIONS, TRIAGE_ANSWER_WHY_IMPOSSIBLE].join(' ')
 
 /**
  * `headings` (Constraints, Blockers, Opportunities), `plain` (no scaffold) and `candidates` (a candidate list, with its own stop) were
@@ -75,10 +86,10 @@ const TRIAGE_WHY_IMPOSSIBLE_ANSWER_FORMAT = [TRIAGE_DEFINITIONS, 'Answer with th
  * into the scene; `candidates` padded and over-blocked a feasible pour. Their findings stay in the scene-projection planning
  * file ("Frame and answer-format findings"); `abstain` is `plain` plus the stop rule `candidates` showed was useful.
  */
-export type AnswerFormat = 'abstain' | 'twoRegisters' | 'triageLabel' | 'triageReason' | 'triageWhyImpossible'
+export type AnswerFormat = 'abstain' | 'twoRegisters' | 'triageLabel' | 'triageReason' | 'triageWhyImpossible' | 'triageLegacy'
 
 /** How an `open` question asks to be answered; `twoRegisters` is the default. */
-export const answerFormats: readonly AnswerFormat[] = ['abstain', 'twoRegisters', 'triageLabel', 'triageReason', 'triageWhyImpossible']
+export const answerFormats: readonly AnswerFormat[] = ['abstain', 'twoRegisters', 'triageLabel', 'triageReason', 'triageWhyImpossible', 'triageLegacy']
 
 /**
  * What an `open` question uses when the probe names none: `twoRegisters` (user, 2026-11-03). It fixed the pour (the fiction
@@ -95,4 +106,5 @@ export const OPEN_ANSWER_FORMATS: Record<AnswerFormat, string> = {
     triageLabel: TRIAGE_LABEL_ANSWER_FORMAT,
     triageReason: TRIAGE_REASON_ANSWER_FORMAT,
     triageWhyImpossible: TRIAGE_WHY_IMPOSSIBLE_ANSWER_FORMAT,
+    triageLegacy: TRIAGE_LEGACY_ANSWER_FORMAT,
 }
