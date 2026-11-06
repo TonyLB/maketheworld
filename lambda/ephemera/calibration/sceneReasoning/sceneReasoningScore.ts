@@ -48,7 +48,7 @@ export const scoreReply = (expected: ExpectedTokens | undefined, reply: string):
     return got.size === want.size && [...want].every((token) => got.has(token))
 }
 
-const bareWord = (text: string): string => text.replace(/[\[\]"'*`]/g, '').replace(/[.!:,]+$/, '').trim().toLowerCase()
+const bareWord = (text: string): string => text.replace(/[\[\]"'*`]/g, '').replace(/[.!:;,]+$/, '').trim().toLowerCase()
 
 /**
  * A triage reply's match flag. The label is the last word of the reply if that is a label (a reason sentence came first, and the
@@ -68,14 +68,14 @@ export const scoreTriage = (expected: TriageLabel | JudgeLabel | undefined, repl
 export type JudgeReply = { label?: JudgeLabel; sentence?: string; lines: Record<string, string> }
 
 /**
- * The judge's reply (judgePrompt plan, Slice 3): one line per step of its Task, each starting with its name. The label is the first word
+ * The judge's reply (judgePrompt plan, Slice 3): one line per step of its Task, each starting with its name, whatever steps a draft of the Task has. The label is the first word
  * after `Answer:`, and the rest of that line is the sentence the label asks for; code routes on the label alone. A reply with no
  * `Answer:` line, or a first word that is no label, has no label. Markdown emphasis around either is stripped.
  */
 export const parseJudgeReply = (reply: string): JudgeReply => {
     const lines: Record<string, string> = {}
     reply.split('\n').forEach((line) => {
-        const match = line.match(/^\s*(?:\d+\.\s*)?[*_`]*\s*(Picture|Obstacle|Needs|Revises(?: \(if it happens\))?|Answer)\s*[*_`]*\s*:[*_`]*\s*(.*)$/i)
+        const match = line.match(/^\s*(?:\d+\.\s*)?[*_`]*\s*([A-Za-z]+(?: \([^)]*\))?)\s*[*_`]*\s*:[*_`]*\s*(.*)$/i)
         if (match !== null && lines[match[1].toLowerCase()] === undefined) {
             lines[match[1].toLowerCase()] = match[2].trim()
         }

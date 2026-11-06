@@ -4,6 +4,7 @@
  * end on the table") is not computed.
  */
 import type { SceneAnswer } from './questions'
+import { renderScene } from '../../../actions/sceneProse'
 import { buildSceneFixture, expectedAnswer, sceneFixture, sceneFixtureNames, sceneFixtures } from '.'
 
 const handles = (...values: string[]): SceneAnswer => ({ handles: values })
@@ -144,5 +145,25 @@ describe('scene fixtures', () => {
         const { scene } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
 
         expect(fixture.questions.map((question) => expectedAnswer(scene, question))).toEqual(expected[name])
+    })
+})
+
+describe('judge request sets', () => {
+    const sets = sceneFixtures.flatMap((fixture) => Object.entries(fixture.judgeSets ?? {}).map(([name, requests]) => ({ fixture, name, requests })))
+
+    it('exist for teaTable and tavern, the plan\'s Slice 4 scenes', () => {
+        expect(sets.map(({ fixture, name }) => `${fixture.name}/${name}`)).toEqual(expect.arrayContaining(['teaTable/judge', 'tavern/judge']))
+    })
+
+    it.each(sets.map((entry) => [`${entry.fixture.name}/${entry.name}`, entry] as const))('%s: handles are in the scene, and tolerance never covers a wrong simple', async (_label, { fixture, requests }) => {
+        const text = renderScene((await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene, 'judge')
+        requests.forEach(({ request, expect: label, tolerate = [] }) => {
+            ;(request.match(/\[[a-z]+\d+\]/g) ?? []).forEach((handle) => expect(text).toContain(handle))
+            expect(request).toMatch(/^I want to /)
+            expect(tolerate).not.toContain(label)
+            if (label !== 'simple') {
+                expect(tolerate).not.toContain('simple')
+            }
+        })
     })
 })

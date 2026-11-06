@@ -55,6 +55,14 @@ export const tavernScene: SceneFixture = {
         { type: 'held' },
         { type: 'placedOn', subject: 'candle1', asked: 'What is [candle1] in?' },
     ],
+    judgeSets: {
+        judge: [
+            { request: 'I want to pick up [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], note: 'Nothing is secured: no lean to impossible or obstructed.' },
+            { request: 'I want to pick up [cup1].', expect: 'simple', tolerate: ['contingent', 'complex'] },
+            { request: 'I want to pick up [candle1].', expect: 'simple', tolerate: ['contingent', 'complex'] },
+            { request: 'I want to put [hammer1] on [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], note: 'A held thing, put down.' },
+        ],
+    },
 }
 
 export const branchInBranchScene: SceneFixture = {

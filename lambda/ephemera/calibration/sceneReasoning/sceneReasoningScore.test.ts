@@ -56,6 +56,7 @@ describe('parseJudgeReply', () => {
     it('takes the rest of the Answer line as the sentence', () => {
         expect(parseJudgeReply('Answer: obstructed - [teapot1] is glued to [table1].')).toMatchObject({ label: 'obstructed', sentence: '[teapot1] is glued to [table1].' })
         expect(parseJudgeReply('5. **Answer:** "impossible" A table does not fit in a cup.')).toMatchObject({ label: 'impossible', sentence: 'A table does not fit in a cup.' })
+        expect(parseJudgeReply('6. Answer: "obstructed"; The teapot is glued down.')).toMatchObject({ label: 'obstructed', sentence: 'The teapot is glued down.' })
     })
 
     it('has no label when there is no Answer line or its first word is no label', () => {

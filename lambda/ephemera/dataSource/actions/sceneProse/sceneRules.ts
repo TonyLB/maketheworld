@@ -13,7 +13,7 @@
  */
 import type { SceneHandle, SceneModel, SceneRelation, SceneRelationTarget } from '../../positions/ludicCache/sceneModel'
 import { sceneEntries } from './renderSceneRegisters'
-import { bracket, hostingClause } from './sceneWording'
+import { bracket } from './sceneWording'
 
 /** A relation's own words, if it secures its subject. */
 const securingWords = (relation: SceneRelation): string | undefined => {
@@ -109,34 +109,45 @@ export const rulesLines = (scene: SceneModel, style: 'relative' | 'action' = 're
 }
 
 /**
- * The judge's Rules section (judgePrompt plan, v24; notes 8 and 21): each rule states its constraint plainly, with no "until" clause
- * and no instruction in front of the list, since `Reading the scene` has already said what rules are and that a player can set out to
- * change the facts behind one. The hosted sentence is the agreed text. The other two are derived from it and were not agreed
- * (M26): the pair and the not-shown cases say what cannot be done, and the pair what still can. Returns the lines of a `Rules:` section,
- * or none when the scene has no securing.
+ * The judge's Rules section (judgePrompt plan, v28): each rule has a handle and states an invariant, so that the judge can say what the
+ * action does to it, with no instruction in front of the list. The hosted sentence is the agreed text. The other two are derived from
+ * it and were not agreed, or probed (M26, M30). A pair with neither hosting the other says only that the two stay fixed: nothing here
+ * says which of them can move. A rule's handle names its things by their stems, or by their whole handles where stems would collide.
+ * Returns the lines of a `Rules:` section, or none when the scene has no securing.
  */
-const judgeRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>, scene: SceneModel): string => {
+type JudgeRule = { ends: SceneHandle[]; sentence: string }
+
+const judgeRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>): JudgeRule => {
     if (target.kind !== 'thing') {
-        return `${bracket(subject)} cannot leave what it is secured to.`
+        return { ends: [subject], sentence: `${bracket(subject)} stays fixed relative to what ${bracket(subject)} is secured to.` }
     }
     const other = target.handle
-    const hosted = (child: SceneHandle, host: SceneHandle): string => {
-        const kind = sceneEntries(scene).find((entry) => entry.handle === host)?.children.find((member) => member.handle === child)?.hostingKind
-        return `${bracket(child)} cannot leave ${bracket(host)}. Moving ${bracket(host)} gives no reason to doubt that ${bracket(child)} is ${hostingClause(kind ?? 'On', bracket(host))}.`
-    }
+    const hosted = (child: SceneHandle, host: SceneHandle): JudgeRule => ({
+        ends: [child, host],
+        sentence: `${bracket(child)} stays fixed relative to ${bracket(host)}'s frame. When ${bracket(host)}'s frame moves, ${bracket(child)} travels along with ${bracket(host)}.`,
+    })
     if (hosts.get(subject)?.has(other)) {
         return hosted(subject, other)
     }
     if (hosts.get(other)?.has(subject)) {
         return hosted(other, subject)
     }
-    return `${bracket(subject)} and ${bracket(other)} cannot be moved apart. They can still be moved together.`
+    return { ends: [subject, other], sentence: `${bracket(subject)} and ${bracket(other)} stay fixed relative to each other.` }
 }
+
+const handleStem = (handle: SceneHandle): string => handle.replace(/-?\p{N}+$/u, '')
+
+const ruleHandle = (ends: string[]): string => (ends.length === 1 ? `${ends[0]}-secured` : ends.join('-secured-to-'))
 
 export const judgeRulesLines = (scene: SceneModel): string[] => {
     const hosts = hostsOf(scene)
-    const sentences = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => (
-        securingWords(relation) === undefined || relation.kind === 'Associated' ? [] : [judgeRule(subject, relation.target, hosts, scene)]
+    const rules = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => (
+        securingWords(relation) === undefined || relation.kind === 'Associated' ? [] : [judgeRule(subject, relation.target, hosts)]
     )))
-    return sentences.length === 0 ? [] : ['Rules:', ...sentences.map((sentence) => `- ${sentence}`)]
+    const stemmed = rules.map(({ ends }) => ruleHandle(ends.map(handleStem)))
+    const lines = rules.map(({ ends, sentence }, index) => {
+        const unique = stemmed.filter((handle) => handle === stemmed[index]).length === 1
+        return `- ${unique ? stemmed[index] : ruleHandle(ends)}: ${sentence}`
+    })
+    return lines.length === 0 ? [] : ['Rules:', ...lines]
 }

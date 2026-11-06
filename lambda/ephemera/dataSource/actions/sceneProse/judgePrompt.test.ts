@@ -2,7 +2,7 @@ import { buildSceneFixture, sceneFixture } from '../../positions/ludicCache/scen
 import { composeJudgePrompt, JUDGE_INSTRUCTIONS } from './frame'
 import { renderScene } from '.'
 
-/** The scene part of the agreed judge prompt (judgePrompt plan, v24), for `teaTable`. Written out once from the render and read through by hand. */
+/** The scene part of the agreed judge prompt (judgePrompt plan, v28), for `teaTable`. Written out once from the render and read through by hand. */
 const judgeTeaTableGolden = [
     'Scene: The Parlour',
     '',
@@ -28,7 +28,7 @@ const judgeTeaTableGolden = [
     '```',
     '',
     'Rules:',
-    '- [teapot1] cannot leave [table1]. Moving [table1] gives no reason to doubt that [teapot1] is on [table1].',
+    "- teapot-secured-to-table: [teapot1] stays fixed relative to [table1]'s frame. When [table1]'s frame moves, [teapot1] travels along with [table1].",
 ].join('\n')
 
 describe('judge prompt', () => {

@@ -4,6 +4,7 @@ import { handleEmbeddingCompare } from './objectMatch/handlers/comparePair'
 import { handleEmbeddingCalibrationCorpus } from './objectMatch/handlers/runCorpus'
 import { handleEmbeddingSimulateIdentity } from './objectMatch/handlers/simulateIdentity'
 import { handleEmbeddingVerifyRepeat } from './objectMatch/handlers/verifyRepeatEmbed'
+import { handleJudgeProbe } from './sceneReasoning/handlers/runJudgeProbe'
 import { handleSceneReasoningFixtures } from './sceneReasoning/handlers/runFixtures'
 import { handleSceneReasoningProbe } from './sceneReasoning/handlers/runProbe'
 import { calibrationJsonResponse, type CalibrationRouteResponse } from './calibrationResponse'
@@ -17,6 +18,7 @@ export const CALIBRATION_EVENT_TYPES = [
     'EmbeddingAsymmetricLadder',
     'SceneReasoningFixtures',
     'SceneReasoningProbe',
+    'JudgeProbe',
 ] as const
 
 export type CalibrationEventType = (typeof CALIBRATION_EVENT_TYPES)[number]
@@ -62,6 +64,8 @@ export async function routeCalibrationEvent(event: {
             return handleSceneReasoningProbe(
                 event as Parameters<typeof handleSceneReasoningProbe>[0]
             )
+        case 'JudgeProbe':
+            return handleJudgeProbe(event as Parameters<typeof handleJudgeProbe>[0])
         default:
             return calibrationJsonResponse(400, {
                 error: `unknown calibration event type: ${String(event.type)}`,

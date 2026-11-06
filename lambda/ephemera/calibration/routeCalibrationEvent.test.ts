@@ -71,6 +71,7 @@ describe('routeCalibrationEvent', () => {
             'EmbeddingAsymmetricLadder',
             'SceneReasoningFixtures',
             'SceneReasoningProbe',
+            'JudgeProbe',
         ])
     })
 

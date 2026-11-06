@@ -16,6 +16,7 @@ import { PresenceKey } from '@tonylb/mtw-utilities/ts/types'
 
 import { nodeFromId } from '../../ludicGraph'
 import type { SceneExit } from '../sceneModel'
+import type { JudgeRequest } from './judgeRequests'
 import type { SceneQuestion } from './questions'
 
 export const roomId = (name: string) => `ROOM#${name}` as EphemeraRoomId
@@ -66,4 +67,6 @@ export type SceneFixture = {
     names: SceneFixtureNames
     exits?: SceneExit[]
     questions: SceneQuestion[]
+    /** Named sets of requests for the judge probe (`JudgeProbe`), each with its expected label. */
+    judgeSets?: Record<string, readonly JudgeRequest[]>
 }

@@ -17,9 +17,12 @@ const cupTea = objectId('CupTea')
 const teapot = objectId('Teapot')
 const potTea = objectId('PotTea')
 
+/** Words that would mean the reply prescribes a way past the glue, where the judge only names the obstacle (a reading aid). */
+const prescribedFixes = ['unglue', 'pry', 'scrape', 'solvent', 'screwdriver', 'free', 'remove', 'detach', 'break', 'cut']
+
 export const teaTableScene: SceneFixture = {
     name: 'teaTable',
-    description: 'A saucer with a cup of tea, and a teapot of tea glued to the table: two teas, one of them in a vessel that cannot be taken or tilted.',
+    description: 'A saucer with a cup of tea, and a teapot of tea glued to the table: two teas, one of them in a vessel glued down, which cannot be taken as it stands.',
     roomId: parlour,
     actorId: actor,
     graphs: [
@@ -54,12 +57,12 @@ export const teaTableScene: SceneFixture = {
         {
             type: 'open',
             asked: 'Can you pour tea into [saucer1]? If so, how, and what would change?',
-            rubric: 'Takes account that [teapot1] is glued to [table1], so it cannot pour where it stands; names the tea in [cup1] as a tea that can be poured; tells the two teas apart.',
+            rubric: 'Takes account that [teapot1] is glued to [table1], so it is not simply lifted or tilted; names the tea in [cup1] as a tea that can be poured; tells the two teas apart; does not claim freeing [teapot1] is the only way to get its tea out.',
         },
         {
             type: 'open',
             asked: 'What would you have to do to move [teapot1] to the floor?',
-            rubric: 'Says [teapot1] must first be unglued from [table1]; says the tea in [teapot1] goes with it.',
+            rubric: 'Names the glue holding [teapot1] to [table1] as what stands in the way; says the tea in [teapot1] goes with it; does not claim that freeing [teapot1] is the only way past the glue.',
         },
         {
             type: 'open',
@@ -80,4 +83,16 @@ export const teaTableScene: SceneFixture = {
         { type: 'directContents', subject: 'table1' },
         { type: 'howMany', name: 'tea' },
     ],
+    judgeSets: {
+        judge: [
+            { request: 'I want to pick up [table1].', expect: 'simple', note: "The table moves, and the glued teapot stays fixed relative to the table's frame." },
+            { request: 'I want to pick up [cup1].', expect: 'simple', avoids: ['glue'], note: 'No glue spreading to a cup on a saucer on a glued-teapot table.' },
+            { request: 'I want to put [table1] in [cup1].', expect: 'impossible', tolerate: ['obstructed'], mentions: ['fit', 'big', 'large', 'small', 'size', 'hold', 'contain'], note: 'The player is picturing a different world: the table is far larger than the cup. The sentence names the fact they missed.' },
+            { request: 'I want to pick up [teapot1].', expect: 'obstructed', tolerate: ['contingent'], mentions: ['glue'], avoids: prescribedFixes, note: 'The glue is the obstacle; no plan yet, so up to the player, with no fix prescribed.' },
+            { request: 'I want to pour tea from [teapot1].', expect: 'obstructed', tolerate: ['contingent'], mentions: ['glue'], avoids: prescribedFixes, note: 'Same obstacle, reached through another request; freeing is not the only way to pour (tip the table).' },
+            { request: 'I want to pry [teapot1] off [table1] with a screwdriver.', expect: 'contingent', tolerate: ['obstructed', 'complex'], note: 'A plan makes the glue the target (Revises, not Obstacle); the screwdriver is the unestablished detail (note 29). Graded only as not simple.' },
+            { request: 'I want to wipe [table1] with a cloth.', expect: 'contingent', tolerate: ['obstructed', 'complex'], mentions: ['cloth'], note: 'A cloth is plausible and unestablished.' },
+            { request: 'I want to slide [saucer1] across [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], note: 'Border: the cup and its tea come along; the table\'s extent is not established.' },
+        ],
+    },
 }
