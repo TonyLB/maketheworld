@@ -264,3 +264,25 @@ describe('sceneFromCache', () => {
         })
     })
 })
+
+describe('sceneFromCache: a handle seed', () => {
+    beforeEach(() => {
+        jest.spyOn(console, 'log').mockImplementation(() => {})
+        jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    const teaHandles = ({ handles }: SceneResult) => handles.filter(({ id }) => id.endsWith('Tea')).map(({ handle, id }) => [id, handle])
+
+    it('keeps the numbering as it is with no seed', async () => {
+        const fixture = sceneFixture('teaTable')
+        const cache = await buildSceneFixture(fixture)
+        expect(cache.scene({ handleSeed: [] })).toEqual(cache.scene())
+    })
+
+    it('gives a seeded thing its handle, and numbers the others around it', async () => {
+        const cache = await buildSceneFixture(sceneFixture('teaTable'))
+        expect(teaHandles(cache.scene())).toEqual([['OBJECT#CupTea', 'tea1'], ['OBJECT#PotTea', 'tea2']])
+        expect(teaHandles(cache.scene({ handleSeed: [{ handle: 'tea1', id: 'OBJECT#PotTea' }] }))).toEqual([['OBJECT#CupTea', 'tea2'], ['OBJECT#PotTea', 'tea1']])
+    })
+})

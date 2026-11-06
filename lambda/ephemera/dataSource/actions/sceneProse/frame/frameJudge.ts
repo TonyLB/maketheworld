@@ -92,10 +92,20 @@ export type JudgeLabel = typeof JUDGE_LABELS[number]
 
 export const isJudgeLabel = (value: unknown): value is JudgeLabel => JUDGE_LABELS.includes(value as JudgeLabel)
 
+export const PROPOSED_OUTCOME_FRAMING = 'Proposed outcome'
+
+/** How to read a proposal, which appears only with one: it varies per request, so it sits after the cache point, apart from the instructions. */
+export const PROPOSED_OUTCOME_EXPLANATION = 'This has been worked out for the request and checked against how the game records this place. The check covers the record only: how the action happens in the story, and whether these things could really do it, is yours to judge.'
+
+/** The block a proposal is shown in: its framing, how to read it, then what `renderProposedOutcome` gives. */
+export const proposedOutcomeBlock = ({ body, framing = PROPOSED_OUTCOME_FRAMING, explanation = PROPOSED_OUTCOME_EXPLANATION }: { body: string; framing?: string; explanation?: string }): string => (
+    `${framing}: ${explanation}\n\n${body}`
+)
+
 /**
- * The judge prompt: the fixed instructions, the scene text (which begins `Scene: `), then the request. `instructions` replaces the
- * fixed text for a probe of a draft; nothing in production passes it.
+ * The judge prompt: the fixed instructions, the scene text (which begins `Scene: `), a proposal's block if there is one, then the request,
+ * which `Mentions` needs as the last line. `instructions` replaces the fixed text for a probe of a draft; nothing in production passes it.
  */
-export const composeJudgePrompt = ({ sceneText, request, instructions = JUDGE_INSTRUCTIONS }: { sceneText: string; request: string; instructions?: string }): string => (
-    [instructions, sceneText, `Request: ${request}`].join('\n\n')
+export const composeJudgePrompt = ({ sceneText, request, instructions = JUDGE_INSTRUCTIONS, proposedOutcome }: { sceneText: string; request: string; instructions?: string; proposedOutcome?: string }): string => (
+    [instructions, sceneText, ...(proposedOutcome === undefined ? [] : [proposedOutcome]), `Request: ${request}`].join('\n\n')
 )

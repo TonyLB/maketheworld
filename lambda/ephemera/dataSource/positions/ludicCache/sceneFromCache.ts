@@ -14,7 +14,8 @@
  * of those parent lines in walk order, and each parent line refers to it (SP-9).
  *
  * **Handles** are numbered after the tree is built, in pre-order over the room's contents, then the Concepts, then the
- * held section; a thing is numbered where it is first placed (SP-1).
+ * held section; a thing is numbered where it is first placed (SP-1). A `handleSeed` keeps the handles of an earlier scene of the same place, so
+ * that a scene after a change names each thing as the scene before it did, wherever the walk now reaches it.
  *
  * **Relations** are held on their subject. A `Custom` edge that `Justifies` a `SecuredTo` is one tie (`secured`), and the
  * `SecuredTo` it supports is not repeated; `ConnectedTo` and `Justifies` give no relation of their own (SP-3). A relation
@@ -34,6 +35,7 @@ import {
     type SceneEntry,
     type SceneExit,
     type SceneHandle,
+    type SceneHandleTable,
     type SceneLocation,
     type SceneRelation,
     type SceneRelationTarget,
@@ -47,6 +49,8 @@ export type SceneOptions = {
     roomId: EphemeraRoomId
     actorId: EphemeraCharacterId
     exits?: SceneExit[]
+    /** Handles already given: each id here keeps its handle, and any other is numbered around them. */
+    handleSeed?: SceneHandleTable
 }
 
 /** The entries before handles: ids and binding keys. */
@@ -80,7 +84,7 @@ const dedupe = <T>(values: readonly T[], keyOf: (value: T) => string): T[] => va
 const coverEntryIdentity = (entry: EphemeraLudicCacheCoverEntry) => entryKey(entry) ?? entry.host
 const preorder = (entries: readonly RawEntry[]): RawEntry[] => entries.flatMap((entry) => [entry, ...preorder(entry.children)])
 
-export const sceneFromCache = (cache: EphemeraLudicCacheData, { roomId, actorId, exits = [] }: SceneOptions): SceneResult => {
+export const sceneFromCache = (cache: EphemeraLudicCacheData, { roomId, actorId, exits = [], handleSeed = [] }: SceneOptions): SceneResult => {
     const nodeById = new Map(cache.nodes.map((node) => [node.universalKey as string, node]))
     const bindings = new Map(cache.nodes.flatMap((node) => node.presenceNodes.map((binding) => [bindingKey(node.universalKey, binding.universalKey), binding] as const)))
     const placedMembers = (binding: EphemeraLudicCachePresenceNode) => binding.cover.members.filter(({ host }) => isPlaced(host))
@@ -151,9 +155,16 @@ export const sceneFromCache = (cache: EphemeraLudicCacheData, { roomId, actorId,
     // Handles, numbered in pre-order: contents, then Concepts, then held (SP-1).
     const walked = [...preorder(contents), ...preorder(held)]
     const order = dedupe([...preorder(contents).map(({ id }) => id), ...concepts, ...preorder(held).map(({ id }) => id)], (id) => id)
+    const seeded = new Map(handleSeed.map(({ handle, id }) => [id, handle]))
+    const seededHandles = new Set(handleSeed.map(({ handle }) => handle))
+    const freeCounter = (slug: string, counter: number): number => seededHandles.has(sceneHandle(slug, counter)) ? freeCounter(slug, counter + 1) : counter
     const handleById = order.reduce(({ handles, counters }, id) => {
+        const seed = seeded.get(id)
+        if (seed !== undefined) {
+            return { handles: new Map(handles).set(id, seed), counters }
+        }
         const slug = sceneSlug(nodeById.get(id)?.shortName, thingKindOf(id))
-        const counter = (counters.get(slug) ?? 0) + 1
+        const counter = freeCounter(slug, (counters.get(slug) ?? 0) + 1)
         return { handles: new Map(handles).set(id, sceneHandle(slug, counter)), counters: new Map(counters).set(slug, counter) }
     }, { handles: new Map<string, SceneHandle>(), counters: new Map<string, number>() }).handles
     const handleOf = (id: string): SceneHandle => handleById.get(id) as SceneHandle

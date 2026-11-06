@@ -10,14 +10,24 @@ import { sceneListLines } from './renderSceneTree'
 import { judgeRulesLines, withoutSecuredMark } from './sceneRules'
 import { heading } from './sceneWording'
 
-export const renderSceneJudge = (scene: SceneModel): string => {
+/** The three views of the place, each with its own label; `rules` is absent for a scene with no securing. */
+export const judgeSceneSections = (scene: SceneModel): { fiction: string; graph: string; rules?: string } => {
     const plain = withoutSecuredMark(scene)
     const rules = judgeRulesLines(scene)
+    return {
+        fiction: ['Fiction:', ...placeLines(plain).slice(1)].join('\n'),
+        graph: ['Graph:', '```', ...sceneListLines(plain, '  ', 'subjected'), '```'].join('\n'),
+        ...(rules.length === 0 ? {} : { rules: rules.join('\n') }),
+    }
+}
+
+export const renderSceneJudge = (scene: SceneModel): string => {
+    const { fiction, graph, rules } = judgeSceneSections(scene)
     return [
         `Scene: ${heading(scene)}`,
-        ['Fiction:', ...placeLines(plain).slice(1)].join('\n'),
-        ['Graph:', '```', ...sceneListLines(plain, '  ', 'subjected'), '```'].join('\n'),
-        ...(rules.length === 0 ? [] : [rules.join('\n')]),
+        fiction,
+        graph,
+        ...(rules === undefined ? [] : [rules]),
         'End of scene.',
     ].join('\n\n')
 }

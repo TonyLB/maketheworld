@@ -121,6 +121,7 @@ const expected: Record<string, (SceneAnswer | undefined)[]> = {
         handles('saucer1', 'teapot1'),
         { count: 2 },
     ],
+    teaTableCupOnFloor: [{ count: 2 }],
 }
 
 describe('scene fixtures', () => {

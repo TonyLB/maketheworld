@@ -1,5 +1,5 @@
 import { buildSceneFixture, sceneFixture } from '../../positions/ludicCache/sceneFixtures'
-import { composeJudgePrompt, JUDGE_INSTRUCTIONS } from './frame'
+import { composeJudgePrompt, JUDGE_INSTRUCTIONS, proposedOutcomeBlock, PROPOSED_OUTCOME_EXPLANATION } from './frame'
 import { renderScene } from '.'
 
 /** The scene part of the agreed judge prompt, for `teaTable`. Written out once from the render and read through by hand. */
@@ -50,6 +50,16 @@ describe('judge prompt', () => {
         const prompt = composeJudgePrompt({ sceneText: judgeTeaTableGolden, request: 'I want to pick up [table1].' })
         expect(prompt).toBe([JUDGE_INSTRUCTIONS, judgeTeaTableGolden, 'Request: I want to pick up [table1].'].join('\n\n'))
         expect(prompt.endsWith('\n\nRequest: I want to pick up [table1].')).toBe(true)
+    })
+
+    it('puts a proposal between the scene and the request, and leaves the instructions alone', () => {
+        const prompt = composeJudgePrompt({ sceneText: judgeTeaTableGolden, request: 'I want to pick up [table1].', proposedOutcome: 'BLOCK' })
+        expect(prompt).toBe([JUDGE_INSTRUCTIONS, judgeTeaTableGolden, 'BLOCK', 'Request: I want to pick up [table1].'].join('\n\n'))
+    })
+
+    it('frames a proposal with how to read it, each of which a probe can replace', () => {
+        expect(proposedOutcomeBlock({ body: 'BODY' })).toBe(`Proposed outcome: ${PROPOSED_OUTCOME_EXPLANATION}\n\nBODY`)
+        expect(proposedOutcomeBlock({ body: 'BODY', framing: 'A plan', explanation: 'Read it.' })).toBe('A plan: Read it.\n\nBODY')
     })
 
     it('holds nothing variable in the instructions, and puts them before the scene', () => {

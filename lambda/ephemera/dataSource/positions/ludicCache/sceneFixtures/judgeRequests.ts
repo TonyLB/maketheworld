@@ -5,6 +5,7 @@
  * recovery). `mentions` and `avoids` are reading aids, not verdicts: lexical, so the reader decides what they flag.
  */
 import type { JudgeLabel } from '../../../actions/sceneProse/frame'
+import type { ProposedMove } from '../../manipulation/proposedMoves'
 
 export type JudgeRequest = {
     /** In the player's words, naming things by handle: `I want to pick up [table1].` */
@@ -16,6 +17,11 @@ export type JudgeRequest = {
     mentions?: readonly string[]
     /** Reading aid: the obstacle line and answer sentence should contain none of these, e.g. a prescribed fix. */
     avoids?: readonly string[]
+    /**
+     * The moves a proposal for this request would make; empty when they change nothing recorded. Absent means no proposal, which leaves the
+     * prompt as it is with the probe's `proposedOutcome` on: the judge is then reasoning with no plan to read, as under a future planner.
+     */
+    proposal?: readonly ProposedMove[]
     /** Why the request is in the set. */
     note?: string
 }

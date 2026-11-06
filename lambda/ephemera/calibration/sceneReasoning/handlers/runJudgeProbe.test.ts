@@ -1,7 +1,13 @@
-import { sceneFixture } from '../../../dataSource/positions/ludicCache/sceneFixtures'
+import * as sceneFixtures from '../../../dataSource/positions/ludicCache/sceneFixtures'
 import { JUDGE_INSTRUCTIONS, JUDGE_RECAP } from '../../../dataSource/actions/sceneProse/frame'
 import type { ProbeInvoke } from '../runSceneReasoningProbe'
 import { handleJudgeProbe } from './runJudgeProbe'
+
+jest.mock('../../../dataSource/positions/ludicCache/sceneFixtures', () => {
+    const actual = jest.requireActual('../../../dataSource/positions/ludicCache/sceneFixtures')
+    return { ...actual, sceneFixture: jest.fn(actual.sceneFixture) }
+})
+const { sceneFixture } = sceneFixtures
 
 const reply = (label: string) => [
     'Picture: The teapot is stuck.', 'Obstacle: [teapot1] is glued to [table1].', 'Needs: nothing', 'Revises (if it happens): nothing', `Answer: ${label} glue.`,
@@ -95,6 +101,89 @@ describe('handleJudgeProbe', () => {
     ])('refuses %j before any call', async (event) => {
         const invoke = invokeWith('simple')
         const response = await handleJudgeProbe({ type: 'JudgeProbe', ...event }, { invoke })
+        expect(response.statusCode).toBe(400)
+        expect(invoke).not.toHaveBeenCalled()
+    })
+})
+
+describe('handleJudgeProbe: proposed outcomes', () => {
+    const fixture = jest.requireActual('../../../dataSource/positions/ludicCache/sceneFixtures').sceneFixture('teaTable') as sceneFixtures.SceneFixture
+    const set = fixture.judgeSets!.judge
+    const TEAPOT = 3
+    const POUR = 4
+    const CUP = 1
+
+    beforeEach(() => {
+        jest.spyOn(console, 'log').mockImplementation(() => {})
+        jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    it('leaves the response and prompt as they are with the flag off', async () => {
+        const invoke = invokeWith('simple')
+        const result = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [POUR] }, { invoke }))
+        expect(result).not.toHaveProperty('proposedOutcome')
+        expect(promptOf(invoke, 0)).not.toContain('Proposed outcome')
+    })
+
+    it('asks a request with no proposal the same prompt with the flag on as with it off', async () => {
+        const off = invokeWith('obstructed')
+        const on = invokeWith('obstructed')
+        await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [TEAPOT] }, { invoke: off })
+        const result = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [TEAPOT], proposedOutcome: {} }, { invoke: on }))
+        expect(promptOf(on, 0)).toBe(promptOf(off, 0))
+        expect(result.proposedOutcome.requests).toEqual([{ request: TEAPOT, status: 'none' }])
+    })
+
+    it('shows a proposal after the scene and before the request, and reports what it showed', async () => {
+        const invoke = invokeWith('obstructed')
+        const result = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [POUR], proposedOutcome: {} }, { invoke }))
+        const prompt = promptOf(invoke, 0)
+        const [shown] = result.proposedOutcome.requests
+        expect(shown).toMatchObject({ request: POUR, status: 'shown' })
+        expect(shown.hash).toHaveLength(8)
+        expect(prompt).toContain(`End of scene.\n\n${shown.text}\n\nRequest: ${set[POUR].request}`)
+        expect(shown.text).toContain('In [cup1] there are [tea1] Tea and [tea2] Tea.')
+        expect(result.instructions.overridden).toBe(false)
+    })
+
+    it('names things as the scene above it does, though the walk reaches them in another order', async () => {
+        const result = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [CUP], proposedOutcome: {} }, { invoke: invokeWith('simple') }))
+        const [{ text }] = result.proposedOutcome.requests
+        expect(text).toContain('In [cup1] there is [tea1] Tea.')
+        expect(text).toContain('In [teapot1] there is [tea2] Tea.')
+    })
+
+    it('takes the form, the framing and the explanation per probe', async () => {
+        const invoke = invokeWith('obstructed')
+        const result = body(await handleJudgeProbe({
+            type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [POUR],
+            proposedOutcome: { form: 'moves', framing: 'A plan', explanation: 'Read it.' },
+        }, { invoke }))
+        const [{ text }] = result.proposedOutcome.requests
+        expect(text).toBe('A plan: Read it.\n\nMoves:\n- [tea2] moves from [teapot1] into [cup1].')
+        expect(result.proposedOutcome).toMatchObject({ form: 'moves', framing: 'A plan', explanation: { overridden: true } })
+    })
+
+    it('makes no call for a proposal the dry run refuses, and says why', async () => {
+        const refused = { ...fixture, judgeSets: { judge: set.map((request, index) => index === TEAPOT ? { ...request, proposal: [{ moved: 'OBJECT#Teapot', from: 'OBJECT#Table', to: 'CHARACTER#Actor' }] } : request) } } as sceneFixtures.SceneFixture
+        ;(sceneFixture as jest.Mock).mockReturnValueOnce(refused)
+        const invoke = invokeWith('obstructed')
+        const result = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [TEAPOT, POUR], proposedOutcome: {} }, { invoke }))
+        expect(invoke).toHaveBeenCalledTimes(1)
+        expect(result.read.map(({ request }: { request: number }) => request)).toEqual([POUR])
+        expect(result.proposedOutcome.requests[0]).toEqual({ request: TEAPOT, status: 'refused', reason: 'securedToBlocksMove' })
+    })
+
+    it.each([
+        [true],
+        [{ form: 'prose' }],
+        [{ after: 'graph' }],
+        [{ framing: '' }],
+        [{ explanation: '' }],
+    ])('refuses %j before any call', async (proposedOutcome) => {
+        const invoke = invokeWith('obstructed')
+        const response = await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [POUR], proposedOutcome }, { invoke })
         expect(response.statusCode).toBe(400)
         expect(invoke).not.toHaveBeenCalled()
     })
