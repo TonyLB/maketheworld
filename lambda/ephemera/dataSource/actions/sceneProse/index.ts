@@ -4,16 +4,17 @@
  * host) were retired 2026-11-03 (user) after the SP-10 comparison under `twoRegisters`. `registers`, `affordance` and
  * `examples` (SP-10, Slice 5) are the multi-register renders of `renderSceneRegisters.ts`: one function, two switches. `rulesD` and
  * `rules` are D and `registers` with the `secured` mark moved to a Rules section (`sceneRules.ts`, 2026-11-04) and each row's relations naming their subject, compared because neither base is settled for it.
- * `rulesAction` is a temporary branch of `rules`: the rule as what each move does.
+ * `rulesAction` is a temporary branch of `rules`: the rule as what each move does. `judge` is the judge prompt's scene (`renderSceneJudge.ts`).
  */
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
 import { renderSceneRegisters } from './renderSceneRegisters'
 import { renderSceneD } from './renderSceneTree'
+import { renderSceneJudge } from './renderSceneJudge'
 import { rulesLines, withoutSecuredMark } from './sceneRules'
 
-export type SceneFormat = 'D' | 'registers' | 'affordance' | 'examples' | 'rulesD' | 'rules' | 'rulesAction'
+export type SceneFormat = 'D' | 'registers' | 'affordance' | 'examples' | 'rulesD' | 'rules' | 'rulesAction' | 'judge'
 
-export const sceneFormats: readonly SceneFormat[] = ['D', 'registers', 'affordance', 'examples', 'rulesD', 'rules', 'rulesAction']
+export const sceneFormats: readonly SceneFormat[] = ['D', 'registers', 'affordance', 'examples', 'rulesD', 'rules', 'rulesAction', 'judge']
 
 /** The formats a probe runs when none are named: D, the provisional render. The SP-10 renders must be named. */
 export const defaultSceneFormats: readonly SceneFormat[] = ['D']
@@ -34,5 +35,6 @@ export const renderScene = (scene: SceneModel, format: SceneFormat = 'D'): strin
         case 'rulesD': return withRules(renderSceneD(withoutSecuredMark(scene), 'subjected'), scene)
         case 'rules': return withRules(rulesBase(scene), scene)
         case 'rulesAction': return withRules(rulesBase(scene), scene, 'action')
+        case 'judge': return renderSceneJudge(scene)
     }
 }

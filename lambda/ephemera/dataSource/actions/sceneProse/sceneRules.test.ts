@@ -1,5 +1,5 @@
 import type { SceneModel, SceneRelation } from '../../positions/ludicCache/sceneModel'
-import { rulesLines } from './sceneRules'
+import { judgeRulesLines, rulesLines } from './sceneRules'
 
 const entry = (handle: string, children: SceneModel['contents'] = []) => ({
     kind: 'line', handle, hostingKind: 'On', first: true, elsewhere: [], joins: [], children,
@@ -35,5 +35,42 @@ describe('rulesLines', () => {
         const unsecured: SceneRelation = { kind: 'Custom', label: 'leaning against', target: { kind: 'thing', handle: 'post1' }, secured: false }
         expect(rulesLines(sceneOf([entry('boat1'), entry('post1')], { boat1: [unsecured] }))).toEqual([])
         expect(rulesLines(sceneOf([], {}))).toEqual([])
+    })
+})
+
+describe('judgeRulesLines', () => {
+    const contents = [entry('table1', [entry('teapot1')])]
+
+    it('states the hosted rule as an invariant under a handle, whichever end the securing is held on', () => {
+        const rule = "- teapot-secured-to-table: [teapot1] stays fixed relative to [table1]'s frame. When [table1]'s frame moves, [teapot1] travels along with [table1]."
+        expect(judgeRulesLines(sceneOf(contents, { teapot1: [glued('table1')] }))).toEqual(['Rules:', rule])
+        expect(judgeRulesLines(sceneOf(contents, { table1: [glued('teapot1')] }))).toEqual(['Rules:', rule])
+    })
+
+    it('words the rule the same for a child hosted In', () => {
+        const inside = [{ ...entry('box1', [{ ...entry('coin1'), hostingKind: 'In' }]) }] as SceneModel['contents']
+        expect(judgeRulesLines(sceneOf(inside, { coin1: [glued('box1')] }))[1]).toContain("- coin-secured-to-box: [coin1] stays fixed relative to [box1]'s frame.")
+    })
+
+    it('binds a pair neither of which hosts the other, and a thing secured to what is not shown', () => {
+        expect(judgeRulesLines(sceneOf([entry('boat1'), entry('post1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'thing', handle: 'post1' } }] }))[1])
+            .toBe('- boat-secured-to-post: [boat1] and [post1] stay fixed relative to each other.')
+        expect(judgeRulesLines(sceneOf([entry('boat1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'notShown' } }] }))[1])
+            .toBe('- boat-secured: [boat1] stays fixed relative to what [boat1] is secured to.')
+    })
+
+    it('keeps rule handles distinct when two things share a stem', () => {
+        const pots = [entry('table1', [entry('teapot1'), entry('teapot2')])]
+        expect(judgeRulesLines(sceneOf(pots, { teapot1: [glued('table1')], teapot2: [glued('table1')] })).slice(1).map((line) => line.split(':')[0]))
+            .toEqual(['- teapot1-secured-to-table1', '- teapot2-secured-to-table1'])
+    })
+
+    it('has no section without a securing, and says no "until" anywhere', () => {
+        expect(judgeRulesLines(sceneOf([], {}))).toEqual([])
+        expect(judgeRulesLines(sceneOf(contents, { teapot1: [glued('table1')] })).join('\n')).not.toContain('until')
+    })
+
+    it('leaves the control rules as they were', () => {
+        expect(rulesLines(sceneOf(contents, { teapot1: [glued('table1')] }), 'action')[1]).toContain('until [teapot1] is freed')
     })
 })

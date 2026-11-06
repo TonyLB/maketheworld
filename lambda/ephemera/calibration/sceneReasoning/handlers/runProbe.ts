@@ -4,7 +4,7 @@ import { buildSceneFixture, sceneFixture, sceneFixtureNames, type SceneQuestion 
 import type { SceneModel } from '../../../dataSource/positions/ludicCache/sceneModel'
 import { defaultSceneFormats, isSceneFormat, sceneFormats, type SceneFormat } from '../../../dataSource/actions/sceneProse'
 import { getActorCache } from '../../../dataSource/actions/actorObjectCatalog'
-import { answerFormats, defaultAnswerFormat, isAnswerFormat, isTriageLabel, type AnswerFormat } from '../../../dataSource/actions/sceneProse/frame'
+import { answerFormats, defaultAnswerFormat, isAnswerFormat, isJudgeLabel, isTriageLabel, type AnswerFormat } from '../../../dataSource/actions/sceneProse/frame'
 import { questionText } from '../sceneReasoningPrompt'
 import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
 import { PROBE_CALL_CAP, runSceneReasoningProbe, type ProbeCallResult, type ProbeInvoke } from '../runSceneReasoningProbe'
@@ -13,7 +13,7 @@ export type SceneReasoningProbeEvent = {
     type: 'SceneReasoningProbe'
     scene?: { fixture?: unknown; characterId?: unknown }
     formats?: unknown
-    /** How `open` questions are asked to answer (`abstain`, `twoRegisters`, `triageLabel`, `triageReason`, `triageWhyImpossible`, `triageLegacy`); default `twoRegisters`. */
+    /** How `open` questions are asked to answer (`abstain`, `twoRegisters`, `triageLabel`, `triageReason`, `triageWhyImpossible`, `triageLegacy`, `judge`); default `twoRegisters`. */
     answerFormats?: unknown
     questions?: unknown
     repeats?: unknown
@@ -56,7 +56,7 @@ const isQuestion = (value: unknown): value is SceneQuestion => {
         && Object.prototype.hasOwnProperty.call(QUESTION_FIELDS, type)
         && QUESTION_FIELDS[type as SceneQuestion['type']].every((field) => typeof (value as Record<string, unknown>)[field] === 'string')
         && OPTIONAL_STRING_FIELDS.every((field) => (value as Record<string, unknown>)[field] === undefined || typeof (value as Record<string, unknown>)[field] === 'string')
-        && ((value as Record<string, unknown>).triage === undefined || isTriageLabel((value as Record<string, unknown>).triage))
+        && ((value as Record<string, unknown>).triage === undefined || isTriageLabel((value as Record<string, unknown>).triage) || isJudgeLabel((value as Record<string, unknown>).triage))
 }
 
 const refuse = (error: string) => calibrationJsonResponse(400, { error })

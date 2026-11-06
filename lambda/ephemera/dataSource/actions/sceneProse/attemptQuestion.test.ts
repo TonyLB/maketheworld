@@ -59,6 +59,11 @@ describe('attemptQuestion', () => {
             expect(result).toEqual({ kind: 'question', text: 'I want to: shove [cup1] onto [tray1].\nCould I?' })
         })
 
+        it('words a judge request as a sentence for Request, with no closing question', () => {
+            const result = attemptQuestion(attempt('shove the cup onto the tray', new PositionAttemptAction('a1', [], put(cup, tray), 'Put cup on tray')), table, putSkeleton, 'judge')
+            expect(result).toEqual({ kind: 'question', text: 'I want to shove [cup1] onto [tray1].' })
+        })
+
         it('keeps the description and handle clause for a facilitating action, which has no words', () => {
             const result = attemptQuestion(attempt(
                 'shove the cup onto the tray',

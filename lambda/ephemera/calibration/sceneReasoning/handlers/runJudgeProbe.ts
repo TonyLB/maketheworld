@@ -1,0 +1,106 @@
+import { calibrationJsonResponse } from '../../calibrationResponse'
+import { buildSceneFixture, sceneFixture, sceneFixtureNames } from '../../../dataSource/positions/ludicCache/sceneFixtures'
+import { renderScene } from '../../../dataSource/actions/sceneProse'
+import { JUDGE_INSTRUCTIONS } from '../../../dataSource/actions/sceneProse/frame'
+import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
+import { PROBE_CALL_CAP, PROBE_TEMPERATURE, type ProbeInvoke } from '../runSceneReasoningProbe'
+import { runJudgeProbe, textHash } from '../runJudgeProbe'
+import { judgeReplySteps, summarizeJudge } from '../judgeGrade'
+
+export type JudgeProbeEvent = {
+    type: 'JudgeProbe'
+    scene?: { fixture?: unknown }
+    /** The fixture's request set; default `judge`. */
+    set?: unknown
+    /** Indices into the set to ask, in place of all of it (to fit the cap, or to rerun the ones that failed). */
+    only?: unknown
+    repeats?: unknown
+    model?: unknown
+    /** A draft of the judge's instructions, for this invoke only: the deployed text is untouched. */
+    instructions?: unknown
+    /** A draft of the scene text, in place of the render, for this invoke only: with `instructions`, the whole prompt but its `Request` line. */
+    sceneText?: unknown
+}
+
+export type JudgeProbeDeps = { invoke?: ProbeInvoke }
+
+/** The longest draft accepted of either text: the deployed instructions are about 5,000 characters. */
+const MAX_DRAFT_CHARS = 20_000
+
+const isDraftText = (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0 && text.length <= MAX_DRAFT_CHARS
+
+const refuse = (error: string) => calibrationJsonResponse(400, { error })
+
+/**
+ * The judge prompt against a fixture's request set: one Bedrock call per (request, repeat), graded by label, with the tally and
+ * every reply returned. Every refusal happens before the first call.
+ */
+export async function handleJudgeProbe(event: JudgeProbeEvent, deps: JudgeProbeDeps = {}) {
+    const fixtureName = event.scene?.fixture
+    if (typeof fixtureName !== 'string' || !sceneFixtureNames.includes(fixtureName)) {
+        return refuse(`scene must be { "fixture": name } with name one of: ${sceneFixtureNames.join(', ')}`)
+    }
+    const fixture = sceneFixture(fixtureName)
+    const setName = event.set === undefined ? 'judge' : event.set
+    const sets = fixture.judgeSets ?? {}
+    if (typeof setName !== 'string' || sets[setName] === undefined) {
+        return refuse(`fixture ${fixtureName} has no request set ${JSON.stringify(setName)}; it has: ${Object.keys(sets).join(', ') || '(none)'}`)
+    }
+    const set = sets[setName]
+
+    let indices = set.map((_, index) => index)
+    if (event.only !== undefined) {
+        if (!Array.isArray(event.only) || event.only.length === 0 || !event.only.every((index) => Number.isInteger(index) && index >= 0 && index < set.length)) {
+            return refuse(`only must be a non-empty list of indices from 0 to ${set.length - 1}`)
+        }
+        indices = [...new Set<number>(event.only)]
+    }
+    const repeats = event.repeats === undefined ? 1 : event.repeats
+    if (typeof repeats !== 'number' || !Number.isInteger(repeats) || repeats < 1) {
+        return refuse('repeats must be an integer of at least 1')
+    }
+    if (indices.length * repeats > PROBE_CALL_CAP) {
+        return refuse(`${indices.length} requests x ${repeats} repeats = ${indices.length * repeats} calls, over the cap of ${PROBE_CALL_CAP}; trim requests (only) or repeats`)
+    }
+    const model: NovaModel = event.model === undefined ? 'NovaMicro' : event.model as NovaModel
+    if (!isNovaModel(model)) {
+        return refuse('model must be a NovaModel (NovaMicro or Nova2Lite)')
+    }
+    if (event.instructions !== undefined && !isDraftText(event.instructions)) {
+        return refuse(`instructions must be a non-empty string of at most ${MAX_DRAFT_CHARS} characters`)
+    }
+    const instructions = event.instructions ?? JUDGE_INSTRUCTIONS
+    if (judgeReplySteps(instructions).slice(-1)[0] !== 'answer') {
+        return refuse('instructions must number the steps of the reply, ending in Answer, for the reply to be graded')
+    }
+    if (event.sceneText !== undefined && !isDraftText(event.sceneText)) {
+        return refuse(`sceneText must be a non-empty string of at most ${MAX_DRAFT_CHARS} characters`)
+    }
+    if (event.sceneText !== undefined) {
+        const draftScene = event.sceneText
+        const absent = indices.flatMap((index) => set[index].request.match(/\[[^\]]+\]/g) ?? []).filter((handle) => !draftScene.includes(handle))
+        if (absent.length > 0) {
+            return refuse(`sceneText does not name what the requests ask about: ${[...new Set(absent)].join(', ')}`)
+        }
+    }
+    const sceneText = event.sceneText ?? renderScene((await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene, 'judge')
+    const calls = await runJudgeProbe({
+        sceneText,
+        requests: indices.map((index) => ({ index, request: set[index] })),
+        repeats,
+        model,
+        instructions,
+        ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
+    })
+    return calibrationJsonResponse(200, {
+        model,
+        temperature: PROBE_TEMPERATURE,
+        fixture: fixtureName,
+        set: setName,
+        repeats,
+        instructions: { hash: textHash(instructions), chars: instructions.length, overridden: event.instructions !== undefined },
+        sceneText: { hash: textHash(sceneText), chars: sceneText.length, overridden: event.sceneText !== undefined },
+        summary: summarizeJudge(set, calls),
+        read: calls,
+    })
+}

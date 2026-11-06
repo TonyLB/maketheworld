@@ -30,6 +30,7 @@ import { teaTableScene } from './teaTable'
 import type { SceneFixture, SceneFixtureNames } from './worldBuilders'
 
 export type { SceneFixture } from './worldBuilders'
+export type { JudgeRequest } from './judgeRequests'
 export { expectedAnswer, type SceneAnswer, type SceneQuestion } from './questions'
 
 /** Every fixture, in corpus order, then the ones Slice 1 added, then Slice 3's. */
