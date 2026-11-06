@@ -85,7 +85,7 @@ export const teaTableScene: SceneFixture = {
     ],
     judgeSets: {
         judge: [
-            { request: 'I want to pick up [table1].', expect: 'simple', note: "The table moves, and the glued teapot stays fixed relative to the table's frame." },
+            { request: 'I want to pick up [table1].', expect: 'simple', tolerate: ['complex'], note: "The table moves, and the glued teapot stays fixed relative to the table's frame. `complex` fails safe, and that division waits for a planner." },
             { request: 'I want to pick up [cup1].', expect: 'simple', avoids: ['glue'], note: 'No glue spreading to a cup on a saucer on a glued-teapot table.' },
             { request: 'I want to put [table1] in [cup1].', expect: 'impossible', tolerate: ['obstructed'], mentions: ['fit', 'big', 'large', 'small', 'size', 'hold', 'contain'], note: 'The player is picturing a different world: the table is far larger than the cup. The sentence names the fact they missed.' },
             { request: 'I want to pick up [teapot1].', expect: 'obstructed', tolerate: ['contingent'], mentions: ['glue'], avoids: prescribedFixes, note: 'The glue is the obstacle; no plan yet, so up to the player, with no fix prescribed.' },

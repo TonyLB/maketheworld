@@ -15,4 +15,4 @@ export { answerFormats, defaultAnswerFormat, isAnswerFormat, isTriageLabel, OPEN
 
 /** The grounding as the probe has used it: reading, the fiction's precedence and ladder, then the graph's `MOVING`. */
 export const GROUNDING = composeFrame({ reading: READING, fiction: [PRECEDENCE, LADDER].join('\n\n'), graph: MOVING })
-export { composeJudgePrompt, IMPROVISING, isJudgeLabel, JUDGE_INSTRUCTIONS, JUDGE_LABELS, JUDGE_ROLE, JUDGE_TASK, READING_PLAYER_INTENT, READING_THE_SCENE, type JudgeLabel } from './frameJudge'
+export { composeJudgePrompt, IMPROVISING, isJudgeLabel, JUDGE_INSTRUCTIONS, JUDGE_LABELS, JUDGE_RECAP, JUDGE_ROLE, JUDGE_TASK, READING_PLAYER_INTENT, READING_THE_SCENE, withJudgeRecap, type JudgeLabel } from './frameJudge'

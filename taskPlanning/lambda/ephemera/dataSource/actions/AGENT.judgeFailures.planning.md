@@ -1,21 +1,21 @@
 # Judge prompt: known failures beyond the v28 baseline
 
-**Status (2026-11-06):** [v41](judgeFailureDrafts/v41.txt) is the draft to beat: it fixes Failures 1 and 2 against v28 on `teaTable`, with no new wrong `simple`. v28 is still what's built. The rebuild waits on [v43](judgeFailureDrafts/v43.txt), which decides what gets built, and on `tavern`, which no draft since v28 has run. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
+**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left, and Slice 2 is next. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is a small, ephemeral plan: delete it and [`judgeFailureDrafts/`](judgeFailureDrafts/) when the failures below are fixed or knowingly left, and their lasting findings have moved to the [scene projection plan](AGENT.sceneProjection.planning.md). If it gets too crowded, spin sub-plans off in response (user, 2026-11-05).
 
 ## Goal
 
-Improve the triage judge's prompt in steps from a baseline that already works better than what came before it. A plan now retired rewrote the prompt and measured it: [v28](judgeFailureDrafts/v28.txt) freed the table in `teaTable`, the failure that plan was opened for, without losing a pass. It is still what's built. [v41](judgeFailureDrafts/v41.txt) is now the draft to beat (user, 2026-11-06), not yet built. No draft has to solve everything.
+Improve the triage judge's prompt in steps from a baseline that already works better than what came before it. A plan now retired rewrote the prompt and measured it: [v28](judgeFailureDrafts/v28.txt) freed the table in `teaTable`, the failure that plan was opened for, without losing a pass. [v45](judgeFailureDrafts/v45.txt) has replaced it, and is built and the draft to beat (user, 2026-11-06). No draft has to solve everything.
 
 The failures share one prompt and interact, so they share this plan: an edit for one can move another, and every candidate is measured against the same requests.
 
 ## Getting Started
 
-1. Read the draft to beat as a whole, [v41](judgeFailureDrafts/v41.txt), then [how the fix was found](#how-the-fix-was-found-v29-to-v38). What's built is still [v28](judgeFailureDrafts/v28.txt), in [`frameJudge.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/frame/frameJudge.ts) and `judgeRulesLines` in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts).
+1. Read the draft to beat as a whole, [v45](judgeFailureDrafts/v45.txt), then [how the fix was found](#how-the-fix-was-found-v29-to-v38). The built form is [`frameJudge.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/frame/frameJudge.ts) and `judgeRulesLines` in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts).
 2. Read [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan): M28 to M30 for how v28 came about and which of its wording is whose, and [Settled](#settled) for decisions a fix must not undo.
 3. Read the Judge probe subsection of [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md): the `JudgeProbe` event, and how `instructions` and `sceneText` probe a draft without a build.
-4. Baseline, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4413 passed, 9 skipped, and `npx tsc --noEmit </dev/null`. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md).
+4. Baseline, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4416 passed, 9 skipped, and `npx tsc --noEmit </dev/null`. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md).
 
 ## How we work
 
@@ -36,11 +36,20 @@ Mine, accepted by the user (2026-11-06, was JF-1). A candidate replaces the draf
 
 Grade by what an error costs (was JP-13, under [Settled](#settled)): a wrong `simple` has no recovery, and a repeated false refusal is a failure. Other disagreement among the labels is tolerated. Two repeats show only strong effects, so read the replies as well as the tally.
 
-## Draft to beat: v41 on Nova Micro
+## Draft to beat: v45 on Nova Micro
 
-2026-11-06, 18 calls on `teaTable`: 13 pass, 3 border, 2 failure, counting `complex` on the table as a border, which the fixture will tolerate after the rebuild. The two failures are pour's known wrong `simple` and one truncated reply on pry. Reply by reply [under Failure 1](#failure-1-a-named-object-the-scene-does-not-establish). `tavern` has not been run, and `Recap` is still in the draft.
+[v45](judgeFailureDrafts/v45.txt), 2026-11-06, 21 calls on `teaTable`: 18 pass, 1 border (`complex` on the table, now tolerated), 2 wrong `simple`: teapot's and pour's known one. Reply by reply and against v44 [under Failure 1](#v39-onward). Built, and accepted by the user over a further teapot comparison: an improvement with important work left. `development: true` on a `JudgeProbe` adds the recap to it.
 
-## Baseline: v28 on Nova Micro
+`tavern`, on the deployed build (instructions hash `22e97265`, the same as the probed draft), 2 repeats each, 8 calls: 6 pass, 2 border, no wrong `simple`, against v28's 7 pass, 1 failure.
+
+| Request | Expected | v28 | v45 | Standing |
+| --- | --- | --- | --- | --- |
+| Pick up `[table1]` (a long oak trestle) | `simple` | `impossible`, `simple` | `complex` ×2 | Border, [Question 1](#question-1-a-feat-the-labels-cannot-name) |
+| Pick up `[cup1]` | `simple` | `simple` ×2 | `simple` ×2 | Pass |
+| Pick up `[candle1]` | `simple` | `simple` ×2 | `simple` ×2 | Pass |
+| Put `[hammer1]` on `[table1]` | `simple` | `simple` ×2 | `simple` ×2 | Pass |
+
+## The earlier baseline: v28 on Nova Micro
 
 2026-11-05, 2 repeats each, 16 calls: 10 pass, 2 border, 4 failure, with 3 wrong `simple` from 2 distinct causes. Probed through the overrides; the built prompt is byte-identical to that text.
 
@@ -103,9 +112,9 @@ What carries:
 Still open from these drafts:
 
 - **Departs from [Settled](#settled):** under JP-13 and `Improvising`, how sure the judge is makes no difference and a suggestion goes to `contingent`. Here a plausible improvised `Class` goes to `obstructed`. My reading is that this doesn't reopen JP-13's point, since `Class` is about having nothing specific to suggest and not about sureness. Fits note 29: a `Class` need with nothing specified is a player with no plan yet. No fixture measures it yet ([Supporting work](#supporting-work)).
-- **`Improvising` (mine):** it offers a farmhouse's roof as a detail to suggest, which a deduction from "farmhouse" could equally establish, the same shape as the teapot's lid. Settle before any rebuild that keeps the deduction sentence.
-- **The "End of scene." marker** closes `sceneText` in every draft since v34 (mine, the user agreed). It goes in the scene renderer at the rebuild. A renamed or fenced `Request:` line would need a deploy.
-- **`Mentioned`/`Improvised`:** no test reads it, and it has flipped with no change to its own wording (`Improvised` 4 of 4 on v37, `Mentioned` 4 of 4 on v38). A candidate for removal, as its own change.
+- **`Improvising` (mine):** it offers a farmhouse's roof as a detail to suggest, which a deduction from "farmhouse" could equally establish, the same shape as the teapot's lid. Not settled at the v45 rebuild, which kept both as they were. Still to settle.
+- **The "End of scene." marker** closes `sceneText` in every draft since v34 (mine, the user agreed), and is now in the scene renderer. A renamed or fenced `Request:` line would need a code change.
+- **`Mentioned`/`Improvised`:** no test reads it, and it has flipped with no change to its own wording (`Improvised` 4 of 4 on v37, `Mentioned` 4 of 4 on v38). See [v45](judgeFailureDrafts/v45.txt).
 
 #### v39 onward
 
@@ -144,10 +153,58 @@ Pry still names the glue under `Obstacle` where note 29 wants "nothing", and `ob
 
 **[v43](judgeFailureDrafts/v43.txt) (2026-11-06):** v42 without "write only", to separate those causes. Probe teapot, pour and wipe, 3 repeats, 9 calls. Pour is there for the user's question of whether terseness is removing a tilt: on v41 and v42 no reply had one to remove. v41's longer `Picture` traces the tea ("from inside the teapot to the cup") and v42's drops that sentence, and neither moves the teapot, as on v28. If `Picture` recovers, "write only" was the cause, and the echo needs another answer, such as a higher token limit. If it stays terse, `Recap` is the likelier cause, with "n/a" less likely but not ruled out for terseness, which would change the development flag's premise: the recap would be doing work, not only reporting. 
 
-To go in with the rebuild, if a candidate replaces v28: the `teaTable` table's `tolerate: ['complex']`, `confusing` in `JUDGE_LABELS`, and the development flag. The flag (the user's idea; the shape is mine, not yet confirmed): the recap sentence becomes its own constant, off by default, and a `development: true` on the `JudgeProbe` event appends it to whatever instructions the probe uses, built or draft, so it switches per probe with no deploy and no second copy of a draft. A result with the flag on is for diagnosis, not scoring, since prompt text elsewhere has been seen to change earlier lines, and its longer reply may hit the 512 token limit, which the flag could raise.
+**v43 on Nova Micro (2026-11-06, teapot, pour and wipe, 3 repeats):** 2 pass, 7 failure, 5 wrong `simple`. Teapot `complex` ×2 and `simple`; pour `simple` ×3; wipe `contingent` ×2 and `simple`, the last with `Needs` naming the cloth and `contingent: no` again. `Picture` stayed terse, one sentence on all 6 teapot and pour replies, so "write only" was not the cause, and my guess was wrong. No tilt on any pour reply. `Rules` restates the rule with `No consequence` on all 6 and says nothing about the action. The two teapot `complex` replies do say "glued... so picking it up directly isn't straightforward", which is table in cup's pattern: the knowledge turns up, after every test that could have used it. Against v41's teapot 3 of 3, the loss is strong for this few replies. What separates v43 from v41 is now only the "n/a" sentence in `Picture` and `Recap`.
+
+**[v44](judgeFailureDrafts/v44.txt) (2026-11-06):** v43 with the "n/a" sentence restored, so exactly v41 without `Recap`, checked by script. That is also the prompt the development flag's off state would be. Probe teapot and wipe, 3 repeats, 6 calls. If teapot recovers, "n/a" was doing the work, though nothing reads it, and v44 is the candidate, with `Recap` behind the flag. If not, `Recap` is doing the work, so v41 gets built with it in, and the flag's premise goes. My pick between them is weak: the stray "n/a" on 2 of v41's teapot replies suggests Micro was engaging that sentence, and `Recap`, at the far end of the prompt, is the stranger cause.
+
+**v44 on Nova Micro (2026-11-06, teapot and wipe, 3 repeats):** 5 pass, 1 wrong `simple`. Teapot `obstructed` 3 of 3, against v43's 0 of 3, with `Picture` back to "would go from being on the table to being held" and `Rules` to `Conflict`. So the "n/a" sentence was holding `Picture` and `Rules` up, not `Recap`, though no reply wrote "n/a" here and no test reads it. That sentence is doing work by what it makes `Picture` consider, and any rewrite of `Picture` has to keep that. My guess at why is only a guess. `Recap` isn't needed, so the development flag stands: flag off is v44, flag on is exactly v41, and both are measured. Wipe `contingent` 2 of 3: one reply wrote `Needs: Item: cloth (Improvised)`, `contingent: no`, `simple: yes`. Across the rubric drafts wipe is 6 of 6 reaching `contingent` or a tolerated label on v39 and v41, and 4 of 7 on v42 to v44. Too few to say what changed, so more repeats on v44.
+
+**v44 on Nova Micro (2026-11-06, the other six requests 2 repeats, wipe 4 more):** with the 6 above, 22 calls: 16 pass, 3 border, 3 failure, all 3 wrong `simple`.
+
+| Request | v28 | v41 | v44 |
+| --- | --- | --- | --- |
+| Pick up `[table1]` | `simple` ×2 | `simple`, `complex` | `simple` ×2 |
+| Pick up `[cup1]` | `simple` ×2 | `simple` ×2 | `simple` ×2 |
+| `[table1]` in `[cup1]` | `impossible` ×2 | `impossible` ×3 | `impossible` ×2 |
+| Slide `[saucer1]` | `simple` ×2 | `simple` ×2 | `simple` ×2 |
+| Pick up `[teapot1]` | `obstructed`, `impossible` | `obstructed` ×3 | `obstructed` ×3 |
+| Pour from `[teapot1]` | `obstructed`, `simple` | `contingent`, `simple` | `contingent`, `simple` |
+| Pry with a screwdriver | `obstructed` ×2 | `obstructed`, no label | `obstructed` ×2 |
+| Wipe with a cloth | `simple` ×2 | `contingent` ×2 | `contingent` ×5, `simple` ×2 |
+
+v44 meets the replacement rule and has no truncated reply (one pry reply echoed the questions in a short form and finished), so it replaces v41 as the draft to beat. Failure 1 is improved and not gone.
+
+**The `Improvised` label predicts wipe's misses (mine).** Across the rubric drafts (v39, v41 to v44), the replies whose `Needs` labelled the cloth `Mentioned` or "not established" wrote `contingent: yes` 10 of 10. Those that labelled it `Improvised` or "Improvisation" wrote it 3 of 6, and all 3 `contingent: no` are in that group. The answers on those misses read "not established but plausible" and "can be suggested as present", as if improvising had met the need. It is also the wrong label, since the cloth is under `Mentions`. No test reads the label. It is an association on few replies.
+
+**[v45](judgeFailureDrafts/v45.txt) (2026-11-06):** v44 without the `Mentioned`/`Improvised` label (mine, the user agreed: anything `Mentioned` is already listed under `Mentions`, so the label is only a chance to get confused; it was the user's design at v29 and v35). What it told a deferred LLM (note 23), `Mentions` already says. Probe wipe, 6 repeats, 6 calls. If the misses stop, the other requests get rechecked before it replaces v44, since text anywhere in the prompt can change earlier lines. If not, v44 is built as it stands.
+
+**v45 on Nova Micro (2026-11-06, wipe, 6 repeats):** `contingent` 6 of 6, 0 wrong `simple`, with `Needs` as bare `cloth (Item)` every time. So wipe across v44 and v45 is 5 of 7 and 6 of 6. Two replies wrote `obstructed (3): yes` and still answered `contingent`, not the first "yes", so `Answer` is not purely mechanical; it happened to land right here, and v39 once took the same line to `obstructed`. Next: table, cup, table in cup and teapot, 3 repeats, 12 calls, then pour, pry and slide once, 3 calls, since removing an unread line broke teapot at v43. v44 stays the draft to beat until these are in.
+
+**v45 on Nova Micro (2026-11-06, the other seven requests):** with wipe, 21 calls: 18 pass, 1 `complex` on table (a border once the fixture changes), 2 wrong `simple`.
+
+| Request | v44 | v45 |
+| --- | --- | --- |
+| Pick up `[table1]` | `simple` ×2 | `simple` ×2, `complex` |
+| Pick up `[cup1]` | `simple` ×2 | `simple` ×3 |
+| `[table1]` in `[cup1]` | `impossible` ×2 | `impossible` ×3 |
+| Slide `[saucer1]` | `simple` ×2 | `simple` |
+| Pick up `[teapot1]` | `obstructed` ×3 | `obstructed` ×2, `simple` |
+| Pour from `[teapot1]` | `contingent`, `simple` | `simple` |
+| Pry with a screwdriver | `obstructed` ×2 | `contingent` |
+| Wipe with a cloth | `contingent` ×5, `simple` ×2 | `contingent` ×6 |
+
+Pry's `contingent` is the first pass on it on any draft, and reads as note 29 wants: `Obstacle: nothing`, `Needs: screwdriver Item`, `Revises: teapot-secured-to-table`. One reply. Teapot's `simple` is a wrong `simple` v28 didn't have, so as written the replacement rule stops v45, though three replies can't separate it from v44's 3 of 3.
+
+**Teapot follows one phrase in `Picture` (mine).** Across v41 to v45, the replies whose `Picture` says the teapot would go from the table to being held reached `obstructed` 8 of 8. Those without it reached it 0 of 5. Without it, `Rules` restates the rule with `No consequence`. So the fragility in Failure 2 is whether `Picture` happens to write that sentence, in v44 and v45 alike. That is the case for a `Moves` step, or another way to make that from-and-to reliable, after the rebuild. It would not help pour.
+
+**Decision (user, 2026-11-06):** teapot's wrong `simple` counts as Failure 2 changing shape, and v45 becomes the draft to beat and gets built, with no further teapot comparison. We have an improvement and important work left, and more probing here was at risk of thrashing.
+
+Built with v45: the `teaTable` table's `tolerate: ['complex']`, `confusing` in `JUDGE_LABELS` (graded a failure wherever it is not expected), the "End of scene." marker in the scene renderer, and the development flag. The flag (the user's idea; the shape is mine): the recap sentence is its own constant, off by default, and a `development: true` on the `JudgeProbe` event appends it to whatever instructions the probe uses, built or draft, so it switches per probe with no deploy and no second copy of a draft. A result with the flag on is for diagnosis, not scoring, since prompt text elsewhere has been seen to change earlier lines, and its longer reply may hit the 512 token limit, though by then `Answer` has been written. Flag on is v45 plus the recap, which has not itself been probed; v41 was the nearest measured.
 
 
 ### Failure 2: a `Conflict` that ends in `impossible`
+
+**Changed shape (user, 2026-11-06):** since v41, `impossible` no longer turns up on teapot. The failure now is a wrong `simple` when `Picture` doesn't write the from-and-to: 8 of 8 `obstructed` with it, 0 of 5 without, across v41 to v45. So the next fix is to make that from-and-to reliable, by a `Moves` step or otherwise, keeping what the "n/a" sentence does for `Picture` and `Rules`. What follows is the original failure.
 
 Both teapot replies reach `Conflict` and name the glue, then one takes `impossible`, reciting that label's definition. The rule verdict is right and the step to the label is not. The word `Conflict` was meant to help and did only in part. On v27, with `Contradiction`, both replies went to `impossible`.
 
@@ -169,6 +226,8 @@ The next experiment (2026-11-06): `Picture` answers in the wrong register, the u
 
 ### Question 1: a feat the labels cannot name
 
+On v45 (2026-11-06) the trestle is `complex` ×2, with `impossible: no` on both: "large and stationary, ... likely requiring additional tools or assistance". The false refusal is gone, and `complex` is standing in for the missing label, since the `Tests` line asks about recording and the replies answer about the feat. To read with JF-2, and to watch: the "expect overuse" point below applies to `complex` for now.
+
 The user's reading (2026-11-05) of picking up the long oak trestle: neither `obstructed` nor `impossible`, but something like `challenging`, which leans on rules adjudication. It is theoretically possible and perhaps beyond a given character's strength. In the Coyote Game that means automatic success, which doesn't undermine the fact that it is a challenge based on abilities. So this may be a gap in the labels and not a fault in the prompt, and the fixture's `simple` may be wrong as well. See JF-2.
 
 Expect overuse (user, 2026-11-05): asking for a hard skill check is a trap beginning game-masters fall into all the time, because it is easier than telling a friend "No, that won't work." So the likely damage is to `impossible` and `obstructed`, not only to `simple`, and any draft with the label is judged on that. To try (mine, not agreed): a positive test that the only thing that could stop the action is the character's own ability, with nothing established in the way; the label placed after `impossible`, `obstructed` and `contingent`; and every existing request as a guard, with only the trestle expecting the label.
@@ -182,6 +241,11 @@ None of this is an obligation. Each is here for the decision it serves.
 - **A `Class` request,** which [v29](judgeFailureDrafts/v29.txt) and [v30](judgeFailureDrafts/v30.txt) make necessary: no fixture exercises `Class` going to `obstructed`, so that half of the change is unmeasured until one does. Requests live in code with no probe override, so it needs a deploy. Add it with the second `contingent` request (mine).
 - **Stems in the `avoids` word lists.** "removing" and "ungluing" went unflagged on teapot replies that prescribe a fix, since the check matches exact substrings (`unglue`, `remove`). It is a reading aid and changes no verdict. Fix it when it next costs a misread.
 - **v28 without the rule's second sentence,** on table and teapot, 4 calls. The user's hypothesis is that frame language let Micro grasp the concept. The table replies could equally be repeating "travels along with". It decides whether the frames section and examples earn their characters, and how far the result carries to scenes without that rule. Run it before trimming the prompt or reusing the frames module elsewhere.
+- **A before and after from the dry run (the user's idea, 2026-11-06).** Where the judge is an oracle over a deterministic template that matched and succeeded, code can supply the operations and a scene render after a dry run of them, with nothing for Micro to deduce. Code then owns the graph register and Micro only the fiction, which fits the `Picture` read under [Failure 3](#failure-3-an-action-never-pictured). It would not catch pour's tilt by itself, since the graph records no tilt, though it narrows the question to what the record leaves out. It needs a separate shape for requests with no template (wipe, pry). Checked in code: `DryRunOutcome.plan` carries the expanded steps on a `legal` verdict, and I found no post-state `SceneModel`. Contract conflict: Adjudicate runs before the dry run ([`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md)), so this needs a dry run first or a second one. To check before a probe (mine): which `teaTable` requests a template would pass at all, since table in cup looks like a containment cycle the dry run may reject, and what happens on teapot. To watch: "after" read as settled fact, since `Reading the scene` says everything stated is true, feeding wrong `simple`. A probe needs no deploy, with the render hand-written through `sceneText`. Framing if it runs: "Proposed outcome" (user).
+  **The main risk (user, 2026-11-06):** a deterministic proposed outcome exists only while the judge is an oracle over planned actions, as the current prototype is. Leaning on it makes a better oracle at the cost of moving further from something more capable that can propose outcomes itself. So tuning should keep the steps a proposer needs. Mine, not agreed: use the dry run as a grader, not an input: where a template succeeds, compare Micro's own `Revises` or `Moves` with the dry run's steps, which measures proposing with no change to the prompt or the pipeline. For the same reason a `Moves` step for Micro to fill in (mine) stays open, as practice at proposing, though it won't catch pour's tilt.
+  **Part of the purpose (user, 2026-11-06):** working out what a language of moves would need is part of why the impossibility oracle is being prototyped. So arriving back at "we'll need to figure this out", with more information in hand, is the prototype doing its job.
+  **What answers it (user, 2026-11-06):** a proposer that proposes moves can have a tool call that dry-runs them deterministically against the scene and returns a new render. So the oracle and the proposer share a back half, operations to dry run to render to review, and differ in who supplies the operations: a template or Micro. Reading a "Proposed outcome" is then a skill for both, not an oracle-only one, and the idea is back in play as a probe after Slice 1, hand-written through `sceneText`, provided the steps that work out an outcome stay in the prompt. The post-state render is the one piece of code both need. Harder parts, mine: the moves need a language Micro can write, and the notation has no untie (`AGENT.sceneProjection.planning.md`, "The `untie` operator"); a rejected move means a retry loop, which is that plan's unbuilt "dry-run self-correction" and needs a multi-turn probe; whether Nova Micro handles tool calls well is unchecked; and a tilt has no operation, so it still has to come from the fiction step.
+
 - **Nova 2 Lite on the baseline,** 6 calls, if a failure seems to resist wording. It separates what the prompt doesn't get across from what Micro can't do.
 
 ## Watching
@@ -257,7 +321,7 @@ Decisions a fix must not undo without saying so. A "was JP-n" label resolves any
 - **Open world (was JP-9):** what is unstated is not established as either present or absent. Details get established because they are newly relevant, not because they newly occurred. Plausible improvisation is wanted, and improvisation for convenience is not. Silence can count as evidence: a bridge over a yawning chasm "would have been mentioned if it were there", so it leaves `contingent` for `incomplete`.
 - **Improvised details (was JP-13):** the `contingent` label, with sure and unsure suggestions going to the same place. Whether to mint is decided by a more capable engine, which is for CA-6; a new established fact reaching the graph leaves a note there too. Fault tolerance: most border errors recover, through another turn or the engine's second look. A wrong `simple` has no recovery, and a wrong `impossible` recovers only if the player has something to add, so it does not excuse the table refusal.
 - **Independent gates (was JP-15):** `Answer` is one word, the first gate that fires, with the obstacle before `Needs`, and code routes on that word alone. `contingent`'s and `incomplete`'s sentences stay for the first probe. `complex` stays a judgment, since `Revises` alone can't decide it. For CA-6: a deferred LLM gets the whole output as a first pass's notes, not as established facts, and its prompt has to say so, or a wrong `Needs` could anchor it.
-- **The judgment schema (was JP-6):** five labels for this iteration. Calculating likely consequences nobody referred to, such as a precarious pyramid of wine-glasses on the table, is a known weak point, deferred to a future iteration as its focus (user, 2026-11-05). So Slice 4 does not grade it, and my reading of it as `complex` was not adopted. `JUDGE_LABELS` in code has the five; `TRIAGE_LABELS` keeps three as the control (M26).
+- **The judgment schema (was JP-6):** five labels for this iteration, with `confusing` added at v37 (user) as a fall-through when no test says "yes". Calculating likely consequences nobody referred to, such as a precarious pyramid of wine-glasses on the table, is a known weak point, deferred to a future iteration as its focus (user, 2026-11-05). So Slice 4 does not grade it, and my reading of it as `complex` was not adopted. `JUDGE_LABELS` in code has the five; `TRIAGE_LABELS` keeps three as the control (M26).
 - **`obstructed`, and `impossible` (was JP-10, under the name `incomplete`):** the touchstone is respect for player ingenuity (user, from GMing indie RPGs): going from "It's an adamantium door... No man. Didn't you listen?" to "Well, I don't know. Can you? What do you want to try?". It differs from `Consult`, which asks the player to clarify and sets no puzzle. Freeing is not the only way past an obstacle (tipping the table to pour), so the judge names the obstacle and no way past it. The tone of the invitation is the whole system's, not this check's. `impossible` is a mismatch of shared reality, not "stop trying": "I don't think you and I have the same idea of the size of shoeboxes or motorcycles." For CA-6: an `obstructed` entry will at some point go to an LLM that decides how to present the possibilities to the player, and which will sometimes describe it as impossible if the player has no clue a path exists, so the judge need not draw that line. `obstructed` still says "getting past it is up to the player" as a placeholder (JP-14).
 - **Module boundaries (was JP-8):** `Reading the scene`, `Reading player intent` and `Improvising` become modules, and `Task` belongs to the judge (mine, the user agreed).
 - **Reasoning and answer order (was JP-2):** the lines are `Picture`, `Rules`, `Obstacle`, `Needs`, `Revises (if it happens)` and `Answer` (`Rules` added by M28). To watch in Slice 4: the model may recite the structure, or decide first. Slice 3: the scorer stops reading the last line alone, reads `Answer:` plus a sentence, and gets the label with code alone, since routing depends on that word (the user agreed).
@@ -283,8 +347,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | Slice | State |
 | --- | --- |
-| 1. Failure 1 | Fix found in v41, the draft to beat. Rebuild pending, after v43 and `tavern` |
-| 2. Failure 2 | Not seen on v41, teapot `obstructed` 3 of 3, and the rule check is in `Tests`. Not closed: three replies, and v42 shows it is fragile |
+| 1. Failure 1 | Done: built and deployed as v45, wipe 6 of 6, `tavern` holds |
+| 2. Failure 2 | Changed shape: a wrong `simple` when `Picture` omits the from-and-to. Not started |
 | 3. Failure 3 | Accepted for now, next experiment recorded under [Failure 3](#failure-3-an-action-never-pictured) |
 | 4. Hand back | Not started |
 
@@ -292,11 +356,8 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 Pending work uses `[ ]` and completed work uses `[X]`.
 
-1. [ ] **Slice 1: Failure 1.** v41 is the fix. Remaining, in order:
-   1. Probe [v43](judgeFailureDrafts/v43.txt) on teapot, pour and wipe, 9 calls. It decides what gets built: if it holds, `Recap` can go behind the development flag and v43 runs the full set; if it stays terse, `Recap` may be doing work, and v41 is built with it in and a higher token limit.
-   2. Run the winner on the remaining `teaTable` requests as needed, and on `tavern`, 8 calls, with its own scene text.
-   3. Rebuild `frameJudge.ts` and the golden tests, with the rest listed [under Failure 1](#v39-onward), then redeploy. Verify as in [Verification](#verification), and mark this done.
-2. [ ] **Slice 2: Failure 2.** On whatever Slice 1 leaves as the baseline. Teapot needs enough repeats there to close this or to reopen it, with table in cup alongside. If an edit is still needed, apply the replacement rule and rebuild as in Slice 1.
+1. [X] **Slice 1: Failure 1.** Built as v45 (2026-11-06). Wipe `contingent` 6 of 6. `tavern` on the deployed build held: 6 pass, 2 border, with `impossible: no` on all 8.
+2. [ ] **Slice 2: Failure 2, in its new shape.** Make `Picture`'s from-and-to reliable on teapot, as one change, measured on teapot and table, since a `Moves` step risks bringing back the table refusal. Apply the replacement rule and rebuild as in Slice 1.
 3. [ ] **Slice 3: Failure 3.** After Slices 1 and 2, since its edits touch the same steps, starting with the fiction-register `Picture`. It can stay open if the user leaves it.
 4. [ ] **Hand back:** record the standing of each failure on the scene projection plan's Slice 6 row, move what lasts from [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan), repoint the links in `calibration/AGENT.md` and the pointer in `frameJudge.ts`, then delete this plan and its drafts.
 
