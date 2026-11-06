@@ -6,6 +6,7 @@ import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
 import { PROBE_CALL_CAP, PROBE_TEMPERATURE, type ProbeInvoke } from '../runSceneReasoningProbe'
 import { runJudgeProbe, textHash } from '../runJudgeProbe'
 import { judgeReplySteps, summarizeJudge } from '../judgeGrade'
+import { parseProposedOutcomeOptions, proposedOutcomeReport, proposedOutcomesFor, type ProposedOutcomeShown } from '../proposedOutcomeBlocks'
 
 export type JudgeProbeEvent = {
     type: 'JudgeProbe'
@@ -22,6 +23,8 @@ export type JudgeProbeEvent = {
     sceneText?: unknown
     /** Adds the recap to the instructions in use, built or draft, for reading: a run with it on is not a score. */
     development?: unknown
+    /** Shows each asked request that holds a `proposal` its proposed outcome: `{ form?, after?, framing?, explanation? }`, all optional. */
+    proposedOutcome?: unknown
 }
 
 export type JudgeProbeDeps = { invoke?: ProbeInvoke }
@@ -89,10 +92,21 @@ export async function handleJudgeProbe(event: JudgeProbeEvent, deps: JudgeProbeD
             return refuse(`sceneText does not name what the requests ask about: ${[...new Set(absent)].join(', ')}`)
         }
     }
+    const proposedOptions = event.proposedOutcome === undefined ? undefined : parseProposedOutcomeOptions(event.proposedOutcome)
+    if (typeof proposedOptions === 'string') {
+        return refuse(proposedOptions)
+    }
     const sceneText = event.sceneText ?? renderScene((await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene, 'judge')
+    const shown: ReadonlyMap<number, ProposedOutcomeShown> = proposedOptions === undefined
+        ? new Map()
+        : await proposedOutcomesFor(fixture, indices.map((index) => [index, set[index]] as const), proposedOptions)
+    // A refused proposal stops here: production would never send it, so the report says why and Micro is not called.
     const calls = await runJudgeProbe({
         sceneText,
-        requests: indices.map((index) => ({ index, request: set[index] })),
+        requests: indices.flatMap((index) => {
+            const outcome = shown.get(index)
+            return outcome?.status === 'refused' ? [] : [{ index, request: set[index], ...(outcome?.status === 'shown' ? { proposedOutcome: outcome.text } : {}) }]
+        }),
         repeats,
         model,
         instructions,
@@ -106,6 +120,7 @@ export async function handleJudgeProbe(event: JudgeProbeEvent, deps: JudgeProbeD
         repeats,
         instructions: { hash: textHash(instructions), chars: instructions.length, overridden: event.instructions !== undefined, development: event.development === true },
         sceneText: { hash: textHash(sceneText), chars: sceneText.length, overridden: event.sceneText !== undefined },
+        ...(proposedOptions === undefined ? {} : { proposedOutcome: proposedOutcomeReport(proposedOptions, shown) }),
         summary: summarizeJudge(set, calls),
         read: calls,
     })

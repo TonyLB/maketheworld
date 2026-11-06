@@ -153,6 +153,15 @@ Contents of the Parlour:
   - [teapot1] Teapot, on [table1], glued to [table1], secured
     - [tea2] Tea, in [teapot1]
 You are holding: nothing.`,
+    teaTableCupOnFloor: `The Parlour
+Contents of the Parlour:
+- [cup1] Cup, in the Parlour
+  - [tea1] Tea, in [cup1]
+- [table1] Table (a small round tea table), in the Parlour
+  - [saucer1] Saucer, on [table1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
 }
 
 /**
@@ -429,6 +438,23 @@ Contents of the Parlour:
   - [teapot1] Teapot, on [table1], glued to [table1], secured
     - [tea2] Tea, in [teapot1]
 You are holding: nothing.`,
+    teaTableCupOnFloor: `The Parlour
+The place:
+In the Parlour there are [cup1] Cup and [table1] Table (a small round tea table).
+In [cup1] there is [tea1] Tea.
+On [table1] there are [saucer1] Saucer and [teapot1] Teapot.
+[teapot1] is glued to [table1], secured.
+In [teapot1] there is [tea2] Tea.
+You are holding nothing.
+Records:
+Contents of the Parlour:
+- [cup1] Cup, in the Parlour
+  - [tea1] Tea, in [cup1]
+- [table1] Table (a small round tea table), in the Parlour
+  - [saucer1] Saucer, on [table1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
 }
 
 /**
@@ -477,6 +503,9 @@ export const sceneAffordanceGoldens: Record<string, string> = {
     teaTable: `Rules that apply here:
 - [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
 - Moving [saucer1] also moves [cup1] and [tea1].
+- Moving [cup1] also moves [tea1].`,
+    teaTableCupOnFloor: `Rules that apply here:
+- [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
 - Moving [cup1] also moves [tea1].`,
 }
 
@@ -541,6 +570,13 @@ Example: if someone picks up [sideboard1], what happens?
 Example: if someone picks up [saucer1], what happens?
 - In the world: [cup1] and [tea1] come with it, and nothing else does.
 - In the records: (move [saucer1] to held). What is under it stays under it, so nothing else changes.
+Example: can [teapot1] be moved to the floor?
+- In the world: not yet, because it is glued to [table1]; it has to be freed first, and then it can be moved.
+- In the records: (untie [teapot1] from [table1]), then (move [teapot1] to the room).`,
+    teaTableCupOnFloor: `Worked examples, about this scene:
+Example: if someone picks up [cup1], what happens?
+- In the world: [tea1] comes with it, and nothing else does.
+- In the records: (move [cup1] to held). What is under it stays under it, so nothing else changes.
 Example: can [teapot1] be moved to the floor?
 - In the world: not yet, because it is glued to [table1]; it has to be freed first, and then it can be moved.
 - In the records: (untie [teapot1] from [table1]), then (move [teapot1] to the room).`,

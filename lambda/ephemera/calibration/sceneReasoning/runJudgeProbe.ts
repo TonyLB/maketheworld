@@ -19,19 +19,19 @@ export const textHash = (text: string): string => createHash('sha256').update(te
 
 export const runJudgeProbe = async ({ sceneText, requests, repeats, model, instructions = JUDGE_INSTRUCTIONS, invoke = invokeBedrockConverseText }: {
     sceneText: string
-    /** The requests to ask, each with the index it has in its set, which results carry. */
-    requests: readonly { index: number; request: JudgeRequest }[]
+    /** The requests to ask, each with the index it has in its set, which results carry, and a proposal's block if it is shown one. */
+    requests: readonly { index: number; request: JudgeRequest; proposedOutcome?: string }[]
     repeats: number
     model: NovaModel
     instructions?: string
     invoke?: ProbeInvoke
 }): Promise<JudgeCall[]> => {
     const steps = judgeReplySteps(instructions)
-    const calls = requests.flatMap(({ index, request }) => Array.from({ length: repeats }, (_, repeat) => ({ index, request, repeat: repeat + 1 })))
-    return Promise.all(calls.map(async ({ index, request, repeat }): Promise<JudgeCall> => {
+    const calls = requests.flatMap(({ index, request, proposedOutcome }) => Array.from({ length: repeats }, (_, repeat) => ({ index, request, proposedOutcome, repeat: repeat + 1 })))
+    return Promise.all(calls.map(async ({ index, request, proposedOutcome, repeat }): Promise<JudgeCall> => {
         const result = await invoke({
             modelId: novaModelToBedrockModelId(model),
-            messages: [{ role: 'user', content: [{ text: composeJudgePrompt({ sceneText, request: request.request, instructions }) }] }],
+            messages: [{ role: 'user', content: [{ text: composeJudgePrompt({ sceneText, request: request.request, instructions, proposedOutcome }) }] }],
             maxTokens: JUDGE_PROBE_MAX_TOKENS,
             temperature: PROBE_TEMPERATURE,
             timeoutMs: PROBE_TIMEOUT_MS,

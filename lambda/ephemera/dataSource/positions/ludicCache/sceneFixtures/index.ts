@@ -26,7 +26,7 @@ import { dockScene, unnamedScene } from './relations'
 import { sideboardScene } from './sideboard'
 import { deepChainScene, emptyRoomScene, siblingFanScene, twoCupsScene } from './simpleRooms'
 import { branchInBranchScene, tavernScene } from './tavern'
-import { teaTableScene } from './teaTable'
+import { teaTableCupOnFloorScene, teaTableScene } from './teaTable'
 import type { SceneFixture, SceneFixtureNames } from './worldBuilders'
 
 export type { SceneFixture } from './worldBuilders'
@@ -52,6 +52,7 @@ export const sceneFixtures: readonly SceneFixture[] = [
     featureScene,
     sideboardScene,
     teaTableScene,
+    teaTableCupOnFloorScene,
 ]
 
 export const sceneFixtureNames = sceneFixtures.map(({ name }) => name)

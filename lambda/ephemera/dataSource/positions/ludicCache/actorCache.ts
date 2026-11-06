@@ -32,7 +32,7 @@ import { boundaryRelationsOfEdges, presencesOfNode, relationsBetweenEdges, secur
 import { conceptNamesFromCache, handlesFromCache, type LudicCacheObjectHandle } from './catalogHandles'
 import { logLudicCacheRebuild } from './ludicCacheInstrumentation'
 import { sceneFromCache } from './sceneFromCache'
-import type { SceneExit, SceneResult } from './sceneModel'
+import type { SceneExit, SceneHandleTable, SceneResult } from './sceneModel'
 import { readLudicCacheWithOutcome } from './store'
 import { unionLudicCaches } from './unionCaches'
 
@@ -123,10 +123,10 @@ export class ActorLudicCache {
 
     /**
      * The scene model of what the actor can reach, with its handle table beside it (`sceneModel.ts`). Exits are not in the
-     * cache, so the caller supplies them.
+     * cache, so the caller supplies them. `handleSeed` keeps the handles of an earlier scene of this place.
      */
-    scene({ exits }: { exits?: SceneExit[] } = {}): SceneResult {
-        return sceneFromCache(this.data, { roomId: this.roomId, actorId: this.actorId, exits })
+    scene({ exits, handleSeed }: { exits?: SceneExit[]; handleSeed?: SceneHandleTable } = {}): SceneResult {
+        return sceneFromCache(this.data, { roomId: this.roomId, actorId: this.actorId, exits, handleSeed })
     }
 
     /**
