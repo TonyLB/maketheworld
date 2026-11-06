@@ -1,6 +1,6 @@
 # Judge prompt: known failures beyond the v28 baseline
 
-**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left, and Slice 2 is next. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
+**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left. Slice 2 is next, a conditional [Proposed outcome](#proposed-outcome) framework (user), then the [Two axes](#two-axes) investigation (user). See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is a small, ephemeral plan: delete it and [`judgeFailureDrafts/`](judgeFailureDrafts/) when the failures below are fixed or knowingly left, and their lasting findings have moved to the [scene projection plan](AGENT.sceneProjection.planning.md). If it gets too crowded, spin sub-plans off in response (user, 2026-11-05).
 
@@ -241,12 +241,125 @@ None of this is an obligation. Each is here for the decision it serves.
 - **A `Class` request,** which [v29](judgeFailureDrafts/v29.txt) and [v30](judgeFailureDrafts/v30.txt) make necessary: no fixture exercises `Class` going to `obstructed`, so that half of the change is unmeasured until one does. Requests live in code with no probe override, so it needs a deploy. Add it with the second `contingent` request (mine).
 - **Stems in the `avoids` word lists.** "removing" and "ungluing" went unflagged on teapot replies that prescribe a fix, since the check matches exact substrings (`unglue`, `remove`). It is a reading aid and changes no verdict. Fix it when it next costs a misread.
 - **v28 without the rule's second sentence,** on table and teapot, 4 calls. The user's hypothesis is that frame language let Micro grasp the concept. The table replies could equally be repeating "travels along with". It decides whether the frames section and examples earn their characters, and how far the result carries to scenes without that rule. Run it before trimming the prompt or reusing the frames module elsewhere.
-- **A before and after from the dry run (the user's idea, 2026-11-06).** Where the judge is an oracle over a deterministic template that matched and succeeded, code can supply the operations and a scene render after a dry run of them, with nothing for Micro to deduce. Code then owns the graph register and Micro only the fiction, which fits the `Picture` read under [Failure 3](#failure-3-an-action-never-pictured). It would not catch pour's tilt by itself, since the graph records no tilt, though it narrows the question to what the record leaves out. It needs a separate shape for requests with no template (wipe, pry). Checked in code: `DryRunOutcome.plan` carries the expanded steps on a `legal` verdict, and I found no post-state `SceneModel`. Contract conflict: Adjudicate runs before the dry run ([`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md)), so this needs a dry run first or a second one. To check before a probe (mine): which `teaTable` requests a template would pass at all, since table in cup looks like a containment cycle the dry run may reject, and what happens on teapot. To watch: "after" read as settled fact, since `Reading the scene` says everything stated is true, feeding wrong `simple`. A probe needs no deploy, with the render hand-written through `sceneText`. Framing if it runs: "Proposed outcome" (user).
-  **The main risk (user, 2026-11-06):** a deterministic proposed outcome exists only while the judge is an oracle over planned actions, as the current prototype is. Leaning on it makes a better oracle at the cost of moving further from something more capable that can propose outcomes itself. So tuning should keep the steps a proposer needs. Mine, not agreed: use the dry run as a grader, not an input: where a template succeeds, compare Micro's own `Revises` or `Moves` with the dry run's steps, which measures proposing with no change to the prompt or the pipeline. For the same reason a `Moves` step for Micro to fill in (mine) stays open, as practice at proposing, though it won't catch pour's tilt.
-  **Part of the purpose (user, 2026-11-06):** working out what a language of moves would need is part of why the impossibility oracle is being prototyped. So arriving back at "we'll need to figure this out", with more information in hand, is the prototype doing its job.
-  **What answers it (user, 2026-11-06):** a proposer that proposes moves can have a tool call that dry-runs them deterministically against the scene and returns a new render. So the oracle and the proposer share a back half, operations to dry run to render to review, and differ in who supplies the operations: a template or Micro. Reading a "Proposed outcome" is then a skill for both, not an oracle-only one, and the idea is back in play as a probe after Slice 1, hand-written through `sceneText`, provided the steps that work out an outcome stay in the prompt. The post-state render is the one piece of code both need. Harder parts, mine: the moves need a language Micro can write, and the notation has no untie (`AGENT.sceneProjection.planning.md`, "The `untie` operator"); a rejected move means a retry loop, which is that plan's unbuilt "dry-run self-correction" and needs a multi-turn probe; whether Nova Micro handles tool calls well is unchecked; and a tilt has no operation, so it still has to come from the fiction step.
-
 - **Nova 2 Lite on the baseline,** 6 calls, if a failure seems to resist wording. It separates what the prompt doesn't get across from what Micro can't do.
+
+## Proposed outcome
+
+The user's design for [Slice 2](#recommended-order) (2026-11-06): add a Proposed Outcome scene render conditionally, hold the proposal in the fixtures so that a flag can use it or leave it out, and make the framework adjustable, with the aim of building the functionality an oracle and a proposer would share. The shape below is mine, and only JF-3, JF-4 and what they name are agreed.
+
+The shared back half is operations, then a dry run, then a render, then review. Only the first step differs by who supplies the operations: a fixture now, a matched template as an oracle, Micro as a proposer. So the fixture is a stand-in at a seam, and everything after it should be the code those later suppliers would call.
+
+### The build
+
+1. **The proposal on the fixture.** An optional `proposal` on `JudgeRequest`, holding moves as data. A request with no `proposal` gets the same prompt with the flag on as with it off, which is what "conditionally" means per request. Teapot, wipe and pry hold none. Pour holds one (user, 2026-11-06), tea from the teapot into the cup, if the moves can express it; the first step of the slice checks that. This is a diagnostic setting, and the input a later proposer would start from. It is not an oracle state: in the oracle, a template always supplies moves ([JF-4](#open-decisions-implementation--plan-only)).
+2. **The dry run.** One function from moves and graphs to an outcome: the moves, and either the graphs after them or the reason they were refused. It runs on graphs, with no fixture in its signature. A refused proposal stops here: the probe reports the refusal and does not call Micro (mine, JF-4). A unit test runs teapot's moves through this path and asserts the refusal.
+3. **The render.** One function from an outcome to text, taking the form to show. The scene above it is already the "before", so only the "after" needs rendering.
+4. **The prompt.** `composeJudgePrompt` gets an optional proposal block. An explanation of the block is its own constant, which appears only with the block, after the cache point (user agreed, 2026-11-06).
+5. **The probe.** A `proposedOutcome` field on `JudgeProbe`, off by default. Each result reports what was shown for that request, with a hash.
+
+**What is adjustable, per probe with no deploy:**
+
+| Axis | Values | Why |
+| --- | --- | --- |
+| `form` | `moves`, `after`, `both` | Whether the operations or the render does the work. `moves` is also the nearest thing to what a proposer would write |
+| `after` | `fiction`, `whole` | The whole render repeats `Graph` and `Rules`. Fiction alone fits code owning the graph register and Micro the fiction, the read under [Failure 3](#failure-3-an-action-never-pictured) |
+| `framing` | A string, default "Proposed outcome" | The heading is untested wording, and earlier drafts show that a word can change the reply |
+
+`instructions` already overrides the rest, so the explanation can be drafted the way every other draft has been.
+
+### What the code offers
+
+Read, not run.
+
+- **The dry run exists.** `applyStepSequenceCore` is pure over a map of graphs, and a `legal` verdict returns the graphs after the steps. `EphemeraLudicGraph.toStored` returns the payload type a fixture's `graphs` holds, so a post-state scene looks like the existing fold run over those graphs: the missing piece is a join, not a simulator.
+- **Teapot gets no "after" (the finding that matters most).** A securing is the one deterministic precondition: `attemptActionsFromTransfer` adds a `SecuredToChallenge` that no adjudicator judges, so `attemptDryRun` answers `defer` with no `plan`, and the kernel's verdict for a held mover is `blocked`. So teapot, the target of Slice 4, is a refusal and not a render. The user's position is that production rules this move out structurally before the judge. What `attemptDryRun` answers today is `defer`, so whether production refuses or hands off depends on which layer runs first; the unit test pins that down, and if it is `defer`, the structural refusal is recorded as the intended design and not as current behaviour. See JF-4.
+- **Table in cup may pass.** I found no containment-cycle refusal in the dry run or the kernel, only `visited` guards on readers, and the kernel says it checks mechanism and not world legality. To run: whether it refuses, and what the fold does with a cycle if not.
+- **Slide changes nothing recorded,** so its "after" equals its "before". That is a useful case: a proposal with no visible change.
+- **Building moves:** `planObjectMoveTransfer` and `compilePositionKernelOp` produce the steps. Whether they run cheaply over fixture graphs is unchecked, and it is the first step of Slice 2 ([JF-3](#open-decisions-implementation--plan-only)).
+
+### What it must keep to
+
+- **Flag off is v45, byte for byte,** hash `22e97265`. This is the check on the framework, and it is what keeps every result so far comparable.
+- **The block goes before the `Request:` line.** `Mentions` reads "the last line of this prompt", and "End of scene." closes the scene, so the block sits between them. Reading a proposal before the request it answers is untested.
+- **The block sits after the cache point** ([Size](#size)), since it varies per request. The built instructions stay byte-identical across every call, flag on or off. A smaller prompt for passed proposals would be a second cached prefix.
+- **`Picture`, `Revises` and `Tests` stay in the prompt,** per the main risk below. The first measure is what reading a proposal does to those lines, with the lines left in. The smaller prompt under [What a passed dry run settles](#what-a-passed-dry-run-settles) is a later draft, one change at a time, and it applies only where a proposal has passed.
+- **Not wired into the command pipeline** (the contract has Adjudicate before the dry run), with no tool call, retry loop or language of moves for Micro. Those wait on what this shows.
+
+### The questions it answers
+
+Table (with the teapot glued on), cup, table in cup and pour, flag on against flag off, in the smallest batches that answer:
+
+- Does a proposal make the from-and-to reliable? Teapot holds no proposal, so this slice no longer bears on Slice 4 directly: teapot's prompt is unchanged with the flag on, and teapot stays a test of reasoning. Where it should help is requests whose move is legal, such as getting the table with the teapot glued on, or putting something far too big into something small (user).
+- Does it bring back the table refusal, or feed wrong `simple`? "After" could read as settled fact, since `Reading the scene` says everything stated is true.
+- Does `Picture` still work anything out with a proposal in view, or copy it? That is the measure of the proposer risk.
+- What does table in cup do? It may be refused, in which case Micro is not called, or it may pass the dry run with a cycle in it.
+- When code says a move is legal, does Micro still use what it knows of the physical world? Pour is the sharpest case: the "after" shows tea in the cup, and nothing explains how a glued teapot poured it. It may read as settled fact and give `simple`, or give Micro something concrete to check.
+- Mine, not agreed: a too-big-to-fit request. It needs a new request and a deploy, and a pair not taken from the prompt, since a motorcycle in a shoebox is the example in `Picture` and a pass could be copying.
+
+### What a passed dry run settles
+
+**The user's idea (2026-11-06):** the rules can be smaller when a proposal is present. A passed dry run has already checked that the end result keeps things in legal hosting relations, so the LLM need not, and its attention can go only to the language that makes it notice the intermediate fictional action. That probably helps target pour, by reducing the surface being tuned.
+
+Mine, not agreed:
+
+- **Why it fits pour.** Pour's wrong `simple` says the pour "does not affect this rule", which is true of the end state: the teapot stays fixed. So the end-state check is what answers, and the tilt never comes up. With the end state settled, the question left is whether the rule stops anything on the way.
+- **The rule's fact has to stay.** The securing is what the tilt runs into, so the `teapot-secured-to-table` line stays in the scene. What can go is the work on end states: the frame sentence in `Picture`, `Revises`, the frames lines of the examples, and `Rules`'s question, which would ask about the action as it happens.
+- **It eases a known conflict.** The story-register `Picture` under [Failure 3](#failure-3-an-action-never-pictured) risked table, since frame language is what freed table. Where a proposal has passed, the dry run frees table instead.
+- **A passed dry run doesn't settle everything.** The kernel checks mechanism and not world legality, so fit stays with Micro: table in cup, or something too big to fit, may pass. `Picture` and `impossible` stay.
+- **The split is plan against review, not oracle against proposer.** A proposer whose tool call passes reviews the same kind of outcome, so the smaller prompt is its review step too. The steps a proposer needs for planning stay in the prompt for requests with no proposal, which is how this stays clear of the [main risk](#how-the-idea-got-here). It also bears on [Two axes](#two-axes): a passed proposal has answered the first axis.
+- **Order.** First the block with the steps unchanged, as a baseline, then the smaller prompt as a draft through the existing `instructions` override, with `only` picking requests that have a proposal. That needs no new code. Measured on pour first, then table, cup and table in cup, one change per draft.
+
+### How the idea got here
+
+**A before and after from the dry run (the user's idea, 2026-11-06).** Where the judge is an oracle over a deterministic template that matched and succeeded, code can supply the operations and a scene render after a dry run of them, with nothing for Micro to deduce. Code then owns the graph register and Micro only the fiction, which fits the `Picture` read under [Failure 3](#failure-3-an-action-never-pictured). It would not catch pour's tilt by itself, since the graph records no tilt, though it narrows the question to what the record leaves out. It needs a separate shape for requests with no template (wipe, pry). Checked in code: `DryRunOutcome.plan` carries the expanded steps on a `legal` verdict, and there is no post-state `SceneModel` yet ([what the code offers](#what-the-code-offers)). Contract conflict: Adjudicate runs before the dry run ([`AGENT.contract.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.contract.md)), so this needs a dry run first or a second one. To check before a probe (mine): which `teaTable` requests a template would pass at all, since table in cup looks like a containment cycle the dry run may reject, and what happens on teapot. To watch: "after" read as settled fact, since `Reading the scene` says everything stated is true, feeding wrong `simple`. Framing if it runs: "Proposed outcome" (user).
+
+**The main risk (user, 2026-11-06):** a deterministic proposed outcome exists only while the judge is an oracle over planned actions, as the current prototype is. Leaning on it makes a better oracle at the cost of moving further from something more capable that can propose outcomes itself. So tuning should keep the steps a proposer needs. Mine, not agreed: use the dry run as a grader, not an input: where a template succeeds, compare Micro's own `Revises` or `Moves` with the dry run's steps, which measures proposing with no change to the prompt or the pipeline. For the same reason a `Moves` step for Micro to fill in (mine) stays open, as practice at proposing, though it won't catch pour's tilt.
+
+**Part of the purpose (user, 2026-11-06):** working out what a language of moves would need is part of why the impossibility oracle is being prototyped. So arriving back at "we'll need to figure this out", with more information in hand, is the prototype doing its job.
+
+**What answers it (user, 2026-11-06):** a proposer that proposes moves can have a tool call that dry-runs them deterministically against the scene and returns a new render. So the oracle and the proposer share a back half, operations to dry run to render to review, and differ in who supplies the operations: a template or Micro. Reading a "Proposed outcome" is then a skill for both, not an oracle-only one, and the idea is back in play as [Slice 2](#recommended-order), provided the steps that work out an outcome stay in the prompt. The post-state render is the one piece of code both need. Harder parts, mine: the moves need a language Micro can write, and the notation has no untie (`AGENT.sceneProjection.planning.md`, "The `untie` operator"); a rejected move means a retry loop, which is that plan's unbuilt "dry-run self-correction" and needs a multi-turn probe; whether Nova Micro handles tool calls well is unchecked; and a tilt has no operation, so it still has to come from the fiction step.
+
+## Two axes
+
+The user's question for [Slice 3](#recommended-order) (2026-11-06), an investigation: would the rubric benefit from deciding on two axes, one after the other?
+
+- **Axis 1: is there enough information here to discern a specific plan?** With cutouts such as `contingent` and `obstructed`.
+- **Axis 2: is this agent capable enough to adjudicate and represent this plan, or does it need to defer?** With deferrals such as `challenging`, and results such as `simple` and `impossible`.
+
+The readings and risks below are mine, and the user has not yet ruled on them.
+
+### Why it looks worth testing
+
+- **v45 is already partly there.** `Tests` asks `obstructed` ×3 and `contingent`, then `complex`, `simple` and `impossible`, which is this order. So the question is what naming and gating the axes adds.
+- **It extends note 29:** "can you do this" against "do you even have a plan", applied to the whole rubric.
+- **It may separate teapot from pry.** Teapot has no plan for the glue and pry's plan targets it, the distinction `Obstacle` keeps missing on pry ([Watching](#watching)).
+- **It gives `challenging` a home.** The trestle's `complex` replies answer about the feat and not about recording ([Question 1](#question-1-a-feat-the-labels-cannot-name)). `complex` and `challenging` would be two deferrals on one axis, recording and adjudicating, which bears on JF-2.
+- **It fits the shared back half under [Proposed outcome](#proposed-outcome).** Axis 1 is who supplies the plan, and axis 2 is who reviews it. A matched template or a proposer's moves answer axis 1, and a refused move from the dry run gives `obstructed`.
+
+### Risks to test for
+
+1. **Wipe could regress.** "Wipe with a cloth" is a specific plan: what is missing is a fact about the world, where teapot is missing a plan. Axis 1 merges those two gaps, so "is there a specific plan?" could pass wipe through to a wrong `simple`, which is Failure 1 again. `Needs` handles this today, so axis 1 has to keep reading from it.
+2. **`impossible` may not belong on axis 2.** v41 gave it priority because it is a mismatch of shared reality, not a capability result. If axis 1 cuts out first, "stuff `[table1]` in `[cup1]` with a hammer" comes back `contingent`. Keeping `Answer`'s priority avoids that, but then the axes set the asking order and not the decision. No current request tests this. One needs adding, and requests live in code, so that needs a deploy.
+3. **The questions are abstract.** Tight steps at a literal place work on Micro, and prose definitions don't. "Is there enough information?" and "are you capable?" are the abstract kind, and Micro has no real view of its own capability. Axis 2 needs concrete tests, which also bears on the [overuse warning](#question-1-a-feat-the-labels-cannot-name).
+4. **It probably won't fix teapot directly.** That fault is upstream, in whether `Picture` writes the from-and-to (8 of 8 with it, 0 of 5 without), and the rubric passes on what it gets. Asking for the plan might improve `Picture`, but nothing shows that yet.
+
+### How to test it
+
+One change per draft, each through `instructions`, reading each result before writing the next:
+
+1. **Headers only:** the existing tests grouped under two headers, nothing else changed, to see whether the framing alone moves anything.
+2. **An axis 1 plan test:** whether the plan addresses what stands in the way, reading from `Obstacle` and `Needs`.
+3. **`challenging`:** added as an axis 2 deferral. Until `JUDGE_LABELS` has it, the grader counts a `challenging` reply as a failure with no label, so those replies are read by hand.
+
+Requests: wipe, teapot, pry, table in cup and the `tavern` trestle, with the `teaTable` table as the guard. The trestle is in another fixture, so it takes its own invoke.
+
+### What it decides
+
+- Whether `Tests` gets restructured.
+- How JF-2 resolves.
+- Whether `Answer`'s priority stays.
+
+An investigation reports, so a good result here doesn't change the built prompt. A draft that earns it goes through the replacement rule like any other.
 
 ## Watching
 
@@ -341,27 +454,34 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| JF-2 | Does the judge get a `challenging` label (the user's proposal, [Question 1](#question-1-a-feat-the-labels-cannot-name)), and until then what does the fixture expect of the `tavern` table? It reopens the five labels of JP-6, and meets JP-14, under which the skill question is not the judge's: the label would say a skill question exists and leave the answer to the rules. | No slice | Open |
+| JF-2 | Does the judge get a `challenging` label (the user's proposal, [Question 1](#question-1-a-feat-the-labels-cannot-name)), and until then what does the fixture expect of the `tavern` table? It reopens the five labels of JP-6, and meets JP-14, under which the skill question is not the judge's: the label would say a skill question exists and leave the answer to the rules. [Two axes](#two-axes) bears on it. | No slice | Open |
+| JF-3 | What does a fixture's `proposal` hold? (a) Moves, run through the kernel, so the slice builds the real dry-run-to-render path. (b) The after-state graphs written by hand, rendered by the real renderer, with no kernel. (c) Hand-written text, which `sceneText` can nearly do today and which builds nothing shared. **Decided (user, 2026-11-06): (a).** The fixture holds the minimum, so later changes to the dry run reach the probes because the probes run the current pipeline. The fixture holds the highest-level input that pipeline accepts, and the probe response reports a hash of the rendered proposal block, since the same fixture and prompt can render differently after a kernel change. The user expects (a) to hold up. Checking that moves run cheaply over fixture graphs is the first step of Slice 2; (b) behind the same outcome type stays the fallback only if that check fails. | Slice 2 | Decided |
+| JF-4 | What does a refused move show? **Decided (user, 2026-11-06): the judge is never shown one, and no new flag is needed.** In production a move like teapot's is ruled out structurally before the judge, but asking the judge about it has been very useful for diagnosis. So teapot holds no `proposal` and keeps testing reasoning against evolving prompts, and the field's presence or absence does the work of a flag. No proposal is the state of a future "LLM plans the move" function, not of the oracle, where a template always supplies moves. The explanation appears only with the block (user agreed). The refusal path gets a unit test, not a probe (user). Mine, in keeping with this but not separately ruled on: a `proposal` that the dry run refuses stops before Micro. Dropped: my earlier options, showing the refusal to Micro or showing the after-state anyway, since neither is a prompt production would send. | Slice 2 | Decided |
 
 ## Progress
 
 | Slice | State |
 | --- | --- |
 | 1. Failure 1 | Done: built and deployed as v45, wipe 6 of 6, `tavern` holds |
-| 2. Failure 2 | Changed shape: a wrong `simple` when `Picture` omits the from-and-to. Not started |
-| 3. Failure 3 | Accepted for now, next experiment recorded under [Failure 3](#failure-3-an-action-never-pictured) |
-| 4. Hand back | Not started |
+| 2. Proposed outcome | Designed, not started: [Proposed outcome](#proposed-outcome), JF-3 and JF-4 decided |
+| 3. Two axes | Investigation, not started: [Two axes](#two-axes) |
+| 4. Failure 2 | Changed shape: a wrong `simple` when `Picture` omits the from-and-to. Not started |
+| 5. Failure 3 | Accepted for now, next experiment recorded under [Failure 3](#failure-3-an-action-never-pictured) |
+| 6. Hand back | Not started |
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`.
 
 1. [X] **Slice 1: Failure 1.** Built as v45 (2026-11-06). Wipe `contingent` 6 of 6. `tavern` on the deployed build held: 6 pass, 2 border, with `impossible: no` on all 8.
-2. [ ] **Slice 2: Failure 2, in its new shape.** Make `Picture`'s from-and-to reliable on teapot, as one change, measured on teapot and table, since a `Moves` step risks bringing back the table refusal. Apply the replacement rule and rebuild as in Slice 1.
-3. [ ] **Slice 3: Failure 3.** After Slices 1 and 2, since its edits touch the same steps, starting with the fiction-register `Picture`. It can stay open if the user leaves it.
-4. [ ] **Hand back:** record the standing of each failure on the scene projection plan's Slice 6 row, move what lasts from [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan), repoint the links in `calibration/AGENT.md` and the pointer in `frameJudge.ts`, then delete this plan and its drafts.
+2. [ ] **Slice 2: Proposed outcome (user).** The framework under [Proposed outcome](#proposed-outcome): a proposal on the fixtures, one dry-run-to-render path, and a probe flag that is off by default, with flag off still v45 byte for byte. Then probe flag on against flag off. The prompt built into code doesn't change unless a result earns it under the replacement rule. JF-3 and JF-4 are decided.
+3. [ ] **Slice 3: Two axes (user).** An investigation of whether the rubric benefits from deciding on two axes, whether there is a specific plan and then whether this agent can adjudicate and represent it, by the drafts under [Two axes](#two-axes). After Slice 2, since a refused move bears on how axis 1 should read.
+4. [ ] **Slice 4: Failure 2, in its new shape.** Make `Picture`'s from-and-to reliable on teapot, as one change, measured on teapot and table, since a `Moves` step risks bringing back the table refusal. Apply the replacement rule and rebuild as in Slice 1. The results of Slices 2 and 3 may change what this needs.
+5. [ ] **Slice 5: Failure 3.** After Slices 1 and 4, since its edits touch the same steps, starting with the fiction-register `Picture`. It can stay open if the user leaves it.
+6. [ ] **Hand back:** record the standing of each failure on the scene projection plan's Slice 6 row, move what lasts from [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan), repoint the links in `calibration/AGENT.md` and the pointer in `frameJudge.ts`, then delete this plan and its drafts.
 
 ## Verification
 
 - A draft: the probe, read reply by reply. No test commands.
+- The Slice 2 framework, from `lambda/ephemera/`: the same two commands, with flag off, and a request with no `proposal` with flag on, checked byte for byte against v45, a unit test of teapot's refusal, and the `JudgeProbe` subsection of `calibration/AGENT.md` updated.
 - A candidate that replaces the baseline, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`, with the composed `teaTable` prompt checked byte for byte against the draft.
