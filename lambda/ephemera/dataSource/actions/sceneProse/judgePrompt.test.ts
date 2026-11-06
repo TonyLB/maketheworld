@@ -29,6 +29,8 @@ const judgeTeaTableGolden = [
     '',
     'Rules:',
     "- teapot-secured-to-table: [teapot1] stays fixed relative to [table1]'s frame. When [table1]'s frame moves, [teapot1] travels along with [table1].",
+    '',
+    'End of scene.',
 ].join('\n')
 
 describe('judge prompt', () => {

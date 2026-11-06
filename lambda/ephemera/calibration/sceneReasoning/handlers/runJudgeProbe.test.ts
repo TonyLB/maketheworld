@@ -1,5 +1,5 @@
 import { sceneFixture } from '../../../dataSource/positions/ludicCache/sceneFixtures'
-import { JUDGE_INSTRUCTIONS } from '../../../dataSource/actions/sceneProse/frame'
+import { JUDGE_INSTRUCTIONS, JUDGE_RECAP } from '../../../dataSource/actions/sceneProse/frame'
 import type { ProbeInvoke } from '../runSceneReasoningProbe'
 import { handleJudgeProbe } from './runJudgeProbe'
 
@@ -52,6 +52,27 @@ describe('handleJudgeProbe', () => {
         const { sceneText: reported } = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [3], instructions: DRAFT, sceneText }, { invoke }))
         expect(promptOf(invoke, 0)).toBe(`${DRAFT}\n\n${sceneText}\n\nRequest: ${set[3].request}`)
         expect(reported).toMatchObject({ overridden: true, chars: sceneText.length })
+    })
+
+    it('adds the recap to the instructions in use only under the development flag', async () => {
+        const invoke = invokeWith('obstructed')
+        const off = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [0] }, { invoke }))
+        const on = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [0], development: true }, { invoke }))
+        const draft = body(await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [0], instructions: DRAFT, development: true }, { invoke }))
+        expect(promptOf(invoke, 0)).not.toContain('Recap:')
+        expect(promptOf(invoke, 1).startsWith(`${JUDGE_INSTRUCTIONS} ${JUDGE_RECAP}\n\nScene: The Parlour`)).toBe(true)
+        expect(promptOf(invoke, 2).startsWith(`${DRAFT} ${JUDGE_RECAP}\n\nScene: The Parlour`)).toBe(true)
+        expect(off.instructions.development).toBe(false)
+        expect(on.instructions.development).toBe(true)
+        expect(on.instructions.hash).not.toBe(off.instructions.hash)
+        expect(draft.instructions.overridden).toBe(true)
+    })
+
+    it('refuses a development flag that is not a boolean', async () => {
+        const invoke = invokeWith('obstructed')
+        const response = await handleJudgeProbe({ type: 'JudgeProbe', scene: { fixture: 'teaTable' }, only: [0], development: 'yes' }, { invoke })
+        expect(response.statusCode).toBe(400)
+        expect(invoke).not.toHaveBeenCalled()
     })
 
     it('grades the form against the steps of the draft in use', async () => {

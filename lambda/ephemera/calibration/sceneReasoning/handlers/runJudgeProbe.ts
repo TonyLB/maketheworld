@@ -1,7 +1,7 @@
 import { calibrationJsonResponse } from '../../calibrationResponse'
 import { buildSceneFixture, sceneFixture, sceneFixtureNames } from '../../../dataSource/positions/ludicCache/sceneFixtures'
 import { renderScene } from '../../../dataSource/actions/sceneProse'
-import { JUDGE_INSTRUCTIONS } from '../../../dataSource/actions/sceneProse/frame'
+import { JUDGE_INSTRUCTIONS, withJudgeRecap } from '../../../dataSource/actions/sceneProse/frame'
 import { isNovaModel, type NovaModel } from '../../../llm/novaModel'
 import { PROBE_CALL_CAP, PROBE_TEMPERATURE, type ProbeInvoke } from '../runSceneReasoningProbe'
 import { runJudgeProbe, textHash } from '../runJudgeProbe'
@@ -20,11 +20,13 @@ export type JudgeProbeEvent = {
     instructions?: unknown
     /** A draft of the scene text, in place of the render, for this invoke only: with `instructions`, the whole prompt but its `Request` line. */
     sceneText?: unknown
+    /** Adds the recap to the instructions in use, built or draft, for reading: a run with it on is not a score. */
+    development?: unknown
 }
 
 export type JudgeProbeDeps = { invoke?: ProbeInvoke }
 
-/** The longest draft accepted of either text: the deployed instructions are about 5,000 characters. */
+/** The longest draft accepted of either text: the deployed instructions are about 9,000 characters. */
 const MAX_DRAFT_CHARS = 20_000
 
 const isDraftText = (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0 && text.length <= MAX_DRAFT_CHARS
@@ -69,7 +71,11 @@ export async function handleJudgeProbe(event: JudgeProbeEvent, deps: JudgeProbeD
     if (event.instructions !== undefined && !isDraftText(event.instructions)) {
         return refuse(`instructions must be a non-empty string of at most ${MAX_DRAFT_CHARS} characters`)
     }
-    const instructions = event.instructions ?? JUDGE_INSTRUCTIONS
+    if (event.development !== undefined && typeof event.development !== 'boolean') {
+        return refuse('development must be a boolean')
+    }
+    const baseInstructions = event.instructions ?? JUDGE_INSTRUCTIONS
+    const instructions = event.development === true ? withJudgeRecap(baseInstructions) : baseInstructions
     if (judgeReplySteps(instructions).slice(-1)[0] !== 'answer') {
         return refuse('instructions must number the steps of the reply, ending in Answer, for the reply to be graded')
     }
@@ -98,7 +104,7 @@ export async function handleJudgeProbe(event: JudgeProbeEvent, deps: JudgeProbeD
         fixture: fixtureName,
         set: setName,
         repeats,
-        instructions: { hash: textHash(instructions), chars: instructions.length, overridden: event.instructions !== undefined },
+        instructions: { hash: textHash(instructions), chars: instructions.length, overridden: event.instructions !== undefined, development: event.development === true },
         sceneText: { hash: textHash(sceneText), chars: sceneText.length, overridden: event.sceneText !== undefined },
         summary: summarizeJudge(set, calls),
         read: calls,
