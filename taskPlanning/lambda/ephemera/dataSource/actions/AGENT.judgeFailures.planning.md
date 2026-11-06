@@ -1,6 +1,6 @@
 # Judge prompt: known failures beyond the v28 baseline
 
-**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left. Slice 2's conditional [Proposed outcome](#proposed-outcome) framework (user) is built and unit tested, not yet deployed or probed; its [probes](#the-questions-it-answers) are next, then the [Two axes](#two-axes) investigation (user). See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
+**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left. Slice 2's conditional [Proposed outcome](#proposed-outcome) framework (user) is built and deployed, and stays as a tool to play with (user, 2026-11-06). The [Two axes](#two-axes) investigation (user) is next. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is a small, ephemeral plan: delete it and [`judgeFailureDrafts/`](judgeFailureDrafts/) when the failures below are fixed or knowingly left, and their lasting findings have moved to the [scene projection plan](AGENT.sceneProjection.planning.md). If it gets too crowded, spin sub-plans off in response (user, 2026-11-05).
 
@@ -251,7 +251,7 @@ The shared back half is operations, then a dry run, then a render, then review. 
 
 ### The build
 
-Built, 2026-11-06; deployed and probed, not yet. How to call it is in the `JudgeProbe` subsection of [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md).
+Built and deployed, 2026-11-06. How to call it is in the `JudgeProbe` subsection of [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md).
 
 1. **The proposal on the fixture.** An optional `proposal` on `JudgeRequest`, holding moves as data (user, 2026-11-06: the fixture holds the minimum, the highest-level input the pipeline accepts, so later changes to the dry run reach the probes). A request with no `proposal` gets the same prompt with the flag on as with it off, which is what "conditionally" means per request. Teapot, `teaTable`'s table in cup, wipe and pry hold none. Pour holds one (user, 2026-11-06), tea from the teapot into the cup, and it moves all of the pot's tea, so its "after" shows an empty teapot. Slide holds an empty list. No proposal is the state of a future "LLM plans the move" function (user), and asking the judge about a move like teapot's has been very useful for diagnosis, which is why teapot holds none and keeps testing reasoning. It is not an oracle state: in the oracle, a template always supplies moves.
 2. **The dry run.** [`dryRunProposedMoves`](../../../../../lambda/ephemera/dataSource/positions/manipulation/proposedMoves.ts): moves and graphs in, and either the graphs after them or the move refused and why. It takes `planObjectMoveTransfer`'s arguments, the highest level that runs over graphs, since above it `commitAttempt` reads live hosts. The judge is never shown a refused move (user), so the probe reports the refusal and does not call Micro (mine). Unit tests pin teapot's and the cycle's refusals.
@@ -307,6 +307,28 @@ Table (with the teapot glued on), cup, pour and `teaTableCupOnFloor`'s table in 
 - Does `Picture` still work anything out with a proposal in view, or copy it? That is the measure of the proposer risk.
 - When code says a move is legal, does Micro still use what it knows of the physical world? Pour is the sharpest case: the "after" shows tea in the cup, and nothing explains how a glued teapot poured it. It may read as settled fact and give `simple`, or give Micro something concrete to check.
 - Does a legal move stop Micro noticing that something is far too big? `teaTableCupOnFloor` is the case, a pair not taken from the prompt, since a motorcycle in a shoebox is the example in `Picture` and a pass could be copying.
+
+### Results
+
+**A tool, not a candidate (user, 2026-11-06):** this is a new, optional feature on its first wording, kept around to play with. It doesn't have to justify its existence, and these results are not a verdict on it. The batches listed under [The questions it answers](#the-questions-it-answers) are things to try when they are useful, not a gate.
+
+**Flag off (2026-11-06, table once):** instructions hash `22e97265`, so the deployed prompt is still v45. Scene hash `cf85cdbd`. `simple`.
+
+**Flag on, `after`/`fiction` (2026-11-06, table, cup and pour, 3 repeats):** 6 pass, 3 failure, all 3 wrong `simple`, explanation hash `ded07c35`. The rendered blocks are right, and the cup's keeps `[tea1]` in `[cup1]`.
+
+| Request | v45, flag off | Flag on |
+| --- | --- | --- |
+| Pick up `[table1]` | `simple` ×2, `complex` | `simple` ×3 |
+| Pick up `[cup1]` | `simple` ×3 | `simple` ×3 |
+| Pour from `[teapot1]` | `simple` | `simple` ×3 |
+
+Read (mine):
+
+- **No reply shows the block being read.** None of the 9 uses anything only the block says, and none copies it. Pour's `Picture` says the tea goes "wherever the player pours it" on 2 of 3, though the block puts it in `[cup1]`. So this shows no copying, and also no use. A block can act without being quoted, as the "n/a" sentence did.
+- **`Revises` ignores it.** "Nothing" on all 9, on table and cup too, with the changed relation stated just above.
+- **Pour fails as it does without the block:** `Obstacle: nothing`, and `No consequence` on all 3, one in the known words ("does not affect the rule"). No tilt on any reply. The explanation's "how the action happens in the story... is yours to judge" drew no response. Whether the block made pour worse is unknown: flag off has 1 reply on v45, and `contingent`, `simple` on v44.
+- **Table's `complex` didn't recur.** Too few replies to credit the block.
+- **The echo is still there:** questions written out on 2 of 9, in short form on 1 more. None truncated.
 
 ### What a passed dry run settles
 
@@ -473,7 +495,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | Slice | State |
 | --- | --- |
 | 1. Failure 1 | Done: built and deployed as v45, wipe 6 of 6, `tavern` holds |
-| 2. Proposed outcome | Framework built and unit tested, flag off byte-identical to v45: [The build](#the-build). Next: deploy, then the [probes](#the-questions-it-answers) |
+| 2. Proposed outcome | Done: built and deployed, flag off byte-identical to v45, and kept as a tool: [The build](#the-build), [first results](#results) |
 | 3. Two axes | Investigation, not started: [Two axes](#two-axes) |
 | 4. Failure 2 | Changed shape: a wrong `simple` when `Picture` omits the from-and-to. Not started |
 | 5. Failure 3 | Accepted for now, next experiment recorded under [Failure 3](#failure-3-an-action-never-pictured) |
@@ -484,7 +506,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 Pending work uses `[ ]` and completed work uses `[X]`.
 
 1. [X] **Slice 1: Failure 1.** Built as v45 (2026-11-06). Wipe `contingent` 6 of 6. `tavern` on the deployed build held: 6 pass, 2 border, with `impossible: no` on all 8.
-2. [ ] **Slice 2: Proposed outcome (user).** The framework under [Proposed outcome](#proposed-outcome): a proposal on the fixtures, one dry-run-to-render path, and a probe flag that is off by default, with flag off still v45 byte for byte. Then probe flag on against flag off. The prompt built into code doesn't change unless a result earns it under the replacement rule. Framework built (2026-11-06); the box stays open until the probes are read.
+2. [X] **Slice 2: Proposed outcome (user).** The framework under [Proposed outcome](#proposed-outcome): a proposal on the fixtures, one dry-run-to-render path, and a probe flag that is off by default, with flag off still v45 byte for byte. Then probe flag on against flag off. The prompt built into code doesn't change unless a result earns it under the replacement rule. Built and deployed (2026-11-06), and kept as a tool with no bar to clear (user).
 3. [ ] **Slice 3: Two axes (user).** An investigation of whether the rubric benefits from deciding on two axes, whether there is a specific plan and then whether this agent can adjudicate and represent it, by the drafts under [Two axes](#two-axes). After Slice 2, since a refused move bears on how axis 1 should read.
 4. [ ] **Slice 4: Failure 2, in its new shape.** Make `Picture`'s from-and-to reliable on teapot, as one change, measured on teapot and table, since a `Moves` step risks bringing back the table refusal. Apply the replacement rule and rebuild as in Slice 1. The results of Slices 2 and 3 may change what this needs.
 5. [ ] **Slice 5: Failure 3.** After Slices 1 and 4, since its edits touch the same steps, starting with the fiction-register `Picture`. It can stay open if the user leaves it.
