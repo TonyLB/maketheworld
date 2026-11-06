@@ -1,39 +1,44 @@
 # Judge prompt: known failures beyond the v28 baseline
 
-**Status (2026-11-06):** Slice 1 is in progress: [v29](judgeFailureDrafts/v29.txt) is probed and doesn't replace v28 as it stands, and neither does [v30](judgeFailureDrafts/v30.txt), which lost the cloth. [v31](judgeFailureDrafts/v31.txt) named the cloth 2 of 4 times and still answered `simple`. [v32](judgeFailureDrafts/v32.txt) checked only the handled thing and never named the cloth. [v33](judgeFailureDrafts/v33.txt) flagged the cloth 2 of 4 times, no better than v31. [v34](judgeFailureDrafts/v34.txt) named the cloth 4 of 4 times, with `contingent` once. [v35](judgeFailureDrafts/v35.txt) is written and not yet probed. The judgePrompt plan has handed back into this one.
+**Status (2026-11-06):** [v41](judgeFailureDrafts/v41.txt) is the draft to beat: it fixes Failures 1 and 2 against v28 on `teaTable`, with no new wrong `simple`. v28 is still what's built. The rebuild waits on [v43](judgeFailureDrafts/v43.txt), which decides what gets built, and on `tavern`, which no draft since v28 has run. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is a small, ephemeral plan: delete it and [`judgeFailureDrafts/`](judgeFailureDrafts/) when the failures below are fixed or knowingly left, and their lasting findings have moved to the [scene projection plan](AGENT.sceneProjection.planning.md). If it gets too crowded, spin sub-plans off in response (user, 2026-11-05).
 
 ## Goal
 
-Improve the triage judge's prompt in steps from a baseline that already works better than what came before it. A plan now retired rewrote the prompt and measured it: [v28](judgeFailureDrafts/v28.txt) freed the table in `teaTable`, the failure that plan was opened for, without losing a pass. It is built, and it is the draft to beat (user, 2026-11-05). It does not have to solve everything, and neither does any draft after it.
+Improve the triage judge's prompt in steps from a baseline that already works better than what came before it. A plan now retired rewrote the prompt and measured it: [v28](judgeFailureDrafts/v28.txt) freed the table in `teaTable`, the failure that plan was opened for, without losing a pass. It is still what's built. [v41](judgeFailureDrafts/v41.txt) is now the draft to beat (user, 2026-11-06), not yet built. No draft has to solve everything.
 
 The failures share one prompt and interact, so they share this plan: an edit for one can move another, and every candidate is measured against the same requests.
 
 ## Getting Started
 
-1. Read the baseline as a whole, [v28](judgeFailureDrafts/v28.txt). The built form is [`frameJudge.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/frame/frameJudge.ts) and `judgeRulesLines` in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts).
+1. Read the draft to beat as a whole, [v41](judgeFailureDrafts/v41.txt), then [how the fix was found](#how-the-fix-was-found-v29-to-v38). What's built is still [v28](judgeFailureDrafts/v28.txt), in [`frameJudge.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/frame/frameJudge.ts) and `judgeRulesLines` in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts).
 2. Read [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan): M28 to M30 for how v28 came about and which of its wording is whose, and [Settled](#settled) for decisions a fix must not undo.
 3. Read the Judge probe subsection of [`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md): the `JudgeProbe` event, and how `instructions` and `sceneText` probe a draft without a build.
 4. Baseline, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4413 passed, 9 skipped, and `npx tsc --noEmit </dev/null`. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md).
 
 ## How we work
 
-- Each candidate is a file in `judgeFailureDrafts/`, numbered on from v28, and is probed through the `instructions` and `sceneText` overrides. Code changes only when a candidate replaces the baseline.
+- Each candidate is a file in `judgeFailureDrafts/`, numbered on from v28, and is probed through the `instructions` and `sceneText` overrides. Code changes only at a rebuild, as in [Recommended order](#recommended-order).
 - The user runs each probe and pastes the result. Keep batches small: the smallest call count that answers the question, at most 12 per invoke.
+- One change per draft. v42 made three at once and regressed, and couldn't say which one did it. Text anywhere in the prompt can change earlier lines of the reply, so no edit is safe unprobed, a clean-up included.
 - Rules are in positive terms, with no "do not" qualifying a positive instruction. Pronouns are written out as nouns where the referent could be misread, and "moving along with" is only ever how the telling reads, never movement relative to a frame (M30).
 - Each change is attributed. Anything not from the user is labelled "mine" until accepted.
 - Examples in the prompt stay out of the fixtures' domains, because earlier batches showed such examples leaking into answers.
 
 ## When a candidate replaces the baseline
 
-Mine, proposed with this plan and not discussed separately. A candidate replaces v28 when it:
+Mine, accepted by the user (2026-11-06, was JF-1). A candidate replaces the draft to beat when it:
 
 - fixes at least one known failure,
 - causes no new wrong `simple`, and
-- loses no pass on the table, the cup or the table in the cup.
+- loses no pass on the table, the cup or the table in the cup, where a label the fixture tolerates is a border and not a lost pass.
 
 Grade by what an error costs (was JP-13, under [Settled](#settled)): a wrong `simple` has no recovery, and a repeated false refusal is a failure. Other disagreement among the labels is tolerated. Two repeats show only strong effects, so read the replies as well as the tally.
+
+## Draft to beat: v41 on Nova Micro
+
+2026-11-06, 18 calls on `teaTable`: 13 pass, 3 border, 2 failure, counting `complex` on the table as a border, which the fixture will tolerate after the rebuild. The two failures are pour's known wrong `simple` and one truncated reply on pry. Reply by reply [under Failure 1](#failure-1-a-named-object-the-scene-does-not-establish). `tavern` has not been run, and `Recap` is still in the draft.
 
 ## Baseline: v28 on Nova Micro
 
@@ -69,55 +74,78 @@ The approaches are mine unless marked, and none is agreed. They are starting poi
 
 Wipe with a cloth is `simple` with `Needs: nothing`, and has been on every draft run on it (v24, v26, v28). One reply's Picture even mentions the cloth. Micro does catch the screwdriver in the pry request, so it can do this. A wrong `simple`.
 
-**[v29](judgeFailureDrafts/v29.txt), the user's design (2026-11-06):** a revamp of `Needs` and `Answer` together, so `Needs` carries richer information and `Answer` uses it.
+#### How the fix was found, v29 to v38
 
-- `Needs` names what is required for the clearest path for the action and is not established as either present or absent. Each need is labelled `Item` or `Class`, and `Player-specified` or `Improvised`.
-- `obstructed` takes an `Item` need nothing here could plausibly meet, or a `Class` need the player would have to specify. `contingent` takes `Item` details the judge can suggest.
-- Mine, accepted by the user: a ladder as the `Item` example in place of a screwdriver, which the pry request names; "each" and "or write "nothing"", so `Needs` can list several or none; "player" for "user"; and non-object details staying in `Needs`, labelled `Item`, with an unlatched window as their example. Mine, accepted with the rest, not separately discussed: the test that an `Item` says what it is and a `Class` is described by what it has to do.
-- `Answer` doesn't read `Player-specified` or `Improvised`. The label is there to send Micro back to what the request named, and it reaches any deferred LLM (note 23).
-- **Departs from [Settled](#settled), if it replaces the baseline:** under JP-13 and `Improvising`, how sure the judge is makes no difference and a suggestion goes to `contingent`. Here a plausible improvised `Class` goes to `obstructed`. My reading is that this doesn't reopen JP-13's point, since `Class` is about having nothing specific to suggest and not about sureness. Fits note 29: a `Class` need with nothing specified is a player with no plan yet.
-- To read for: whether "detail" still lets Micro write `Needs: nothing` (the user's question); false needs on a plain action, such as hands on a pick-up; and whether the `Item`/`Class` choice follows the need or only how Micro phrases it. The last costs little, as both labels recover.
+Wipe on Micro, 2026-11-06, condensed from reply-by-reply notes. The wording is in each draft. "Cloth" counts replies where `Needs` named it.
 
-**v29 on Nova Micro (2026-11-06, wipe, cup and table, 2 repeats each, 6 calls):** 3 pass, 3 failure, 2 wrong `simple`. Wipe `simple` ×2, cup `simple` ×2, table `simple` and `obstructed`. One wipe reply wrote `Needs: Item: cloth (Player-specified)` and still answered `simple`, so `Needs` found the cloth and `Answer` didn't use it. The other wrote `Needs: nothing` after a Picture saying "the cloth is held by the player", treating the request's naming of the cloth as establishing it. No false needs on cup or table, and the labels were used correctly where they appeared. The `obstructed` table reply went wrong at `Rules`, saying the teapot would leave the table's frame; whether v29 caused that or it's noise is unknown, since nothing before `Needs` changed and the tavern table already varies on v28.
+| Draft | Change, and whose | Cloth | `contingent` | Read |
+| --- | --- | --- | --- | --- |
+| [v29](judgeFailureDrafts/v29.txt) | `Needs` as required for the clearest path, labelled `Item`/`Class` and `Player-specified`/`Improvised` (user) | 1 of 2 | 0 | `Answer` ignored the need |
+| [v30](judgeFailureDrafts/v30.txt) | `Specific`/`Class`, for details as well as things (user); `Answer` reads `Needs` (mine) | 0 of 3 | 0 | Losing "thing" lost the cloth (user's read) |
+| [v31](judgeFailureDrafts/v31.txt) | `Item`/`Class`/`Detail` (user) | 2 of 4 | 0 | `Picture` flagging the cloth decides `Needs` |
+| [v32](judgeFailureDrafts/v32.txt) | `Picture` checks whether things are established first (user) | 0 of 4 | 0 | Only the handled thing got checked: "named by handles" echoed |
+| [v33](judgeFailureDrafts/v33.txt) | Handles show establishment (user's wording); "List everything" (mine) | 1 of 4 | 0 | "Everything" swept the whole scene |
+| [v34](judgeFailureDrafts/v34.txt) | `Mentions` as its own first step, pointed at the last line (the user's hypothesis, my form) | 4 of 4 | 1 | Tight step at a literal place worked |
+| [v35](judgeFailureDrafts/v35.txt), [v36](judgeFailureDrafts/v36.txt) | `Mentioned` for `Player-specified`; `Answer` as a switch (user) | Not probed | | |
+| [v37](judgeFailureDrafts/v37.txt) | `confusing` fall-through (user) | 4 of 4 | 0 | The word came first, then its justification |
+| [v38](judgeFailureDrafts/v38.txt) | `Tests` before `Answer`, copying earlier lines (mine); labels on tests, `Rules` called back (user) | 4 of 4 | 0 | Copies skipped; verdict, then a reason made to fit it |
 
-**[v30](judgeFailureDrafts/v30.txt) (2026-11-06):** three changes on v29, put in together, so a result won't say which one helped.
+What carries:
 
-- The user's correction: `Item` is wrong once `Needs` covers facts, since an unlatched window is not an item, so the labels are `Specific` and `Class`. A fact can be `Class` as well (mine), and the user's example is "some way of dissolving the glue" on the teapot, which may give this fix leverage beyond wipe. "Whether a thing or a fact" is mine, keeping "thing" in front of Micro.
-- Mine, the user agreed: `contingent` and `simple` now read the `Needs` line, because `Answer` ignored a correct `Needs` on v29.
-- Mine, the user agreed: "A thing the request names is established only if the scene states it", because a v29 Picture had the player already holding the cloth.
+- **Tight steps at a literal place work on Micro, and prose definitions don't.** `Mentions` beat every rewording of `Picture`.
+- **Micro decides, then justifies, so the verdict goes last (the user's read, v38).** `contingent: no ("Needs" says "nothing")` sat directly under `Needs: cloth`. This is why `Tests` is a rubric of bare `label: yes` lines.
+- **"Copy from your earlier line" is not an operation Micro accepts in that framing (user).** "Given what Needs said" is what works.
+- **A rubric isn't a switch (user).** Every question gets answered, and priority lives in `Answer`. So the order questions are asked in is free to tune, separately from priority (user, v41).
+- **`contingent: yes` with `simple: yes` is correct output (user, v40).** Wiping is simple if the cloth is there.
+- **Words get echoed.** "Named by handles" in the prompt shaped what counted as a thing, as `"Needs" says "nothing"` shaped reasons. `Reading the scene` now says "Some things are named by handles in square brackets, to show that they are established in the scene" (the user's wording).
+- **A handle shows a thing is established, and no handle shows nothing (user).** A teapot's lid may be established by the teapot with no graph node, so a request about it is not `contingent`: `simple` if the outcome needs no node, `complex` if it needs one (mine, on the user's question). To watch: the `Graph` bullet's "one row for each thing" could also suggest that things mean handled things.
 
-To read for: whether "Specific" is taken too strictly, so that any cloth reads as `Class` and wipe goes to `obstructed`; `Answer` turning into a lookup; and on teapot and pour, whether `Needs` gives a `Class`, and whether that names a fix, which the `avoids` list doesn't check on that line.
+Still open from these drafts:
 
-**v30 on Nova Micro (2026-11-06, wipe and table, 3 repeats each, 6 calls):** 2 pass, 4 failure, 3 wrong `simple`. Wipe `simple` ×3, all with `Needs: nothing`, and no Picture mentions the cloth beyond restating the request. So the one `Needs` that named the cloth, on v29, has not come back. The user's reading: replacing things with details lost whatever connection let Micro spot the cloth. v28's `Needs` said only "detail" and always wrote "nothing", which fits, but the `Item` label and the new `simple` line changed in the same draft. Table `simple` ×2 and `obstructed`, this time from an invented fact ("glued to the floor"), which is not v29's cause. Its `Needs` read `Specific: A tool or method to unglue`, which by its wording is a `Class`. Table across v29 and v30: 3 `simple`, 2 `obstructed`, from v28's 2 `simple`.
+- **Departs from [Settled](#settled):** under JP-13 and `Improvising`, how sure the judge is makes no difference and a suggestion goes to `contingent`. Here a plausible improvised `Class` goes to `obstructed`. My reading is that this doesn't reopen JP-13's point, since `Class` is about having nothing specific to suggest and not about sureness. Fits note 29: a `Class` need with nothing specified is a player with no plan yet. No fixture measures it yet ([Supporting work](#supporting-work)).
+- **`Improvising` (mine):** it offers a farmhouse's roof as a detail to suggest, which a deduction from "farmhouse" could equally establish, the same shape as the teapot's lid. Settle before any rebuild that keeps the deduction sentence.
+- **The "End of scene." marker** closes `sceneText` in every draft since v34 (mine, the user agreed). It goes in the scene renderer at the rebuild. A renamed or fenced `Request:` line would need a deploy.
+- **`Mentioned`/`Improvised`:** no test reads it, and it has flipped with no change to its own wording (`Improvised` 4 of 4 on v37, `Mentioned` 4 of 4 on v38). A candidate for removal, as its own change.
 
-**[v31](judgeFailureDrafts/v31.txt) (2026-11-06):** v30 with only the `Needs` wording and labels changed: the user's three-way `Item`, `Class` and `Detail`, leading again with "thing, class of things or fact". The `Answer` links and the naming sentence stay. Wording mine, the user agreed. Probe wipe only, 4 repeats, 4 calls (mine). If `Needs` still writes "nothing", the `simple` line's `"Needs" says "nothing"` is the next suspect.
+#### v39 onward
 
-**v31 on Nova Micro (2026-11-06, wipe, 4 repeats):** 0 pass, 4 wrong `simple`. `Needs` named the cloth twice, as `Item: cloth (Player-specified); nothing else is required`, and `Answer` still said `simple` both times, so the links in `contingent` and `simple` did not work.
+**[v39](judgeFailureDrafts/v39.txt) (2026-11-06):** `Tests` becomes a rubric, every question answered, and no longer a switch, the user's design. The form is the user's: `Given what Obstacle said: Does it name something? If so, then say "obstructed: yes", otherwise say "obstructed: no".` The decision comes at the end of each line, and the line stops asking for a copy, since v38's "copy" was skipped 4 of 4. Earlier unprobed versions with `<copy "Obstacle">` placeholders (mine) and "skip to Answer" were dropped. Mine: `Answer` gives the first label that says "yes", so order now lives there, with `confusing` if none does; one question per condition, so `obstructed` takes three lines, numbered `obstructed (1)` to `(3)` (the user's numbering) so that a mixed yes and no under one label can't read as one item; no example lines, which would have shown a copy. To read for: `contingent: yes` against what `Needs` said, and `Answer` taking the first "yes" where `simple` also says "yes". Probe wipe, 4 repeats, 4 calls.
 
-**What the nine wipe replies on v29 to v31 show (mine):** `Picture` decides `Needs`. The three replies whose Picture says the cloth is "not established as present" all name it in `Needs`. The other six all write "nothing": five open "The request acts on [table1]" and one has the player holding the cloth. "Find the things the request acts on" may be steering Micro away from the cloth, since a tool isn't acted on. The user's proposal (2026-11-06): `Picture` reasons about whether the things the request describes are established before imagining them in action. Across the same replies, `Answer` said `simple` on all three that named the cloth, so that is a second problem. One guess is that "Player-specified" reads as the need being met.
+**v39 on Nova Micro (2026-11-06, wipe, 4 repeats):** 3 pass, 1 border (`obstructed`, tolerated), 0 wrong `simple`, the first draft to fix Failure 1 on this request. `contingent: yes` on the rubric 4 of 4, and `Answer` took the first "yes" 4 of 4, including the 2 replies that also wrote `simple: yes`. The order in `Answer` is what decides those. Replies wrote only the bare `label: yes` lines, with no questions or reasons, so no justifying. The border reply wrote `obstructed (3): yes` for a cloth, a need that a parlour could plausibly meet. `Answer` usually repeats the rubric's form (`contingent: yes.`, `"obstructed (3): yes"`): the grader reads the label from the first word, but the sentence then starts with "yes" or the number, to tidy if v39 replaces the baseline. v39 has not been run on any other request.
 
-**[v32](judgeFailureDrafts/v32.txt) (2026-11-06):** v31 with only `Picture` changed, the user's proposal in my wording: "Find the things the request names, and say for each whether the scene establishes it", with the naming sentence moved there from `Needs`. It targets the rate at which `Needs` catches the cloth. `contingent` pre-empting `simple` is the next problem, taken separately (user). Probe wipe, 4 repeats, 4 calls.
+**[v40](judgeFailureDrafts/v40.txt) (2026-11-06):** v39 with `and did Needs say "nothing"` removed from the `simple` test, the user's change. Wiping with a cloth is simple if the cloth is there, so `contingent: yes` with `simple: yes` is correct output, and the order in `Answer` is what chooses between them. The `simple` test now asks only about the action and recording it. `confusing` is left for a reply where nothing says "yes". Next: table, cup and table in cup, 3 repeats, 9 calls, the requests the replacement rule protects, to watch for an invented need or a stray `Obstacle` now deciding the label, and for "n/a" on table in cup.
 
-**v32 on Nova Micro (2026-11-06, wipe, 4 repeats):** 0 pass, 4 wrong `simple`, all `Needs: nothing`. Every Picture did the new check and did it only for `[table1]` ("The request names [table1] Table, which is established"), leaving the cloth unchecked. The user's reading: something in the prompt makes Micro think the only things we care about are those with handles. The likely source (mine): `Reading the scene` says "Things are named by handles in square brackets", and my "the things the request names" echoes it. This holds to the earlier pattern: no Picture flagged the cloth and no `Needs` named it.
+**v40 on Nova Micro (2026-11-06, table, cup and table in cup, 3 repeats):** table `simple` 3 of 3 and cup `simple` 3 of 3, with `Needs: nothing` and every rubric line above `simple` saying "no", so no invented need and no stray `Obstacle`. Table had 2 `obstructed` on v29 and v30. Table in cup: 0 pass, 2 `obstructed` (tolerated), 1 `complex` (failure), no wrong `simple`. No reply wrote "n/a" on the next four lines, so `impossible: no` 3 of 3: the dependency flagged at v38 is real. One wrote a stray "n/a" at the end of `Picture` and carried on. The knowledge is there but has no slot: `Answer` says "physical and spatial constraints" and "making it impossible" under other labels, and `Picture` never says it won't fit. All three invent a role for the glued teapot. `complex: yes` on 3 of 3, reached as the answer on the one with no `Obstacle`. `Mentions` leaked its example here, `rag not established` 3 of 3, and listed the rule's handle as a thing, on this request only; it did not reach `Needs`. One table reply wrote out the questions as well as the results, and answered them correctly.
 
-**[v33](judgeFailureDrafts/v33.txt) (2026-11-06):** v32 with one idea in two places. `Reading the scene` says "Some things are named by handles in square brackets, to show that they are established in the scene" (the user's wording). `Picture` says "List everything the request mentions, with or without a handle, and say for each whether the scene establishes it" (mine), then "A thing the request mentions is established only if the scene states it directly or it can be deduced from what the scene states" (the user's revision of the naming sentence; "mentions" for "names" is mine). Probe wipe, 4 repeats, 4 calls.
+**[v41](judgeFailureDrafts/v41.txt) (2026-11-06):** three changes on table in cup. The order questions get asked is separated from the priority between answers, the user's design: `impossible` is asked last, so it has the other tests in context (`complex: yes`, `simple: no` on table in cup, `simple: yes` on table and cup, `obstructed: yes` on teapot), and `Answer` gives it priority explicitly. Mine: the two-step wording in `Answer`, and "Given what Picture said" replacing my "n/a" test, which never fired. A recap of the reasoning for diagnosis, the user's idea, sits after the `Answer` line. The user proposed one on each test line, followed by the answer; I moved it, and the user agreed, because v38's reasons were made to fit the verdict and a reason on one line is in context for the next, where v39's and v40's bare lines are what worked. Being post hoc, a recap shows what Micro says about a verdict, not what caused it. Probe table in cup and teapot, 3 repeats, 6 calls. If that looks good, recheck table and cup, since `impossible` now wins whenever it fires. To read for: `impossible: yes` on table in cup and `no` on teapot, and `Answer` keeping to the priority.
 
-Open (mine): `Improvising` offers a farmhouse's roof as a detail to suggest, which a deduction from "farmhouse" could equally establish, the same shape as the teapot's lid. To read for: whether "deduced" lets Micro deduce the cloth from the scene.
+**v41 on Nova Micro (2026-11-06, table in cup and teapot, 3 repeats):** 6 pass of 6. Table in cup `impossible` 3 of 3 and teapot `obstructed` 3 of 3 with `impossible: no`, so Failure 2 did not appear on teapot. `Answer` kept the priority 3 of 3, past `complex: yes` and in one reply `obstructed (2): yes`. The result can't be credited to order alone: `Picture` itself now says "not physically possible given the sizes" 3 of 3, before any test, so naming `Picture` in a later question changed what `Picture` writes. No side-by-side, since it wouldn't change the decision. The `rag` leak did not recur. Leftovers of the old "n/a" instruction: stray "n/a" ending `Picture` on 2 teapot replies, and `Obstacle: n/a` on 2 table in cup replies, all harmless so far. `Recap` came on the `Answer` line in all 6, so the grader counts it as part of the sentence: one `avoids` flag is false ("cut" in "execution"), and the other is a real named fix in the sentence ("without detaching it first"). It mostly restates the questions, with some use (`simple: no because the action cannot be completed`). `complex: yes` on 2 teapot replies is correct (the user): if it weren't obstructed, the change would be representationally complex. Next: table, cup, pour, pry, wipe and saucer, 2 repeats, 12 calls, to apply the replacement rule. If v41 is a candidate, three cleanups to decide before replacing: the `Recap` (dev only, per the user), the unused "n/a" instruction, and `Answer` repeating `label: yes` into its sentence; each changes the prompt and needs its own check.
 
-A handle shows a thing is established, and no handle shows nothing (user, 2026-11-06). A teapot's lid may be established by the teapot even with no graph node, so a request about it is not `contingent`. If the outcome needs no graph node it is `simple`, and if it needs one it is `complex` (mine, on the user's question). This rules out handles as the mechanical test in fallback 1 below, as written. To watch: the `Graph` bullet's "one row for each thing" could be a second source of things meaning handled things.
+**v41 on Nova Micro (2026-11-06, the other six requests, 2 repeats):** 7 pass, 2 border, 3 failure, 1 wrong `simple`. With the 6 above, against v28:
 
-**v33 on Nova Micro (2026-11-06, wipe, 4 repeats):** 0 pass, 4 wrong `simple`. "List everything" made Micro list the scene's handles as things the request mentions, then give one blanket "All are established". Two replies included the cloth and contradicted that blanket in the next sentence ("not established as present, but it is plausible"). One of those carried it to `Needs`, with the labels garbled (`Improvised Item`), and the other wrote `Needs: nothing`. Neither deduced the cloth from the scene. Across v29 to v33, 17 replies: `Picture` flagged the cloth in 5 and `Needs` named it in 4 of those; `Picture` didn't flag it in 12 and `Needs` never named it. `Answer` said `simple` on all 4 that named it. The flag rate (2 of 4) is no better than v31's.
+| Request | v28 | v41 | Read |
+| --- | --- | --- | --- |
+| Pick up `[table1]` | `simple` ×2 | `simple`, `complex` | Lost pass under the rule as written. The `complex` reply cites the teapot moving with the table |
+| Pick up `[cup1]` | `simple` ×2 | `simple` ×2 | Holds |
+| `[table1]` in `[cup1]` | `impossible` ×2 | `impossible` ×3 | Holds |
+| Slide `[saucer1]` | `simple` ×2 | `simple` ×2 | Holds |
+| Pick up `[teapot1]` | `obstructed`, `impossible` | `obstructed` ×3 | Failure 2 not seen |
+| Pour from `[teapot1]` | `obstructed`, `simple` | `contingent`, `simple` | Failure 3, the same wrong `simple`, not a new one. The `contingent` comes from `tea not established`, though the scene has `[tea2]` in the teapot |
+| Wipe with a cloth | `simple` ×2 | `contingent` ×2 | Failure 1 fixed, with v39 |
+| Pry with a screwdriver | `obstructed` ×2 | `obstructed`, no label | Known border. The other reply wrote out every test question and hit the probe's 512 token limit before `Answer`, the first truncation |
 
-**[v34](judgeFailureDrafts/v34.txt) (2026-11-06):** the check becomes its own first step, `Mentions`, and `Picture` goes back to imagining the action. The user's hypothesis: "the request" may be cross-wired with the whole prompt, so the structure should let a reference point at the right place. Against that alone, v32 scoped "the request names" correctly, and the sweep arrived with my "List everything". Mine, the user agreed: `Mentions`, pointing at the last line by position and literal text, its `hinge`-and-`rag` example, and "End of scene." closing `sceneText`. The user's: a thing with a handle is established, and the deduction sentence. `Rules` now says "the things under Mentions", since "those things" lost its referent (mine). If v34 replaces the baseline, the marker goes in the scene renderer. A renamed or fenced `Request:` line needs a deploy, because the probe can't override it. Probe wipe, 4 repeats, 4 calls. If it doesn't clearly beat 2 of 4, stop rewording and run wipe on Nova 2 Lite (mine).
+Pry still names the glue under `Obstacle` where note 29 wants "nothing", and `obstructed (2)` then outranks `contingent`. Echoing the questions has now appeared on 2 replies. `Recap` contradicted its own tests once (`obstructed (3)`), and showed why the table reply said `complex`.
 
-**v34 on Nova Micro (2026-11-06, wipe, 4 repeats):** 1 pass, 3 wrong `simple`, the first `contingent` on any draft. All four `Mentions` lines read `[table1] established; cloth not established.`, with no scene sweep, no blanket verdict and no leak of the example. `Needs` named the cloth all four times. So a tight step pointed at the last line did what prose in `Picture` could not, and the stop rule doesn't apply. Every reply labelled the cloth `Improvised`, though the request names it. All three wrong `simple` carried `Improvised`, which rules out my guess that "Player-specified" read as the need being met. `Answer` following `Needs` is now the problem: 1 of 4 here, 1 of 8 across the drafts. v34 has not been run on any other request.
+**[v42](judgeFailureDrafts/v42.txt) (2026-11-06):** meant as the candidate to replace v28. v41 without `Recap` and without the unused "n/a" instruction in `Picture`, and with "For each, write only the label and its answer" in `Tests`, against the echo that truncated pry (mine, the user agreed). Probe all eight once, then table in cup and pry twice, 12 calls, since removing "n/a" touches the first and the echo the second. Until the fixture change deploys, the tally grades `complex` on table a failure, to read as a border. If it holds, `tavern` runs too (4 requests, 2 repeats, 8 calls, with its own scene text), since it is part of the v28 baseline and `impossible` now wins whenever it fires.
 
-**[v35](judgeFailureDrafts/v35.txt) (2026-11-06):** v34 with `Player-specified` replaced by `Mentioned`, which is "Mentioned" if it appears under `Mentions` (the user's design, my wording). Probe wipe, 4 repeats, 4 calls. To read for: the label following `Mentions`, and whether it moves `Answer`.
+**v42 on Nova Micro (2026-11-06, all eight once):** 4 pass, 1 border, 3 failure, all 3 wrong `simple`. Table, cup, table in cup and slide held, pry `obstructed`. Teapot `simple` is new against v28, and wipe `simple` is back, with `Needs` naming the cloth and `contingent: no`; pour `simple` is known. So v42 does not replace v28. Across the replies, `Picture` shrank to one sentence on 7 of 8, restating the request with no motion or frame, where v41 wrote two or more on all 18. The teapot reply shows the chain: `Picture` says the teapot is glued and never that it would leave the table, `Rules` restates the rule with `No consequence` and no sentence on what the action does to it, `Obstacle` and `Needs` say "nothing", every test says "no", and the answer reads the rule as a permission ("the rule allows it to stay fixed... so picking it up is straightforward"). The rubric passed that on faithfully, the risk flagged at v36: the fault is upstream. v42 made three changes at once, against the one-at-a-time rule (mine). My guess at the cause: "write only" spreading terseness up the reply. Removing `Recap`, which asked for reasons, could do the same.
 
-Fallbacks, mine:
+**v42 on Nova Micro (2026-11-06, table in cup and pry, 2 repeats):** table in cup `impossible` 2 of 2, 3 of 3 on v42, so removing "n/a" did not cost it. One of those replies has a one-sentence `Picture` that never says the table won't fit, `Obstacle: Nothing`, and still `complex: yes`, `simple: no`, `impossible: yes`. That weakens my v41 reading that `Picture` carried the result, and leaves asking `impossible` late as the likelier cause, though not proved. Pry `obstructed` 2 of 2, 3 of 3 on v42: the known border, no echo and no truncation. `contingent: yes` on 2 of those 3, with `obstructed` outranking it, which fits note 22. `Picture` was one sentence on all 4 here, 11 of 12 across v42. No echo on any of the 12. The rubric misread `Needs` on 2 replies, `obstructed (3): yes`, one of them with `Needs: nothing`, without changing the label.
 
-1. Give `Needs` a mechanical check against the scene: "Name each thing the request mentions that has no handle in the scene, and each other detail the action could not work without that isn't established, or write "nothing"." To watch: false needs, such as the container one pour reply already invents.
-2. If the handle check overreaches, narrow it to things the request names as a tool.
+**[v43](judgeFailureDrafts/v43.txt) (2026-11-06):** v42 without "write only", to separate those causes. Probe teapot, pour and wipe, 3 repeats, 9 calls. Pour is there for the user's question of whether terseness is removing a tilt: on v41 and v42 no reply had one to remove. v41's longer `Picture` traces the tea ("from inside the teapot to the cup") and v42's drops that sentence, and neither moves the teapot, as on v28. If `Picture` recovers, "write only" was the cause, and the echo needs another answer, such as a higher token limit. If it stays terse, `Recap` is the likelier cause, with "n/a" less likely but not ruled out for terseness, which would change the development flag's premise: the recap would be doing work, not only reporting. 
+
+To go in with the rebuild, if a candidate replaces v28: the `teaTable` table's `tolerate: ['complex']`, `confusing` in `JUDGE_LABELS`, and the development flag. The flag (the user's idea; the shape is mine, not yet confirmed): the recap sentence becomes its own constant, off by default, and a `development: true` on the `JudgeProbe` event appends it to whatever instructions the probe uses, built or draft, so it switches per probe with no deploy and no second copy of a draft. A result with the flag on is for diagnosis, not scoring, since prompt text elsewhere has been seen to change earlier lines, and its longer reply may hit the 512 token limit, which the flag could raise.
+
 
 ### Failure 2: a `Conflict` that ends in `impossible`
 
@@ -134,6 +162,8 @@ Accepted for now (user, 2026-11-05): getting the table was worth having without 
 2. Add a worked example of an action on a secured thing that stays in its frame, such as pouring oil from the bolted lamp. It would sit close to the test, so a pass could be copying.
 3. Use short fill-in slots in Picture, such as `Moved:` and `How:`, if Micro keeps restating the request.
 4. Accept it, and rely on a later check by a more capable system. That is a design question for CA-6, and it needs the user.
+
+The next experiment (2026-11-06): `Picture` answers in the wrong register, the user's read. Most lines restate the request ("The player wants to...") or give a before and after in frames ("from inside the teapot to outside it"). A tilt lives between those two states, so this register has no place for it. No pour reply on v41 or v42 has one, and a longer `Picture` only traces the tea. Fiction-action turned up only where the request names a tool (the screwdriver, the cloth). The step itself asks for frames, and the worked examples all read "goes from X to Y". To try, mine, not agreed: `Tell this moment as it would happen in the story, in a sentence or two: what you do, what you do it with, and what each thing does as a result.`, with the frame sentence out of `Picture` and the `Relations and frames` section left alone. To watch: teapot's `Conflict`, which v41 reached through the before-and-after; a story line deciding the matter before `Rules`; invented objects; and table, since frame language is what freed it.
 
 ## Questions the failures raised
 
@@ -217,6 +247,7 @@ That plan rewrote the prompt and was retired on 2026-11-06, once v28 was built a
 
 Decisions a fix must not undo without saying so. A "was JP-n" label resolves any older reference.
 
+- **The replacement rule (was JF-1):** it stands, as [When a candidate replaces the baseline](#when-a-candidate-replaces-the-baseline) now words it. A label the fixture tolerates is a border, not a lost pass. The `teaTable` table tolerates `complex` (user, 2026-11-06), since that division waits for the planner and `complex` fails safe, as the `tavern` table already does.
 - **Two uses of "you" (was JP-3):** a sentence in `Reading the scene`: 'In the scene, "you" is the player'. The render stays as it is.
 - **The user's `SECURED` passage (was JP-5):** it stays out. Its removal was mine, and this is its explicit decision. A code comment in `sceneRules.ts` records that it made things worse, and the rule and the inertia framing now cover its job. It is the first thing to try if the table refusal survives Slice 4.
 - **"Text adventure" (was JP-7):** not named. The genre may suggest things are fixed in place, which could feed the table refusal. The text-adventure reading stays a requirement of the behaviour, and `game master` stays.
@@ -246,25 +277,27 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| JF-1 | Is the replacement rule in [When a candidate replaces the baseline](#when-a-candidate-replaces-the-baseline) the right bar? | No slice: it applies when a candidate is compared | Open |
 | JF-2 | Does the judge get a `challenging` label (the user's proposal, [Question 1](#question-1-a-feat-the-labels-cannot-name)), and until then what does the fixture expect of the `tavern` table? It reopens the five labels of JP-6, and meets JP-14, under which the skill question is not the judge's: the label would say a skill question exists and leave the answer to the rules. | No slice | Open |
 
 ## Progress
 
 | Slice | State |
 | --- | --- |
-| 1. Failure 1 | In progress: v34 names the cloth 4 of 4 and `Answer` follows 1 of 4; v35 written, not yet probed |
-| 2. Failure 2 | Not started |
-| 3. Failure 3 | Not started |
+| 1. Failure 1 | Fix found in v41, the draft to beat. Rebuild pending, after v43 and `tavern` |
+| 2. Failure 2 | Not seen on v41, teapot `obstructed` 3 of 3, and the rule check is in `Tests`. Not closed: three replies, and v42 shows it is fragile |
+| 3. Failure 3 | Accepted for now, next experiment recorded under [Failure 3](#failure-3-an-action-never-pictured) |
 | 4. Hand back | Not started |
 
 ## Recommended order
 
 Pending work uses `[ ]` and completed work uses `[X]`.
 
-1. [ ] **Slice 1: Failure 1, as [v29 and v30](#failure-1-a-named-object-the-scene-does-not-establish).** Probe the current draft on wipe, cup and table on Micro, 6 calls, with cup and table checking for false needs: both tolerate nothing but `simple`, where slide tolerates `contingent` and could hide one (mine, the user agreed). v30 runs wipe and table, 3 repeats each, since cup held on v29 and the table reply needs more repeats (mine). If that looks better, run the other five requests, 10 calls, and apply the replacement rule. If the draft replaces v28, rebuild `frameJudge.ts` and the golden tests to match.
-2. [ ] **Slice 2: Failure 2.** On whatever Slice 1 leaves as the baseline. Probe teapot and table in cup on Micro, 2 repeats each, 4 calls, with table in cup checking that the `impossible` edit doesn't overcorrect. If that looks better, run the other six requests, 12 calls, and apply the replacement rule. If the draft replaces the baseline, rebuild as in Slice 1.
-3. [ ] **Slice 3: Failure 3.** After Slices 1 and 2, since its edits touch the same steps. It can stay open if the user leaves it.
+1. [ ] **Slice 1: Failure 1.** v41 is the fix. Remaining, in order:
+   1. Probe [v43](judgeFailureDrafts/v43.txt) on teapot, pour and wipe, 9 calls. It decides what gets built: if it holds, `Recap` can go behind the development flag and v43 runs the full set; if it stays terse, `Recap` may be doing work, and v41 is built with it in and a higher token limit.
+   2. Run the winner on the remaining `teaTable` requests as needed, and on `tavern`, 8 calls, with its own scene text.
+   3. Rebuild `frameJudge.ts` and the golden tests, with the rest listed [under Failure 1](#v39-onward), then redeploy. Verify as in [Verification](#verification), and mark this done.
+2. [ ] **Slice 2: Failure 2.** On whatever Slice 1 leaves as the baseline. Teapot needs enough repeats there to close this or to reopen it, with table in cup alongside. If an edit is still needed, apply the replacement rule and rebuild as in Slice 1.
+3. [ ] **Slice 3: Failure 3.** After Slices 1 and 2, since its edits touch the same steps, starting with the fiction-register `Picture`. It can stay open if the user leaves it.
 4. [ ] **Hand back:** record the standing of each failure on the scene projection plan's Slice 6 row, move what lasts from [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan), repoint the links in `calibration/AGENT.md` and the pointer in `frameJudge.ts`, then delete this plan and its drafts.
 
 ## Verification
