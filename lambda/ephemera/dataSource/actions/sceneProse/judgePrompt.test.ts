@@ -2,7 +2,7 @@ import { buildSceneFixture, sceneFixture } from '../../positions/ludicCache/scen
 import { composeJudgePrompt, JUDGE_INSTRUCTIONS } from './frame'
 import { renderScene } from '.'
 
-/** The scene part of the agreed judge prompt (judgePrompt plan, v28), for `teaTable`. Written out once from the render and read through by hand. */
+/** The scene part of the agreed judge prompt, for `teaTable`. Written out once from the render and read through by hand. */
 const judgeTeaTableGolden = [
     'Scene: The Parlour',
     '',

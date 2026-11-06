@@ -28,7 +28,7 @@ export type AttemptQuestion =
     | { kind: 'unmapped'; referents: UnmappedReferent[] }
 
 /**
- * `judge` words it as the judge prompt's `Request` (judgePrompt plan, v28): no closing `Could I?`, and "I want to" without a colon, so
+ * `judge` words it as the judge prompt's `Request`: no closing `Could I?`, and "I want to" without a colon, so
  * it reads as a sentence after `Request: `. The default is the planning frame's, unchanged.
  */
 export type AttemptQuestionStyle = 'question' | 'judge'

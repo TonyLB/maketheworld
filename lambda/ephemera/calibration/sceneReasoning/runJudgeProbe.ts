@@ -1,5 +1,5 @@
 //
-// The judge probe's runner (judgePrompt plan, Slice 4): one Bedrock call per (request, repeat), each the whole judge prompt, graded
+// The judge probe's runner: one Bedrock call per (request, repeat), each the whole judge prompt, graded
 // by `judgeGrade.ts`. Separate from `runSceneReasoningProbe.ts`: that one varies format x answer format x question, and the judge
 // has one prompt, a set of requests with expected labels, and drafts of its text to compare.
 //

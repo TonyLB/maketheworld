@@ -1,5 +1,5 @@
 //
-// The judge's prompt (judgePrompt plan): the text of v28 in `taskPlanning/.../judgePromptDrafts/`, the draft to beat, one constant per
+// The judge's prompt: the text of v28 in `taskPlanning/.../judgeFailureDrafts/`, the draft to beat, one constant per
 // module. `Reading the scene`, `Relations and frames`, `Reading player intent` and `Improvising` are reusable modules; `Task` belongs to
 // the judge. The instructions hold nothing variable, so they are byte-identical across calls and can sit before a cache point. Pronouns
 // are repeated as nouns on purpose, since Nova Micro loses track of a referent ("The table is glued to the teapot, so you can't pick it up").

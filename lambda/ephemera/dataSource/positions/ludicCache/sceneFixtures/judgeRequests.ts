@@ -1,7 +1,7 @@
 /**
- * The judge probe's requests (judgePrompt plan, Slice 4): a named set of requests in the player's words, each with the label
+ * The judge probe's requests: a named set of requests in the player's words, each with the label
  * it should draw, written and agreed **before** a batch runs. The label is the verdict. `tolerate` names the other labels that are border
- * cases rather than failures (the plan grades by what an error costs: a wrong `simple` is never tolerated, since it has no
+ * cases rather than failures (graded by what an error costs: a wrong `simple` is never tolerated, since it has no
  * recovery). `mentions` and `avoids` are reading aids, not verdicts: lexical, so the reader decides what they flag.
  */
 import type { JudgeLabel } from '../../../actions/sceneProse/frame'

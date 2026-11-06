@@ -1,6 +1,6 @@
 //
-// The judge probe's grading (judgePrompt plan, Slice 4): what code can decide, decided by code, so a batch can be read from a tally
-// before its replies. The label is the verdict, graded by what an error costs (JP-13): a pass is
+// The judge probe's grading: what code can decide, decided by code, so a batch can be read from a tally
+// before its replies. The label is the verdict, graded by what an error costs: a pass is
 // the expected label, a border case is a label the request tolerates, and anything else is a failure, a wrong `simple` always. The
 // reply's form (the steps the instructions number, in order, each starting with its name) is checked, and `mentions` / `avoids` are lexical reading
 // aids that flag a reply, never fail one.

@@ -109,9 +109,9 @@ export const rulesLines = (scene: SceneModel, style: 'relative' | 'action' = 're
 }
 
 /**
- * The judge's Rules section (judgePrompt plan, v28): each rule has a handle and states an invariant, so that the judge can say what the
+ * The judge's Rules section: each rule has a handle and states an invariant, so that the judge can say what the
  * action does to it, with no instruction in front of the list. The hosted sentence is the agreed text. The other two are derived from
- * it and were not agreed, or probed (M26, M30). A pair with neither hosting the other says only that the two stay fixed: nothing here
+ * it and were not agreed, or probed. A pair with neither hosting the other says only that the two stay fixed: nothing here
  * says which of them can move. A rule's handle names its things by their stems, or by their whole handles where stems would collide.
  * Returns the lines of a `Rules:` section, or none when the scene has no securing.
  */

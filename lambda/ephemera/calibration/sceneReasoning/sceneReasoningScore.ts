@@ -68,7 +68,7 @@ export const scoreTriage = (expected: TriageLabel | JudgeLabel | undefined, repl
 export type JudgeReply = { label?: JudgeLabel; sentence?: string; lines: Record<string, string> }
 
 /**
- * The judge's reply (judgePrompt plan, Slice 3): one line per step of its Task, each starting with its name, whatever steps a draft of the Task has. The label is the first word
+ * The judge's reply: one line per step of its Task, each starting with its name, whatever steps a draft of the Task has. The label is the first word
  * after `Answer:`, and the rest of that line is the sentence the label asks for; code routes on the label alone. A reply with no
  * `Answer:` line, or a first word that is no label, has no label. Markdown emphasis around either is stripped.
  */
