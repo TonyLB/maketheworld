@@ -1,6 +1,6 @@
 //
-// The judge's prompt: the text of v45 in `taskPlanning/.../judgeFailureDrafts/`, the draft to beat, one constant per
-// module. `Reading the scene`, `Relations and frames`, `Reading player intent` and `Improvising` are reusable modules; `Task` belongs to
+// The judge's prompt: v45, one constant per module, described in `calibration/AGENT.md` ("The built judge prompt (v45)"); the
+// drafts it came from are in git history. `Reading the scene`, `Relations and frames`, `Reading player intent` and `Improvising` are reusable modules; `Task` belongs to
 // the judge. The instructions hold nothing variable, so they are byte-identical across calls and can sit before a cache point. Pronouns
 // are repeated as nouns on purpose, since Nova Micro loses track of a referent ("The table is glued to the teapot, so you can't pick it up").
 // Separate from `GROUNDING` and the `triage*` formats, which stay as the control.
