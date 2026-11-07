@@ -1,6 +1,6 @@
 # Judge prompt: known failures beyond the v28 baseline
 
-**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left. Slice 2's conditional [Proposed outcome](#proposed-outcome) framework (user) is built and deployed, and stays as a tool to play with (user, 2026-11-06). The [Two axes](#two-axes) investigation (user) is next. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
+**Status (2026-11-06):** [v45](judgeFailureDrafts/v45.txt) is built and is the draft to beat (user): against v28 on `teaTable`, wipe `contingent` 6 of 6 and the first pass on pry. Failure 2 changed shape: teapot `obstructed` 2 of 3 with a wrong `simple`. Pour's wrong `simple` is unchanged. `tavern` on the deployed build: 6 pass, 2 border, no wrong `simple`. Important work is left. Slice 2's conditional [Proposed outcome](#proposed-outcome) framework (user) is built and deployed, and stays as a tool to play with (user, 2026-11-06). [The axes](#the-axes) (user) is next: its design moved a long way on 2026-11-06 and is recorded with its open decisions, for the user to return to. See [Recommended order](#recommended-order). The judgePrompt plan has handed back into this one.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is a small, ephemeral plan: delete it and [`judgeFailureDrafts/`](judgeFailureDrafts/) when the failures below are fixed or knowingly left, and their lasting findings have moved to the [scene projection plan](AGENT.sceneProjection.planning.md). If it gets too crowded, spin sub-plans off in response (user, 2026-11-05).
 
@@ -340,7 +340,7 @@ Mine, not agreed:
 - **The rule's fact has to stay.** The securing is what the tilt runs into, so the `teapot-secured-to-table` line stays in the scene. What can go is the work on end states: the frame sentence in `Picture`, `Revises`, the frames lines of the examples, and `Rules`'s question, which would ask about the action as it happens.
 - **It eases a known conflict.** The story-register `Picture` under [Failure 3](#failure-3-an-action-never-pictured) risked table, since frame language is what freed table. Where a proposal has passed, the dry run frees table instead.
 - **A passed dry run doesn't settle everything.** The kernel checks mechanism and not world legality, so fit stays with Micro: the table into the cup on the floor passes. `Picture` and `impossible` stay.
-- **The split is plan against review, not oracle against proposer.** A proposer whose tool call passes reviews the same kind of outcome, so the smaller prompt is its review step too. The steps a proposer needs for planning stay in the prompt for requests with no proposal, which is how this stays clear of the [main risk](#how-the-idea-got-here). It also bears on [Two axes](#two-axes): a passed proposal has answered the first axis.
+- **The split is plan against review, not oracle against proposer.** A proposer whose tool call passes reviews the same kind of outcome, so the smaller prompt is its review step too. The steps a proposer needs for planning stay in the prompt for requests with no proposal, which is how this stays clear of the [main risk](#how-the-idea-got-here). It also bears on [The axes](#the-axes): a passed proposal is one way to answer the fourth axis.
 - **Order.** First the block with the steps unchanged, as a baseline, then the smaller prompt as a draft through the existing `instructions` override, with `only` picking requests that have a proposal. That needs no new code. Measured on pour first, then table, cup and table in cup, one change per draft.
 
 ### How the idea got here
@@ -353,47 +353,237 @@ Mine, not agreed:
 
 **What answers it (user, 2026-11-06):** a proposer that proposes moves can have a tool call that dry-runs them deterministically against the scene and returns a new render. So the oracle and the proposer share a back half, operations to dry run to render to review, and differ in who supplies the operations: a template or Micro. Reading a "Proposed outcome" is then a skill for both, not an oracle-only one, and the idea is back in play as [Slice 2](#recommended-order), provided the steps that work out an outcome stay in the prompt. The post-state render is the one piece of code both need. Harder parts, mine: the moves need a language Micro can write, and the notation has no untie (`AGENT.sceneProjection.planning.md`, "The `untie` operator"); a rejected move means a retry loop, which is that plan's unbuilt "dry-run self-correction" and needs a multi-turn probe; whether Nova Micro handles tool calls well is unchecked; and a tilt has no operation, so it still has to come from the fiction step.
 
-## Two axes
+## The axes
 
-The user's question for [Slice 3](#recommended-order) (2026-11-06), an investigation: would the rubric benefit from deciding on two axes, one after the other?
+The user's question for [Slice 3](#recommended-order) (2026-11-06), an investigation, began as whether the rubric would benefit from deciding on two axes, one after the other: is there enough information to discern a specific plan, then is this agent capable enough to adjudicate and represent it. A discussion the same day replaced both axes, and with them my earlier readings and test list, which are in git history.
 
-- **Axis 1: is there enough information here to discern a specific plan?** With cutouts such as `contingent` and `obstructed`.
-- **Axis 2: is this agent capable enough to adjudicate and represent this plan, or does it need to defer?** With deferrals such as `challenging`, and results such as `simple` and `impossible`.
+**This records where the thinking stands, for the user to return to after sleeping on it (2026-11-06). As a whole it is not agreed, built or probed.** The user's articulations are first cuts and explicitly not prompt text. What is still undecided is under [Open decisions](#open-decisions-implementation--plan-only), JF-2 and JF-5 to JF-13.
 
-The readings and risks below are mine, and the user has not yet ruled on them.
+### The axes as they stand
 
-### Why it looks worth testing
+The user's list:
 
-- **v45 is already partly there.** `Tests` asks `obstructed` ×3 and `contingent`, then `complex`, `simple` and `impossible`, which is this order. So the question is what naming and gating the axes adds.
-- **It extends note 29:** "can you do this" against "do you even have a plan", applied to the whole rubric.
-- **It may separate teapot from pry.** Teapot has no plan for the glue and pry's plan targets it, the distinction `Obstacle` keeps missing on pry ([Watching](#watching)).
-- **It gives `challenging` a home.** The trestle's `complex` replies answer about the feat and not about recording ([Question 1](#question-1-a-feat-the-labels-cannot-name)). `complex` and `challenging` would be two deferrals on one axis, recording and adjudicating, which bears on JF-2.
-- **It fits the shared back half under [Proposed outcome](#proposed-outcome).** Axis 1 is who supplies the plan, and axis 2 is who reviews it. A matched template or a proposer's moves answer axis 1, and a refused move from the dry run gives `obstructed`.
+- How much do I understand?
+- For an incomplete understanding: Can I ask clarifying questions about _what_ the plan is?
+- For an incomplete understanding: Can I ask clarifying questions about _how_ the plan is supposed to work?
+- For a complete fictional understanding, how much of this can be planned/stored/persisted by logic at this level (vs. being deferred or abstained)?
 
-### Risks to test for
+Mine, on their shape:
 
-1. **Wipe could regress.** "Wipe with a cloth" is a specific plan: what is missing is a fact about the world, where teapot is missing a plan. Axis 1 merges those two gaps, so "is there a specific plan?" could pass wipe through to a wrong `simple`, which is Failure 1 again. `Needs` handles this today, so axis 1 has to keep reading from it.
-2. **`impossible` may not belong on axis 2.** v41 gave it priority because it is a mismatch of shared reality, not a capability result. If axis 1 cuts out first, "stuff `[table1]` in `[cup1]` with a hammer" comes back `contingent`. Keeping `Answer`'s priority avoids that, but then the axes set the asking order and not the decision. No current request tests this. One needs adding, and requests live in code, so that needs a deploy.
-3. **The questions are abstract.** Tight steps at a literal place work on Micro, and prose definitions don't. "Is there enough information?" and "are you capable?" are the abstract kind, and Micro has no real view of its own capability. Axis 2 needs concrete tests, which also bears on the [overuse warning](#question-1-a-feat-the-labels-cannot-name).
-4. **It probably won't fix teapot directly.** That fault is upstream, in whether `Picture` writes the from-and-to (8 of 8 with it, 0 of 5 without), and the rubric passes on what it gets. Asking for the plan might improve `Picture`, but nothing shows that yet.
+- **What and how are true axes.** Every combination means something, the test the earlier "do you understand?" and "would it work?" failed. The placements below are mine.
 
-### How to test it
+  | | Can ask how | Can't ask how |
+  | --- | --- | --- |
+  | **Can ask what** | "Use the gizmo on the door" | "Cut the string" (with what?), "Wipe with the cloth I'm holding" (the scene says "You are holding nothing") |
+  | **Can't ask what** | Teapot, dissolve the glue, the bridge, table in cup | The floor: "gear flutter tinkles", or something inherently impossible |
 
-One change per draft, each through `instructions`, reading each result before writing the next:
+- **"How much do I understand?" acts as a gate.** It picks the side, and nothing yet uses a degree short of complete (JF-10).
+- **The fourth axis is a real scale, and in another register.** The gate and the two questions are about the fiction, and the fourth is about the graph (note 10). That is the case for it not being Micro's to answer (JF-8).
 
-1. **Headers only:** the existing tests grouped under two headers, nothing else changed, to see whether the framing alone moves anything.
-2. **An axis 1 plan test:** whether the plan addresses what stands in the way, reading from `Obstacle` and `Needs`.
-3. **`challenging`:** added as an axis 2 deferral. Until `JUDGE_LABELS` has it, the grader counts a `challenging` reply as a failure with no label, so those replies are read by hand.
+### How it got here
 
-Requests: wipe, teapot, pry, table in cup and the `tavern` trestle, with the `teaTable` table as the guard. The trestle is in another fixture, so it takes its own invoke.
+- **A branch and not a flat list (user).** Labels on different branches never compete. My first readings ordered `challenging` against `contingent` and `complex` because I had carried the question into v45's flat first-"yes" `Answer`, where everything has to be ordered against everything. Every question can still be answered, with `Answer` branching (mine, and the user called it a genuinely good take), which keeps "a rubric isn't a switch".
+- **Grounded (user).** A specific grounded plan reduces to a list of things done to known items. Which items count is open: established and improvised, or only "specific, singular, established" ones (JF-6).
+- **The cases under `obstructed` differ in kind (user's first cut, with `contingent` alongside).**
+  - `contingent`: the plan is clear and might work, but some of the pieces are requested, plausible-but-not-implied improvisations.
+  - Tool unclear: the plan is clear and might work, but it hand-waves about unspecified tools. With more detail the tools might become grounded or `contingent`.
+  - Method unclear: the plan is unclear, so whether it might work can't be judged ("dissolve the glue": "How? With spit? Acid? Magic?").
+  - Tool invalid: the plan is clear and might work, but assumes something where the opposite is established. Not merely "This plan assumes a bridge", but "This plan assumes a bridge, _and we know there isn't one_".
+  - Plan incomplete: the plan is clear, and the individual pieces are sensible, but it is missing necessary steps (teapot, and pour).
+- **Two theories of mind (user).** The same observation reads two ways. One: they are clever, and have or could create a plan they haven't articulated yet, and may need prompting. Two: they are confused, or have a plan that plainly won't work, and need gently guiding to get aligned. Many of the category distinctions had this question buried in them. So had `Role`'s (b) and (c), JP-10's two touchstones and my "next move" column (mine). Implied vs. improvised and the line for necessary steps are about the fiction and not this (mine).
+- **We can never tell the two theories apart (user, the premise of what follows).** "We can't tell whether someone's confused and clueless, or _we're_ confused and clueless about what they're saying. All we can tell is whether or not we have enough info to think we understood." That breaks down the distinction between `obstructed` and `impossible`: "There's no 'impossible', there is just 'Man, I don't see how you're going to get to the moon when your entire catalog of resources is a burnt piece of string and five cents.'" We don't need to know the difference, only whether we have a useful follow-up comment or question. Today only the calibration probes read the labels, so nothing yet routes on that difference (checked, mine). The user's picture of it at a table:
 
-### What it decides
+  > "I don't see how you're going to get across. The chasm is very wide, and the only bridge is broken and dangling on the far side."
+  > "We're going across the chasm on the bridge."
+  > "But *how*? It's on the other side. It's not doing you any good."
+  > "Taking out a heavy arrow. Tying a rope to it."
+  > "Ooookay, I think I see where this is going."
 
-- Whether `Tests` gets restructured.
-- How JF-2 resolves.
-- Whether `Answer`'s priority stays.
+- **The floor (user).** With nothing useful to say, we say that: "I don't see how that's even a thing someone can do," or similar. So there is no separate outcome, and it covers both the inherently impossible and what can't be understood. Tone is the whole system's (JP-10), and it should leave the confusion with us: "I'm not sure what you mean by that" (mine).
+- **Understanding presumes something sensible to try (user).** Part of understanding is framed on the assumption that you are trying to understand a thing that is sensible to at least try. So "Yes, I understand completely, and there's no way anyone could imagine that would work" is no longer a valid response. The closest is "I'm hard pressed to imagine an alternate reading of what they've said, but the reading I've got doesn't make sense, so I'm clearly very confused." This is close to the principle of charity in the philosophy of language (the parallel is mine), which suggests it belongs in `Reading player intent` and not in a test (mine, JF-13).
 
-An investigation reports, so a good result here doesn't change the built prompt. A draft that earns it goes through the replacement rule like any other.
+### Where the labels would land
+
+Mine, as a reading of the above, and not agreed.
+
+| Outcome | Meaning | Standing |
+| --- | --- | --- |
+| One new label, unnamed | I don't see how, with the most useful sentence available | Replaces `obstructed`, `impossible` and `confusing` (JF-5) |
+| `simple` | Understood, and logic at this level can do it | |
+| `complex` | Understood, and recording it is passed on | Possibly decided outside Micro (JF-8) |
+| `contingent` | Understood, and whether the item is established is passed on | Tentative, depends on JF-6 |
+| `challenging` | Has no place in the user's fourth axis, which covers planning, storing and persisting and not adjudicating | The trestle would be `simple`, as its fixture expects (JF-2) |
+
+### Finding out by trying
+
+**The user's idea (2026-11-06):** the fourth axis may not need deciding by a judgment at all. A multi-attempt loop, with proposed changes, dry runs with scene-render intermediate predicted feedback, tool use, a maximum turn limit and deliberate "I choose to defer" options, might give Micro the capacity to make an attempt and see _whether_ it can get an outcome. It is the alternative to the judge stopping at "I fully understand" with `simple` and `complex` decided downstream.
+
+Mine:
+
+- **It replaces self-knowledge with a trial,** which answers "Micro has no real view of its own capability", and covers a request with no template. It is the back half under [What answers it](#how-the-idea-got-here), with Micro as the supplier.
+- **Its exits fail safe.** Reaching the limit and choosing to defer both pass the request on, and `complex` becomes what happens when Micro doesn't get there.
+- **An attempt can end in a "how?" as well.** A refusal may mean the wrong moves or not seeing how, so the understanding gate isn't strictly upstream of it.
+- **A legal outcome still needs review.** The kernel checks mechanism and not world legality: the table into the cup on `teaTableCupOnFloor`, and pour with no tilt, both pass. That review is where a wrong `simple` could still come from.
+- **It changes a rule of the user's.** "The judge is never shown a refused move" ([The build](#the-build)) suits an oracle, and here a refusal is the feedback. The reasons would also have to read as something Micro can act on.
+- **Hard parts:** whether Micro handles tool calls well (unchecked, and able to rule the idea out), a language of moves it can write, a multi-turn probe, and cost, since a quick first check becomes several calls. The turn limit is also a budget decision.
+- **Scope:** bigger than this slice, and it probably deserves its own plan (JF-9).
+
+### What it moves and doesn't remove
+
+Mine.
+
+- **Noticing still has to happen.** With `impossible` gone, a Micro that doesn't notice the table won't fit gives table in cup a wrong `simple`. `Picture` has to keep doing that work.
+- **The sentence becomes the product.** The grader mainly checks the label, and `mentions` and `avoids` are reading aids. Most refusals would be judged on their sentence.
+- **The floor is always available, so expect overuse,** the same trap as the skill check under [Question 1](#question-1-a-feat-the-labels-cannot-name). "I don't see how that's a thing" on teapot is useless with the glue right there. Separate what and how lines may help, since the floor is then reached only when neither has a question.
+- **The sentence names the fact and not the way past** (JP-10). "Missing steps" invites Micro to say which step.
+- **Charity needs a limit.** A charitable reader can always find a reading that works ("they must mean a toy table"), and on v40's table in cup all three replies invented a role for the glued teapot. It can be generous about what the player means, and not about what is established.
+- **The next turn needs the last one.** The table exchange only works if the judge knows what it said before, and it sees one request (JF-12).
+- **Teapot's upstream fault and pour's tilt are unchanged.** Both depend on `Picture` and `Rules` surfacing the glue (8 of 8 with the from-and-to, 0 of 5 without), whatever the rubric does with it.
+
+### Judging an improvisation
+
+The user's thinking on JF-6 (2026-11-07), setting aside when an improvisation is recorded as precedent. Not agreed as a whole.
+
+- **Two axes, not one (user).** A single line from "definitely untrue" through "not established" to "definitely true" is rejected: how established a thing is and how justified it is are independent. Established and unjustified is the owl in a waistcoat (_Wildwood_: "I know that magic isn't real." "Yet here you are, talking to an owl in a waistcoat."). Not established and justified is the teapot's lid. Mine: the yes-or-no belongs to the claim, so "a bridge" and "no bridge" are two claims and the scene has established the second, which keeps both axes as amounts. Tool invalid is then a plan that needs a claim whose opposite is established. Unconfirmed.
+- **Implied without being stated (user).** "**Jungle Tavern**: A cozy tavern, bracketed by living trees. A lazy orangutan tends bar, while capuchins leap about delivering drinks. The tables are wet with rainfall, and lit against the omnipresent gloom with little jars filled with fireflies." It isn't established, but it is clearly implied that the tavern has no roof. Mine: no _built_ roof, since the trees suggest a canopy the rain gets through. Justification has two sources that can disagree, world knowledge (taverns have roofs, `Improvising`'s own farmhouse) and the scene, and the scene wins, as it already does for what is established.
+- **The inference runs backwards (user).** It doesn't start from "places with rain on the tables have no roofs". It starts from "places with roofs don't have rain on the tables" and applies the contrapositive, a step whose implicit hit rate on an LLM, and on Micro especially, is fragile unless instructed carefully. Mine: the rule is stored by the roof, which nothing in the scene names, so nothing cues it; a request that mentions the roof should raise the hit rate (checkable). Pour's tilt and table in cup have the same shape. A candidate, not a draft: for each thing the request needs, "if this were here, what would that mean for the scene, and does the scene show the opposite?", which turns modus tollens into modus ponens and a contradiction check.
+- **What judging plausibility means, step by step (user's first cut).**
+  - Pass one, a consistency check: posit X and examine the scene. Does it have details that make less sense with X ("But if there's a roof, it doesn't make sense that the tables are wet")? Details naturally supported by X ("The tavern has hanging chandeliers, and this gives them an obvious place to hang from")?
+  - Pass two, a world-knowledge check: does X extend the descriptive class the scene is already conveying (a creepy mansion with creaking floorboards, dusty furniture and ghostly apparitions makes cobwebs strongly supported, with no logical deduction, as just the kind of thing expected) or depart from it (the same mansion with little scented candles and bowls of patchouli)?
+
+Mine, on the passes:
+
+- **Deduced may be the top of pass one.** At its strongest, pass one's support is a stated detail that presupposes X: a chandelier has to hang from something, a teapot has a lid. Deduced would mean presupposed by an established detail and improvised everything below, which would give JF-6 its line.
+- **Pass two needs the class written down first,** a step naming the kind of scene, since Micro can't test "extends the class" against nothing. The class is the scene's and not the genre's (a parrot taking orders fits the Jungle Tavern and a jukebox doesn't). Generated scenes say little, so it often falls back to world knowledge of the place. What the class is, is refined below.
+
+The user's refinements (2026-11-07), which replace two readings of mine: that the passes are weights to aggregate, with pass one close to a veto, and that the scene sub-classes a world-knowledge category ("which parts of 'tavern' don't apply").
+
+- **The scene frames the expectations (user).** A tavern has a roof, but a **jungle tavern** is a sufficiently different thing that it's reasonable to come into world-knowledge expectations with the _anticipation of divergence_. "Has no roof" makes a tavern less consistent as a tavern; for a jungle tavern people nod along, "Yeah, that's part of what makes it a **jungle** tavern." The kitsch-horror mansion (the normal trappings of horror movies, **and also** little collectible figurines and commemorative plates on sagging shelves, clearly hand-made skull-shaped doilies and mummy-themed tea-cozies) has no name for what sort of scene it is, yet you can improvise a bowl of patchouli, and imagine the bowl probably has the dried bones of a rat mixed in.
+- **A fusion of themes, not a sub-class (user).** Not an Aristotelian breakdown of categories, but a pastiche: Jungle Tavern has similarities of theme with Jungle Factory and Swamp Bath-house, just as with Cyber-tavern and Space Truckstop Tavern.
+- Mine, on the fusion:
+  - No theme is the base, so conflicts go either way: jungle wins the roof, tavern wins the tables.
+  - Roles come from one theme and fillers from another: tavern gives someone tending bar and bringing drinks, jungle gives the orangutan and capuchins; tavern lighting, jungle fireflies.
+  - The same detail means different things under different blends: "A cozy tavern. The tables are wet with rainfall." keeps the roof and improvises a leak.
+  - A theme needs no name, only a thread its details share.
+  - So the question for X is which theme expects it, and what the other themes make of it. For Micro, a step listing the scene's themes in a few words each, then those two forward questions. Fauconnier and Turner's conceptual blending is a close parallel (my comparison).
+- **Narratively valuable, a new axis alongside plausible (user).** It reframes improvising from passive ("would this make sense? If yes then improvise, if no then don't") to an active _aim of exposition and reincorporation_ alongside the plausible and consistent aim. The user's example: in a normal tavern, "Does this place have soup bowls?" is up in the air (a drinking tavern, probably not; a hearth with a burbling cauldron, probably yes), and the world knowledge of tavern doesn't really weigh in. In a jungle, a pretty clear "Probably not." In a jungle tavern it's an exciting opportunity to reinforce the fusion of themes: big unworked gourds, sliced in half and hollowed out. Of _course_ they do.
+- Mine, on narrative value:
+  - The blend is more decided than either theme alone, not their average: up in the air and probably not combine into of course.
+  - It passes the 2×2 test against plausible: the gourds are both; a plain ceramic bowl in the jungle tavern is plausible and dull; something that strains the blend for effect is valuable and implausible; patchouli in a plain creepy mansion is neither.
+  - The answer changes form, from yes or no to yes and what it is like here, which is the role-and-filler pattern again.
+  - ~~The risk is the floor's again: an always-available aim gets overused.~~ Withdrawn: the expository aim can come in on _either_ the yes or the no answer (user): "Yes, we have soup-bowls ... these gourds here. Soup _spoons_? No, sorry. We had some, but the sloths always steal them all to use as drumsticks for their Jungle Jamboree band. I'd be grateful to you if you could get them back." So it doesn't pull the verdict toward yes, and it is independent of the verdict and not only of plausibility (mine). The "no" here also offers a way past, a quest, which JP-10 keeps out of the judge's sentence; that suits a narrator and not the judge (mine).
+- **Who runs it.** Laid out in full it looks like the "decided elsewhere" of `Improvising`, too many steps for a quick first check. The judge still needs some of it for `obstructed (3)`'s "nothing here could plausibly meet", perhaps only pass one's forward contradiction check.
+
+**A formula for the judgment (user's first cut, 2026-11-07),** with narrative value kept as a separate axis, which the user calls part of the key. Trying to articulate a formula behind thinking that frequently happens too quickly to track:
+
+1. Consider the plausibility question, but from a framing of "If implausible, what sort of stretch would it _require_ to explain this? If plausible, what sort of stretch would be required to explain the absence?"
+2. Then consider whether that stretch has (or could be given) expository value.
+3. Then judge the best Yes vs. best No proposals against each other, rather than judging on plausibility alone.
+
+Mine, on the formula:
+
+- **A cost in place of a probability.** Both sides always get a stretch, and the spoons are the case plausibility alone can't pick: the easy yes loses to the valuable no.
+- **It builds options before it judges,** a concrete proposal on each side before comparing, as with no early winner-take-all. The sentence is the product again.
+- **The axes tie together.** How established limits which stretches are allowed, since a stretch only reaches over what isn't established ("we know there isn't a bridge" is tool invalid); how justified is what a stretch costs; narrative value is what it is worth. Charity is a stretch, limited the same way.
+- **Where it runs.** Two sides by three steps is the improviser's, not the quick check's. Step 1 alone might serve the judge: "what stretch would a yes require?" is a sharper `obstructed (3)` than "nothing here could plausibly meet".
+
+Open questions (mine; the user has answers to some):
+
+- **What does "best" trade off?** A large stretch with high value against a small one with none. Is there a stretch no value pays for, or does the blend set that (the kitsch mansion seems able to afford a bigger stretch than the plain one)?
+  - **The user's answer (2026-11-07):** _for the scope of judgment_, an incoming variable that measures, roughly, "How much drive is there toward establishing exposition?", used in the trade-off calculation. More _broadly_, the storytelling art involves taking your opportunities to establish theme and exposition, but having that drive/budget cool as it is used, and regenerate only gradually, otherwise you drown people in details. That orchestration is well beyond the scope of the judge prompt's remit.
+  - Mine: the judge reads the drive and doesn't own it. At zero drive the formula reduces to plausibility alone, which is today's judge. It gives a probe that needs no orchestration: the same request at two drives. Low drive should give the plausible default with no exposition. High drive drives _something_, likely different every time, on a yes **or** a no (user's correction of my "high gives the sloths"), so the probe grades whether an expository stretch is present, never its content or its polarity. Pacing, the real part of my withdrawn overuse worry, lives in the budget and not in the verdict.
+- **Does the player's aim count toward value?** A "no" that becomes a quest is good exposition and gets in the way of their plan. `Improvising`'s "what a player says can make a detail more plausible" would have a counterpart on the value side.
+  - **Charity and the aim (mine, the user agreed):** entangled through one input, the player's inferred aim, and written as one chain with separate links. Charity produces the aim, generous about what the player means and not about what is established. The value question weighs that aim where facts are open, between the two. The aim counts in three places: meaning (charity, JF-13), cost (`Improvising`'s "what a player says can make a detail more plausible", in v45), and value (this question). One principle such as "assume a sensible aim and help it along" would answer this question in advance, and the sloths' "no" goes against the aim.
+  - **Why it is the genuinely tricky bit (user):** "decades of prior art and practice in the indie-RPGs community" levels of tricky. As the exposition drive orchestrates _narrative pacing_, open-solution games need to orchestrate _challenge_. The user's archetype is the classic exploit early in Matt Dinniman's _Dungeon Crawler Carl_: a goblin tribe's warehouse of explosives and, beyond it, the Boss Room with the terrifying Goblin Chief, and Carl loads a cart with barrels, rolls it in, slams the door, flees several corridors away and detonates it remotely. From the player's point of view:
+    - They _want a big challenge_, because overcoming that is what their heroic tale is about.
+    - But then when the challenge is hard, they want an out.
+    - And if charity is set too _high_, they can always find an out.
+    - And then they don't get the same sort of satisfaction they would from solving a more difficult challenge.
+
+    Like building endurance on an electric bike: possible in _theory_, but if you engage the motor every time your legs start to burn you undercut your own plan.
+  - Mine, on the pattern: two aims at two levels, the immediate one (past the chief) that charity reads and the larger one (a hard-won tale) that no single request states. And a found out (Carl's: the warehouse was established, the plan clever, nothing stretched) differs from a granted out (an unestablished fact stretched in the player's favour at the hard moment: "surely there's a side tunnel"), so "charity too high" may be charity spilling from what the player means into what is there.
+  - **Three tools, all of which can work together (user):**
+    - _Budget the charity:_ charity is a spendable resource. Classic hard-case D&D DMs set it at zero ("Ride my warhorse into the cave and trample the goblins" gets "Ah, you didn't notice that the cave isn't tall enough for that, so you brain yourself on the overhang and die. Roll up a new character."). More reasonable GMs keep an internal balance, saying "Yes" some of the time and "No" other times to get the right _proportion_ to keep the story on track. Some games, like _Blades in the Dark_, offer a _player-controlled_ budget: "I'm retroactively establishing that we planned for this, and have already stashed what we need in a cache that we now pick it up from", a certain number of times per session.
+    - _Adjust future difficulty level:_ if players use charitable reads to turn an intended difficulty into an easy one, adjust your sense of how capable they are and continue to be charitable. In _Dungeon Crawler Carl_ the system _delights_ in him rolling explosives into closed rooms, and later challenges are more like "Yep, you certainly blew the hell out of that room ... which has gotten the _attention_ of the boss, and somewhat damaged him, so it's a great opener. What do you have for a closer?"
+    - _Charity with consequences:_ Princess Donut uses her dark-vision to confirm the Chieftain is there ("He's there, go, go, go!"), and right as Carl pushes the detonator she adds "... and there sure were a lot of babies there too." Great for _changing_ the type of risks or costs of a challenge, rather than _either_ doubling down on them or dissolving them, and it plays right into improvisational charity: in a wizard-engineer's workshop, breaking the lock on a treasure chest, "Is there a screwdriver around?" can get "Yes, there is a screwdriver carved with runes, pulsing with a nimbus of black-red energy ... as you look at it, a voice speaks in your mind: 'YES ... take me up, mortal. I will pry open any fastener, turn *ANY* screw, even if the Gods themselves bar it. You will be my bearer and I will be your tool, an unbreakable bond for the rest of your life, and together we shall claim the souls of all the living.'"
+  - Mine, on the tools:
+    - The warhorse DM understood the plan and resolved an unestablished fact (the cave's height) against the player. So the budget is spent on which way stretches go over open facts, not on charity of meaning: reading the player stays unbudgeted, and favourable stretches are what a budget limits.
+    - Consequences add a third candidate to step 3 of the formula, **yes, at a cost**, alongside best Yes and best No. A large stretch can pay for itself in exposition and a new cost at once, which partly answers "is there a stretch no value pays for?". A yes with a cost spends less budget than a free one. A consequence is itself an unestablished fact (the babies), so the same limits apply. Prior art the user knows better: success at a cost in Powered by the Apocalypse games, _Blades_' devil's bargains.
+
+    | Tool | Where it lives | What the judge sees |
+    | --- | --- | --- |
+    | Budget | An input, like the exposition drive | A number to read |
+    | Difficulty | Orchestration across challenges | Nothing, beyond a record of what was granted |
+    | Consequences | The improviser's candidates | A third candidate in step 3 |
+
+  - **Exposition value and challenge value together: two questions (user).**
+    - The RPG question: "Are there opportunities here to better the story, through improvising something (or the absence of something) in a way that (a) serves the narrative/exposition, (b) helps the players to be earning the charity they receive and receiving the charity they earn, or ideally (c) both?" It assumes a human brain that can abduce fitting structures _from_ a set of inspiring constraints.
+    - The LLM question: given that we _don't abduce_, what's the right algorithm to get the same _results_?
+  - **A candidate algorithm (mine).** LLMs generate by pastiche and fusion fluently (the user agrees: their big strength, to lean on). What's weak is noticing unprompted which constraints matter, holding them all at once, and judging their own candidates honestly, so each of those becomes a literal step:
+    1. Collect the constraints in short lines: the established facts that bear on the request (the hard limits), the scene's themes, the player's immediate aim, the challenge the request would bypass if any. Listing in place of noticing.
+    2. Generate a few candidates in each of three slots, Yes, No, and Yes at a cost, enumerating "a filler from theme A for a role from theme B" over the theme pairings in place of a flash of fit.
+    3. Filter each on the hard limits with the forward check, one small question per candidate.
+    4. Score each criterion as its own comparison between candidates: stretch (which needs less unestablished), exposition (a: which reinforces more themes or reincorporates more), challenge (b: dissolves, keeps, or changes its kind).
+    5. Choose in code, with the exposition drive and the charity budget weighting the scores, so the model never weighs everything at once; (c) is the candidate good on both.
+
+    For (b), a measure of what the player _brought_: a found out, the request's specificity, what the ledger has granted. Symmetric, so a clever plan is given its yes as well as a lazy one rationed. Many calls, mostly Micro-sized, with generation perhaps wanting a bigger model (a guess for probes). Step 5 is arithmetic, but over the user's named inputs only, with the scene's framing done in steps 1 and 2; flagged for the user to check against "the scene frames the expectations".
+  - **Chicken and egg (user).** Generation is easier _after_ a step that says "It's worth engaging this generation algorithm, here are the things to work from", and it's not clear how to get that first judgment without generating candidates experimentally, which may argue for a loop.
+  - Mine, on it:
+    - The first step splits. "The things to work from" is extraction and needs no candidates, and the judge's `Needs` already gives a cheap necessary condition: no open fact, nothing to improvise. "Worth engaging" can't be known beforehand, since worth is value and value shows in candidates. So the gate is permissive and cheap (a small batch on any gap), the plain answer is a candidate (the zero-stretch default), and "not worth it" is a result: nothing beat the default. The first judgment folds into the formula's step 3.
+    - The loop is evaluation feeding generation: refinement ("too big a stretch", "dissolves the challenge" go back as constraints), and new slots, since some openings have no gap behind them (the babies appear only once a yes exists and the challenge check says it dissolves).
+    - Bounded by a turn limit with a "default wins" exit, so it fails safe to today; at zero drive and zero budget it never generates.
+    - It is the shape of [the attempt loop](#finding-out-by-trying), so the fourth axis and improvising would both be answered by bounded trial, an argument for JF-9's plan covering both.
+    - The cost is speculative generation on every gap: small batches, a cheap model, and drive and budget able to turn it off.
+  - **On abduction itself (user):** whether abduction is really a hypothetico-deductive loop behind the scenes is an argument the user is _pretty sure_ goes the other way (something genuinely non-linear at work), and it doesn't matter for the implementation. The point that stands: much of this has more looping structure and chicken-and-egg issues than were first articulated.
+  - **Can an oracle judge without attempting improvisations? (user's question, 2026-11-07).** Mine: yes, for a narrower judgment.
+    - Without generating, it can decide understanding (is the plan clear, are there what or how questions), find the gaps (`Needs`), check what the player _named_ against hard limits ("we know there isn't a bridge" is a forward check on something supplied), and route (no gap, or zero drive and budget, means nothing to improvise).
+    - It can't decide whether anything could meet a need nobody named ("nothing here could plausibly meet" a Class is a generation question in disguise), or weigh stretch against value, which exists only in candidates.
+    - v45 already generates, implicitly: `obstructed (3)` and the Item/Class split, and on v40's table in cup all three replies invented a role for the glued teapot. The choice is generating in secret (one candidate, unexamined) or in the open (several, compared).
+    - A guess, unprobed: pry's `contingent`/`obstructed` split (×1 against ×2 across v44 and v45) may be that, a generation question asked as a yes/no test, unstable on whether Micro pictures a crowbar.
+    - For Slice 3: the oracle might stop at "there's an open need, and here it is", without choosing `contingent` or `obstructed` for an unnamed need, which the loop decides by trying; a named need established absent stays the oracle's. That would shrink JF-6 and JF-7 for Slice 3 and give JF-9 a handoff. Not agreed.
+  - **The user's mirror, and my adjustments.** The user: we can _describe_ a chicken without an egg, but can't _implement_ a pipeline for chickens without eggs. An oracle for a subset of what we've been classifying is useful, but only in _combination_ with an improvisation engine that provides different or refined candidates to run it over. So its value is not "Can it evaluate the player request?" but "Can its evaluation of a *specific* request help us to understand what the *player* intends to request?" Mine:
+    - Part of it is useful alone: the understanding gate, what/how questions, gaps and named hard limits need no candidates. Only the verdicts about needs nobody named need the engine.
+    - Running it over candidates finds two things: what the player means (readings, the charity side) and what the world supplies (improvisations, proposals for the scene and not readings of the player). Each candidate is a completion, the request plus whatever has to be true for it, and the best completion is both. So: can its evaluation of a specific completion help choose between readings and between worlds.
+    - The request-level pass still runs first, and it is what produces the gaps the engine works from. In the metaphor: you can build the chicken's head without the egg, not a chicken that lays eggs.
+  - **A formula for collaborative storytelling? (user).** The TTRPG sphere talks about a somewhat nebulous concept, "respectful reincorporation", "collaborative storytelling" and the like, and the oracle and engine may tease out a _formula_ for the practical foundational thinking people learn on the way to it: the oracle tunes contributions to respect and reincorporate what has already gone into the fiction, and the engine (its narrative drive and player charity/challenge settings especially) keeps reincorporation from becoming parroting, taking the constraints and imagining making the story _better_ through your contribution, not just avoiding making it worse.
+  - Mine, on it, agreed by the user, who will come back with refinements over time:
+    - It lines up with improv theatre's "yes, and": the "yes" accepts what's on the table, the "and" adds.
+    - Parroting is held off mostly by the challenge and cost axis, which adds a different kind of thing (the babies change what the scene is about), and by the cooling drive over a session. The themes say what fits, the challenge says what changes.
+    - The player's request is an offer too, which is where "collaborative" comes in: the oracle respects the fiction and the player's contribution, charity is how it reads the offer, and "receiving the charity they earn" is the same respect given to a co-author.
+    - This is the move a GM makes on each request; callbacks across sessions and an improvisation becoming precedent are the part set aside at the start.
+  - **Two phases of one thing (user, correcting my split of respect to the oracle and reincorporation to the engine as reductive).** The oracle provides the foundation of information that _lets_ the engine show respect; the engine provides the capabilities that _let_ the oracle point the way to reincorporation. Two phases of the same thing, not two engines pursuing different aspects of the goal. Mine, on the interface this implies:
+    - The oracle's output lists what can come back (the trees, the jungle, the sloths), not only the gaps; `Needs` today lists only what's missing.
+    - The engine's candidates are completions the oracle can check claim by claim, each saying what it reuses and what it adds, so the oracle sees the reincorporation and not only a pass.
+    - What passes between the phases is the substance of the method, not plumbing.
+  - **An on-ramp for the deterministic template parser (user).** For some templates the intent is sufficiently clear that the likely zero-stretch default can be generated algorithmically, before entering the loop, so long as the oracle can body-check it when the algorithm turns out not to understand the surrounding fiction sufficiently. Mine:
+    - [Proposed outcome](#proposed-outcome) is already this shape: a matched template, operations, a dry run and a render, shown to the judge with "the check covers the record only". The template is the cheapest generator, filling the default's slot first.
+    - The body-check cases are known: table into the cup on `teaTableCupOnFloor` and pour with no tilt both pass the dry run and fail the fiction ([What a passed dry run settles](#what-a-passed-dry-run-settles)).
+    - A failed body-check means entering the loop, not refusing: the template's candidate lost, and others get their turn.
+    - A template's candidate is zero-stretch only when what it needs is established; a template needing an unestablished tool is already a stretch.
+
+### What it would reopen
+
+If adopted, each of these gets changed explicitly:
+
+- **JP-10:** `impossible` as a separate mismatch of shared reality, and `Role`'s (b) and (c).
+- **JP-6:** the label set.
+- **v41:** `impossible`'s priority in `Answer`.
+- **The replacement rule and the fixtures:** table in cup is a protected pass, and it expects `impossible`.
+- **JP-13,** if `contingent` means the player named the piece (JF-7).
+- **The Coyote refinement (user, 2026-09-24):** physically impossible attempts are "still rejected". My reading is that this survives: the motorcycle still doesn't go on the shoebox, and the refusal reads differently and can be answered. To confirm.
+
+### Testing it
+
+Mine, waiting on JF-5. Slice 3 stays with what a prompt alone can test, the understanding gate and the what and how lines, with `simple` and `complex` left in as stand-ins, and with the existing rules: one change per draft, through `instructions`, reading each result before writing the next.
+
+- **Headers over the existing tests are dropped as a first draft.** That leaves the flat decision in place, so a null result would say nothing about this design.
+- **Candidate form:** two tight lines, each holding a specific question or "nothing", with "what" asked first if both have one, and `Answer` branching. Tight lines at a literal place are what work on Micro.
+- **The "n/a" sentence is its own step.** It is written in `impossible`'s language, and removing it cost teapot at v43.
+- **A v45 baseline on pry first,** about 5 calls. v45 has one reply on it (`contingent`), against `obstructed` ×2 on v44.
+- **New requests, in one deploy, each with its own v45 baseline:** table in cup with a hammer, a `Class` request, a second `contingent` request, a pry with an established tool (today's pry mixes having a plan with an unestablished tool), a request about something held (the one explicit negative already in the scenes) and a gibberish request. I haven't checked whether gibberish reaches the judge in production.
+- **Existing requests:** wipe, teapot, pry, table in cup and the `tavern` trestle in its own invoke, with the `teaTable` table as the guard. Labels outside `JUDGE_LABELS` are graded as failures with no label, so those replies are read by hand until a deploy.
+
+An investigation reports, so a good result here doesn't change the built prompt. A draft that earns it goes through the replacement rule like any other, and JF-5 has to say what that rule becomes.
 
 ## Watching
 
@@ -488,7 +678,16 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 
 | ID | Decision | Blocks slice | Status |
 | --- | --- | --- | --- |
-| JF-2 | Does the judge get a `challenging` label (the user's proposal, [Question 1](#question-1-a-feat-the-labels-cannot-name)), and until then what does the fixture expect of the `tavern` table? It reopens the five labels of JP-6, and meets JP-14, under which the skill question is not the judge's: the label would say a skill question exists and leave the answer to the rules. [Two axes](#two-axes) bears on it. | No slice | Open |
+| JF-2 | Does the judge get a `challenging` label (the user's proposal, [Question 1](#question-1-a-feat-the-labels-cannot-name)), and until then what does the fixture expect of the `tavern` table? It reopens the five labels of JP-6, and meets JP-14, under which the skill question is not the judge's: the label would say a skill question exists and leave the answer to the rules. [The axes](#the-axes) leave it no place as they stand, which would have it wait for real rules and skills, when JP-14 already says to revisit, with the trestle `simple` until then (mine). That would drop the user's own proposal, so it is the user's call. | No slice | Open |
+| JF-5 | Is the [no separate `impossible`](#how-it-got-here) direction adopted: one "I don't see how" label with the most useful sentence available, replacing `obstructed`, `impossible` and `confusing`, and [the axes](#the-axes) as listed? If so: the label's name, whether the what and how placements are right, what the [reopened Settled items](#what-it-would-reopen) become, and what the replacement rule protects in place of table in cup's `impossible`. | Slice 3 | Open |
+| JF-6 | Deduced vs. improvised, a separate issue very much on the user's mind. Does "grounded" mean established and improvised items, or only "specific, singular, established" ones (the user's alternative)? Mine: under the alternative `contingent` is a not-yet-grounded case and the line between deduced (a teapot's lid) and improvised (a parlour's cloth) decides the branch, and `Needs`/`Mentions` could read it literally. The user's "plausible-but-not-implied" may name the line. Also whether "grounded" is still the organizing idea, or one way of not seeing how. Takes in `Improvising`'s roof, [still open](#how-the-fix-was-found-v29-to-v38). The user's two axes, two passes, fusion of themes, narrative value, a formula for the judgment, challenge (the player's aim, three tools) a candidate generate-and-test loop, what an oracle can judge without it, the two phases as a formula for collaborative storytelling, and the template parser as an on-ramp, with my notes and open questions, are under [Judging an improvisation](#judging-an-improvisation) (2026-11-07). | Slice 3's `contingent` line | Open |
+| JF-7 | Does `contingent` mean the player named the piece ("requested", in the user's first cut)? Then "light the candle" with no match mentioned is tool unclear, and a test can read `Mentions` literally, where today Micro decides by writing `Item` or `Class`. It departs from JP-13 and from `Improvising`'s "you suggest it". My question, unanswered. | Slice 3's `contingent` line | Open |
+| JF-8 | Who answers the fourth axis: Micro as today (`complex`, `simple`), code from a matched template and legal dry run with the judge stopping at "I fully understand", or Micro by [trying](#finding-out-by-trying) (the user's alternative)? | No slice: `simple` and `complex` stay as stand-ins | Open |
+| JF-9 | Does [the attempt loop](#finding-out-by-trying) get its own plan, with a check of Micro's tool calls as its one early step, since everything else there depends on it (mine)? It may cover [improvising](#judging-an-improvisation) as well, by the same bounded trial (mine, 2026-11-07). | No slice | Open |
+| JF-10 | Does "how much do I understand?" need degrees short of complete, or is it effectively yes or no (mine)? | No slice | Open |
+| JF-11 | What makes a step "necessary" in plan incomplete? "Put `[hammer1]` on `[table1]`" also leaves out picking it up, and rightly stays `simple`. My candidate: a missing step is one that an established fact demands and nothing in the request acts on. Unanswered. | No slice | Open |
+| JF-12 | Does a request go back through the judge once its piece is established, or once the player answers a follow-up? That decides how the hammer case reads (offered a hammer, then "I don't see how"), and today's judge sees one request (mine). | No slice | Open |
+| JF-13 | Does charity go in `Reading player intent`, and how is it limited, so that it stays generous about what the player means and not about what is established (mine)? | Slice 3's draft with it | Open |
 
 ## Progress
 
@@ -496,7 +695,7 @@ Plan-only: decisions we are making in order to implement the next slice(s). Do n
 | --- | --- |
 | 1. Failure 1 | Done: built and deployed as v45, wipe 6 of 6, `tavern` holds |
 | 2. Proposed outcome | Done: built and deployed, flag off byte-identical to v45, and kept as a tool: [The build](#the-build), [first results](#results) |
-| 3. Two axes | Investigation, not started: [Two axes](#two-axes) |
+| 3. The axes | Investigation, in design: [The axes](#the-axes), with JF-5 to JF-7 to settle before a draft. No probes yet |
 | 4. Failure 2 | Changed shape: a wrong `simple` when `Picture` omits the from-and-to. Not started |
 | 5. Failure 3 | Accepted for now, next experiment recorded under [Failure 3](#failure-3-an-action-never-pictured) |
 | 6. Hand back | Not started |
@@ -507,7 +706,7 @@ Pending work uses `[ ]` and completed work uses `[X]`.
 
 1. [X] **Slice 1: Failure 1.** Built as v45 (2026-11-06). Wipe `contingent` 6 of 6. `tavern` on the deployed build held: 6 pass, 2 border, with `impossible: no` on all 8.
 2. [X] **Slice 2: Proposed outcome (user).** The framework under [Proposed outcome](#proposed-outcome): a proposal on the fixtures, one dry-run-to-render path, and a probe flag that is off by default, with flag off still v45 byte for byte. Then probe flag on against flag off. The prompt built into code doesn't change unless a result earns it under the replacement rule. Built and deployed (2026-11-06), and kept as a tool with no bar to clear (user).
-3. [ ] **Slice 3: Two axes (user).** An investigation of whether the rubric benefits from deciding on two axes, whether there is a specific plan and then whether this agent can adjudicate and represent it, by the drafts under [Two axes](#two-axes). After Slice 2, since a refused move bears on how axis 1 should read.
+3. [ ] **Slice 3: The axes (user).** An investigation of whether the rubric benefits from [the axes](#the-axes) as the user has redrawn them: how much is understood, what and how follow-ups for an incomplete understanding, and what logic can persist for a complete one. A prompt alone tests the gate and the follow-ups. First the requests and baselines under [Testing it](#testing-it), then one change per draft. The attempt loop is outside this slice (JF-9).
 4. [ ] **Slice 4: Failure 2, in its new shape.** Make `Picture`'s from-and-to reliable on teapot, as one change, measured on teapot and table, since a `Moves` step risks bringing back the table refusal. Apply the replacement rule and rebuild as in Slice 1. The results of Slices 2 and 3 may change what this needs.
 5. [ ] **Slice 5: Failure 3.** After Slices 1 and 4, since its edits touch the same steps, starting with the fiction-register `Picture`. It can stay open if the user leaves it.
 6. [ ] **Hand back:** record the standing of each failure on the scene projection plan's Slice 6 row, move what lasts from [Carried from the judgePrompt plan](#carried-from-the-judgeprompt-plan), repoint the links in `calibration/AGENT.md` and the pointer in `frameJudge.ts`, then delete this plan and its drafts.
