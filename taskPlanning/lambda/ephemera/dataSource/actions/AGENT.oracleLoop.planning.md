@@ -1,13 +1,13 @@
 # Oracle loop: a comparative oracle and an improvisation engine
 
-**Status (2026-11-07):** design stage, opened today from the retired judgeFailures plan. **No code is in scope** until the Prototype phase of [Recommended order](#recommended-order), and the probes before it run on the existing `JudgeProbe` overrides. Next: Phase 0, writing the [corpus](AGENT.oracleLoop.corpus.planning.md). The built judge prompt (v45) is unchanged and stays as it is ([`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md#the-built-judge-prompt-v45)).
+**Status (2026-11-08):** design stage, opened 2026-11-07 from the retired judgeFailures plan. **Code is in scope** at the fixture builder, step 1 of [Recommended order](#recommended-order), ordinary built code with its own tests, and at the oracle harness, step 3, probe tooling built as a Prototype, its obligations stated before any code. Phase 0's [corpus](AGENT.oracleLoop.corpus.planning.md) is drafted, rewritten by function under JF-18, for the user's read. Next: the fixture builder. The built judge prompt (v45) is unchanged and stays as it is ([`calibration/AGENT.md`](../../../../../lambda/ephemera/calibration/AGENT.md#the-built-judge-prompt-v45)).
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), in its design-stage variant, [`AGENT.designVariant.md`](../../../../AGENT.designVariant.md). Companion files: the [proposal record](AGENT.oracleLoop.proposals.planning.md), the [evidence corpus](AGENT.oracleLoop.corpus.planning.md) and the [reasoning trail](AGENT.oracleLoop.discussion.planning.md). Decision rows keep the `JF-n` IDs they had in judgeFailures, since IDs are stable and moved prose cites them.
 
 ## Getting Started
 
 1. Skim [`taskPlanning/AGENT.md`](../../../../AGENT.md) and [`AGENT.designVariant.md`](../../../../AGENT.designVariant.md) once: this plan graduates resolved rows into a Settled register and licenses code by tier.
-2. Read the [design body](#the-design) below, then the [proposal record](AGENT.oracleLoop.proposals.planning.md). Its [live and superseded table](AGENT.oracleLoop.proposals.planning.md#live-and-superseded) says which sections are live. [A comparative oracle](AGENT.oracleLoop.proposals.planning.md#a-comparative-oracle) is the direction. [Where the labels would land](AGENT.oracleLoop.proposals.planning.md#where-the-labels-would-land) is retained but likely superseded, and [Testing it](AGENT.oracleLoop.proposals.planning.md#testing-it) is superseded.
+2. Read the [design body](#the-design) below, the corpus's [How a case is written](AGENT.oracleLoop.corpus.planning.md#how-a-case-is-written), then the [proposal record](AGENT.oracleLoop.proposals.planning.md). Its [live and superseded table](AGENT.oracleLoop.proposals.planning.md#live-and-superseded) says which sections are live. [A comparative oracle](AGENT.oracleLoop.proposals.planning.md#a-comparative-oracle) is the direction. [Where the labels would land](AGENT.oracleLoop.proposals.planning.md#where-the-labels-would-land) is retained but likely superseded, and [Testing it](AGENT.oracleLoop.proposals.planning.md#testing-it) is superseded.
 3. Read the built prompt and how Micro reads prompts: [The built judge prompt (v45)](../../../../../lambda/ephemera/calibration/AGENT.md#the-built-judge-prompt-v45) and [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro). The built form is [`frameJudge.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/frame/frameJudge.ts) and `judgeRulesLines` in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts).
 4. Read the [Judge probe](../../../../../lambda/ephemera/calibration/AGENT.md#judge-probe) subsection: the `JudgeProbe` event, the `instructions` and `sceneText` overrides, and `proposedOutcome`.
 5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. Baseline, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4451 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
@@ -36,13 +36,30 @@ Premises carried from the judgePrompt and judgeFailures plans. The full text of 
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
-0. [ ] **Phase 0: the corpus.** Write the [cases to write](AGENT.oracleLoop.corpus.planning.md#cases-to-write-phase-0) against today's model, saying which limit each hits, with no solutions. The measured cases are already there.
-1. [ ] **Does Micro read a proposal at all?** The existing `proposedOutcome` probe on pour (does it notice the missing tilt?) and `teaTableCupOnFloor`'s table in cup (the size), about 6 calls, no code. Slice 2's first run showed no reply using the block. If Micro can't, Nova 2 Lite comes in here.
-2. [ ] **One step of the comparative oracle, as drafts, no code.** The `sceneText` override is free text beyond naming every handle the request does, so the answer-to-beat, its known issues, what has been tried and the candidate go after `End of scene.`, with the instructions constant. One change per draft. Cases from the corpus: pour (finished answer against tip-the-table), table in cup on the floor, wipe, teapot, and the table as a guard. Graded by reading.
-3. [ ] **Prototype: build the inputs and the grader.** State the tier's three obligations before any code: classified as a Prototype, a dependency tag, a rollback trigger. Then a fixture shape for the inputs (with per-step provenance on candidates), a comparative grading mode, a probe field, and the dungeon and doll-house scenes for the method dial.
-4. [ ] **The loop by hand.** The user or I play the engine, following the oracle's directions over a few turns, to test whether directions are usable before any engine exists.
-5. [ ] **An engine stub and a multi-turn probe,** starting with a check of Micro's tool calls, since everything else in the loop depends on it. A turn limit, and an exit where the default wins.
-6. [ ] **Handoff.** Where the loop joins the pipeline (CA-6 and Slice 4 of the [command attempt phase](AGENT.commandAttemptPhase.planning.md)), the durable docs, and the scene projection plan's Slice 6.
+0. [ ] **Phase 0: the corpus.** Rewritten by function under JF-18: the measured cases classified as oracle, engine or loop cases, and the to-write list written in the same shape, each with a one-line limit on v45 and no solutions. No new v45 baselines.
+   - [X] Measured cases rewritten, to-write cases written (2026-11-07)
+   - [ ] The user's read
+1. [ ] **Fixture builder.** Scene variants from one description, through the instruction set production uses for authored placement, so that a corpus case names its configuration instead of a hand-copied fixture (user's proposal; the population route is mine, agreed 2026-11-08). The hand-written core holds the hosts and their names; each configuration places things from nothing with `rootStep` and `containmentPopulationSteps`, adds relations as `establishRelation` steps, and is applied by `applyStepSequenceCore`, all synchronous, so a built variant is an ordinary `SceneFixture` at module load and every reader of `graphs` is unchanged. Dials are choices of where a thing is first placed, not moves from a default, so two dials touching one host compose through the kernel. Not the move planner: its graph walks await `getGraph`, which in production reads the internal cache. Ordinary built code, not a Prototype: the fixtures are production code with their own tests. The existing hand-written fixtures stay as they are, since they pin the fold independently of population.
+   - [ ] `containmentPopulationSteps` takes an optional `hostingKind`, defaulting to `authoredHostingKind`'s, and refuses one `admissibleHostingKinds` doesn't allow for the host and member (user). Its one caller, `populateContainmentAtCache`, keeps the default.
+   - [ ] Check that population places a thing into a character's hand with `Held`: the actor has one binding (`inRoom`), so population should find its parent binding. If it can't, held placement needs a step of its own; not a move.
+   - [ ] The builder supplies its own binding IDs, since a second binding gets `uuidv4()` and a fixture must build the same each time.
+   - [ ] The builder, with names and glosses as a plain override, so that a theme variant (OC-12, OC-13, OC-24 and OC-25) is a names change only. Acceptance: `teaTable` and `teaTableCupOnFloor` built through it come out identical to their hand-written graphs.
+   - [ ] The `tavern` hammer as the first dial, held or on the table, with the on-table variant registered by name for OC-10 and JF-11's example.
+2. [ ] **Oracle input types, no code.** What passes into the oracle is the interface between the two phases, so it is designed before the harness builds it (user's question, agreed).
+   - [ ] Requirement half: sweep the corpus's oracle parts for every input they use. A first pass: scene and request; the answer-to-beat, empty or a finished answer; candidates, as steps each supplied by the player or the system, with their stretches and what they reuse and add, the template's `proposal` being one source; known issues; what has been tried and why it lost; the frontier with each repair; the method dial, exposition drive and charity budget; a fact's role; earlier turns.
+   - [ ] Read where the loop will join the pipeline (CA-6 and the [command attempt phase](AGENT.commandAttemptPhase.planning.md)'s outcome types), so the types are shaped by that place without being wired into it. Findings go on that plan.
+   - [ ] Representation half: a type sketch, mine, for the user's approval. Prototype tier, not locked. A field resting on an open row (JF-12 earlier turns, JF-15 the dials, JF-16 provenance, JF-17 a fact's role) takes the simplest form that holds the corpus's cases and is marked with its row; no row is settled first. Known issues, what has been tried and the frontier are what an earlier turn produced, so the sketch says what has to come out of a turn and leaves its wording to the drafts.
+3. [ ] **Oracle harness.** Probe tooling, built as a Prototype. Before any code, state the tier's three obligations: classified as a Prototype; a dependency tag, so the rollback set stays known; and a rollback trigger: a draft having to say something about its inputs that the slots can't hold, and falling back to `sceneText` to say it.
+   - [ ] Fixture cases keyed by corpus case ID, each a request plus its oracle inputs, in step 2's types, since one request carries several cases (OC-6 and OC-30) and one request runs on several scenes (OC-12, OC-13, OC-20 on `teaTable`'s).
+   - [ ] The scenes and requests the corpus marks as needing a fixture, as builder configurations where step 1's dials reach (OC-19's held hammer at the tea table), hand-written where they don't yet (OC-20's chain to a wall needs a wall created).
+   - [ ] A probe field that renders the inputs after `End of scene.`, with a default framing a draft can override, as `proposedOutcome`'s `framing` and `explanation` are, so that wording stays in the drafts.
+   - [ ] A read-only mode: the existing form check against the instructions' numbered steps, and no label grade, which means nothing for an oracle draft.
+4. [ ] **Oracle drafts.** Draft 1 is a fresh `instructions` text: the reusable modules (`Reading the scene`, `Relations and frames`, `Reading player intent`, `Improvising`) word for word, with a new `Role` and `Task` for the comparative oracle (mine). Draft 1 is the baseline, and one change per draft from there. Its first batch also answers whether Micro reads a candidate at all, which the proposal block left in doubt; if Micro can't, Nova 2 Lite comes in here. Cases: the corpus's oracle cases, with OC-6 and OC-30 (pour), OC-11 (table in cup on the floor), OC-7 (wipe), OC-5 (teapot), OC-12 and OC-13 (the dungeon and doll-house), and OC-1 as a guard first.
+   - [ ] Graded by reading until the drafts settle their verdict and direction lines.
+   - [ ] Then a comparative grading mode over those lines.
+5. [ ] **The loop by hand.** The user or I play the engine, following the oracle's directions over a few turns, to test whether directions are usable before any engine exists. The corpus's loop cases (OC-30, OC-31) are its first material.
+6. [ ] **An engine stub, its fixtures and a multi-turn probe,** starting with a check of Micro's tool calls, since everything else in the loop depends on it. The engine's inputs get fixture cases here, from the corpus's engine parts, under the same Prototype obligations as the harness. A turn limit, and an exit where the default wins.
+7. [ ] **Handoff.** Where the loop joins the pipeline (CA-6 and Slice 4 of the [command attempt phase](AGENT.commandAttemptPhase.planning.md)), the durable docs, and the scene projection plan's Slice 6.
 
 ## The design
 
@@ -71,7 +88,7 @@ Decisions made in order to design. Resolved rows graduate to the [Settled regist
 | JF-7 | Does `contingent` mean the player named the piece ("requested", in the user's first cut)? Then "light the candle" with no match mentioned is tool unclear. It departs from JP-13 and from `Improvising`'s "you suggest it". My question, unanswered | JP-13 | Open |
 | JF-8 | Who answers the fourth axis, what logic at this level can persist: Micro, code from a matched template and a legal dry run, or Micro by [trying](AGENT.oracleLoop.proposals.planning.md#finding-out-by-trying) (the user's alternative)? The loop leans to trying, with the template as the cheapest first candidate | JF-14 | Open |
 | JF-10 | Does "how much do I understand?" need degrees short of complete, or is it effectively yes or no (mine)? | | Open |
-| JF-11 | What makes a step "necessary" in plan incomplete? "Put `[hammer1]` on `[table1]`" also leaves out picking it up, and rightly stays `simple`. My candidate: a missing step is one an established fact demands and nothing in the request acts on. Bears on JF-16's elaborating | OC-10 | Open |
+| JF-11 | What makes a step "necessary" in plan incomplete? "Put `[hammer1]` on `[table1]`" also leaves out picking it up, and rightly stays `simple`, in the tavern's hammer-on-table variant (step 1; the base fixture has it held, OC-10). My candidate: a missing step is one an established fact demands and nothing in the request acts on. Bears on JF-16's elaborating | OC-10 | Open |
 | JF-12 | Does a request go back through the oracle once its piece is established, or once the player answers a follow-up? The answer-to-beat and its known issues are the memory between turns, which may answer this (mine) | JF-14 | Open |
 | JF-13 | Does charity go in `Reading player intent`, and how is it limited, so that it stays generous about what the player means and not about what is established (mine)? | JP-9 | Open |
 | JF-15 | One dial or two: a [method dial](AGENT.oracleLoop.proposals.planning.md#a-comparative-oracle) separate from the charity budget (mine), or one input for how much the system may do for the player? | | Open |
@@ -83,12 +100,13 @@ Decisions made in order to design. Resolved rows graduate to the [Settled regist
 | ID | Question | Verdict | Settled | Detail |
 | --- | --- | --- | --- | --- |
 | **JF-14** | Is the comparative oracle the direction, and where does it live? | The comparative oracle (user) is the direction, inside a loop with an improvisation engine, in this plan; the judgeFailures plan retired. JF-5, JF-8 and JF-12 stay open here | 2026-11-07 | [A comparative oracle](AGENT.oracleLoop.proposals.planning.md#a-comparative-oracle) |
+| **JF-18** | Is the oracle measured against v45, across the seam between one judge and a loop? | No: the seam is crossed now. v45 is a source of cases, reusable modules and wording findings, not a metric baseline, since its labels can't carry to a verdict-and-direction product and nothing in production reads it. The corpus keeps the measured cases' scenes and requests, classified and rewritten as oracle, engine and loop cases in one file, each with a one-line limit on v45; no new v45 baselines are taken. The oracle's draft 1 is written fresh from the reusable modules and is the baseline for one change per draft. The user's framing and two-corpus proposal; one file and the loop cases mine, agreed | 2026-11-07 | [Crossing the seam now](AGENT.oracleLoop.discussion.planning.md#crossing-the-seam-now-jf-18-2026-11-07) |
 | **JF-9** | Does the attempt loop get its own plan? | Yes, this one, covering improvising by the same bounded trial. A check of Micro's tool calls is the engine phase's first step | 2026-11-07 | [Finding out by trying](AGENT.oracleLoop.proposals.planning.md#finding-out-by-trying) |
 
 ## How we work
 
 - Rules for writing a draft for Nova Micro are in [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro): one change per draft, positive rules, examples outside the fixtures' domains, and the rest.
-- Each draft is a file in `oracleLoopDrafts/`, beside this plan, created with the first draft and numbered from 1. It is probed through the `instructions` and `sceneText` overrides. Code changes only at the Prototype phase.
+- Each draft is a file in `oracleLoopDrafts/`, beside this plan, created with the first draft and numbered from 1. It is probed through the `instructions` and `sceneText` overrides. Code changes only at the fixture builder, the oracle harness and the engine stub.
 - The user runs each probe and pastes the result. Keep batches small: the smallest call count that answers the question, at most 12 per invoke.
 - Each change is attributed. Anything not from the user is labelled "mine" until accepted.
 
@@ -100,7 +118,7 @@ Decisions made in order to design. Resolved rows graduate to the [Settled regist
 ## Verification
 
 - A draft: the probe, read reply by reply. No test commands.
-- The Prototype phase, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`, with the built judge prompt unchanged: a flag-off `JudgeProbe` still reports instructions hash `22e97265`, since no test pins v45's bytes.
+- The fixture builder, the oracle harness and the engine stub, from `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`, with the built judge prompt unchanged: a flag-off `JudgeProbe` still reports instructions hash `22e97265`, since no test pins v45's bytes.
 - Links: every relative link and anchor across this plan and its companions resolves.
 
 ## Progress
@@ -110,11 +128,13 @@ New trail entries go in the [reasoning trail](AGENT.oracleLoop.discussion.planni
 | Phase | State |
 | --- | --- |
 | Opened from judgeFailures | Done 2026-11-07: design, premises, corpus of measured cases and decision rows moved |
-| 0. Corpus | Measured cases in; cases to write not started |
-| 1-2. Probes | Not started |
-| 3. Prototype | Not started |
-| 4-5. The loop | Not started |
-| 6. Handoff | Not started |
+| 0. Corpus | Rewritten by function 2026-11-07 (JF-18), OC-1 to OC-31; awaiting the user's read |
+| 1. Fixture builder | Not started |
+| 2. Oracle input types | Not started |
+| 3. Oracle harness | Not started |
+| 4. Oracle drafts | Not started |
+| 5-6. The loop and the engine | Not started |
+| 7. Handoff | Not started |
 
 ## Lifecycle
 
