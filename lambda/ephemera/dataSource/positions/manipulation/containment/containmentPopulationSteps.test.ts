@@ -2,6 +2,9 @@ import type { EphemeraAreaId, EphemeraCharacterId, EphemeraConceptId, EphemeraFe
 
 import { parentRemainderKey, presenceBindingNode, testLudicGraph } from '../../ludicGraph/testFixtures'
 import { unpointedBindingOf } from '../../ludicGraph/presenceParent'
+import type { EphemeraMembershipHostId } from '@tonylb/mtw-interfaces/ts/ephemeraPositionAdjacency'
+import type { EphemeraLudicGraph } from '../../ludicGraph'
+import { applyStepSequenceCore } from '../kernel/applyStepSequenceCore'
 import { containmentPopulationSteps, rootStep } from './containmentPopulationSteps'
 
 const AREA_ID = 'AREA#Overworld' as EphemeraAreaId
@@ -311,14 +314,25 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             ])
         })
 
-        it('places an Object under a Character by the same rule, with no character branch', () => {
+        it('places an Object under a Character Held, the kind its arrival gives', () => {
             const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
             const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)
 
             expect(steps.map((step) => step.kind)).toEqual(['addPresenceBinding', 'setHostingKind'])
-            expect(steps[1]).toEqual(expect.objectContaining({ hostingKind: 'In', hostId: CHARACTER_ID }))
+            expect(steps[1]).toEqual(expect.objectContaining({ hostingKind: 'Held', hostId: CHARACTER_ID }))
+        })
+
+        it('emits steps that apply: an Object placed under a Character arrives Held', () => {
+            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)
+            const outcome = applyStepSequenceCore(steps, new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([[CHARACTER_ID, parentGraph], [OBJECT_ID, childGraph]]))
+
+            expect(outcome.verdict).toBe('legal')
+            expect(outcome.verdict === 'legal' && outcome.graphs.get(CHARACTER_ID)?.hostingKindOf(OBJECT_ID)).toBe('Held')
         })
 
         it('refuses a parent with several bindings: nothing written, since the child has no binding to name', () => {
@@ -404,5 +418,62 @@ describe('containmentPopulationSteps with a Concept on either side (the pairing 
         const steps = containmentPopulationSteps(CONCEPT_ID, LIBRARY_ID, parentGraph, childGraph)
 
         expect(steps[steps.length - 1]).toEqual({ kind: 'setHostingKind', hostId: CONCEPT_ID, memberId: LIBRARY_ID, hostingKind: 'PartOf' })
+    })
+})
+
+describe('containmentPopulationSteps with a kind the caller chooses (a fixture builder\'s placement)', () => {
+    const remainder = presenceBindingNode('Base')
+
+    it('places an Object On its Room', () => {
+        const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
+        const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+        expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph, 'On')).toEqual([
+            { kind: 'addPresenceBinding', hostId: OBJECT_ID, fromHostPresences: [{ host: ROOM_ID, presence: remainder.universalKey }], presenceUuid: expect.any(String) },
+            { kind: 'setHostingKind', hostId: ROOM_ID, memberId: OBJECT_ID, hostingKind: 'On' },
+        ])
+    })
+
+    it('places an Object Held by a Character when asked to', () => {
+        const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
+        const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+        const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph, 'Held')
+
+        expect(steps[1]).toEqual({ kind: 'setHostingKind', hostId: CHARACTER_ID, memberId: OBJECT_ID, hostingKind: 'Held' })
+    })
+
+    it('emits nothing on a rerun over a child already On, with On passed', () => {
+        const parentGraph = testLudicGraph(ROOM_ID, {
+            nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'On' }],
+        })
+        const childGraph = testLudicGraph(FEATURE_ID, {
+            nodes: [presenceBindingNode('Base', { host: ROOM_ID, presence: remainder.universalKey })],
+        })
+
+        expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph, 'On')).toEqual([])
+    })
+
+    it('changes only the kind of a child present with another', () => {
+        const parentGraph = testLudicGraph(ROOM_ID, {
+            nodes: [remainder, { tag: 'Feature', universalKey: FEATURE_ID, hostingKind: 'PartOf' }],
+        })
+        const childGraph = testLudicGraph(FEATURE_ID, {
+            nodes: [presenceBindingNode('Base', { host: ROOM_ID, presence: remainder.universalKey })],
+        })
+
+        expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph, 'On')).toEqual([
+            { kind: 'setHostingKind', hostId: ROOM_ID, memberId: FEATURE_ID, hostingKind: 'On' },
+        ])
+    })
+
+    it.each([
+        ['In on a Character host', CHARACTER_ID, 'In'],
+        ['Associated between two physical components', ROOM_ID, 'Associated'],
+    ] as const)('throws on a kind the pairing rule refuses: %s', (_, parentId, hostingKind) => {
+        const parentGraph = testLudicGraph(parentId, { nodes: [presenceBindingNode('Base')] })
+        const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+        expect(() => containmentPopulationSteps(parentId, OBJECT_ID, parentGraph, childGraph, hostingKind)).toThrow(/not legal/)
     })
 })

@@ -8,6 +8,7 @@ import { BASE_PRESENCE_ID, admissibleHostingKinds } from '@tonylb/mtw-interfaces
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { nodeFromId } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
+import { defaultHostingKind } from '../kernel/settleMembership'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelSetHostingKindStep, MutationKernelStep } from '../kernel/kernelStep'
 
 /**
@@ -41,19 +42,6 @@ export const rootStep = (
 }
 
 /**
- * The hosting kind an authored child takes in its parent. Where a Concept is on either side the
- * pairing rule (`admissibleHostingKinds`) fixes it: `Associated` across physical and Concept,
- * `PartOf` between Concepts. Otherwise Objects are mobile, so they sit `In` their authored parent;
- * Rooms and Features nest `PartOf`.
- */
-const authoredHostingKind = (parentId: EphemeraMembershipHostId, childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId): EphemeraHostingKind => {
-    if (isEphemeraConceptId(parentId) || isEphemeraConceptId(childId)) {
-        return admissibleHostingKinds(nodeFromId(parentId).tag, nodeFromId(childId).tag)[0]
-    }
-    return isEphemeraObjectId(childId) ? 'In' : 'PartOf'
-}
-
-/**
  * The pure step-computer for cache-time containment authoring (Room-in-Area, Feature-in-Room,
  * Feature-in-Feature); the contract it implements is in `../../AGENT.contract.md`'s
  * `Component Updated` ingress section. Takes both graphs
@@ -77,22 +65,33 @@ const authoredHostingKind = (parentId: EphemeraMembershipHostId, childId: Epheme
  *   root is `rootStep`'s, minted once per parent before any child is computed.
  * - **Authored Objects** (`positions/AGENT.contract.md`, `Component Updated`): an Object child is skipped outright if its own graph holds any
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
- *   goes through the same checks, with an `In` kind. A live binding of the wrong shape is
+ *   goes through the same checks, with its kind below. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
- * - **Containment kind**: emitted only if `parentGraph` does not already hold `childId` with the child's kind (`PartOf`, or `In` for an
- *   Object) as its `hostingKind`. The kind is a field of the child's node in the parent's graph, not an edge
- *  ; the binding steps above add that node with the same default, so the
- *   `setHostingKind` step is idempotent, and skipping it when nothing changed is what keeps a fully-populated
- *   `cacheAsset` rerun from committing a transaction at all. Rooms and Features are always `PartOf`, never `In`
- *   (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement
- *   `In` is for.
+ * - **Containment kind**: `hostingKind` if the caller passes one, else `defaultHostingKind`'s, the kind
+ *   a move's arrival gives (`PartOf` for a Room or Feature, `In` for an Object, `Held` for an Object
+ *   under a Character, the pairing rule's where a Concept is on either side). Cache-time population
+ *   passes none, since authored WML has no surface for a membership kind; a fixture builder passes one
+ *   to place a thing `On` its host. Either way the kind must be one `admissibleHostingKinds` allows for
+ *   the two sides, or this throws: only code chooses a kind, so an illegal one is a programmer error.
+ *   The kind is a field of the child's node in the parent's graph, not an edge. A `setHostingKind`
+ *   step is emitted only if `parentGraph` does not already hold `childId` with that kind; the binding
+ *   steps above add the node with the arrival default, so the step is idempotent, and skipping it when
+ *   nothing changed is what keeps a fully-populated `cacheAsset` rerun from committing a transaction at
+ *   all. Rooms and Features are `PartOf`, never `In` (2026-09-05): Room-in-Area and
+ *   Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement `In` is for.
  */
 export const containmentPopulationSteps = (
     parentId: EphemeraMembershipHostId,
     childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId,
     parentGraph: EphemeraLudicGraph,
-    childGraph: EphemeraLudicGraph
+    childGraph: EphemeraLudicGraph,
+    hostingKind: EphemeraHostingKind = defaultHostingKind(childId, parentId)
 ): MutationKernelStep[] => {
+    const admissible = admissibleHostingKinds(nodeFromId(parentId).tag, nodeFromId(childId).tag)
+    if (!admissible.includes(hostingKind)) {
+        throw new Error(`containmentPopulationSteps: hosting kind ${hostingKind} is not legal for ${childId} in ${parentId}; admissible: ${admissible.join(', ')}`)
+    }
+
     // An authored Object is placed only if it has no live host anywhere: population reruns for
     // every child a parent lists, so without this a player-moved or author-repositioned Object would
     // be put back or doubled. Any binding with a parent pointer on its own graph means it is live.
@@ -160,7 +159,6 @@ export const containmentPopulationSteps = (
         steps.push(repairStep)
     }
 
-    const hostingKind = authoredHostingKind(parentId, childId)
     if (parentGraph.hostingKindOf(childId) !== hostingKind) {
         const kindStep: MutationKernelSetHostingKindStep = {
             kind: 'setHostingKind',

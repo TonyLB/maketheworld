@@ -13,7 +13,7 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
   - **Engine:** the inputs (the request, and the direction or constraints the oracle would pass), and a rubric written before any run: what a good candidate must reuse, must avoid, and how much it may stretch. Engine output is open-ended, so it is graded against the rubric by reading, as the scene reasoning probe's open questions are.
   - **Loop:** what has to pass between the two phases over turns. These have their own [section](#loop-cases).
 - **Candidates here are written by hand,** standing in for the engine, except where a fixture holds a template `proposal`, which is the template's candidate. Bad candidates are written on purpose.
-- **Expected outcomes are not labels,** since JF-5 is open. They are mine unless marked as the user's.
+- **Expected outcomes are not labels,** since JF-5 is open. They are mine unless marked as the user's. The engine rubrics are mine except where marked, and the user agreed their grading, OC-26 to OC-29's included (2026-11-08).
 - **On v45:** one line per case, the limit today's single judge hits, with its replies where it was run. The v28 replies and the draft-by-draft record are in git history ([where this came from](AGENT.oracleLoop.discussion.planning.md#where-this-came-from-the-judgefailures-plan-retired-2026-11-07)). For a case not yet run the limit is a prediction, and says so.
 - **Probe:** the `JudgeProbe` asks only requests held in a fixture's `judgeSets`; `sceneText` can replace the scene but can't add a request. "Request in fixture" means a draft can ask it now, with a hand-written `sceneText` where the scene differs. "Needs a fixture request" means it waits for the [oracle harness](AGENT.oracleLoop.planning.md#recommended-order). **Neither covers the oracle's inputs:** a fixture holds the request, v45's label expectation and, for five requests, a template `proposal` as moves. The answer-to-beat, known issues, what has been tried, hand-written candidates and who supplied each step go into each draft's `sceneText` by hand until the harness gives them a fixture shape, and the probe's label grade means nothing for an oracle draft, which is graded by reading.
 
@@ -112,7 +112,7 @@ A low-beamed common room, smoky from the hearth. The player holds a claw hammer.
 **OC-10. `I want to pick up [cup1].`, `I want to pick up [candle1].`, `I want to put [hammer1] on [table1].`**
 - Oracle, guards: zero-stretch candidates that should win with no fuss.
 - On v45: none. `simple` ×2 each.
-- **A premise to check:** the fixture has the hammer already held, so the hammer request leaves nothing out. JF-11's example says it "leaves out picking it up", which this fixture doesn't bear out (flagged 2026-11-07). Proposed fix: the [fixture builder](AGENT.oracleLoop.planning.md#recommended-order)'s first dial puts the hammer held or on the table, so JF-11's example cites the on-table variant and this case keeps the held one (2026-11-08).
+- **A premise to check:** the fixture has the hammer already held, so the hammer request leaves nothing out. JF-11's example says it "leaves out picking it up", which this fixture doesn't bear out (flagged 2026-11-07). Fix, confirmed by the user 2026-11-08: the [fixture builder](AGENT.oracleLoop.planning.md#recommended-order)'s first dial puts the hammer held or on the table, so JF-11's example cites the on-table variant and this case keeps the held one (2026-11-08).
 
 ### `teaTableCupOnFloor`: the same parlour with the cup on the floor
 
@@ -126,7 +126,7 @@ From the discussions of 2026-11-06 and 2026-11-07, and judgeFailures' Supporting
 
 ### The parlour, as a puzzle and as texture
 
-Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so they can reuse its requests. They differ only in what the glue is for (user, 2026-11-07).
+Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so they can reuse its requests. They differ only in what the glue is for (user, 2026-11-07). The wording of both scenes, and of the mansions', is agreed by the user (2026-11-08).
 
 **OC-12. Dungeon: `I want to pour tea from [teapot1].`**
 - Scene (the user's vibe, my wording): a dungeon antechamber, the tea table in the middle of it. Words carved over the sealed door ahead say that it opens for one who pours the tea. The teapot is glued to the table.
@@ -152,7 +152,7 @@ Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so
 - On v45 (predicted): `contingent`, as wipe.
 
 **OC-16. `I want to lift the lid of [teapot1].`** A part of an established thing.
-- Oracle: the candidate needs a lid, which the teapot presupposes, and nothing else. The glue binds the teapot to the table and not the lid to the teapot. Expected: yes, with no stretch, if a presupposed part counts as deduced (JF-6).
+- Oracle: the candidate needs a lid, which the teapot presupposes, and nothing else. The glue binds the teapot to the table and not the lid to the teapot. Expected: yes, with no stretch. A presupposed part counts as established, by the test "would this, if absent, justify a specific call-out?" (user, 2026-11-08; JF-6).
 - On v45 (predicted): the fixture's expectation was `simple`, tolerating `contingent` and `complex`; whether the glue spreads to the lid is the risk.
 
 **OC-17. `I want to wipe [table1] with the cloth I'm holding.`** A request about something held, in the one scene that states its negative.
@@ -176,12 +176,12 @@ Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so
 ### The tavern, further requests
 
 **OC-21. `I want to trim the wick of [candle1] with something sharp.`** A `Class` request: the need is described by what it does, with nothing specific named.
-- Oracle: with no candidate, the need is open and nobody named what meets it. Expected: the need named as a class; whether anything here meets it is the engine's, since "nothing here could plausibly meet" is a generation question (JF-7, JF-8). The held hammer isn't sharp.
+- Oracle: with no candidate, the need is open and nobody named what meets it. Expected: the need named as a class; whether anything here meets it is the engine's, since "nothing here could plausibly meet" is a generation question (JF-7, JF-8; the split agreed by the user, 2026-11-08). The held hammer isn't sharp.
 - Engine: rubric: candidates for what meets it (a knife left on a tavern table, the bar's), each a stretch and marked as one; the hammer doesn't count.
 - On v45 (predicted): `obstructed (3)`, on whether Micro pictures a knife.
 
 **OC-22. `I want to light [candle1].`** Something that moves nothing.
-- Oracle: the candidate needs a flame, and the room's gloss establishes a hearth ("smoky from the hearth"). Expected: yes, with no stretch, if the hearth counts as established through the gloss; nothing moves.
+- Oracle: the candidate needs a flame, and the room's gloss establishes a hearth ("smoky from the hearth"). Expected: yes, with no stretch; nothing moves. The hearth is established, since what the description states is present (user, 2026-11-08).
 - Engine: rubric: the flame comes from what is established (the hearth) before anything improvised.
 - On v45 (predicted): `Picture` can force a move ([known behaviour](../../../../../lambda/ephemera/calibration/AGENT.md#known-behaviour-of-the-built-judge)).
 
@@ -213,7 +213,7 @@ Scene (the user's): "A cozy tavern, bracketed by living trees. A lazy orangutan 
 
 ### The mansions
 
-The same request in two scenes. Scenes are the user's descriptions, my wording.
+The same request in two scenes. Scenes are the user's descriptions, my wording, agreed (2026-11-08).
 
 **OC-28. Kitsch-horror mansion: `I want to find something to mask the musty smell.`**
 - Scene: a mansion with the normal trappings of horror movies (creaking floorboards, dusty furniture, ghostly apparitions), and also little collectible figurines and commemorative plates on sagging shelves, hand-made skull-shaped doilies and mummy-themed tea-cozies.
