@@ -5,6 +5,11 @@
  *
  * `buildSceneFixture` folds a world through the production path (`buildActorLudicCache`, over `buildLudicCache` for the
  * room row and the actor half), with the graphs and names read from memory instead of the store.
+ *
+ * A fixture's graphs are hand-written, or built by `buildScene` (`buildScene.ts`) from a description: placements through
+ * population and relations as kernel steps, so a variant is a choice in the description (the tavern's hammer, held or on
+ * the floor) and a theme variant a names override. Hand-written graphs pin the fold independently of population; those
+ * written in production's shape (`teaTable.ts`) are what their descriptions must build, node order included.
  */
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
 import { isEphemeraConceptId, isEphemeraFeatureId, isEphemeraObjectId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -25,7 +30,7 @@ import { drapedClothScene, featureScene, joinScene, steamerChestScene } from './
 import { dockScene, unnamedScene } from './relations'
 import { sideboardScene } from './sideboard'
 import { deepChainScene, emptyRoomScene, siblingFanScene, twoCupsScene } from './simpleRooms'
-import { branchInBranchScene, tavernScene } from './tavern'
+import { branchInBranchScene, tavernHammerOnFloorScene, tavernScene } from './tavern'
 import { teaTableCupOnFloorScene, teaTableScene } from './teaTable'
 import type { SceneFixture, SceneFixtureNames } from './worldBuilders'
 
@@ -33,7 +38,7 @@ export type { SceneFixture } from './worldBuilders'
 export type { JudgeRequest } from './judgeRequests'
 export { expectedAnswer, type SceneAnswer, type SceneQuestion } from './questions'
 
-/** Every fixture, in corpus order, then the ones Slice 1 added, then Slice 3's. */
+/** Every fixture, in corpus order, then the ones Slice 1 added, then Slice 3's, then the fixture builder's (oracleLoop). */
 export const sceneFixtures: readonly SceneFixture[] = [
     tavernScene,
     siblingFanScene,
@@ -53,6 +58,7 @@ export const sceneFixtures: readonly SceneFixture[] = [
     sideboardScene,
     teaTableScene,
     teaTableCupOnFloorScene,
+    tavernHammerOnFloorScene,
 ]
 
 export const sceneFixtureNames = sceneFixtures.map(({ name }) => name)

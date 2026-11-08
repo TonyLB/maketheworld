@@ -43,12 +43,12 @@ export const binding = (name: string, parents: readonly BindingRef[], covers: re
     cover: { members: covers.map(pointer) },
 })
 
-/** A host's stored graph, its root node first. */
+/** A host's stored graph, its root node first. A graph given no edges stores none, as one that never held an edge does. */
 export const hostGraph = (
     hostId: EphemeraMembershipHostId,
     nodes: EphemeraLudicGraphFieldPayload['nodes'],
-    { edges = [], ports = [] }: Partial<Pick<EphemeraLudicGraphFieldPayload, 'edges' | 'ports'>> = {}
-): [EphemeraMembershipHostId, EphemeraLudicGraphFieldPayload] => [hostId, { rootId: hostId, nodes: [nodeFromId(hostId), ...nodes], edges, ports }]
+    { edges, ports = [] }: Partial<Pick<EphemeraLudicGraphFieldPayload, 'edges' | 'ports'>> = {}
+): [EphemeraMembershipHostId, EphemeraLudicGraphFieldPayload] => [hostId, { rootId: hostId, nodes: [nodeFromId(hostId), ...nodes], ...(edges !== undefined ? { edges } : {}), ports }]
 
 /** The reasoning name and gloss each component resolves to. A component with no entry has neither. */
 export type SceneFixtureNames = Record<string, { shortName?: string; gloss?: string }>

@@ -8,6 +8,7 @@ import { BASE_PRESENCE_ID, admissibleHostingKinds } from '@tonylb/mtw-interfaces
 import type { EphemeraLudicGraph } from '../../ludicGraph'
 import { nodeFromId } from '../../ludicGraph'
 import { childParentBindingIdOf, unpointedBindingOf, bindingHasParentOn, parentsOf } from '../../ludicGraph/presenceParent'
+import { defaultHostingKind } from '../kernel/settleMembership'
 import type { MutationKernelAddPresenceBindingStep, MutationKernelRepairPresenceBindingStep, MutationKernelSetHostingKindStep, MutationKernelStep } from '../kernel/kernelStep'
 
 /**
@@ -41,16 +42,13 @@ export const rootStep = (
 }
 
 /**
- * The hosting kind an authored child takes in its parent. Where a Concept is on either side the
- * pairing rule (`admissibleHostingKinds`) fixes it: `Associated` across physical and Concept,
- * `PartOf` between Concepts. Otherwise Objects are mobile, so they sit `In` their authored parent;
- * Rooms and Features nest `PartOf`.
+ * A caller's choices for one placement. `hostingKind` is below. `bindingName` names the child's
+ * binding when it takes a further one (a first is always `Base`), in place of a fresh `uuidv4()`: a
+ * fixture builder passes one so a scene builds the same each time; cache-time population passes none.
  */
-const authoredHostingKind = (parentId: EphemeraMembershipHostId, childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId): EphemeraHostingKind => {
-    if (isEphemeraConceptId(parentId) || isEphemeraConceptId(childId)) {
-        return admissibleHostingKinds(nodeFromId(parentId).tag, nodeFromId(childId).tag)[0]
-    }
-    return isEphemeraObjectId(childId) ? 'In' : 'PartOf'
+export type ContainmentPopulationOptions = {
+    hostingKind?: EphemeraHostingKind
+    bindingName?: string
 }
 
 /**
@@ -77,22 +75,33 @@ const authoredHostingKind = (parentId: EphemeraMembershipHostId, childId: Epheme
  *   root is `rootStep`'s, minted once per parent before any child is computed.
  * - **Authored Objects** (`positions/AGENT.contract.md`, `Component Updated`): an Object child is skipped outright if its own graph holds any
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
- *   goes through the same checks, with an `In` kind. A live binding of the wrong shape is
+ *   goes through the same checks, with its kind below. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
- * - **Containment kind**: emitted only if `parentGraph` does not already hold `childId` with the child's kind (`PartOf`, or `In` for an
- *   Object) as its `hostingKind`. The kind is a field of the child's node in the parent's graph, not an edge
- *  ; the binding steps above add that node with the same default, so the
- *   `setHostingKind` step is idempotent, and skipping it when nothing changed is what keeps a fully-populated
- *   `cacheAsset` rerun from committing a transaction at all. Rooms and Features are always `PartOf`, never `In`
- *   (2026-09-05): Room-in-Area and Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement
- *   `In` is for.
+ * - **Containment kind**: `options.hostingKind` if the caller passes one, else `defaultHostingKind`'s, the kind
+ *   a move's arrival gives (`PartOf` for a Room or Feature, `In` for an Object, `Held` for an Object
+ *   under a Character, the pairing rule's where a Concept is on either side). Cache-time population
+ *   passes none, since authored WML has no surface for a membership kind; a fixture builder passes one
+ *   to place a thing `On` its host. Either way the kind must be one `admissibleHostingKinds` allows for
+ *   the two sides, or this throws: only code chooses a kind, so an illegal one is a programmer error.
+ *   The kind is a field of the child's node in the parent's graph, not an edge. A `setHostingKind`
+ *   step is emitted only if `parentGraph` does not already hold `childId` with that kind; the binding
+ *   steps above add the node with the arrival default, so the step is idempotent, and skipping it when
+ *   nothing changed is what keeps a fully-populated `cacheAsset` rerun from committing a transaction at
+ *   all. Rooms and Features are `PartOf`, never `In` (2026-09-05): Room-in-Area and
+ *   Feature-in-Room/Feature are fixed/authored nestings, not the mobile placement `In` is for.
  */
 export const containmentPopulationSteps = (
     parentId: EphemeraMembershipHostId,
     childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId,
     parentGraph: EphemeraLudicGraph,
-    childGraph: EphemeraLudicGraph
+    childGraph: EphemeraLudicGraph,
+    { hostingKind = defaultHostingKind(childId, parentId), bindingName }: ContainmentPopulationOptions = {}
 ): MutationKernelStep[] => {
+    const admissible = admissibleHostingKinds(nodeFromId(parentId).tag, nodeFromId(childId).tag)
+    if (!admissible.includes(hostingKind)) {
+        throw new Error(`containmentPopulationSteps: hosting kind ${hostingKind} is not legal for ${childId} in ${parentId}; admissible: ${admissible.join(', ')}`)
+    }
+
     // An authored Object is placed only if it has no live host anywhere: population reruns for
     // every child a parent lists, so without this a player-moved or author-repositioned Object would
     // be put back or doubled. Any binding with a parent pointer on its own graph means it is live.
@@ -102,13 +111,15 @@ export const containmentPopulationSteps = (
 
     const steps: MutationKernelStep[] = []
 
-    // The parent binding children sit under: a Room's or Area's hostless remainder, else the
-    // parent's only binding (its root is `rootStep`'s, applied to `parentGraph` by the caller). A
-    // parent with several bindings names none, and authored placement cannot say which the child
-    // sits in (WML names a parent by component key), so population refuses: nothing is written.
+    // The parent binding children sit under: the parent's PRESENCE#Base, whatever else it holds (a
+    // Room's or Area's hostless remainder is its Base; any other parent's is `rootStep`'s, applied to
+    // `parentGraph` by the caller). Base is the stable lookup for a context-free add, and authored
+    // placement is one (WML names a parent by component key, never a binding). A parent with no Base
+    // is the defect `lacksBase` reports, so population refuses: nothing is written. Not a move's
+    // `destinationBindingOf`, which takes a non-room host's only binding whatever it is called.
     const parentPresence = childParentBindingIdOf(parentGraph)
     if (!parentPresence) {
-        console.warn(`[mtw.ephemera.positions] containment population skipped: ${parentId} has ${parentGraph.presenceNodes.length} bindings, none for ${childId} to name`)
+        console.warn(`[mtw.ephemera.positions] containment population skipped: ${parentId} has no PRESENCE#Base for ${childId} to name`)
         return []
     }
     const fromHostPresence: EphemeraPresenceParentPointer = { host: parentId, presence: parentPresence }
@@ -136,8 +147,8 @@ export const containmentPopulationSteps = (
             hostId: childId,
             fromHostPresences: [fromHostPresence],
             ...(wantedCover ? { cover: wantedCover } : {}),
-            // a child holding no binding yet gets its Base placed (every host holds one); a further binding is a new id
-            presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
+            // a child holding no binding yet gets its Base placed (every host holds one); a further binding is the caller's name, else a new id
+            presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : bindingName ?? uuidv4(),
         }
         steps.push(bindingStep)
     } else if (
@@ -160,7 +171,6 @@ export const containmentPopulationSteps = (
         steps.push(repairStep)
     }
 
-    const hostingKind = authoredHostingKind(parentId, childId)
     if (parentGraph.hostingKindOf(childId) !== hostingKind) {
         const kindStep: MutationKernelSetHostingKindStep = {
             kind: 'setHostingKind',

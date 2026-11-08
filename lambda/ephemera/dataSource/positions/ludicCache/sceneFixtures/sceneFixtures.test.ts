@@ -5,7 +5,9 @@
  */
 import type { SceneAnswer } from './questions'
 import { renderScene } from '../../../actions/sceneProse'
-import { buildSceneFixture, expectedAnswer, sceneFixture, sceneFixtureNames, sceneFixtures } from '.'
+import { buildSceneFixture, expectedAnswer, sceneFixture, sceneFixtureNames, sceneFixtures, type SceneFixture } from '.'
+import { buildScene } from './buildScene'
+import { tavernDescription } from './tavern'
 
 const handles = (...values: string[]): SceneAnswer => ({ handles: values })
 const thing = (handle: string, hostingKind: 'On' | 'In' | 'Held' = 'On') => ({ kind: 'thing' as const, handle, hostingKind })
@@ -122,6 +124,14 @@ const expected: Record<string, (SceneAnswer | undefined)[]> = {
         { count: 2 },
     ],
     teaTableCupOnFloor: [{ count: 2 }],
+    tavernHammerOnFloor: [
+        handles('saucer1', 'candle1'),
+        { locations: [thing('saucer1')] },
+        handles('saucer1', 'cup1', 'candle1'),
+        handles('cup1'),
+        handles(),
+        { locations: [thing('table1')] },
+    ],
 }
 
 describe('scene fixtures', () => {
@@ -146,6 +156,22 @@ describe('scene fixtures', () => {
         const { scene } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
 
         expect(fixture.questions.map((question) => expectedAnswer(scene, question))).toEqual(expected[name])
+    })
+})
+
+describe('the tavern hammer dial', () => {
+    beforeEach(() => {
+        jest.spyOn(console, 'log').mockImplementation(() => {})
+        jest.spyOn(console, 'info').mockImplementation(() => {})
+    })
+    afterEach(() => jest.restoreAllMocks())
+
+    it('builds the held hammer as the hand-written tavern answers it', async () => {
+        const answers = async (fixture: SceneFixture) => {
+            const { scene } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
+            return fixture.questions.map((question) => expectedAnswer(scene, question))
+        }
+        expect(await answers(buildScene(tavernDescription({ hammer: 'held' })))).toEqual(expected.tavern)
     })
 })
 
