@@ -13,7 +13,7 @@ Moved on 2026-11-07 from the retired judgeFailures plan, unchanged except for li
 | [Finding out by trying](#finding-out-by-trying) | Live: the loop this plan builds |
 | [The axes as they stand](#the-axes-as-they-stand), [How it got here](#how-it-got-here), [What it moves and doesn't remove](#what-it-moves-and-doesnt-remove) | Live reasoning. The understanding gate and the what and how questions survive as the directions that go to the player |
 | [Where the labels would land](#where-the-labels-would-land) | **Retained, likely superseded** by the comparative oracle, whose product is a verdict and a direction and not a label. Undecided (JF-5) |
-| [Testing it](#testing-it) | **Superseded** 2026-11-07 by the oracle loop's order. Its new requests are on the [corpus](AGENT.oracleLoop.corpus.planning.md) to-write list |
+| [Testing it](#testing-it) | **Superseded** 2026-11-07 by the oracle loop's order. Its new requests are now [corpus](AGENT.oracleLoop.corpus.planning.md#cases-written-2026-11-07) cases |
 | [A shared back half](#a-shared-back-half-the-proposed-outcome) | Live. The code facts are as read on 2026-11-06 |
 | [Noticing](#noticing) | Live: what any oracle prompt still has to notice. The fixes listed are candidates, unprobed in the comparative form |
 
@@ -379,7 +379,7 @@ Expect overuse (user, 2026-11-05): asking for a hard skill check is a trap begin
 
 ### Still open from the v29 to v45 drafts
 
-- **Departs from [Settled](AGENT.oracleLoop.discussion.planning.md#settled):** under JP-13 and `Improvising`, how sure the judge is makes no difference and a suggestion goes to `contingent`. Here a plausible improvised `Class` goes to `obstructed`. My reading is that this doesn't reopen JP-13's point, since `Class` is about having nothing specific to suggest and not about sureness. Fits note 29: a `Class` need with nothing specified is a player with no plan yet. No fixture measures it yet ([Supporting work](AGENT.oracleLoop.corpus.planning.md#cases-to-write-phase-0)).
+- **Departs from [Settled](AGENT.oracleLoop.discussion.planning.md#settled):** under JP-13 and `Improvising`, how sure the judge is makes no difference and a suggestion goes to `contingent`. Here a plausible improvised `Class` goes to `obstructed`. My reading is that this doesn't reopen JP-13's point, since `Class` is about having nothing specific to suggest and not about sureness. Fits note 29: a `Class` need with nothing specified is a player with no plan yet. No fixture measures it yet; it is corpus case OC-21 ([the tavern, further requests](AGENT.oracleLoop.corpus.planning.md#the-tavern-further-requests)).
 - **`Improvising` (mine):** it offers a farmhouse's roof as a detail to suggest, which a deduction from "farmhouse" could equally establish, the same shape as the teapot's lid. Not settled at the v45 rebuild, which kept both as they were. Still to settle.
 - **The "End of scene." marker** closes `sceneText` in every draft since v34 (mine, the user agreed), and is now in the scene renderer. A renamed or fenced `Request:` line would need a code change.
 
