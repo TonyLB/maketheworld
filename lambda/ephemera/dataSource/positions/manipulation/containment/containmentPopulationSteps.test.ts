@@ -168,6 +168,15 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             const added = steps.find(({ kind }) => kind === 'addPresenceBinding') as any
             expect(added.presenceUuid).not.toBe('Base')
         })
+
+        it('names a further binding as the caller asks (a fixture builder), and ignores the name for a first binding', () => {
+            const elsewhere = presenceBindingNode('Base', { host: 'ROOM#Other' as any, presence: 'PRESENCE#Base' as any }, { members: [] })
+            const further = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph(), testLudicGraph(FEATURE_ID, { nodes: [elsewhere] }), { bindingName: 'inHall' })
+            expect(further.find(({ kind }) => kind === 'addPresenceBinding')).toEqual(expect.objectContaining({ presenceUuid: 'inHall' }))
+
+            const first = containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph(), testLudicGraph(FEATURE_ID, { nodes: [] }), { bindingName: 'inHall' })
+            expect(first.find(({ kind }) => kind === 'addPresenceBinding')).toEqual(expect.objectContaining({ presenceUuid: 'Base' }))
+        })
     })
 
     describe('repair: a binding in the wrong shape is rewritten in place, keeping its id', () => {
@@ -335,14 +344,54 @@ describe('containmentPopulationSteps (cache-time containment population)', () =>
             expect(outcome.verdict === 'legal' && outcome.graphs.get(CHARACTER_ID)?.hostingKindOf(OBJECT_ID)).toBe('Held')
         })
 
-        it('refuses a parent with several bindings: nothing written, since the child has no binding to name', () => {
-            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
-            const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('a'), presenceBindingNode('b')] })
+        it('places into a fixture actor\'s hand: one Base binding in a Room, the child names it, Held, and the actor keeps one binding', () => {
+            const actorGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base', ROOM_ID)] })
+            const roomGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
             const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
-            expect(containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([])
+            const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, actorGraph, childGraph)
+            expect(steps[0]).toEqual(expect.objectContaining({
+                kind: 'addPresenceBinding',
+                hostId: OBJECT_ID,
+                fromHostPresences: [{ host: CHARACTER_ID, presence: parentRemainderKey(CHARACTER_ID) }],
+            }))
+
+            const outcome = applyStepSequenceCore(steps, new Map<EphemeraMembershipHostId, EphemeraLudicGraph>([
+                [ROOM_ID, roomGraph], [CHARACTER_ID, actorGraph], [OBJECT_ID, childGraph],
+            ]))
+            expect(outcome.verdict).toBe('legal')
+            expect(outcome.verdict === 'legal' && outcome.graphs.get(CHARACTER_ID)?.hostingKindOf(OBJECT_ID)).toBe('Held')
+            expect(outcome.verdict === 'legal' && outcome.graphs.get(CHARACTER_ID)?.presenceNodes.length).toBe(1)
+        })
+
+        it('refuses an actor whose one binding is not Base (a hand-written fixture\'s inRoom): nothing written', () => {
+            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+            const actorGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('inRoom', ROOM_ID)] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            expect(containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, actorGraph, childGraph)).toEqual([])
             expect(warn).toHaveBeenCalledTimes(1)
             warn.mockRestore()
+        })
+
+        it('refuses a parent with no Base, however many bindings it has: nothing written, since the child has no binding to name', () => {
+            const warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+            const parentGraph = testLudicGraph(SHELF_ID, { nodes: [presenceBindingNode('a'), presenceBindingNode('b')] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            expect(containmentPopulationSteps(SHELF_ID, OBJECT_ID, parentGraph, childGraph)).toEqual([])
+            expect(warn).toHaveBeenCalledTimes(1)
+            warn.mockRestore()
+        })
+
+        it('names the parent\'s Base when it holds Base among several bindings', () => {
+            const parentGraph = testLudicGraph(SHELF_ID, { nodes: [presenceBindingNode('Base', ROOM_ID), presenceBindingNode('other', ROOM_ID)] })
+            const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
+
+            expect(containmentPopulationSteps(SHELF_ID, OBJECT_ID, parentGraph, childGraph)[0]).toEqual(expect.objectContaining({
+                kind: 'addPresenceBinding',
+                fromHostPresences: [{ host: SHELF_ID, presence: parentRemainderKey(SHELF_ID) }],
+            }))
         })
 
         it('emits nothing on a rerun over populated state', () => {
@@ -428,7 +477,7 @@ describe('containmentPopulationSteps with a kind the caller chooses (a fixture b
         const parentGraph = testLudicGraph(ROOM_ID, { nodes: [remainder] })
         const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
-        expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph, 'On')).toEqual([
+        expect(containmentPopulationSteps(ROOM_ID, OBJECT_ID, parentGraph, childGraph, { hostingKind: 'On' })).toEqual([
             { kind: 'addPresenceBinding', hostId: OBJECT_ID, fromHostPresences: [{ host: ROOM_ID, presence: remainder.universalKey }], presenceUuid: expect.any(String) },
             { kind: 'setHostingKind', hostId: ROOM_ID, memberId: OBJECT_ID, hostingKind: 'On' },
         ])
@@ -438,7 +487,7 @@ describe('containmentPopulationSteps with a kind the caller chooses (a fixture b
         const parentGraph = testLudicGraph(CHARACTER_ID, { nodes: [presenceBindingNode('Base')] })
         const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
-        const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph, 'Held')
+        const steps = containmentPopulationSteps(CHARACTER_ID, OBJECT_ID, parentGraph, childGraph, { hostingKind: 'Held' })
 
         expect(steps[1]).toEqual({ kind: 'setHostingKind', hostId: CHARACTER_ID, memberId: OBJECT_ID, hostingKind: 'Held' })
     })
@@ -451,7 +500,7 @@ describe('containmentPopulationSteps with a kind the caller chooses (a fixture b
             nodes: [presenceBindingNode('Base', { host: ROOM_ID, presence: remainder.universalKey })],
         })
 
-        expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph, 'On')).toEqual([])
+        expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph, { hostingKind: 'On' })).toEqual([])
     })
 
     it('changes only the kind of a child present with another', () => {
@@ -462,7 +511,7 @@ describe('containmentPopulationSteps with a kind the caller chooses (a fixture b
             nodes: [presenceBindingNode('Base', { host: ROOM_ID, presence: remainder.universalKey })],
         })
 
-        expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph, 'On')).toEqual([
+        expect(containmentPopulationSteps(ROOM_ID, FEATURE_ID, parentGraph, childGraph, { hostingKind: 'On' })).toEqual([
             { kind: 'setHostingKind', hostId: ROOM_ID, memberId: FEATURE_ID, hostingKind: 'On' },
         ])
     })
@@ -474,6 +523,6 @@ describe('containmentPopulationSteps with a kind the caller chooses (a fixture b
         const parentGraph = testLudicGraph(parentId, { nodes: [presenceBindingNode('Base')] })
         const childGraph = testLudicGraph(OBJECT_ID, { nodes: [] })
 
-        expect(() => containmentPopulationSteps(parentId, OBJECT_ID, parentGraph, childGraph, hostingKind)).toThrow(/not legal/)
+        expect(() => containmentPopulationSteps(parentId, OBJECT_ID, parentGraph, childGraph, { hostingKind })).toThrow(/not legal/)
     })
 })

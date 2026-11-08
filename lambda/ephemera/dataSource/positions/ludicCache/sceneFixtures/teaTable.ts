@@ -8,7 +8,11 @@
  *
  * `teaTableCupOnFloor` changes one fact: the cup and its tea sit directly in the room, so the table can be proposed into the cup
  * and pass the dry run, where on `teaTable` the cup is on the table and the move is a containment cycle. Only the sizes are wrong.
+ *
+ * Both are hand-written, in the shape production writes (every first binding `Base`, the binding ahead of the members, no
+ * id on the `Justifies` edge), and each has a description for the fixture builder that builds the same graphs.
  */
+import type { SceneDescription, ScenePlacement, SceneRelations } from './buildScene'
 import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
 
 const parlour = roomId('Parlour')
@@ -24,20 +28,20 @@ const potTea = objectId('PotTea')
 const prescribedFixes = ['unglue', 'pry', 'scrape', 'solvent', 'screwdriver', 'free', 'remove', 'detach', 'break', 'cut']
 
 const tableGraph = hostGraph(table, [
+    binding('Base', [[parlour, 'Base']], [[saucer, 'Base'], [teapot, 'Base']]),
     member(saucer, 'On'), member(teapot, 'On'),
-    binding('onFloor', [[parlour, 'Base']], [[saucer, 'onTable'], [teapot, 'onTable']]),
 ], {
     edges: [
         { tag: 'Relational', edgeId: 'e1', from: teapot, to: table, kind: 'Custom', relationLabel: 'glued to' },
         { tag: 'Relational', edgeId: 'e2', from: teapot, to: table, kind: 'SecuredTo' },
-        { tag: 'Relational', edgeId: 'e3', from: { edgeId: 'e1' }, to: { edgeId: 'e2' }, kind: 'Justifies' },
+        { tag: 'Relational', from: { edgeId: 'e1' }, to: { edgeId: 'e2' }, kind: 'Justifies' },
     ],
 })
 const teapotGraphs = [
-    hostGraph(teapot, [member(potTea, 'In'), binding('onTable', [[table, 'onFloor']], [[potTea, 'inTeapot']])]),
-    hostGraph(potTea, [binding('inTeapot', [[teapot, 'onTable']])]),
+    hostGraph(teapot, [binding('Base', [[table, 'Base']], [[potTea, 'Base']]), member(potTea, 'In')]),
+    hostGraph(potTea, [binding('Base', [[teapot, 'Base']])]),
 ]
-const actorGraph = hostGraph(actor, [binding('inRoom', [[parlour, 'Base']])])
+const actorGraph = hostGraph(actor, [binding('Base', [[parlour, 'Base']])])
 const names: SceneFixture['names'] = {
     [parlour]: { shortName: 'Parlour' },
     [table]: { shortName: 'Table', gloss: 'a small round tea table' },
@@ -54,11 +58,11 @@ export const teaTableScene: SceneFixture = {
     roomId: parlour,
     actorId: actor,
     graphs: [
-        hostGraph(parlour, [member(table, 'In'), binding('Base', [], [[table, 'onFloor']])]),
+        hostGraph(parlour, [binding('Base', [], [[table, 'Base']]), member(table, 'In')]),
         tableGraph,
-        hostGraph(saucer, [member(cup, 'On'), binding('onTable', [[table, 'onFloor']], [[cup, 'onSaucer']])]),
-        hostGraph(cup, [member(cupTea, 'In'), binding('onSaucer', [[saucer, 'onTable']], [[cupTea, 'inCup']])]),
-        hostGraph(cupTea, [binding('inCup', [[cup, 'onSaucer']])]),
+        hostGraph(saucer, [binding('Base', [[table, 'Base']], [[cup, 'Base']]), member(cup, 'On')]),
+        hostGraph(cup, [binding('Base', [[saucer, 'Base']], [[cupTea, 'Base']]), member(cupTea, 'In')]),
+        hostGraph(cupTea, [binding('Base', [[cup, 'Base']])]),
         ...teapotGraphs,
         actorGraph,
     ],
@@ -113,11 +117,11 @@ export const teaTableCupOnFloorScene: SceneFixture = {
     roomId: parlour,
     actorId: actor,
     graphs: [
-        hostGraph(parlour, [member(cup, 'In'), member(table, 'In'), binding('Base', [], [[cup, 'onFloor'], [table, 'onFloor']])]),
+        hostGraph(parlour, [binding('Base', [], [[cup, 'Base'], [table, 'Base']]), member(cup, 'In'), member(table, 'In')]),
         tableGraph,
-        hostGraph(saucer, [binding('onTable', [[table, 'onFloor']])]),
-        hostGraph(cup, [member(cupTea, 'In'), binding('onFloor', [[parlour, 'Base']], [[cupTea, 'inCup']])]),
-        hostGraph(cupTea, [binding('inCup', [[cup, 'onFloor']])]),
+        hostGraph(saucer, [binding('Base', [[table, 'Base']])]),
+        hostGraph(cup, [binding('Base', [[parlour, 'Base']], [[cupTea, 'Base']]), member(cupTea, 'In')]),
+        hostGraph(cupTea, [binding('Base', [[cup, 'Base']])]),
         ...teapotGraphs,
         actorGraph,
     ],
@@ -128,4 +132,46 @@ export const teaTableCupOnFloorScene: SceneFixture = {
             { request: 'I want to put [table1] in [cup1].', expect: 'impossible', tolerate: ['obstructed'], mentions: ['fit', 'big', 'large', 'small', 'size', 'hold', 'contain'], proposal: [{ moved: table, from: parlour, to: cup, hostingKind: 'In' }], note: 'The move is legal in the record, and the table is far larger than the cup. Whether code saying so stops the judge noticing.' },
         ],
     },
+}
+
+/** The glue: production's tie triple, in the table's graph. */
+const glue: SceneRelations = {
+    host: table,
+    edges: [
+        { edgeId: 'e1', from: teapot, to: table, kind: 'Custom', relationLabel: 'glued to' },
+        { edgeId: 'e2', from: teapot, to: table, kind: 'SecuredTo' },
+        { from: { edgeId: 'e1' }, to: { edgeId: 'e2' }, kind: 'Justifies' },
+    ],
+}
+const onTheTable: ScenePlacement[] = [
+    { thing: saucer, host: table, hostingKind: 'On' },
+    { thing: teapot, host: table, hostingKind: 'On' },
+]
+const teas: ScenePlacement[] = [
+    { thing: cupTea, host: cup },
+    { thing: potTea, host: teapot },
+]
+
+/** `teaTable` as builder choices. */
+export const teaTableDescription: SceneDescription = {
+    ...teaTableScene,
+    placements: [
+        { thing: table, host: parlour },
+        ...onTheTable,
+        { thing: cup, host: saucer, hostingKind: 'On' },
+        ...teas,
+    ],
+    relations: [glue],
+}
+
+/** `teaTableCupOnFloor` as builder choices: the cup placed in the room, not on the saucer. */
+export const teaTableCupOnFloorDescription: SceneDescription = {
+    ...teaTableCupOnFloorScene,
+    placements: [
+        { thing: cup, host: parlour },
+        { thing: table, host: parlour },
+        ...onTheTable,
+        ...teas,
+    ],
+    relations: [glue],
 }

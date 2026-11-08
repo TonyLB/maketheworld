@@ -1,7 +1,11 @@
 /**
  * The tavern (corpus scenes 1 and 3): a table holding a saucer with a cup on it and a candle, so the reader has to climb
  * back out of a subtree; the actor holds a hammer. `branchInBranch` adds a tray with a teapot and a jug, a fan inside a fan.
+ *
+ * `tavernDescription` is the tavern as fixture-builder choices, with the hammer as its dial: held, as in `tavern`, or on
+ * the floor, registered as `tavernHammerOnFloor`, where putting the hammer on the table leaves out picking it up (JF-11).
  */
+import { buildScene, type SceneDescription } from './buildScene'
 import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
 
 const tavern = roomId('Tavern')
@@ -98,3 +102,26 @@ export const branchInBranchScene: SceneFixture = {
         { type: 'movesWith', subject: 'tray1' },
     ],
 }
+
+/** The tavern as builder choices: the hammer held by the actor, or on the floor of the room. */
+export const tavernDescription = ({ hammer: where }: { hammer: 'held' | 'onFloor' }): SceneDescription => ({
+    ...tavernScene,
+    placements: [
+        { thing: table, host: tavern },
+        { thing: saucer, host: table, hostingKind: 'On' },
+        { thing: cup, host: saucer, hostingKind: 'On' },
+        { thing: candle, host: table, hostingKind: 'On' },
+        { thing: hammer, host: where === 'held' ? actor : tavern },
+    ],
+})
+
+export const tavernHammerOnFloorScene: SceneFixture = buildScene({
+    ...tavernDescription({ hammer: 'onFloor' }),
+    name: 'tavernHammerOnFloor',
+    description: 'The tavern with the hammer on the floor, not held: a request to put it somewhere leaves out picking it up.',
+    judgeSets: {
+        judge: [
+            { request: 'I want to put [hammer1] on [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], note: 'Leaves out picking the hammer up, and rightly stays simple: nothing established demands more (JF-11).' },
+        ],
+    },
+})

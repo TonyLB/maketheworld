@@ -42,6 +42,16 @@ export const rootStep = (
 }
 
 /**
+ * A caller's choices for one placement. `hostingKind` is below. `bindingName` names the child's
+ * binding when it takes a further one (a first is always `Base`), in place of a fresh `uuidv4()`: a
+ * fixture builder passes one so a scene builds the same each time; cache-time population passes none.
+ */
+export type ContainmentPopulationOptions = {
+    hostingKind?: EphemeraHostingKind
+    bindingName?: string
+}
+
+/**
  * The pure step-computer for cache-time containment authoring (Room-in-Area, Feature-in-Room,
  * Feature-in-Feature); the contract it implements is in `../../AGENT.contract.md`'s
  * `Component Updated` ingress section. Takes both graphs
@@ -67,7 +77,7 @@ export const rootStep = (
  *   binding with a parent pointer (it is live somewhere, so a rerun must not move it); otherwise it
  *   goes through the same checks, with its kind below. A live binding of the wrong shape is
  *   therefore not repaired for Objects --- acceptable, since repair would also move a live Object.
- * - **Containment kind**: `hostingKind` if the caller passes one, else `defaultHostingKind`'s, the kind
+ * - **Containment kind**: `options.hostingKind` if the caller passes one, else `defaultHostingKind`'s, the kind
  *   a move's arrival gives (`PartOf` for a Room or Feature, `In` for an Object, `Held` for an Object
  *   under a Character, the pairing rule's where a Concept is on either side). Cache-time population
  *   passes none, since authored WML has no surface for a membership kind; a fixture builder passes one
@@ -85,7 +95,7 @@ export const containmentPopulationSteps = (
     childId: EphemeraRoomId | EphemeraFeatureId | EphemeraObjectId | EphemeraConceptId,
     parentGraph: EphemeraLudicGraph,
     childGraph: EphemeraLudicGraph,
-    hostingKind: EphemeraHostingKind = defaultHostingKind(childId, parentId)
+    { hostingKind = defaultHostingKind(childId, parentId), bindingName }: ContainmentPopulationOptions = {}
 ): MutationKernelStep[] => {
     const admissible = admissibleHostingKinds(nodeFromId(parentId).tag, nodeFromId(childId).tag)
     if (!admissible.includes(hostingKind)) {
@@ -101,13 +111,15 @@ export const containmentPopulationSteps = (
 
     const steps: MutationKernelStep[] = []
 
-    // The parent binding children sit under: a Room's or Area's hostless remainder, else the
-    // parent's only binding (its root is `rootStep`'s, applied to `parentGraph` by the caller). A
-    // parent with several bindings names none, and authored placement cannot say which the child
-    // sits in (WML names a parent by component key), so population refuses: nothing is written.
+    // The parent binding children sit under: the parent's PRESENCE#Base, whatever else it holds (a
+    // Room's or Area's hostless remainder is its Base; any other parent's is `rootStep`'s, applied to
+    // `parentGraph` by the caller). Base is the stable lookup for a context-free add, and authored
+    // placement is one (WML names a parent by component key, never a binding). A parent with no Base
+    // is the defect `lacksBase` reports, so population refuses: nothing is written. Not a move's
+    // `destinationBindingOf`, which takes a non-room host's only binding whatever it is called.
     const parentPresence = childParentBindingIdOf(parentGraph)
     if (!parentPresence) {
-        console.warn(`[mtw.ephemera.positions] containment population skipped: ${parentId} has ${parentGraph.presenceNodes.length} bindings, none for ${childId} to name`)
+        console.warn(`[mtw.ephemera.positions] containment population skipped: ${parentId} has no PRESENCE#Base for ${childId} to name`)
         return []
     }
     const fromHostPresence: EphemeraPresenceParentPointer = { host: parentId, presence: parentPresence }
@@ -135,8 +147,8 @@ export const containmentPopulationSteps = (
             hostId: childId,
             fromHostPresences: [fromHostPresence],
             ...(wantedCover ? { cover: wantedCover } : {}),
-            // a child holding no binding yet gets its Base placed (every host holds one); a further binding is a new id
-            presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : uuidv4(),
+            // a child holding no binding yet gets its Base placed (every host holds one); a further binding is the caller's name, else a new id
+            presenceUuid: childGraph.presenceNodes.length === 0 ? 'Base' : bindingName ?? uuidv4(),
         }
         steps.push(bindingStep)
     } else if (

@@ -112,7 +112,7 @@ A low-beamed common room, smoky from the hearth. The player holds a claw hammer.
 **OC-10. `I want to pick up [cup1].`, `I want to pick up [candle1].`, `I want to put [hammer1] on [table1].`**
 - Oracle, guards: zero-stretch candidates that should win with no fuss.
 - On v45: none. `simple` ×2 each.
-- **A premise to check:** the fixture has the hammer already held, so the hammer request leaves nothing out. JF-11's example says it "leaves out picking it up", which this fixture doesn't bear out (flagged 2026-11-07). Fix, confirmed by the user 2026-11-08: the [fixture builder](AGENT.oracleLoop.planning.md#recommended-order)'s first dial puts the hammer held or on the table, so JF-11's example cites the on-table variant and this case keeps the held one (2026-11-08).
+- **A premise to check:** the fixture has the hammer already held, so the hammer request leaves nothing out. JF-11's example says it "leaves out picking it up", which this fixture doesn't bear out (flagged 2026-11-07). Fix, confirmed by the user 2026-11-08: the [fixture builder](AGENT.oracleLoop.planning.md#recommended-order)'s first dial puts the hammer held or on the floor, so JF-11's example cites the floor variant, `tavernHammerOnFloor`, and this case keeps the held one (2026-11-08; on the floor, not on the table as first written, the user's call the same day).
 
 ### `teaTableCupOnFloor`: the same parlour with the cup on the floor
 
