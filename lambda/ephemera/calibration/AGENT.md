@@ -143,6 +143,8 @@ The judge prompt in code is v45 (2026-11-06): [`frame/frameJudge.ts`](../dataSou
 
 ### Writing prompts for Nova Micro
 
+**Micro is the target (user, 2026-11-09).** The project is meant for hobbyists running communities, and Nova 2 Lite is slower and several times the price, so cost is weighed at that scale. A prompt may be developed on Lite when Micro is costing too much time, but it then owes a calibration pass back to Micro once the problem is understood. A task can be left on Lite only after that pass has been made in earnest and Micro still can't do it.
+
 What the judge drafts v29 to v45 showed (2026-11-05 to 2026-11-06), for whoever writes the next prompt for Micro. Attributions are the user's where marked.
 
 - **Tight steps at a literal place work, and prose definitions don't.** A `Mentions` step pointed at "the last line of this prompt, the one starting `Request:`" caught the unestablished cloth where every rewording of `Picture` failed.

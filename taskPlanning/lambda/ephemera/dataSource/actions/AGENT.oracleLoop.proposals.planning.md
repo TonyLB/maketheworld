@@ -6,18 +6,20 @@ Moved on 2026-11-07 from the retired judgeFailures plan, unchanged except for li
 
 ## Live and superseded
 
-| Section | Standing |
-| --- | --- |
-| [A comparative oracle](#a-comparative-oracle) | **Live: the direction** (JF-14, settled). Readings marked mine are not agreed |
-| [Judging an improvisation](#judging-an-improvisation) | Live design, not agreed as a whole (JF-6) |
-| [Finding out by trying](#finding-out-by-trying) | Live: the loop this plan builds |
-| [The axes as they stand](#the-axes-as-they-stand), [How it got here](#how-it-got-here), [What it moves and doesn't remove](#what-it-moves-and-doesnt-remove) | Live reasoning. The understanding gate and the what and how questions survive as the directions that go to the player |
-| [Where the labels would land](#where-the-labels-would-land) | **Retained, likely superseded** by the comparative oracle, whose product is a verdict and a direction and not a label. Undecided (JF-5) |
-| [Testing it](#testing-it) | **Superseded** 2026-11-07 by the oracle loop's order. Its new requests are now [corpus](AGENT.oracleLoop.corpus.planning.md#cases-written-2026-11-07) cases |
-| [A shared back half](#a-shared-back-half-the-proposed-outcome) | Live. The code facts are as read on 2026-11-06 |
-| [What the corpus uses](#what-the-corpus-uses) | Live: the oracle's inputs, swept from the corpus (Slice 2, 2026-11-08) |
-| [A type sketch](#a-type-sketch) | Live, Prototype tier, **not agreed**: mine, for the user's approval |
-| [Noticing](#noticing) | Live: what any oracle prompt still has to notice. The fixes listed are candidates, unprobed in the comparative form |
+**Standing** (2026-11-09, for the pilot of the [proposed design variant](../../../../AGENT.designVariant.proposed.md)), in the plan's vocabulary ([inherited table](AGENT.oracleLoop.planning.md#what-is-inherited-as-settled)): the oracle and the engine are imagined, so what a section says about how they behave is a **guess** unless the column says otherwise. **Observed for v45** means v45's probes carried it; for the oracle it is a guess, and the v45 case is a test to run again. **Present state** is a fact about today's code, not a constraint on the design ([What Observed is not](../../../../AGENT.designVariant.proposed.md#tiers)).
+
+| Section | Status | Standing |
+| --- | --- | --- |
+| [A comparative oracle](#a-comparative-oracle) | **Live: the direction** (JF-14, settled). Readings marked mine are not agreed | Direction (user's call). Its readings of how the oracle behaves are guesses |
+| [Judging an improvisation](#judging-an-improvisation) | Live design, not agreed as a whole (JF-6) | Guess, about the imagined oracle and engine |
+| [Finding out by trying](#finding-out-by-trying) | Live: the loop this plan builds | Direction (JF-9). How the loop behaves is a guess |
+| [The axes as they stand](#the-axes-as-they-stand), [How it got here](#how-it-got-here), [What it moves and doesn't remove](#what-it-moves-and-doesnt-remove) | Live reasoning. The understanding gate and the what and how questions survive as the directions that go to the player | Observed for v45 where a probe is cited; otherwise guess |
+| [Where the labels would land](#where-the-labels-would-land) | **Retained, likely superseded** by the comparative oracle, whose product is a verdict and a direction and not a label. Undecided (JF-5) | Guess |
+| [Testing it](#testing-it) | **Superseded** 2026-11-07 by the oracle loop's order. Its new requests are now [corpus](AGENT.oracleLoop.corpus.planning.md#cases-written-2026-11-07) cases | None: kept for its request list |
+| [A shared back half](#a-shared-back-half-the-proposed-outcome) | Live. The code facts are as read on 2026-11-06 | Present state for the code facts; the back half itself is a guess |
+| [What the corpus uses](#what-the-corpus-uses) | Live: the oracle's inputs, swept from the corpus (Slice 2, 2026-11-08) | Guess: what hand-written cases use, not what a running oracle needed |
+| [A type sketch](#a-type-sketch) | Live: mine, **proposed grounding for a first implementation**, with no approval gate (pilot, 2026-11-09). The harness is built on it and revises it | Guess |
+| [Noticing](#noticing) | Live: what any oracle prompt still has to notice. The fixes listed are candidates, unprobed in the comparative form | Observed for v45 for the failures; the fixes are guesses |
 
 ## A shared back half: the proposed outcome
 
