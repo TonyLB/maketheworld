@@ -8,7 +8,8 @@
  *
  * A fixture's graphs are hand-written, or built by `buildScene` (`buildScene.ts`) from a description: placements through
  * population and relations as kernel steps, so a variant is a choice in the description (the tavern's hammer, held or on
- * the floor) and a theme variant a names override. Hand-written graphs pin the fold independently of population; those
+ * the floor) and a theme variant a names override. The oracle harness's scenes (`teaTableDungeon`, `teaTableDollHouse`,
+ * `teaTableHammerHeld`, `teaTableChained`) are `teaTable`'s description with one change each. Hand-written graphs pin the fold independently of population; those
  * written in production's shape (`teaTable.ts`) are what their descriptions must build, node order included.
  */
 import type { EphemeraId } from '@tonylb/mtw-interfaces/ts/baseClasses'
@@ -31,14 +32,15 @@ import { dockScene, unnamedScene } from './relations'
 import { sideboardScene } from './sideboard'
 import { deepChainScene, emptyRoomScene, siblingFanScene, twoCupsScene } from './simpleRooms'
 import { branchInBranchScene, tavernHammerOnFloorScene, tavernScene } from './tavern'
-import { teaTableCupOnFloorScene, teaTableScene } from './teaTable'
+import { teaTableChainedScene, teaTableCupOnFloorScene, teaTableDollHouseScene, teaTableDungeonScene, teaTableHammerHeldScene, teaTableScene } from './teaTable'
 import type { SceneFixture, SceneFixtureNames } from './worldBuilders'
 
 export type { SceneFixture } from './worldBuilders'
 export type { JudgeRequest } from './judgeRequests'
+export { teaTableProposals } from './teaTable'
 export { expectedAnswer, type SceneAnswer, type SceneQuestion } from './questions'
 
-/** Every fixture, in corpus order, then the ones Slice 1 added, then Slice 3's, then the fixture builder's (oracleLoop). */
+/** Every fixture, in corpus order, then the ones Slice 1 added, then Slice 3's, then the fixture builder's (oracleLoop Slice 1), then the oracle harness's (oracleLoop Slice 3). */
 export const sceneFixtures: readonly SceneFixture[] = [
     tavernScene,
     siblingFanScene,
@@ -59,6 +61,10 @@ export const sceneFixtures: readonly SceneFixture[] = [
     teaTableScene,
     teaTableCupOnFloorScene,
     tavernHammerOnFloorScene,
+    teaTableDungeonScene,
+    teaTableDollHouseScene,
+    teaTableHammerHeldScene,
+    teaTableChainedScene,
 ]
 
 export const sceneFixtureNames = sceneFixtures.map(({ name }) => name)

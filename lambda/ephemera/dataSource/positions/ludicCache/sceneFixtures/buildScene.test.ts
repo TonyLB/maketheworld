@@ -2,7 +2,7 @@
  * The fixture builder: a description built through population comes out as the hand-written graphs, node order included.
  */
 import { buildScene, type SceneDescription } from './buildScene'
-import { teaTableCupOnFloorDescription, teaTableCupOnFloorScene, teaTableDescription, teaTableScene } from './teaTable'
+import { teaTableChainedScene, teaTableCupOnFloorDescription, teaTableCupOnFloorScene, teaTableDescription, teaTableDollHouseScene, teaTableDungeonScene, teaTableScene } from './teaTable'
 import { characterId, conceptId, featureId, objectId, roomId, type SceneFixture } from './worldBuilders'
 
 const byHost = (graphs: SceneFixture['graphs']) => new Map(graphs)
@@ -20,6 +20,15 @@ describe('buildScene', () => {
         const themed = buildScene(teaTableDescription, { names: { [objectId('Table')]: { shortName: 'Altar', gloss: 'a slab of black stone' } } })
         expect(themed.names[objectId('Table')]).toEqual({ shortName: 'Altar', gloss: 'a slab of black stone' })
         expect({ ...themed, names: plain.names }).toEqual(plain)
+    })
+
+    it.each([teaTableDungeonScene, teaTableDollHouseScene])('builds $name, a theme variant, as teaTable\'s graphs', (scene) => {
+        expect(byHost(scene.graphs)).toEqual(byHost(teaTableScene.graphs))
+    })
+
+    it('stores the chain between two of the parlour\'s members in the parlour\'s graph, as production\'s tie does', () => {
+        const parlour = byHost(teaTableChainedScene.graphs).get(roomId('Parlour'))
+        expect(parlour?.edges).toContainEqual(expect.objectContaining({ from: objectId('Table'), to: featureId('Wall'), kind: 'SecuredTo' }))
     })
 
     const room = roomId('Hall')

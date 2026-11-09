@@ -171,6 +171,44 @@ Contents of the Tavern:
 - [hammer1] Hammer (a claw hammer with a taped handle), in the Tavern
 You are holding: nothing.
 Exits: north to the Street.`,
+    teaTableDungeon: `The Antechamber: A dungeon antechamber, the tea table in the middle of it. Words carved over the sealed door ahead say that it opens for one who pours the tea.
+Contents of the Antechamber:
+- [table1] Table (a small round tea table), in the Antechamber
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
+    teaTableDollHouse: `The Parlour: You have been transported into a doll-house to have high tea with the Marie Antoinette doll. Dolls' furniture is glued down, the teapot to its table with the rest.
+Contents of the Parlour:
+- [table1] Table (a small round tea table), in the Parlour
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
+    teaTableHammerHeld: `The Parlour
+Contents of the Parlour:
+- [table1] Table (a small round tea table), in the Parlour
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding:
+- [hammer1] Hammer (a claw hammer with a taped handle), held by you`,
+    teaTableChained: `The Parlour
+Contents of the Parlour:
+- [wall1] Wall, part of the Parlour
+- [table1] Table (a small round tea table), in the Parlour, chained to [wall1], secured
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
 }
 
 /**
@@ -479,6 +517,82 @@ Contents of the Tavern:
   - [candle1] Candle (a stub of tallow in a pewter dish), on [table1]
 - [hammer1] Hammer (a claw hammer with a taped handle), in the Tavern
 You are holding: nothing.`,
+    teaTableDungeon: `The Antechamber: A dungeon antechamber, the tea table in the middle of it. Words carved over the sealed door ahead say that it opens for one who pours the tea.
+The place:
+In the Antechamber there is [table1] Table (a small round tea table).
+On [table1] there are [saucer1] Saucer and [teapot1] Teapot.
+On [saucer1] there is [cup1] Cup.
+In [cup1] there is [tea1] Tea.
+[teapot1] is glued to [table1], secured.
+In [teapot1] there is [tea2] Tea.
+You are holding nothing.
+Records:
+Contents of the Antechamber:
+- [table1] Table (a small round tea table), in the Antechamber
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
+    teaTableDollHouse: `The Parlour: You have been transported into a doll-house to have high tea with the Marie Antoinette doll. Dolls' furniture is glued down, the teapot to its table with the rest.
+The place:
+In the Parlour there is [table1] Table (a small round tea table).
+On [table1] there are [saucer1] Saucer and [teapot1] Teapot.
+On [saucer1] there is [cup1] Cup.
+In [cup1] there is [tea1] Tea.
+[teapot1] is glued to [table1], secured.
+In [teapot1] there is [tea2] Tea.
+You are holding nothing.
+Records:
+Contents of the Parlour:
+- [table1] Table (a small round tea table), in the Parlour
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
+    teaTableHammerHeld: `The Parlour
+The place:
+In the Parlour there is [table1] Table (a small round tea table).
+On [table1] there are [saucer1] Saucer and [teapot1] Teapot.
+On [saucer1] there is [cup1] Cup.
+In [cup1] there is [tea1] Tea.
+[teapot1] is glued to [table1], secured.
+In [teapot1] there is [tea2] Tea.
+You are holding [hammer1] Hammer (a claw hammer with a taped handle).
+Records:
+Contents of the Parlour:
+- [table1] Table (a small round tea table), in the Parlour
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding:
+- [hammer1] Hammer (a claw hammer with a taped handle), held by you`,
+    teaTableChained: `The Parlour
+The place:
+[wall1] Wall is part of the Parlour.
+In the Parlour there is [table1] Table (a small round tea table).
+[table1] is chained to [wall1], secured.
+On [table1] there are [saucer1] Saucer and [teapot1] Teapot.
+On [saucer1] there is [cup1] Cup.
+In [cup1] there is [tea1] Tea.
+[teapot1] is glued to [table1], secured.
+In [teapot1] there is [tea2] Tea.
+You are holding nothing.
+Records:
+Contents of the Parlour:
+- [wall1] Wall, part of the Parlour
+- [table1] Table (a small round tea table), in the Parlour, chained to [wall1], secured
+  - [saucer1] Saucer, on [table1]
+    - [cup1] Cup, on [saucer1]
+      - [tea1] Tea, in [cup1]
+  - [teapot1] Teapot, on [table1], glued to [table1], secured
+    - [tea2] Tea, in [teapot1]
+You are holding: nothing.`,
 }
 
 /**
@@ -534,6 +648,23 @@ export const sceneAffordanceGoldens: Record<string, string> = {
     tavernHammerOnFloor: `Rules that apply here:
 - Moving [table1] also moves [saucer1], [cup1] and [candle1].
 - Moving [saucer1] also moves [cup1].`,
+    teaTableDungeon: `Rules that apply here:
+- [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
+- Moving [saucer1] also moves [cup1] and [tea1].
+- Moving [cup1] also moves [tea1].`,
+    teaTableDollHouse: `Rules that apply here:
+- [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
+- Moving [saucer1] also moves [cup1] and [tea1].
+- Moving [cup1] also moves [tea1].`,
+    teaTableHammerHeld: `Rules that apply here:
+- [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
+- Moving [saucer1] also moves [cup1] and [tea1].
+- Moving [cup1] also moves [tea1].`,
+    teaTableChained: `Rules that apply here:
+- [table1] and [wall1] cannot be moved while [table1] is chained to [wall1].
+- [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
+- Moving [saucer1] also moves [cup1] and [tea1].
+- Moving [cup1] also moves [tea1].`,
 }
 
 /**
@@ -611,6 +742,34 @@ Example: can [teapot1] be moved to the floor?
 Example: if someone picks up [table1], what happens?
 - In the world: [saucer1], [cup1] and [candle1] come with it, and nothing else does.
 - In the records: (move [table1] to held). What is under it stays under it, so nothing else changes.`,
+    teaTableDungeon: `Worked examples, about this scene:
+Example: if someone picks up [saucer1], what happens?
+- In the world: [cup1] and [tea1] come with it, and nothing else does.
+- In the records: (move [saucer1] to held). What is under it stays under it, so nothing else changes.
+Example: can [teapot1] be moved to the floor?
+- In the world: not yet, because it is glued to [table1]; it has to be freed first, and then it can be moved.
+- In the records: (untie [teapot1] from [table1]), then (move [teapot1] to the room).`,
+    teaTableDollHouse: `Worked examples, about this scene:
+Example: if someone picks up [saucer1], what happens?
+- In the world: [cup1] and [tea1] come with it, and nothing else does.
+- In the records: (move [saucer1] to held). What is under it stays under it, so nothing else changes.
+Example: can [teapot1] be moved to the floor?
+- In the world: not yet, because it is glued to [table1]; it has to be freed first, and then it can be moved.
+- In the records: (untie [teapot1] from [table1]), then (move [teapot1] to the room).`,
+    teaTableHammerHeld: `Worked examples, about this scene:
+Example: if someone picks up [saucer1], what happens?
+- In the world: [cup1] and [tea1] come with it, and nothing else does.
+- In the records: (move [saucer1] to held). What is under it stays under it, so nothing else changes.
+Example: can [teapot1] be moved to the floor?
+- In the world: not yet, because it is glued to [table1]; it has to be freed first, and then it can be moved.
+- In the records: (untie [teapot1] from [table1]), then (move [teapot1] to the room).`,
+    teaTableChained: `Worked examples, about this scene:
+Example: if someone picks up [saucer1], what happens?
+- In the world: [cup1] and [tea1] come with it, and nothing else does.
+- In the records: (move [saucer1] to held). What is under it stays under it, so nothing else changes.
+Example: can [table1] be moved to the floor?
+- In the world: not yet, because it is chained to [wall1]; it has to be freed first, and then it can be moved.
+- In the records: (untie [table1] from [wall1]), then (move [table1] to the room).`,
 }
 
 /**

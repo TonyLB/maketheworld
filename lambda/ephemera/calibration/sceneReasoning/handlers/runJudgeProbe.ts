@@ -30,9 +30,9 @@ export type JudgeProbeEvent = {
 export type JudgeProbeDeps = { invoke?: ProbeInvoke }
 
 /** The longest draft accepted of either text: the deployed instructions are about 9,000 characters. */
-const MAX_DRAFT_CHARS = 20_000
+export const MAX_DRAFT_CHARS = 20_000
 
-const isDraftText = (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0 && text.length <= MAX_DRAFT_CHARS
+export const isDraftText = (text: unknown): text is string => typeof text === 'string' && text.trim().length > 0 && text.length <= MAX_DRAFT_CHARS
 
 const refuse = (error: string) => calibrationJsonResponse(400, { error })
 

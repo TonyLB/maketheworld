@@ -16,7 +16,8 @@ export type ProposedOutcomeAfter = 'fiction' | 'whole'
 export const PROPOSED_OUTCOME_FORMS: readonly ProposedOutcomeForm[] = ['moves', 'after', 'both']
 export const PROPOSED_OUTCOME_AFTERS: readonly ProposedOutcomeAfter[] = ['fiction', 'whole']
 
-const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable, scene: SceneModel): string => {
+/** One move in words, named with the before scene's handles: `[tea2] moves from [teapot1] into [cup1]`, with no closing stop. */
+export const moveText = (move: ProposedMove, handles: SceneHandleTable, scene: SceneModel): string => {
     const nameOf = (id: string): string => {
         if (isEphemeraCharacterId(id)) {
             return 'you'
@@ -30,11 +31,15 @@ const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable,
         }
         return bracket(entry.handle)
     }
-    const preposition = ({ hostingKind }: ProposedMove): string => hostingKind === 'In' ? 'into' : hostingKind === 'On' ? 'onto' : 'to'
-    return moves.length === 0
-        ? 'Moves: none.'
-        : ['Moves:', ...moves.map((move) => `- ${nameOf(move.moved)} moves from ${nameOf(move.from)} ${preposition(move)} ${nameOf(move.to)}.`)].join('\n')
+    const preposition = move.hostingKind === 'In' ? 'into' : move.hostingKind === 'On' ? 'onto' : 'to'
+    return `${nameOf(move.moved)} moves from ${nameOf(move.from)} ${preposition} ${nameOf(move.to)}`
 }
+
+const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable, scene: SceneModel): string => (
+    moves.length === 0
+        ? 'Moves: none.'
+        : ['Moves:', ...moves.map((move) => `- ${moveText(move, handles, scene)}.`)].join('\n')
+)
 
 const afterSection = (scene: SceneModel, after: ProposedOutcomeAfter): string => {
     const { fiction, graph, rules } = judgeSceneSections(scene)

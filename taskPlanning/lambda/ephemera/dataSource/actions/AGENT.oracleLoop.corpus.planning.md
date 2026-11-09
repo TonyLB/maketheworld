@@ -15,32 +15,32 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
 - **Candidates here are written by hand,** standing in for the engine, except where a fixture holds a template `proposal`, which is the template's candidate. Bad candidates are written on purpose.
 - **Expected outcomes are not labels,** since JF-5 is open. They are mine unless marked as the user's. Under the pilot (2026-11-09) the oracle and the engine are imagined, so an expected outcome for an intermediate step (a round's verdict, the frontier, a direction and where it goes) is a guess about how an imagined loop behaves. A draft that disagrees with one may be revising the guess, not failing the case. What the case tests is the end result, what the player should end up with: a draft that gets it wrong fails. Where that end result is mine it is still a guess, and only the user revises it, never a draft's disagreement. The engine rubrics are mine except where marked, and the user agreed their grading, OC-26 to OC-29's included (2026-11-08).
 - **On v45:** one line per case, the limit today's single judge hits, with its replies where it was run. The v28 replies and the draft-by-draft record are in git history ([where this came from](AGENT.oracleLoop.discussion.planning.md#where-this-came-from-the-judgefailures-plan-retired-2026-11-07)). For a case not yet run the limit is a prediction, and says so.
-- **Probe:** the `JudgeProbe` asks only requests held in a fixture's `judgeSets`; `sceneText` can replace the scene but can't add a request. "Request in fixture" means a draft can ask it now, with a hand-written `sceneText` where the scene differs. "Needs a fixture request" means it waits for the [oracle harness](AGENT.oracleLoop.planning.md#recommended-order). **Neither covers the oracle's inputs:** a fixture holds the request, v45's label expectation and, for five requests, a template `proposal` as moves. The answer-to-beat, known issues, what has been tried, hand-written candidates and who supplied each step go into each draft's `sceneText` by hand until the harness gives them a fixture shape, and the probe's label grade means nothing for an oracle draft, which is graded by reading.
+- **Probe:** "In harness" means the case is in the [oracle probe](../../../../../lambda/ephemera/calibration/AGENT.md#oracle-probe)'s `oracleCases`, with its scene, request and oracle inputs in Slice 2's types, and is asked by case ID (2026-11-09). A case not in the harness is written into it by the draft step that first asks it (the travel rule, Slice 3). Before the harness: the `JudgeProbe` asks only requests held in a fixture's `judgeSets`; `sceneText` can replace the scene but can't add a request. "Request in fixture" means a draft can ask it now, with a hand-written `sceneText` where the scene differs. "Needs a fixture request" means it waits for the [oracle harness](AGENT.oracleLoop.planning.md#recommended-order). **Neither covers the oracle's inputs:** a fixture holds the request, v45's label expectation and, for five requests, a template `proposal` as moves. The answer-to-beat, known issues, what has been tried, hand-written candidates and who supplied each step go into each draft's `sceneText` by hand until the harness gives them a fixture shape, and the probe's label grade means nothing for an oracle draft, which is graded by reading.
 
 ## Index
 
 | ID | Scene | Request | Oracle | Engine | Loop | Probe |
 | --- | --- | --- | --- | --- | --- | --- |
-| OC-1 | `teaTable` | Pick up `[table1]` | ✓ | | | In fixture |
+| OC-1 | `teaTable` | Pick up `[table1]` | ✓ | | | In harness |
 | OC-2 | `teaTable` | Pick up `[cup1]` | ✓ | | | In fixture |
 | OC-3 | `teaTable` | `[table1]` in `[cup1]` | ✓ | | | In fixture |
 | OC-4 | `teaTable` | Slide `[saucer1]` across `[table1]` | ✓ | | | In fixture |
-| OC-5 | `teaTable` | Pick up `[teapot1]` | ✓ | ✓ | | In fixture |
-| OC-6 | `teaTable` | Pour from `[teapot1]` | ✓ | ✓ | OC-30 | In fixture |
-| OC-7 | `teaTable` | Wipe `[table1]` with a cloth | ✓ | ✓ | | In fixture |
+| OC-5 | `teaTable` | Pick up `[teapot1]` | ✓ | ✓ | In harness |
+| OC-6 | `teaTable` | Pour from `[teapot1]` | ✓ | ✓ | OC-30 | In harness |
+| OC-7 | `teaTable` | Wipe `[table1]` with a cloth | ✓ | ✓ | In harness |
 | OC-8 | `teaTable` | Pry `[teapot1]` off with a screwdriver | ✓ | ✓ | | In fixture |
 | OC-9 | `tavern` | Pick up `[table1]`, the trestle | ✓ | | | In fixture |
 | OC-10 | `tavern` | Pick up `[cup1]`, `[candle1]`; put `[hammer1]` on `[table1]` | ✓ | | | In fixture |
-| OC-11 | `teaTableCupOnFloor` | `[table1]` in `[cup1]` | ✓ | | | In fixture |
-| OC-12 | Dungeon | Pour from `[teapot1]` | ✓ | | | In fixture, own `sceneText` |
-| OC-13 | Doll-house | Pour from `[teapot1]` | ✓ | ✓ | | In fixture, own `sceneText` |
+| OC-11 | `teaTableCupOnFloor` | `[table1]` in `[cup1]` | ✓ | | | In harness |
+| OC-12 | Dungeon | Pour from `[teapot1]` | ✓ | | | In harness |
+| OC-13 | Doll-house | Pour from `[teapot1]` | ✓ | ✓ | In harness |
 | OC-14 | Dungeon | Tip `[table1]` to pour | ✓ | ✓ | | Needs a fixture request |
 | OC-15 | `teaTable` | Wipe `[saucer1]` with a napkin | ✓ | ✓ | | Needs a fixture request |
 | OC-16 | `teaTable` | Lift `[teapot1]`'s lid | ✓ | | | Needs a fixture request |
 | OC-17 | `teaTable` | Wipe with the cloth I'm holding | ✓ | | | Needs a fixture request |
 | OC-18 | `teaTableCupOnFloor` | Hammer `[table1]` into `[cup1]` | ✓ | | | Needs a fixture request |
-| OC-19 | `teaTable`, a hammer held | Pry `[teapot1]` off with `[hammer1]` | ✓ | | | Needs a fixture request and scene |
-| OC-20 | `teaTable`, table chained | Pick up `[table1]` | ✓ | | | In fixture, own `sceneText` |
+| OC-19 | `teaTable`, a hammer held | Pry `[teapot1]` off with `[hammer1]` | ✓ | | | In harness |
+| OC-20 | `teaTable`, table chained | Pick up `[table1]` | ✓ | | | In harness |
 | OC-21 | `tavern` | Trim `[candle1]`'s wick with something sharp | ✓ | ✓ | | Needs a fixture request |
 | OC-22 | `tavern` | Light `[candle1]` | ✓ | ✓ | | Needs a fixture request |
 | OC-23 | `tavern` | Gibberish | ✓ | | | Needs a fixture request |
@@ -50,7 +50,7 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
 | OC-27 | Jungle Tavern | Soup spoons | | ✓ | | Needs a fixture request and scene |
 | OC-28 | Kitsch-horror mansion | Mask the musty smell | ✓ | ✓ | | Needs a fixture request and scene |
 | OC-29 | Plain creepy mansion | Mask the musty smell | ✓ | ✓ | | Needs a fixture request and scene |
-| OC-30 | `teaTable` | Pour, with a candidate history | ✓ | ✓ | ✓ | In fixture, history in `sceneText` |
+| OC-30 | `teaTable` | Pour, with a candidate history | ✓ | ✓ | ✓ | In harness |
 | OC-31 | Chasm | Across on the bridge, then the arrow and rope | ✓ | | ✓ | Needs fixture requests and scene |
 | OC-32 | `teaTable`, a red cup and a blue cup | Pick up the cup | ✓ | | | Needs a fixture request and scene |
 
@@ -165,12 +165,12 @@ Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so
 - On v45 (predicted): `impossible` or `obstructed`, with the hammer's absence as a distraction from the size.
 
 **OC-19. `teaTable` with a claw hammer held: `I want to pry [teapot1] off [table1] with [hammer1].`** A pry with an established tool.
-- Scene: `teaTable`, with the player holding `tavern`'s claw hammer.
+- Scene: `teaTable`, with the player holding `tavern`'s claw hammer, built as `teaTableHammerHeld` (2026-11-09).
 - Oracle: the candidate is the player's method over established facts, a found out, with no stretch. Expected: yes, credited to the player, with the glue as what it changes. Whether the pry works is a skill question (JP-14).
 - On v45 (predicted): as OC-8, without the unestablished tool.
 
 **OC-20. `teaTable` with the table chained to the wall: `I want to pick up [table1].`** A securing that crosses frames.
-- Scene: `teaTable`, with the table chained to the wall. Its `Rules` line is the not-shown form, `[table1] stays fixed relative to what [table1] is secured to.`, written by hand into `sceneText`.
+- Scene: `teaTable`, with the table chained to the wall, built as `teaTableChained` (2026-11-09). With the wall in the scene, its `Rules` line is the pair form, `[table1] and [wall1] stay fixed relative to each other.`, not the not-shown form this case first planned to write by hand into `sceneText`.
 - Oracle: the template's move is refused, so there is no candidate. Expected: the chain named as the fact in the way; the glued teapot plays no part.
 - On v45 (predicted): the not-shown rule wording is unprobed ([known behaviour](../../../../../lambda/ephemera/calibration/AGENT.md#known-behaviour-of-the-built-judge)); OC-1's freed table may carry over as a wrong `simple`.
 

@@ -12,8 +12,9 @@
  * Both are hand-written, in the shape production writes (every first binding `Base`, the binding ahead of the members, no
  * id on the `Justifies` edge), and each has a description for the fixture builder that builds the same graphs.
  */
-import type { SceneDescription, ScenePlacement, SceneRelations } from './buildScene'
-import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
+import type { ProposedMove } from '../../manipulation/proposedMoves'
+import { buildScene, type SceneDescription, type ScenePlacement, type SceneRelations } from './buildScene'
+import { binding, characterId, featureId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
 
 const parlour = roomId('Parlour')
 const actor = characterId('Actor')
@@ -23,6 +24,17 @@ const cup = objectId('Cup')
 const cupTea = objectId('CupTea')
 const teapot = objectId('Teapot')
 const potTea = objectId('PotTea')
+
+/** The template's proposals, as moves: shared by the judge sets and the oracle harness's cases (`calibration/oracleLoop/`). */
+export const teaTableProposals = {
+    pickUpTable: [{ moved: table, from: parlour, to: actor }],
+    pickUpCup: [{ moved: cup, from: saucer, to: actor }],
+    /** Refused (`securedToBlocksMove`), so OC-5 has no candidate. */
+    pickUpTeapot: [{ moved: teapot, from: table, to: actor }],
+    pour: [{ moved: potTea, from: teapot, to: cup, hostingKind: 'In' }],
+    slideSaucer: [],
+    tableInCupOnFloor: [{ moved: table, from: parlour, to: cup, hostingKind: 'In' }],
+} as const satisfies Record<string, readonly ProposedMove[]>
 
 /** Words that would mean the reply prescribes a way past the glue, where the judge only names the obstacle (a reading aid). */
 const prescribedFixes = ['unglue', 'pry', 'scrape', 'solvent', 'screwdriver', 'free', 'remove', 'detach', 'break', 'cut']
@@ -99,14 +111,14 @@ export const teaTableScene: SceneFixture = {
     ],
     judgeSets: {
         judge: [
-            { request: 'I want to pick up [table1].', expect: 'simple', tolerate: ['complex'], proposal: [{ moved: table, from: parlour, to: actor }], note: "The table moves, and the glued teapot stays fixed relative to the table's frame. `complex` fails safe, and that division waits for a planner." },
-            { request: 'I want to pick up [cup1].', expect: 'simple', avoids: ['glue'], proposal: [{ moved: cup, from: saucer, to: actor }], note: 'No glue spreading to a cup on a saucer on a glued-teapot table.' },
+            { request: 'I want to pick up [table1].', expect: 'simple', tolerate: ['complex'], proposal: teaTableProposals.pickUpTable, note: "The table moves, and the glued teapot stays fixed relative to the table's frame. `complex` fails safe, and that division waits for a planner." },
+            { request: 'I want to pick up [cup1].', expect: 'simple', avoids: ['glue'], proposal: teaTableProposals.pickUpCup, note: 'No glue spreading to a cup on a saucer on a glued-teapot table.' },
             { request: 'I want to put [table1] in [cup1].', expect: 'impossible', tolerate: ['obstructed'], mentions: ['fit', 'big', 'large', 'small', 'size', 'hold', 'contain'], note: 'The player is picturing a different world: the table is far larger than the cup. The sentence names the fact they missed.' },
             { request: 'I want to pick up [teapot1].', expect: 'obstructed', tolerate: ['contingent'], mentions: ['glue'], avoids: prescribedFixes, note: 'The glue is the obstacle; no plan yet, so up to the player, with no fix prescribed.' },
-            { request: 'I want to pour tea from [teapot1].', expect: 'obstructed', tolerate: ['contingent'], mentions: ['glue'], avoids: prescribedFixes, proposal: [{ moved: potTea, from: teapot, to: cup, hostingKind: 'In' }], note: 'Same obstacle, reached through another request; freeing is not the only way to pour (tip the table).' },
+            { request: 'I want to pour tea from [teapot1].', expect: 'obstructed', tolerate: ['contingent'], mentions: ['glue'], avoids: prescribedFixes, proposal: teaTableProposals.pour, note: 'Same obstacle, reached through another request; freeing is not the only way to pour (tip the table).' },
             { request: 'I want to pry [teapot1] off [table1] with a screwdriver.', expect: 'contingent', tolerate: ['obstructed', 'complex'], note: 'A plan makes the glue the target (Revises, not Obstacle); the screwdriver is the unestablished detail. Graded only as not simple.' },
             { request: 'I want to wipe [table1] with a cloth.', expect: 'contingent', tolerate: ['obstructed', 'complex'], mentions: ['cloth'], note: 'A cloth is plausible and unestablished.' },
-            { request: 'I want to slide [saucer1] across [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], proposal: [], note: 'Border: the cup and its tea come along; the table\'s extent is not established.' },
+            { request: 'I want to slide [saucer1] across [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], proposal: teaTableProposals.slideSaucer, note: 'Border: the cup and its tea come along; the table\'s extent is not established.' },
         ],
     },
 }
@@ -129,7 +141,7 @@ export const teaTableCupOnFloorScene: SceneFixture = {
     questions: [{ type: 'howMany', name: 'tea' }],
     judgeSets: {
         judge: [
-            { request: 'I want to put [table1] in [cup1].', expect: 'impossible', tolerate: ['obstructed'], mentions: ['fit', 'big', 'large', 'small', 'size', 'hold', 'contain'], proposal: [{ moved: table, from: parlour, to: cup, hostingKind: 'In' }], note: 'The move is legal in the record, and the table is far larger than the cup. Whether code saying so stops the judge noticing.' },
+            { request: 'I want to put [table1] in [cup1].', expect: 'impossible', tolerate: ['obstructed'], mentions: ['fit', 'big', 'large', 'small', 'size', 'hold', 'contain'], proposal: teaTableProposals.tableInCupOnFloor, note: 'The move is legal in the record, and the table is far larger than the cup. Whether code saying so stops the judge noticing.' },
         ],
     },
 }
@@ -175,3 +187,59 @@ export const teaTableCupOnFloorDescription: SceneDescription = {
     ],
     relations: [glue],
 }
+
+/**
+ * The oracle harness's variants of `teaTable` (oracleLoop Slice 3), built from its description. They carry `teaTable`'s questions and
+ * no judge set: their requests are the harness's cases. The dungeon and the doll-house differ only in names, what the glue is for (OC-12,
+ * OC-13; the corpus's wording, agreed by the user 2026-11-08); the hammer is a placement dial (OC-19), and the chain a new thing and a
+ * second tie, stored in the parlour's graph since both its ends are the parlour's members (OC-20).
+ */
+const teaTableVariant = ({ name, description }: Pick<SceneFixture, 'name' | 'description'>, changes: Partial<Pick<SceneDescription, 'placements' | 'relations' | 'names'>> = {}): SceneFixture => {
+    const { judgeSets: _judgeSets, ...base } = teaTableDescription
+    return buildScene({ ...base, name, description, ...changes })
+}
+
+export const teaTableDungeonScene: SceneFixture = teaTableVariant({
+    name: 'teaTableDungeon',
+    description: 'The tea table in a dungeon antechamber, where pouring the tea opens the door: the glue as a challenge (OC-12).',
+}, {
+    names: { ...names, [parlour]: { shortName: 'Antechamber', gloss: 'A dungeon antechamber, the tea table in the middle of it. Words carved over the sealed door ahead say that it opens for one who pours the tea.' } },
+})
+
+export const teaTableDollHouseScene: SceneFixture = teaTableVariant({
+    name: 'teaTableDollHouse',
+    description: 'The tea table in a doll-house, where dolls\' furniture is glued down: the glue as texture (OC-13).',
+}, {
+    names: { ...names, [parlour]: { shortName: 'Parlour', gloss: 'You have been transported into a doll-house to have high tea with the Marie Antoinette doll. Dolls\' furniture is glued down, the teapot to its table with the rest.' } },
+})
+
+const hammer = objectId('Hammer')
+
+export const teaTableHammerHeldScene: SceneFixture = teaTableVariant({
+    name: 'teaTableHammerHeld',
+    description: 'The tea table with the player holding a claw hammer: a pry with an established tool (OC-19).',
+}, {
+    placements: [...teaTableDescription.placements, { thing: hammer, host: actor }],
+    names: { ...names, [hammer]: { shortName: 'Hammer', gloss: 'a claw hammer with a taped handle' } },
+})
+
+const wall = featureId('Wall')
+
+export const teaTableChainedScene: SceneFixture = teaTableVariant({
+    name: 'teaTableChained',
+    description: 'The tea table chained to the wall: a securing that crosses frames, with the glued teapot playing no part (OC-20).',
+}, {
+    placements: [{ thing: wall, host: parlour }, ...teaTableDescription.placements],
+    relations: [
+        ...(teaTableDescription.relations ?? []),
+        {
+            host: parlour,
+            edges: [
+                { edgeId: 'e1', from: table, to: wall, kind: 'Custom', relationLabel: 'chained to' },
+                { edgeId: 'e2', from: table, to: wall, kind: 'SecuredTo' },
+                { from: { edgeId: 'e1' }, to: { edgeId: 'e2' }, kind: 'Justifies' },
+            ],
+        },
+    ],
+    names: { ...names, [wall]: { shortName: 'Wall' } },
+})

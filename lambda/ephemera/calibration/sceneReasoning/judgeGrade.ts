@@ -33,10 +33,20 @@ export type JudgeGrade = {
 
 const stepOf = (key: string): string => key.replace(/\s*\(.*$/, '')
 
+export type ReplyForm = JudgeGrade['form']
+
+/** The steps a reply is missing, and whether those present came in order: the one check that applies to any draft's reply. */
+export const replyForm = (reply: string, steps: readonly string[]): ReplyForm => {
+    const keys = Object.keys(parseJudgeReply(reply).lines).map(stepOf)
+    const present = steps.filter((step) => keys.includes(step))
+    return {
+        missing: steps.filter((step) => !present.includes(step)),
+        inOrder: keys.filter((step) => steps.includes(step)).join() === present.join(),
+    }
+}
+
 export const gradeJudgeReply = (request: JudgeRequest, reply: string, steps: readonly string[] = judgeReplySteps(JUDGE_INSTRUCTIONS)): JudgeGrade => {
     const { label, sentence, lines } = parseJudgeReply(reply)
-    const keys = Object.keys(lines).map(stepOf)
-    const present = steps.filter((step) => keys.includes(step))
     const wrongSimple = label === 'simple' && request.expect !== 'simple'
     const verdict: JudgeVerdict = label === undefined || wrongSimple
         ? 'failure'
@@ -45,10 +55,7 @@ export const gradeJudgeReply = (request: JudgeRequest, reply: string, steps: rea
     return {
         verdict,
         ...(label !== undefined ? { label } : {}),
-        form: {
-            missing: steps.filter((step) => !present.includes(step)),
-            inOrder: keys.filter((step) => steps.includes(step)).join() === present.join(),
-        },
+        form: replyForm(reply, steps),
         wrongSimple,
         flags: {
             mentionMissing: request.mentions !== undefined && !request.mentions.some((word) => says.includes(word.toLowerCase())),

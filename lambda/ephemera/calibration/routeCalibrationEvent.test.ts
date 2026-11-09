@@ -72,6 +72,7 @@ describe('routeCalibrationEvent', () => {
             'SceneReasoningFixtures',
             'SceneReasoningProbe',
             'JudgeProbe',
+            'OracleProbe',
         ])
     })
 

@@ -133,6 +133,11 @@ const expected: Record<string, (SceneAnswer | undefined)[]> = {
         { locations: [thing('table1')] },
     ],
 }
+// The oracle harness's variants change names, a held hammer or a chain to a wall, none of which `teaTable`'s questions ask about.
+expected.teaTableDungeon = expected.teaTable
+expected.teaTableDollHouse = expected.teaTable
+expected.teaTableHammerHeld = expected.teaTable
+expected.teaTableChained = expected.teaTable
 
 describe('scene fixtures', () => {
     beforeEach(() => {
