@@ -56,7 +56,7 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
 
 ## Bearing on every oracle case
 
-On 2026-11-06 the v45 judge was shown a template's candidate as a proposal block (`after`/`fiction`), for table, cup and pour, 3 repeats: 6 pass, 3 wrong `simple`, all pour's. No reply used anything only the block said, and `Revises` said "nothing" on all 9 with the changed relation stated just above it. An oracle case is mostly about reading a candidate, so this is the first thing any oracle draft has to overcome.
+On 2026-11-06 the v45 judge was shown a template's candidate as a proposal block (`after`/`fiction`), for table, cup and pour, 3 repeats: 6 pass, 3 wrong `simple`, all pour's. No reply used anything only the block said, and `Revises` said "nothing" on all 9 with the changed relation stated just above it. An oracle case is mostly about reading a candidate, so this is the first thing any oracle draft has to overcome. Oracle draft 1 did, on 2026-11-09: on Micro and Lite, every pour reply used the candidate's cup, which the request never names. Neither model used the after-state ([results](oracleLoopDrafts/1.notes.md#results-2026-11-09-first-batch)).
 
 ## Cases from the v45 measurements
 
