@@ -6,6 +6,7 @@
 //
 import { PROPOSED_OUTCOME_EXPLANATION } from '../../dataSource/actions/sceneProse/frame'
 import { moveText, renderProposedOutcome, type ProposedOutcomeAfter } from '../../dataSource/actions/sceneProse/renderProposedOutcome'
+import type { JudgeRulesWording } from '../../dataSource/actions/sceneProse/sceneRules'
 import { buildSceneFixture, type SceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { ProposedMove } from '../../dataSource/positions/manipulation/proposedMoves'
 import { proposalAfter } from '../sceneReasoning/proposedOutcomeBlocks'
@@ -73,7 +74,7 @@ const list = (heading: string, lines: readonly string[]): string => [`${heading}
 export const renderOracleInputs = async (
     fixture: SceneFixture,
     input: OracleRoundInput,
-    { framing = ORACLE_FRAMING, show = ORACLE_SHOW }: { framing?: OracleFraming; show?: OracleShow } = {}
+    { framing = ORACLE_FRAMING, show = ORACLE_SHOW, rules = 'v45' }: { framing?: OracleFraming; show?: OracleShow; rules?: JudgeRulesWording } = {}
 ): Promise<OracleInputsRender> => {
     const { handles, scene } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
     const everyCandidate = [
@@ -101,7 +102,7 @@ export const renderOracleInputs = async (
             ...(candidate.reuses.length === 0 ? [] : [`${framing.reuses}: ${candidate.reuses.join(', ')}`]),
             ...(candidate.improvisations.length === 0 ? [] : [list(framing.improvises, candidate.improvisations.map(({ fills, proposes }) => `${fills.says}: ${proposes}`))]),
             ...(withAfter && after !== undefined && show.after !== 'none'
-                ? [renderProposedOutcome({ moves: after.moves, handles, scene: after.scene, form: 'after', after: show.after })]
+                ? [renderProposedOutcome({ moves: after.moves, handles, scene: after.scene, form: 'after', after: show.after, rulesWording: rules })]
                 : []),
         ]
     }

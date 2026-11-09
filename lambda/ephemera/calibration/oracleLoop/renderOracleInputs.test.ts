@@ -62,9 +62,9 @@ describe('renderOracleInputs', () => {
             'Worth another try: Candidate B',
             'Moves:\n- tip [table1] so that [teapot1] pours into [cup1] (from the system).',
             'Reuses: teapot-secured-to-table',
-            'Would do better with:\n- lift [cup1] off first',
+            'Would do better with:\n- move [saucer1] off [table1] first',
             'Candidate:',
-            'Moves:\n- [cup1] moves from [saucer1] to you (from the system).\n- tip [table1] so that [teapot1] pours into [cup1] (from the system).',
+            'Moves:\n- [saucer1] moves from [table1] to you (from the system).\n- tip [table1] so that [teapot1] pours into [cup1] (from the system).',
             'Reuses: teapot-secured-to-table',
         ].join('\n\n'))
     })

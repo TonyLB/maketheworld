@@ -117,6 +117,23 @@ export const rulesLines = (scene: SceneModel, style: 'relative' | 'action' = 're
  */
 type JudgeRule = { ends: SceneHandle[]; sentence: string }
 
+/**
+ * How a rule's sentence is worded: `v45`, the built judge's invariant; or `violation` (oracleLoop's drafts, a Prototype the oracle harness
+ * selects), a test of a method: it keeps the rule by moving the two together or by first changing the fact behind it, and breaks it by
+ * moving them apart beyond what the relation allows while the fact holds. The dry run settles the graph, so the sentence is about the fiction.
+ */
+export type JudgeRulesWording = 'v45' | 'violation'
+
+export const JUDGE_RULES_WORDINGS: readonly JudgeRulesWording[] = ['v45', 'violation']
+
+const violationSentence = (subject: SceneHandle, target: SceneRelationTarget, words: string): string => {
+    if (target.kind !== 'thing') {
+        return `${bracket(subject)} is ${words} something not shown here. A method keeps this rule if it first changes that ${bracket(subject)} is ${words} it. A method breaks it if it moves ${bracket(subject)} relative to that thing more than "${words}" allows while ${bracket(subject)} is still ${words} it.`
+    }
+    const [one, other] = [bracket(subject), bracket(target.handle)]
+    return `${one} is ${words} ${other}. A method keeps this rule if it moves ${one} and ${other} together, or first changes that ${one} is ${words} ${other}. A method breaks it if it moves ${one} and ${other} relative to each other more than "${words}" allows while ${one} is still ${words} ${other}.`
+}
+
 const judgeRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>): JudgeRule => {
     if (target.kind !== 'thing') {
         return { ends: [subject], sentence: `${bracket(subject)} stays fixed relative to what ${bracket(subject)} is secured to.` }
@@ -139,11 +156,16 @@ const handleStem = (handle: SceneHandle): string => handle.replace(/-?\p{N}+$/u,
 
 const ruleHandle = (ends: string[]): string => (ends.length === 1 ? `${ends[0]}-secured` : ends.join('-secured-to-'))
 
-export const judgeRulesLines = (scene: SceneModel): string[] => {
+export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): string[] => {
     const hosts = hostsOf(scene)
-    const rules = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => (
-        securingWords(relation) === undefined || relation.kind === 'Associated' ? [] : [judgeRule(subject, relation.target, hosts)]
-    )))
+    const rules = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => {
+        const words = securingWords(relation)
+        if (words === undefined || relation.kind === 'Associated') {
+            return []
+        }
+        const rule = judgeRule(subject, relation.target, hosts)
+        return [wording === 'violation' ? { ...rule, sentence: violationSentence(subject, relation.target, words) } : rule]
+    }))
     const stemmed = rules.map(({ ends }) => ruleHandle(ends.map(handleStem)))
     const lines = rules.map(({ ends, sentence }, index) => {
         const unique = stemmed.filter((handle) => handle === stemmed[index]).length === 1

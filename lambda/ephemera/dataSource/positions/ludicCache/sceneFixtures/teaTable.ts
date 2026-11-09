@@ -29,6 +29,8 @@ const potTea = objectId('PotTea')
 export const teaTableProposals = {
     pickUpTable: [{ moved: table, from: parlour, to: actor }],
     pickUpCup: [{ moved: cup, from: saucer, to: actor }],
+    /** The saucer off the table, the cup going with it: OC-13's and OC-30's repair before the table is tipped. */
+    pickUpSaucer: [{ moved: saucer, from: table, to: actor }],
     /** Refused (`securedToBlocksMove`), so OC-5 has no candidate. */
     pickUpTeapot: [{ moved: teapot, from: table, to: actor }],
     pour: [{ moved: potTea, from: teapot, to: cup, hostingKind: 'In' }],

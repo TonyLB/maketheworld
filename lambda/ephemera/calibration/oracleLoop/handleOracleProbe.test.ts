@@ -69,7 +69,18 @@ describe('handleOracleProbe', () => {
         expect(result.show).toEqual({ after: 'fiction', suppliedBy: false })
     })
 
+    it('words the scene\'s rules as the event asks, v45\'s by default', async () => {
+        const invoke = invokeReplying(REPLY)
+        await handleOracleProbe({ type: 'OracleProbe', cases: ['OC-6'], instructions: DRAFT_1 }, { invoke })
+        expect(promptOf(invoke, 0)).toContain(await judgeRender('teaTable'))
+        const result = body(await handleOracleProbe({ type: 'OracleProbe', cases: ['OC-6'], instructions: DRAFT_1, rules: 'violation' }, { invoke }))
+        expect(promptOf(invoke, 1)).toContain('- teapot-secured-to-table: [teapot1] is glued to [table1]. A method keeps this rule if')
+        expect(promptOf(invoke, 1)).not.toContain("stays fixed relative to [table1]'s frame")
+        expect(result.rules).toBe('violation')
+    })
+
     it.each([
+        [{ cases: ['OC-6'], instructions: DRAFT_1, rules: 'strict' }, /rules must be one of: v45, violation/],
         [{ cases: ['OC-99'], instructions: DRAFT_1 }, /cases must be a non-empty list/],
         [{ cases: [], instructions: DRAFT_1 }, /cases must be a non-empty list/],
         [{ cases: ['OC-6'] }, /instructions must be a draft/],

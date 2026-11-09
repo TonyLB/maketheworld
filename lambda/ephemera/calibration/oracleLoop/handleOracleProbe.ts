@@ -1,6 +1,7 @@
 import { calibrationJsonResponse } from '../calibrationResponse'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
-import { renderScene } from '../../dataSource/actions/sceneProse'
+import { renderSceneJudge } from '../../dataSource/actions/sceneProse/renderSceneJudge'
+import { JUDGE_RULES_WORDINGS, type JudgeRulesWording } from '../../dataSource/actions/sceneProse/sceneRules'
 import { composeJudgePrompt, withJudgeRecap } from '../../dataSource/actions/sceneProse/frame'
 import { PROPOSED_OUTCOME_AFTERS } from '../../dataSource/actions/sceneProse/renderProposedOutcome'
 import { isNovaModel, type NovaModel } from '../../llm/novaModel'
@@ -26,6 +27,8 @@ export type OracleProbeEvent = {
     framing?: unknown
     /** `{ after?: 'none' | 'fiction' | 'whole', suppliedBy?: boolean }`. */
     show?: unknown
+    /** The scene's Rules wording: `v45` (default, the built judge's) or `violation`, a test of a method. */
+    rules?: unknown
 }
 
 export type OracleProbeDeps = { invoke?: ProbeInvoke }
@@ -104,12 +107,17 @@ export async function handleOracleProbe(event: OracleProbeEvent, deps: OraclePro
     if (typeof show === 'string') {
         return refuse(show)
     }
+    const rules = event.rules === undefined ? 'v45' : event.rules
+    if (!(JUDGE_RULES_WORDINGS as readonly unknown[]).includes(rules)) {
+        return refuse(`rules must be one of: ${JUDGE_RULES_WORDINGS.join(', ')}`)
+    }
+    const rulesWording = rules as JudgeRulesWording
 
     const prepared = await Promise.all(caseIds.map(async (caseId) => {
         const oracleCase = oracleCases[caseId]
         const fixture = sceneFixture(oracleCase.scene.fixture)
-        const sceneText = renderScene((await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene, 'judge')
-        return { caseId, oracleCase, sceneText, inputs: await renderOracleInputs(fixture, oracleCase, { framing, show }) }
+        const sceneText = renderSceneJudge((await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene, rulesWording)
+        return { caseId, oracleCase, sceneText, inputs: await renderOracleInputs(fixture, oracleCase, { framing, show, rules: rulesWording }) }
     }))
     const refusedCase = prepared.find(({ inputs }) => inputs.status === 'refused')
     if (refusedCase !== undefined && refusedCase.inputs.status === 'refused') {
@@ -141,6 +149,7 @@ export async function handleOracleProbe(event: OracleProbeEvent, deps: OraclePro
         instructions: { hash: textHash(instructions), chars: instructions.length, development: event.development === true },
         framing: { overridden: event.framing === undefined ? [] : Object.keys(event.framing as object) },
         show,
+        rules: rulesWording,
         cases: rendered.map(({ caseId, oracleCase, sceneText, text }) => ({
             case: caseId,
             fixture: oracleCase.scene.fixture,

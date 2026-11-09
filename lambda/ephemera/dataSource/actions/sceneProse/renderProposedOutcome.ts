@@ -8,6 +8,7 @@ import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/
 import type { SceneHandleTable, SceneModel } from '../../positions/ludicCache/sceneModel'
 import type { ProposedMove } from '../../positions/manipulation/proposedMoves'
 import { judgeSceneSections } from './renderSceneJudge'
+import type { JudgeRulesWording } from './sceneRules'
 import { bracket, roomRef } from './sceneWording'
 
 export type ProposedOutcomeForm = 'moves' | 'after' | 'both'
@@ -41,12 +42,12 @@ const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable,
         : ['Moves:', ...moves.map((move) => `- ${moveText(move, handles, scene)}.`)].join('\n')
 )
 
-const afterSection = (scene: SceneModel, after: ProposedOutcomeAfter): string => {
-    const { fiction, graph, rules } = judgeSceneSections(scene)
+const afterSection = (scene: SceneModel, after: ProposedOutcomeAfter, rulesWording: JudgeRulesWording): string => {
+    const { fiction, graph, rules } = judgeSceneSections(scene, rulesWording)
     return ['After:', ...(after === 'fiction' ? [fiction] : [fiction, graph, ...(rules === undefined ? [] : [rules])])].join('\n\n')
 }
 
-export const renderProposedOutcome = ({ moves, handles, scene, form, after }: {
+export const renderProposedOutcome = ({ moves, handles, scene, form, after, rulesWording = 'v45' }: {
     moves: readonly ProposedMove[]
     /** The before scene's handles, which the after scene was seeded with. */
     handles: SceneHandleTable
@@ -54,7 +55,9 @@ export const renderProposedOutcome = ({ moves, handles, scene, form, after }: {
     scene: SceneModel
     form: ProposedOutcomeForm
     after: ProposedOutcomeAfter
+    /** The Rules section's wording, for `after: 'whole'`. */
+    rulesWording?: JudgeRulesWording
 }): string => [
     ...(form === 'after' ? [] : [movesSection(moves, handles, scene)]),
-    ...(form === 'moves' ? [] : [afterSection(scene, after)]),
+    ...(form === 'moves' ? [] : [afterSection(scene, after, rulesWording)]),
 ].join('\n\n')

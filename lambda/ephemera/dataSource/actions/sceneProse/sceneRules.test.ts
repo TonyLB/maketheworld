@@ -74,3 +74,26 @@ describe('judgeRulesLines', () => {
         expect(rulesLines(sceneOf(contents, { teapot1: [glued('table1')] }), 'action')[1]).toContain('until [teapot1] is freed')
     })
 })
+
+describe('judgeRulesLines, worded as a violation (oracle drafts)', () => {
+    it('states each rule as a test of a method, under the v45 handle, whichever end hosts the other', () => {
+        const contents = [entry('table1', [entry('teapot1')])]
+        expect(judgeRulesLines(sceneOf(contents, { teapot1: [glued('table1')] }), 'violation')).toEqual([
+            'Rules:',
+            '- teapot-secured-to-table: [teapot1] is glued to [table1]. A method keeps this rule if it moves [teapot1] and [table1] together, or first changes that [teapot1] is glued to [table1]. A method breaks it if it moves [teapot1] and [table1] relative to each other more than "glued to" allows while [teapot1] is still glued to [table1].',
+        ])
+        expect(judgeRulesLines(sceneOf([entry('boat1'), entry('post1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'thing', handle: 'post1' } }] }), 'violation')[1])
+            .toBe('- boat-secured-to-post: [boat1] is secured to [post1]. A method keeps this rule if it moves [boat1] and [post1] together, or first changes that [boat1] is secured to [post1]. A method breaks it if it moves [boat1] and [post1] relative to each other more than "secured to" allows while [boat1] is still secured to [post1].')
+    })
+
+    it('words a securing to something not shown', () => {
+        expect(judgeRulesLines(sceneOf([entry('boat1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'notShown' } }] }), 'violation')[1])
+            .toBe('- boat-secured: [boat1] is secured to something not shown here. A method keeps this rule if it first changes that [boat1] is secured to it. A method breaks it if it moves [boat1] relative to that thing more than "secured to" allows while [boat1] is still secured to it.')
+    })
+
+    it('leaves the v45 wording as the default', () => {
+        const scene = sceneOf([entry('table1', [entry('teapot1')])], { teapot1: [glued('table1')] })
+        expect(judgeRulesLines(scene, 'v45')).toEqual(judgeRulesLines(scene))
+        expect(judgeRulesLines(scene)[1]).toContain("stays fixed relative to [table1]'s frame")
+    })
+})

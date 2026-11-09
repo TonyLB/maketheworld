@@ -80,7 +80,11 @@ export type OracleRoundInput = {
 
 /** A corpus case's oracle part, as the harness asks it. */
 export type OracleCase = OracleRoundInput & {
-    /** What the player should end up with, from the corpus: what the case tests, read by hand. */
+    /**
+     * The oracle's end result for this round, what the case tests, read by hand: the verdict, what potential the candidate has, and
+     * where the direction goes. A round is one call, so this is the oracle step's end result and binds a draft; what the player ends up
+     * with across rounds is the loop's.
+     */
     endResult: string
     /** Why the case reads as it does, where that isn't the corpus's plain statement. */
     note?: string

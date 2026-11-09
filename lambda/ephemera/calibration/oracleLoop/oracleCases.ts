@@ -1,7 +1,7 @@
 //
 // The oracle harness's cases, keyed by corpus case ID (`AGENT.oracleLoop.corpus.planning.md`), with a round suffix where one case runs
 // over several rounds. The candidates are the template's where a fixture holds a proposal, otherwise written by hand, standing in for the
-// engine. Each `endResult` is the corpus's expected end result, attributed as the corpus attributes it. Cases are written when a draft
+// engine. Each `endResult` is the oracle's end result for that round, from the corpus, attributed as the corpus attributes it. Cases are written when a draft
 // step first asks them: these are the ones oracleLoop Slice 4 names, with OC-19 and OC-20.
 //
 import { teaTableProposals } from '../../dataSource/positions/ludicCache/sceneFixtures'
@@ -29,8 +29,23 @@ const glued: Candidate = {
     sentence: "The teapot is glued to the table, so you can't pour from it.",
     steps: [], reuses: ['teapot-secured-to-table'], improvisations: [],
 }
-const liftTheCupOff: ImprovementRequest = { candidateId: 'B', says: 'lift [cup1] off first' }
 const slidesOff = 'tipping [table1] slides [saucer1] and [cup1] off'
+const moveTheSaucerOff = (candidateId: string): ImprovementRequest => ({ candidateId, says: 'move [saucer1] off [table1] first' })
+
+/** The tipping candidate repaired (user, 2026-11-09): the saucer off first, carrying the cup, then the tilt. */
+const saucerOffThenTip = (id: string): Candidate => ({
+    id, source: 'handWritten', polarity: 'yes',
+    steps: [{ change: teaTableProposals.pickUpSaucer[0], suppliedBy: 'system' }, { says: tipToPour, suppliedBy: 'system' }],
+    reuses: ['teapot-secured-to-table'],
+    improvisations: [],
+})
+
+/** After a round in which tipping the table got past the glue and slid the saucer and cup off. */
+const afterTheSlide = (candidateId: string): OracleCase['rounds'] => ({
+    knownIssues: [slidesOff],
+    tried: [{ candidateId, lostBecause: slidesOff }],
+    frontier: [{ candidate: tipTheTable(candidateId), improvements: [moveTheSaucerOff(candidateId)] }],
+})
 
 export const oracleCases: Readonly<Record<string, OracleCase>> = {
     'OC-1': {
@@ -80,13 +95,20 @@ export const oracleCases: Readonly<Record<string, OracleCase>> = {
         answerToBeat: { kind: 'floor' },
         candidates: [tipTheTable('T')],
         rounds: noRounds,
-        endResult: "(user) It \"just gets\" an obstructed-style reply: the system's method doesn't compete, and the direction goes to the player.",
+        endResult: "(user) It \"just gets\" an obstructed-style reply. Tipping is a method the system supplied, on a fact the scene makes a challenge, so it has no potential (the method dial): no frontier, and the direction goes to the player.",
     },
-    'OC-13': {
+    'OC-13/1': {
         ...ask('teaTableDollHouse', pour),
         answerToBeat: { kind: 'floor' },
-        candidates: [tipTheTable('T')],
+        candidates: [tipTheTable('B')],
         rounds: noRounds,
+        endResult: '(user) Not better yet: tipping gets past the glue, which is its potential, and slides the saucer and cup off the tipped table. To the frontier with "move [saucer1] off [table1] first", a direction to the engine.',
+    },
+    'OC-13/2': {
+        ...ask('teaTableDollHouse', pour),
+        answerToBeat: { kind: 'floor' },
+        candidates: [saucerOffThenTip('C')],
+        rounds: afterTheSlide('B'),
         endResult: '(user) A delighted yes: "The miniature teapot is glued to its table, so you heft the table up at an angle to pour the tea into the tiny cup."',
     },
     'OC-19': {
@@ -121,24 +143,15 @@ export const oracleCases: Readonly<Record<string, OracleCase>> = {
         answerToBeat: { kind: 'answer', candidate: glued },
         candidates: [tipTheTable('B')],
         rounds: noRounds,
-        endResult: 'B loses as a product and A stays; B goes to the frontier with its repair, the cup lifted off first; the broken invariant joins the known issues and the tried list.',
+        endResult: '(user) B is not better than A: it gets past the glue, which is its potential, and slides the saucer and cup off the tipped table. B goes to the frontier with "move [saucer1] off [table1] first"; the slide joins the known issues and the tried list.',
     },
     'OC-30/3': {
         ...ask('teaTable', pour),
         answerToBeat: { kind: 'answer', candidate: glued },
-        candidates: [{
-            id: 'C', source: 'handWritten', polarity: 'yes',
-            steps: [{ change: teaTableProposals.pickUpCup[0], suppliedBy: 'system' }, { says: tipToPour, suppliedBy: 'system' }],
-            reuses: ['teapot-secured-to-table'],
-            improvisations: [],
-        }],
-        rounds: {
-            knownIssues: [slidesOff],
-            tried: [{ candidateId: 'B', lostBecause: slidesOff }],
-            frontier: [{ candidate: tipTheTable('B'), improvements: [liftTheCupOff] }],
-        },
+        candidates: [saucerOffThenTip('C')],
+        rounds: afterTheSlide('B'),
         endResult: "Whether C beats A is the method dial's, which this scene doesn't set (OC-12, OC-13).",
-        note: 'C is B repaired: the cup lifted off first, as a change the kernel knows, then the tilt in words.',
+        note: 'C is B repaired (user, 2026-11-09): the saucer off first, carrying the cup, as a change the kernel knows, then the tilt in words.',
     },
 }
 

@@ -7,13 +7,13 @@
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
 import { placeLines } from './renderSceneRegisters'
 import { sceneListLines } from './renderSceneTree'
-import { judgeRulesLines, withoutSecuredMark } from './sceneRules'
+import { judgeRulesLines, withoutSecuredMark, type JudgeRulesWording } from './sceneRules'
 import { heading } from './sceneWording'
 
 /** The three views of the place, each with its own label; `rules` is absent for a scene with no securing. */
-export const judgeSceneSections = (scene: SceneModel): { fiction: string; graph: string; rules?: string } => {
+export const judgeSceneSections = (scene: SceneModel, rulesWording: JudgeRulesWording = 'v45'): { fiction: string; graph: string; rules?: string } => {
     const plain = withoutSecuredMark(scene)
-    const rules = judgeRulesLines(scene)
+    const rules = judgeRulesLines(scene, rulesWording)
     return {
         fiction: ['Fiction:', ...placeLines(plain).slice(1)].join('\n'),
         graph: ['Graph:', '```', ...sceneListLines(plain, '  ', 'subjected'), '```'].join('\n'),
@@ -21,8 +21,8 @@ export const judgeSceneSections = (scene: SceneModel): { fiction: string; graph:
     }
 }
 
-export const renderSceneJudge = (scene: SceneModel): string => {
-    const { fiction, graph, rules } = judgeSceneSections(scene)
+export const renderSceneJudge = (scene: SceneModel, rulesWording: JudgeRulesWording = 'v45'): string => {
+    const { fiction, graph, rules } = judgeSceneSections(scene, rulesWording)
     return [
         `Scene: ${heading(scene)}`,
         fiction,
