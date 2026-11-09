@@ -12,6 +12,8 @@
 
 **What that means when you use it.** Follow it; it is the house pattern. But **when a clause fights the work, the presumption is that the clause is wrong**, not that the initiative is deviant. Do not contort a plan to satisfy a rule here. Record what the clause failed to say, amend this file, and move the row in the confidence table --- that is the intended lifecycle, not an exception to it.
 
+**A replacement is proposed, not in force (2026-11-09):** [`AGENT.designVariant.proposed.md`](AGENT.designVariant.proposed.md) recasts a design plan as the orchestration above prototype work. Follow this file until that one replaces it.
+
 **The evaluation is real and dated.** These rules are under test by [`AGENT.abstractionLayers.planning.md`](lambda/ephemera/dataSource/positions/AGENT.abstractionLayers.planning.md) as it is reshaped to them, and by [`AGENT.attentionHistory.planning.md`](lambda/ephemera/dataSource/positions/AGENT.attentionHistory.planning.md) as it runs its Phase 0. **The honest verdict is not available until at least one of them disposes** --- disposal is when the Settled register, the companion ladder and the graduation rules all get their only real exam.
 
 ## When you are in this variant

@@ -15,6 +15,8 @@ Moved on 2026-11-07 from the retired judgeFailures plan, unchanged except for li
 | [Where the labels would land](#where-the-labels-would-land) | **Retained, likely superseded** by the comparative oracle, whose product is a verdict and a direction and not a label. Undecided (JF-5) |
 | [Testing it](#testing-it) | **Superseded** 2026-11-07 by the oracle loop's order. Its new requests are now [corpus](AGENT.oracleLoop.corpus.planning.md#cases-written-2026-11-07) cases |
 | [A shared back half](#a-shared-back-half-the-proposed-outcome) | Live. The code facts are as read on 2026-11-06 |
+| [What the corpus uses](#what-the-corpus-uses) | Live: the oracle's inputs, swept from the corpus (Slice 2, 2026-11-08) |
+| [A type sketch](#a-type-sketch) | Live, Prototype tier, **not agreed**: mine, for the user's approval |
 | [Noticing](#noticing) | Live: what any oracle prompt still has to notice. The fixes listed are candidates, unprobed in the comparative form |
 
 ## A shared back half: the proposed outcome
@@ -299,7 +301,7 @@ Open questions (mine; the user has answers to some):
 Mine, on its shape, not agreed:
 
 - **"Better" is several comparisons, combined in code.** One line per criterion (the fiction holds up, stretch, exposition, challenge), each with its verdict last, since Micro decides and then justifies (v38). The drive and the budget weight them in code, as step 5 of the candidate algorithm proposed.
-- **A direction goes to the player or to the engine.** What and how questions go back to the player ("But *how*? It's on the other side."), improvisations to the engine: readings against worlds. The empty answer-to-beat is the floor, "I don't see how", so any candidate that beats it is progress.
+- **A direction goes to the player or to the engine.** What and how questions go back to the player ("But *how*? It's on the other side."), improvisations to the engine: readings against worlds. *Recast by the user (2026-11-08):* a direction is a way to do better and where its information comes from, and a question to the player ends the round loop, which restarts with the answer ([JF-19](AGENT.oracleLoop.planning.md#settled-register)). The empty answer-to-beat is the floor, "I don't see how", so any candidate that beats it is progress.
 - **The oracle directs and doesn't generate.** It writes structured lines (the current best's flaw, a constraint to add, a slot to try: yes, no or yes at a cost), and code builds the engine's prompt, since a free-text prompt is generating in secret. The input also carries what has been tried and why it lost, or "untested" can't be checked.
 - **First, whether Micro reads a proposal at all.** Slice 2 found no reply using the block ([Results](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro)). Pour's legal proposal (does it notice the missing tilt?) and the table into the cup on `teaTableCupOnFloor` (the size) are the cheap first probe, with Nova 2 Lite if Micro can't.
 
@@ -344,6 +346,241 @@ Mine, waiting on JF-5. Slice 3 stays with what a prompt alone can test, the unde
 - **Existing requests:** wipe, teapot, pry, table in cup and the `tavern` trestle in its own invoke, with the `teaTable` table as the guard. Labels outside `JUDGE_LABELS` are graded as failures with no label, so those replies are read by hand until a deploy.
 
 An investigation reports, so a good result here doesn't change the built prompt. A draft that earns it goes through the replacement rule like any other, and JF-5 has to say what that rule becomes.
+
+## Oracle inputs
+
+Slice 2 of the [oracle loop plan](AGENT.oracleLoop.planning.md#recommended-order), 2026-11-08. The requirement half is a sweep of the corpus's oracle parts; the representation half is a sketch for the user's approval. Both are mine. The findings from the place the loop will join the pipeline are on CA-6's row in the [command attempt phase](AGENT.commandAttemptPhase.planning.md#open-decisions-implementation--plan-only).
+
+### What the corpus uses
+
+Every input an oracle part's expected outcome depends on, from OC-1 to OC-31. OC-27 has only an engine part, and it adds nothing the oracle doesn't already pass on (the request and the drive). "Reads" means the oracle takes the input as given; "produced" means an earlier round or turn wrote it.
+
+| Input | Cases | Open row | Reads or produced |
+| --- | --- | --- | --- |
+| The scene | Every case. Variants: the themes (OC-12, OC-13, OC-24 to OC-29), the held hammer (OC-19), the chain (OC-20) | | Reads |
+| The request, in the player's words | Every case. A question (OC-26), gibberish (OC-23) and a statement of method with no "I want to" (OC-31) are all this one input | | Reads |
+| The answer-to-beat: the floor | Every case but OC-30's rounds 2 and 3 | | Reads |
+| The answer-to-beat: a finished answer | OC-30's rounds 2 and 3, where it is A, a sentence with no steps ("glued, you can't pour") | JF-12 | Produced |
+| Candidates, none | OC-3, OC-5, OC-20 (the template refused), OC-21 (nothing named), OC-23 (no reading) | | Reads |
+| Candidates, one | The rest, OC-30 in each round | | Reads |
+| Candidates, several | OC-24 and OC-25 (two), OC-26 (three) | | Reads |
+| A candidate's source: the template's `proposal`, written by hand, later the engine | Template: OC-1, OC-2, OC-4, OC-6, OC-11. By hand: the rest | | Reads |
+| A candidate's polarity, yes or no | No: OC-24's no built roof, OC-26's no bowls, OC-30's A. **Yes at a cost has no case** | | Reads |
+| Who supplied each step | Player: OC-8, OC-14, OC-18, OC-19, OC-31. System: OC-1 (the things that travel along), OC-12, OC-13, OC-30's B and C. Both: OC-14's lifting the cup off | JF-16 | Reads |
+| Slots, what a candidate needs that isn't established | OC-7 (the cloth), OC-8 (the screwdriver), OC-18 (the hammer), OC-21 (something sharp), OC-31 (arrow, rope, bow). Found by the oracle from the scene and the steps. A candidate with a slot unfilled doesn't work | JF-6 | Produced |
+| Improvisations, each an improvised fact filling a slot, and its stretch | OC-15 (the napkin), OC-24 (the trees' canopy), OC-28 and OC-29 (the patchouli). An object is the common case, not the only one. The stretch is the oracle's judgment of the improvisation, given the scene | | Produced |
+| Who named a slot | Named by the player: OC-7, OC-8, OC-15, OC-18. Nobody named it: OC-21. The oracle reads it from the request's words | JF-7 | Produced |
+| What a candidate reuses | OC-22 (the hearth), OC-24 (the trees), OC-26 (the jungle and the tavern), OC-28 (the kitsch and the horror) | | Reads |
+| A refused template move and its reason | OC-3 (the cycle, which isn't the fiction's reason), OC-5 (`securedToBlocksMove`), OC-20 (the chain). **Not on the first-pass list**: the expected outcomes name the fact behind the refusal, which the scene states anyway, and OC-3 shows the reason can point the wrong way | Proposed JF-20 | Reads |
+| Known issues | OC-6 (the missing tilt, found while the floor stands), OC-30 (the broken invariant) | | Produced |
+| What has been tried, and why it lost | OC-30's round 3 | | Produced |
+| The frontier, each with the improvement requests that would let it win | OC-30's rounds 2 and 3 | | Produced |
+| The method dial | OC-5, OC-6, OC-30's round 3, all saying this scene doesn't set it. **No case sets a value** | JF-15 | Reads |
+| A fact's role, challenge or texture | OC-12 (challenge), OC-13 (texture); OC-5, OC-6 and OC-30 by reference to them | JF-17 | Reads |
+| The exposition drive | OC-26, at high and at zero | | Reads |
+| The charity budget | **No case uses it.** OC-17 is a hard limit (the opposite is established) and charity of meaning, which is unbudgeted | JF-13, JF-15 | |
+| The player's answers to questions the loop asked | OC-31's turn 2, which means nothing without turn 1's how-question | JF-19, settled: the loop restarts from the request with them | Produced |
+| A question with options | **No case until OC-32** (the user's red cup or blue cup) | | Produced |
+
+What the sweep changes in the first-pass list:
+
+- **"Turn" names two things.** OC-30's turns are rounds of the loop over one request, and OC-31's are the player's turns. The sketch calls the first a **round** and the second a **turn**. A turn is a restart: a question to the player ends the round loop, and the loop starts again from the request with the player's answer (user, [JF-19](AGENT.oracleLoop.planning.md#settled-register)).
+- **A finished answer can be a sentence with no steps,** so a candidate's steps can be empty, and a "no" is a candidate like any other.
+- **Known issues belong to the request, not to the answer-to-beat.** OC-6 finds the tilt while the floor still stands, and every later candidate has to answer it.
+- **A refused template move is an input the list left out.** Whether it goes to the oracle is a real fork, proposed as JF-20 and not opened.
+- **Three things on the list are used by no case:** a value for the method dial, the charity budget, and yes at a cost. The sketch keeps the dial, since three cases say it is unset; it leaves out the budget and the third polarity until a case needs them.
+- **A stretch is a judgment of an improvisation, not a thing** (user, 2026-11-08). An **improvement request** is the oracle asking for something in context: "a proposed item that would match 'the cloth' in 'wipe the table with the cloth'". It carries no price. An **improvisation** is what comes back, an improvised fact: a bar-rag, or the trees' canopy over the tavern (an object is the common case, not the only one: my correction, accepted). A **stretch** is the oracle's judgment of how far the improviser went out on a limb to provide it, given the scene: very little for a bar-rag in a tavern, provocatively high for an ancient manuscript in a 7-11. It is the cost only; what a high stretch might be worth is exposition value. So a stretch is judged after an improvisation returns, by the oracle, which holds the scene and the answer-to-beat.
+- **One list of improvement requests** (user, 2026-11-08): filling a slot, OC-30's repair and OC-21's new candidate are all requests, with no need-to-have tag.
+- **A candidate with a slot unfilled doesn't work** (user, 2026-11-08). That is a fact about it separate from its score, and it sets two comparisons. As a product, every candidate that works beats every one that doesn't, so the answer-to-beat is always the floor or a candidate that works. Potential is softer: not working is a malus, not a divide, so a candidate still waiting for a filler can sit on the frontier for a follow-up if its score allows.
+- **The charity budget** limits how much favourable stretch the system grants; no case uses it yet.
+- **Not inputs:** the scene's themes (the oracle reads them out of the scene, OC-24 to OC-29), and a found or granted out, which is a verdict the oracle gives (OC-8, OC-14, OC-19).
+
+### A type sketch
+
+Prototype tier, not locked, and not in the repo. A field resting on an open row takes the simplest form that holds the corpus's cases, marked `// JF-n`. The output names the slots that have to come out of a round and leaves their wording to the drafts. Mine, for the user's approval, revised the same day for the user's reframing: a round's output is the ways the answer-to-beat could be made better, and a question to the player is one of them, which ends the round loop and restarts it with the answer ([JF-19](AGENT.oracleLoop.planning.md#settled-register)). Revised again for the user's single list: stretches, repairs and needs are all improvements, found by the oracle, with no need-to-have tag. Revised a third time for the user's definitions: an improvement request carries no price, an improvisation is what comes back, a stretch is the oracle's judgment of it, and a candidate with a slot unfilled doesn't work.
+
+```ts
+/** One oracle call: a round of the loop over one request. */
+type OracleRoundInput = {
+    /** The probe's scene shape: a fixture name, or a live character later. The render is the harness's. */
+    scene: { fixture: string }
+    /** In the player's words, as first typed. */
+    request: string
+    /** The player's answers to questions the loop asked: it restarts from the request with them (JF-19). */
+    answers: readonly { asked: string; answer: string }[]
+    answerToBeat: AnswerToBeat
+    /** Zero is a valid round (OC-3, OC-5, OC-21). */
+    candidates: readonly Candidate[]
+    /** The template's literal move and the dry run's reason, where it was refused. */
+    refusedTemplate?: { moves: readonly ProposedMove[]; reason: string } // proposed JF-20
+    dials: Dials
+    /** What earlier rounds since the last restart produced. */
+    rounds: RoundRecord
+}
+
+type AnswerToBeat = { kind: 'floor' } | { kind: 'answer'; candidate: Candidate }
+
+type Candidate = {
+    id: string
+    source: 'template' | 'handWritten' | 'engine'
+    polarity: 'yes' | 'no'
+    /** A finished answer's words. A candidate with no steps has one (OC-30's A). */
+    sentence?: string
+    steps: readonly CandidateStep[]
+    /** Handles, rule handles or scene phrases: [table1], teapot-secured-to-table, "smoky from the hearth". */
+    reuses: readonly string[]
+    /** What fills the candidate's slots. Written into hand-written cases; later from the engine. */
+    improvisations: readonly Improvisation[]
+}
+
+/** Something a candidate needs that isn't established (JF-6 sets what counts). Found by the oracle. */
+type Slot = {
+    /** "the cloth" in "wipe the table with the cloth", "something sharp". */
+    says: string
+    /** Whether the request named it, read from its words. */
+    namedBy: 'player' | 'system' // JF-7
+}
+
+/** An improvised fact that fills a slot: an object as the common case (a bar-rag), or a fact (the trees' canopy). */
+type Improvisation = { fills: Slot; proposes: string }
+
+type CandidateStep = {
+    /** The step in words: "tip [table1] so that [teapot1] pours into [cup1]". */
+    says: string
+    /** Where the step is a change the kernel knows. Absent for a wipe or a light. A template's `ProposedMove` is a `transferMembership`. */
+    change?: PlanStep
+    suppliedBy: 'player' | 'system' // JF-16
+}
+
+type Dials = {
+    /** Absent: the scene sets none, as in every case so far. At zero the engine supplies no method, so the player is the only way to better. */
+    method?: 'zero' | 'open' // JF-15
+    /** By rule handle. Absent: inferred from the scene. */
+    factRoles?: Readonly<Record<string, 'challenge' | 'texture'>> // JF-17
+    exposition?: 'zero' | 'high'
+}
+
+type RoundRecord = {
+    knownIssues: readonly string[]
+    tried: readonly { candidateId: string; lostBecause: string }[]
+    /** At most two. Ranked by potential, where not working is a malus and not a divide. */
+    frontier: readonly { candidate: Candidate; improvements: readonly ImprovementRequest[] }[]
+}
+
+/** What the oracle asks for to make a candidate better: a filler for a slot, a repair, or (no candidateId) a new candidate. No price: the stretch is judged on what comes back. */
+type ImprovementRequest = {
+    candidateId?: string
+    /** "a proposed item that would match 'the cloth' in 'wipe the table with the cloth'", "lift [cup1] off first". */
+    says: string
+    /** Where the request is for a filler. */
+    slot?: Slot
+}
+
+/** A way the answer-to-beat could be made better, and where the new information would come from. */
+type Direction =
+    | { from: 'engine'; request: ImprovementRequest } // OC-21's class, OC-30's repair, OC-7's cloth: another round
+    | { from: 'player'; question: string; options?: readonly string[] } // ends the round loop; options are candidate ids (OC-32)
+
+/** What has to come out of a round. */
+type OracleRoundOutput = {
+    verdicts: readonly {
+        candidateId: string
+        /** Slots nothing fills yet. Any here and the candidate doesn't work, and loses as a product to every one that does. */
+        unfilled: readonly Slot[]
+        /** The oracle's judgment of each improvisation, given the scene. Coarse until the comparison's form is drafted. */
+        stretches: readonly { improvisation: Improvisation; stretch: 'little' | 'some' | 'high' }[]
+        beats: boolean
+        out?: 'found' | 'granted' // JF-16
+        /** What would make this candidate better. A losing candidate that would win with them goes to the frontier. */
+        improvements: readonly ImprovementRequest[]
+    }[]
+    /** The floor or a candidate that works. */
+    answerToBeat: AnswerToBeat
+    /** The floor's sentence, where the floor returns with nothing better to try (OC-3's size). */
+    sentence?: string // JF-5
+    rounds: RoundRecord
+    /** Best first. Empty: nothing would do better, and the answer-to-beat returns. */
+    directions: readonly Direction[]
+}
+```
+
+OC-30's round 2, filled in:
+
+```ts
+const A: Candidate = {
+    id: 'A', source: 'handWritten', polarity: 'no',
+    sentence: "The teapot is glued to the table, so you can't pour from it.",
+    steps: [], reuses: ['teapot-secured-to-table'], improvisations: [],
+}
+const B: Candidate = {
+    id: 'B', source: 'handWritten', polarity: 'yes',
+    steps: [{ says: 'tip [table1] so that [teapot1] pours into [cup1]', suppliedBy: 'system' }],
+    reuses: ['teapot-secured-to-table'], improvisations: [],
+}
+const lift: ImprovementRequest = { candidateId: 'B', says: 'lift [cup1] off first' }
+const input: OracleRoundInput = {
+    scene: { fixture: 'teaTable' }, request: 'I want to pour tea from [teapot1].', answers: [],
+    answerToBeat: { kind: 'answer', candidate: A }, candidates: [B],
+    dials: {}, rounds: { knownIssues: [], tried: [], frontier: [] },
+}
+// Expected: B doesn't beat A; A stays; the invariant is a known issue and B is tried;
+// B goes to the frontier with the improvement that would let it win, which goes to the engine.
+const expected: OracleRoundOutput = {
+    verdicts: [{ candidateId: 'B', unfilled: [], stretches: [], beats: false, improvements: [lift] }],
+    answerToBeat: { kind: 'answer', candidate: A },
+    rounds: {
+        knownIssues: ['tipping [table1] slides [saucer1] and [cup1] off'],
+        tried: [{ candidateId: 'B', lostBecause: 'breaks an invariant nobody called' }],
+        frontier: [{ candidate: B, improvements: [lift] }],
+    },
+    directions: [{ from: 'engine', request: lift }],
+}
+```
+
+OC-7's first round, under the rule that a candidate with a slot unfilled doesn't work (mine, illustrating the rule; the corpus's expected outcome predates it):
+
+```ts
+const cloth: Slot = { says: "the cloth in 'wipe [table1] with a cloth'", namedBy: 'player' }
+const fill: ImprovementRequest = { candidateId: 'W', says: "a proposed item, in context, that would match 'the cloth'", slot: cloth }
+// W is the player's method with the cloth unfilled: it doesn't work, so the floor stands,
+// and W waits on the frontier for a filler from the engine.
+const round1: Pick<OracleRoundOutput, 'verdicts' | 'answerToBeat' | 'directions'> = {
+    verdicts: [{ candidateId: 'W', unfilled: [cloth], stretches: [], beats: false, improvements: [fill] }],
+    answerToBeat: { kind: 'floor' },
+    directions: [{ from: 'engine', request: fill }],
+}
+// Round 2's candidate carries { fills: cloth, proposes: 'a napkin from the tea tray' }, judged at little stretch.
+```
+
+OC-31, across the restart:
+
+```ts
+// Turn 1 ends the round loop on a question.
+const turn1: Pick<OracleRoundOutput, 'answerToBeat' | 'directions'> = {
+    answerToBeat: { kind: 'floor' },
+    directions: [{ from: 'player', question: "But how? It's on the other side. It's not doing you any good." }],
+}
+// Turn 2 restarts from the request, with the answer and fresh rounds.
+const turn2: Pick<OracleRoundInput, 'request' | 'answers' | 'answerToBeat' | 'rounds'> = {
+    request: "We're going across the chasm on the bridge.",
+    answers: [{ asked: "But how? It's on the other side.", answer: 'Taking out a heavy arrow. Tying a rope to it.' }],
+    answerToBeat: { kind: 'floor' },
+    rounds: { knownIssues: [], tried: [], frontier: [] },
+}
+```
+
+For the user to approve or redirect:
+
+- **Restart, not resume** (JF-19): the round record starts empty after a question, and only the request and the answers carry over.
+- **The answer-to-beat** as the floor or a candidate, with a sentence-only answer as a candidate with no steps, not as a third kind.
+- **Known issues on the round record** and not on the answer-to-beat, because of OC-6.
+- **Directions as a list, best first,** with code choosing which to follow: another round for the engine, or the end of the round loop for the player.
+- **`refusedTemplate`**, which needs JF-20 opened or dropped.
+- **Request, improvisation, stretch** (user): a request carries no price, and the stretch is the oracle's judgment on the improvisation that comes back, in the verdict. The three-step `stretch` scale is mine, a placeholder.
+- **A candidate with a slot unfilled doesn't work** (user): `unfilled` in the verdict, a hard divide for the answer-to-beat and a malus for the frontier.
+- **Each JF-marked field:** `namedBy` on a slot (JF-7), `suppliedBy` and `out` (JF-16), the method dial with two values and absent everywhere (JF-15), `factRoles` keyed by rule handle (JF-17), the floor's `sentence` (JF-5).
+- **What is left out:** the charity budget and yes at a cost, which no case uses.
+- **A step is words first,** with `PlanStep` only where the kernel has the change, since wipe, light and pour's tilt have none.
 
 ## Noticing
 

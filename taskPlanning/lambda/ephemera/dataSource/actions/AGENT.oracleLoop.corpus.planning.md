@@ -52,6 +52,7 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
 | OC-29 | Plain creepy mansion | Mask the musty smell | ✓ | ✓ | | Needs a fixture request and scene |
 | OC-30 | `teaTable` | Pour, with a candidate history | ✓ | ✓ | ✓ | In fixture, history in `sceneText` |
 | OC-31 | Chasm | Across on the bridge, then the arrow and rope | ✓ | | ✓ | Needs fixture requests and scene |
+| OC-32 | `teaTable`, a red cup and a blue cup | Pick up the cup | ✓ | | | Needs a fixture request and scene |
 
 ## Bearing on every oracle case
 
@@ -172,6 +173,11 @@ Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so
 - Scene: `teaTable`, with the table chained to the wall. Its `Rules` line is the not-shown form, `[table1] stays fixed relative to what [table1] is secured to.`, written by hand into `sceneText`.
 - Oracle: the template's move is refused, so there is no candidate. Expected: the chain named as the fact in the way; the glued teapot plays no part.
 - On v45 (predicted): the not-shown rule wording is unprobed ([known behaviour](../../../../../lambda/ephemera/calibration/AGENT.md#known-behaviour-of-the-built-judge)); OC-1's freed table may carry over as a wrong `simple`.
+
+**OC-32. `teaTable` with two cups: `I want to pick up the cup.`** Two readings, neither ahead. Added 2026-11-08 from the user's example, for [JF-19](AGENT.oracleLoop.planning.md#settled-register).
+- Scene: `teaTable`, with the cup on the saucer red and a second cup, blue, on the table.
+- Oracle: two candidates, the template's take of each cup, both legal and zero-stretch. Expected (user): a question to the player with the two as options, "Do you mean the red cup or the blue cup?". It is the one kind of question that differs from plain text.
+- On v45 (predicted): one request, one label, and no way to offer a choice; production's Consult asks between same-named objects before any judge.
 
 ### The tavern, further requests
 
