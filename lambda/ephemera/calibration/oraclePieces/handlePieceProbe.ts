@@ -23,7 +23,7 @@ export type PieceProbeEvent = {
 
 export type PieceProbeDeps = { invoke?: ProbeInvoke; pieces?: Record<string, OraclePiece> }
 
-/** The piece probe's own cap (PP-2): a piece's calls are short, and a sign of a piece too big is long calls, not a higher cap. */
+/** The piece probe's own cap (user): a piece's calls are short, and a sign of a piece too big is long calls, not a higher cap. */
 export const PIECE_PROBE_CALL_CAP = 24
 
 const refuse = (error: string) => calibrationJsonResponse(400, { error })

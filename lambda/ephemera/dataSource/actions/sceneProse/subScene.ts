@@ -1,6 +1,6 @@
 /**
- * A sub-scene (pieceProbe PP-1, user, 2026-11-10): a scene model limited to the things a reader is asked about. It keeps the named
- * things; their physical containers up to the room or `held`, for every binding (PP-6, user: the ancestor chain, since a container
+ * A sub-scene (user, 2026-11-10): a scene model limited to the things a reader is asked about. It keeps the named
+ * things; their physical containers up to the room or `held`, for every binding (user: the ancestor chain, since a container
  * at the top level would read as in the room); the Concepts each named thing is `Associated` with; and the relations with both ends
  * in that set. Every other thing and relation is dropped, and so are the exits, which are not things.
  *

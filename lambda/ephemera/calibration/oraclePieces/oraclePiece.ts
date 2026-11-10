@@ -1,5 +1,5 @@
 //
-// The piece probe's registration (pieceProbe plan, a Prototype of the oracle loop plan's Slice 4.5): a piece of the oracle that makes one
+// The piece probe's registration (a Prototype of the oracle loop plan's Slice 4.5): a piece of the oracle that makes one
 // judgment per call, plugged into the probe with its cells, its closed answer set, and how to render a cell after the draft's instructions.
 //
 

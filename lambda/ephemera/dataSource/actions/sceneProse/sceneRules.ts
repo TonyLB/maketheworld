@@ -144,6 +144,29 @@ const inForceSentence = (subject: SceneHandle, target: SceneRelationTarget, word
     return `${one} is ${words} ${other}. While this rule is in force, it blocks an action that moves ${one} and ${other} relative to each other more than "${words}" allows, and it allows an action that moves them together. An action that makes it no longer true that ${one} is ${words} ${other} voids this rule.`
 }
 
+/**
+ * A rule in parts (user, 2026-11-10, for the oracle's pieces): the fact behind it, the rubric for enforcing it, and the rubric for voiding it. A rule
+ * in the abstract has both rubrics, and a piece of the oracle shows only the one it judges: the rule cell, which judges actions the rule
+ * is in force for, the fact and the enforcing rubric. The parts don't depend on a wording; the wordings above stay as they were.
+ */
+export type JudgeRuleParts = { fact: string; enforcing: string; voiding: string }
+
+const ruleParts = (subject: SceneHandle, target: SceneRelationTarget, words: string): JudgeRuleParts => {
+    if (target.kind !== 'thing') {
+        return {
+            fact: `${bracket(subject)} is ${words} something not shown here.`,
+            enforcing: `This rule blocks an action that moves ${bracket(subject)} relative to that thing more than "${words}" allows.`,
+            voiding: `An action that makes it no longer true that ${bracket(subject)} is ${words} it voids this rule.`,
+        }
+    }
+    const [one, other] = [bracket(subject), bracket(target.handle)]
+    return {
+        fact: `${one} is ${words} ${other}.`,
+        enforcing: `This rule blocks an action that moves ${one} and ${other} relative to each other more than "${words}" allows, and allows an action that moves them together.`,
+        voiding: `An action that makes it no longer true that ${one} is ${words} ${other} voids this rule.`,
+    }
+}
+
 const draftSentences: Record<Exclude<JudgeRulesWording, 'v45'>, (subject: SceneHandle, target: SceneRelationTarget, words: string) => string> = {
     violation: violationSentence,
     inForce: inForceSentence,
@@ -171,7 +194,11 @@ const handleStem = (handle: SceneHandle): string => handle.replace(/-?\p{N}+$/u,
 
 const ruleHandle = (ends: string[]): string => (ends.length === 1 ? `${ends[0]}-secured` : ends.join('-secured-to-'))
 
-export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): string[] => {
+/** One rule of the judge's Rules section: its handle, the things it names, its sentence in the given wording, and its parts. */
+export type JudgeRuleLine = { handle: string; ends: SceneHandle[]; sentence: string; parts: JudgeRuleParts }
+
+/** The rules `judgeRulesLines` lists, one by one, so a reader can take a single rule by its handle (the oracle's rule cell, `calibration/oraclePieces/ruleCell.ts`). */
+export const judgeRules = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): JudgeRuleLine[] => {
     const hosts = hostsOf(scene)
     const rules = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => {
         const words = securingWords(relation)
@@ -179,12 +206,17 @@ export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 
             return []
         }
         const rule = judgeRule(subject, relation.target, hosts)
-        return [wording === 'v45' ? rule : { ...rule, sentence: draftSentences[wording](subject, relation.target, words) }]
+        const parts = ruleParts(subject, relation.target, words)
+        return [{ ...rule, parts, ...(wording === 'v45' ? {} : { sentence: draftSentences[wording](subject, relation.target, words) }) }]
     }))
     const stemmed = rules.map(({ ends }) => ruleHandle(ends.map(handleStem)))
-    const lines = rules.map(({ ends, sentence }, index) => {
+    return rules.map(({ ends, sentence, parts }, index) => {
         const unique = stemmed.filter((handle) => handle === stemmed[index]).length === 1
-        return `- ${unique ? stemmed[index] : ruleHandle(ends)}: ${sentence}`
+        return { handle: unique ? stemmed[index] : ruleHandle(ends), ends, sentence, parts }
     })
+}
+
+export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): string[] => {
+    const lines = judgeRules(scene, wording).map(({ handle, sentence }) => `- ${handle}: ${sentence}`)
     return lines.length === 0 ? [] : ['Rules:', ...lines]
 }

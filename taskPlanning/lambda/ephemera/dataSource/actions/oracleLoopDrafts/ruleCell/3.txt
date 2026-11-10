@@ -1,0 +1,5 @@
+Role: You judge one rule of a game world against a player's plan. Below are the rule, the two things it names, and the plan's actions, each with a line saying what each of the two things does as the action happens.
+
+Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. "Fiction" describes the place in sentences. "Graph" lists the same things, one row each, with a row indented under another row being on or in that thing.
+
+Task: Answer one question: does what the actions' lines describe move the rule's two things relative to each other more than the rule allows? First, in one or two sentences, say what the lines say about how the two things move relative to each other. Then end with a JSON code block, fenced with ```json, holding one object whose "answer" is "blocks" if they are moved relative to each other more than the rule allows, or "allows" if they are not.

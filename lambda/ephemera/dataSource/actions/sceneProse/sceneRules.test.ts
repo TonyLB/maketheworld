@@ -1,5 +1,5 @@
 import type { SceneModel, SceneRelation } from '../../positions/ludicCache/sceneModel'
-import { judgeRulesLines, rulesLines } from './sceneRules'
+import { judgeRules, judgeRulesLines, rulesLines } from './sceneRules'
 
 const entry = (handle: string, children: SceneModel['contents'] = []) => ({
     kind: 'line', handle, hostingKind: 'On', first: true, elsewhere: [], joins: [], children,
@@ -105,5 +105,34 @@ describe('judgeRulesLines, worded as a violation (oracle drafts)', () => {
         const scene = sceneOf([entry('table1', [entry('teapot1')])], { teapot1: [glued('table1')] })
         expect(judgeRulesLines(scene, 'v45')).toEqual(judgeRulesLines(scene))
         expect(judgeRulesLines(scene)[1]).toContain("stays fixed relative to [table1]'s frame")
+    })
+})
+
+describe('judgeRules, a rule in parts', () => {
+    it('gives the fact, the enforcing rubric and the voiding rubric, whichever end hosts the other', () => {
+        const contents = [entry('table1', [entry('teapot1')])]
+        const parts = {
+            fact: '[teapot1] is glued to [table1].',
+            enforcing: 'This rule blocks an action that moves [teapot1] and [table1] relative to each other more than "glued to" allows, and allows an action that moves them together.',
+            voiding: 'An action that makes it no longer true that [teapot1] is glued to [table1] voids this rule.',
+        }
+        expect(judgeRules(sceneOf(contents, { teapot1: [glued('table1')] }))).toEqual([{
+            handle: 'teapot-secured-to-table', ends: ['teapot1', 'table1'], sentence: expect.any(String), parts,
+        }])
+        expect(judgeRules(sceneOf([entry('boat1'), entry('post1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'thing', handle: 'post1' } }] }))[0].parts.fact)
+            .toBe('[boat1] is secured to [post1].')
+    })
+
+    it('words a securing to something not shown', () => {
+        expect(judgeRules(sceneOf([entry('boat1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'notShown' } }] }))[0].parts).toEqual({
+            fact: '[boat1] is secured to something not shown here.',
+            enforcing: 'This rule blocks an action that moves [boat1] relative to that thing more than "secured to" allows.',
+            voiding: 'An action that makes it no longer true that [boat1] is secured to it voids this rule.',
+        })
+    })
+
+    it('gives the same parts in every wording', () => {
+        const scene = sceneOf([entry('table1', [entry('teapot1')])], { teapot1: [glued('table1')] })
+        expect(judgeRules(scene, 'inForce').map(({ parts }) => parts)).toEqual(judgeRules(scene, 'v45').map(({ parts }) => parts))
     })
 })
