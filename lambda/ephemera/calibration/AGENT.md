@@ -144,6 +144,33 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 - There is no `sceneText` override. A draft that needs to say something the inputs can't carry goes back to `JudgeProbe` with `sceneText`, which is the plan's signal that the input types need revising.
 - **Grading is form only:** each reply's steps against the draft's numbered steps. No label is graded. **Returns** each case's request, `endResult`, the hashes of its scene and inputs and the inputs' text, then `summary` (calls, errors, malformed) and `read`, every reply with its form.
 
+### Piece probe
+
+`PieceProbe` runs a draft of one piece of the oracle against that piece's cells, and grades each reply in code against the cell's expected answer ([`oraclePieces/`](oraclePieces/)). A piece makes one judgment per call. It is a **Prototype** of the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md)'s Slice 4.5, built in the [piece probe plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.pieceProbe.planning.md). Nothing in production reads it, and it goes when the parent closes. Same access boundary and cost as the judge probe.
+
+```json
+{ "type": "PieceProbe", "piece": "ruleCell", "instructions": "...", "repeats": 3, "model": "NovaMicro" }
+```
+
+- **A piece plugs in with a registration** ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)), listed in [`pieces.ts`](oraclePieces/pieces.ts) through `registerPiece`:
+  - `name`;
+  - `answers`, its closed answer set;
+  - `cells` by ID, each with its `inputs`, `expected` answer, `source` (the batch and reply it was lifted from, or `hand-written`) and an optional `note`;
+  - `parseOptions`, which checks the event's `options` and gives the piece's options or a refusal;
+  - `render(cell, options)`, the prompt text after the instructions, which is async so it can build a fixture's scene;
+  - optionally `byCode(cell)`, an answer code gives without a call.
+
+  A piece that needs more than this to plug in is the plan's revision trigger.
+- `piece` is required. `cells` defaults to all of the piece's cells. `instructions` is required, since a piece has no built prompt. `repeats` defaults to 1, `model` to `NovaMicro`, and `options` goes to the piece.
+- **Cap: called cells x repeats <= 24** (`PIECE_PROBE_CALL_CAP`, its own constant, apart from the other probes' 12). Cells answered by code don't count. Every refusal happens before the first call: an unknown piece or cell, no instructions, bad repeats or model, options the piece refuses, over the cap, or a render that fails.
+- The prompt is the instructions, a blank line, then the cell's render. There is no recap and no form check.
+- **Grading** ([`pieceAnswer.ts`](oraclePieces/pieceAnswer.ts)): the probe takes the last line starting `Answer:` and reads its first word, lowercased and with trailing punctuation dropped, against the answer set. Anything after that first word is ignored. A reply with no such line, or with a word outside the set, is `malformed`, with the reason. The verdict goes last, as Micro needs.
+- **Returns:**
+  - the instructions' `hash` and `chars`, and the parsed `options`;
+  - **`cells` first:** for each cell, its `expected` answer; `n` calls, with `right`, `wrong`, `malformed` and `errors`; the `answers` given, with counts; `byCode` (the answer and whether it is right) where code answered; and the rendered inputs' `hash`;
+  - `summary`: calls, right, wrong, malformed, errors, and the count of cells answered by code;
+  - `read`: every call, with its reply and grade, for reading the wrong ones.
+
 ### The built judge prompt (v45)
 
 The judge prompt in code is v45 (2026-11-06): [`frame/frameJudge.ts`](../dataSource/actions/sceneProse/frame/frameJudge.ts) for the instructions and `judgeRulesLines` in [`sceneRules.ts`](../dataSource/actions/sceneProse/sceneRules.ts) for the scene's `Rules`. A flag-off probe reports instructions hash `22e97265`. It is a probe-only prototype: nothing in the command pipeline reads it. Its next form, a comparative oracle in a loop with an improvisation engine, is the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md). The drafts v1 to v45, and the reply-by-reply record of each, are in git history (`taskPlanning/lambda/ephemera/dataSource/actions/judgeFailureDrafts/`, last at commit `a89e21478`).

@@ -6,6 +6,7 @@ import { handleEmbeddingSimulateIdentity } from './objectMatch/handlers/simulate
 import { handleEmbeddingVerifyRepeat } from './objectMatch/handlers/verifyRepeatEmbed'
 import { handleJudgeProbe } from './sceneReasoning/handlers/runJudgeProbe'
 import { handleOracleProbe } from './oracleLoop/handleOracleProbe'
+import { handlePieceProbe } from './oraclePieces/handlePieceProbe'
 import { handleSceneReasoningFixtures } from './sceneReasoning/handlers/runFixtures'
 import { handleSceneReasoningProbe } from './sceneReasoning/handlers/runProbe'
 import { calibrationJsonResponse, type CalibrationRouteResponse } from './calibrationResponse'
@@ -21,6 +22,7 @@ export const CALIBRATION_EVENT_TYPES = [
     'SceneReasoningProbe',
     'JudgeProbe',
     'OracleProbe',
+    'PieceProbe',
 ] as const
 
 export type CalibrationEventType = (typeof CALIBRATION_EVENT_TYPES)[number]
@@ -70,6 +72,8 @@ export async function routeCalibrationEvent(event: {
             return handleJudgeProbe(event as Parameters<typeof handleJudgeProbe>[0])
         case 'OracleProbe':
             return handleOracleProbe(event as Parameters<typeof handleOracleProbe>[0])
+        case 'PieceProbe':
+            return handlePieceProbe(event as Parameters<typeof handlePieceProbe>[0])
         default:
             return calibrationJsonResponse(400, {
                 error: `unknown calibration event type: ${String(event.type)}`,

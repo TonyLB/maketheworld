@@ -1,6 +1,6 @@
 # Piece probe: a harness for small oracle pieces, and the rule cell as its first
 
-**Status (2026-11-10): written, not started.** The first sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5. Slice 4 took its exit (c): as one prompt, the oracle fails on Micro wherever it loops or looks back ([trail](AGENT.oracleLoop.discussion.planning.md#the-oracle-decomposes-slice-4s-exit-c-2026-11-10)). So the oracle is now built from pieces that each make one judgment per call, with code doing the loops, filters and joins. This plan builds two things:
+**Status (2026-11-10): step 1 done, the piece probe built ([Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe)); next, step 2, the rule cell.** The first sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5. Slice 4 took its exit (c): as one prompt, the oracle fails on Micro wherever it loops or looks back ([trail](AGENT.oracleLoop.discussion.planning.md#the-oracle-decomposes-slice-4s-exit-c-2026-11-10)). So the oracle is now built from pieces that each make one judgment per call, with code doing the loops, filters and joins. This plan builds two things:
 - **The piece probe:** a harness seam that a piece plugs into with little labour.
 - **The rule cell:** the first piece plugged in. It is the user's rules-blocking piece.
 
@@ -17,8 +17,9 @@ Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an impl
    - [`runOracleProbe.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/runOracleProbe.ts) (the call loop);
    - [`handleOracleProbe.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/handleOracleProbe.ts) (refusals before the first call, hashes);
    - `judgeRulesLines` and its wordings in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts);
-   - the event router, [`routeCalibrationEvent.ts`](../../../../../lambda/ephemera/calibration/routeCalibrationEvent.ts).
-5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4522 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
+   - the event router, [`routeCalibrationEvent.ts`](../../../../../lambda/ephemera/calibration/routeCalibrationEvent.ts);
+   - the piece probe, step 1's build: [`oraclePieces/`](../../../../../lambda/ephemera/calibration/oraclePieces/) and its [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) subsection.
+5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4546 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
 
 ## What is inherited as settled
 
@@ -40,26 +41,27 @@ The parent's [inherited premises](AGENT.oracleLoop.planning.md#what-is-inherited
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
-1. [ ] **The piece probe.** A Prototype in a new directory, `calibration/oraclePieces/`, so it can be disposed of in one go. **Rests on** the jobs every piece has, which don't depend on what the pieces turn out to be (mine, agreed 2026-11-10). **Consumer:** the rule cell (step 2), then its draft 1 run by the user (step 3). **Revision trigger:** a piece needs more than a registration to plug in: a change to the event, the runner or the grading. Tested as written: not true while the rule cell is the only piece, so it is tested by the second piece.
-   - [ ] **A piece registration,** `OraclePiece<Cell>`:
+1. [X] **The piece probe.** A Prototype in a new directory, `calibration/oraclePieces/`, so it can be disposed of in one go. **Rests on** the jobs every piece has, which don't depend on what the pieces turn out to be (mine, agreed 2026-11-10). **Consumer:** the rule cell (step 2), then its draft 1 run by the user (step 3). **Revision trigger:** a piece needs more than a registration to plug in: a change to the event, the runner or the grading. Tested as written: not true while the rule cell is the only piece, so it is tested by the second piece.
+   - [X] **A piece registration,** `OraclePiece<Inputs, Options>`, through `registerPiece` into `pieces.ts`:
      - `name`;
      - `answers`, the closed answer set (the rule cell's: `blocks`, `allows`);
      - `cells`, keyed by ID. Each cell carries its inputs, its `expected` answer, a `source` (the batch and reply it was lifted from, or "hand-written") and a `note`;
+     - `parseOptions(value)`, which checks the event's `options` and gives the piece's options or a refusal (mine, added in the build: "checked by the piece" needed a place to check them);
      - `render(cell, options)`, which builds the prompt text after the instructions. It is async, so it can build a fixture's scene;
      - `byCode(cell)`, optional: an answer code gives without a call, such as an empty window. It is reported as such.
-   - [ ] **The event,** `{ type: 'PieceProbe', piece, cells, instructions, repeats?, model?, options? }`:
+   - [X] **The event,** `{ type: 'PieceProbe', piece, cells, instructions, repeats?, model?, options? }`:
      - `instructions` is required. `cells` defaults to all of the piece's cells.
      - `options` is piece-specific and checked by the piece, such as the rule wording.
      - Every refusal happens before the first call: an unknown piece or cell, no instructions, over the cap, or a bad option.
-     - The cap is PP-2's.
-   - [ ] **The run and the grade.** The call loop is factored out of `runOracleProbe`, if it factors cleanly. The grade is `pieceAnswer(reply, answers)`: the last line starting `Answer:`, read against the answer set. It gives an answer, or `malformed` with the reason. The verdict goes last, as Micro needs.
-   - [ ] **The result:**
+     - The cap is 24 calls per invoke (PP-2), as its own constant.
+   - [X] **The run and the grade.** The call loop is factored out of `runOracleProbe` as `runProbeCalls`; it factored cleanly. The grade is `pieceAnswer(reply, answers)`: the last line starting `Answer:`, read against the answer set. It gives an answer, or `malformed` with the reason. The verdict goes last, as Micro needs.
+   - [X] **The result:**
      - the instructions' hash and length;
      - **a tally per cell first,** for each cell: its expected answer; right, wrong and malformed of n; the answers given; whether code answered it; and the rendered inputs' hash;
      - a summary: right of called, by-code cells, errors, malformed;
      - then each call's reply, for reading the wrong ones.
-   - [ ] **Routed** in `routeCalibrationEvent.ts`.
-   - [ ] **Tests,** with a mocked invoke, following `handleOracleProbe.test.ts`:
+   - [X] **Routed** in `routeCalibrationEvent.ts`.
+   - [X] **Tests,** with a mocked invoke and a toy piece, following `handleOracleProbe.test.ts`:
      - each refusal;
      - a right, a wrong and a malformed reply;
      - a cell answered by code makes no call;
@@ -122,7 +124,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | ID | Question | Informs build | Settled by | Status |
 | --- | --- | --- | --- | --- |
 | PP-1 | Does the rule cell see the scene, or only the rule, its things and their motions? Mine: none of the scene by default, since Slice 4's replies wandered into the scene's text, with `show.scene` as an option | Step 2's render | The first batch, with a second invoke under `show.scene` if a cell needs what a thing is (a table's legs, a chain's length) | Open; default none |
-| PP-2 | The call cap for a piece. Its calls are short, and the tally is read by code, which were reasons for the cap of 12. Mine: 24 per invoke, so eight cells x3 fit in one | Step 1's refusals | The user's call | Open |
+| PP-2 | The call cap for a piece. Its calls are short, and the tally is read by code, which were reasons for the cap of 12 | Step 1's refusals: a cap of its own, `PIECE_PROBE_CALL_CAP`, apart from the shared `PROBE_CALL_CAP` | The user, 2026-11-10 | **Settled: 24 per invoke.** The premise is that decomposing makes calls shorter. If a piece's calls get long enough for 24 to become onerous, that's a different kind of problem, a sign the piece is too big, not a reason to change the cap (user) |
 | PP-3 | The rule wording for the cell: `v45`, `violation` or `inForce`. Mine: `inForce`, since its "blocks" matches the answer set. The drafts can try the others as an option, with no new code | Step 2's default | The first batches | Open |
 | PP-4 | Where a piece's drafts live: `oracleLoopDrafts/` (numbering carried on, mixed with the one-prompt drafts), or a directory per piece, such as `oraclePieceDrafts/ruleCell/`, with its own numbering and `iterations.md`. Mine: a directory per piece, owned by the parent like `oracleLoopDrafts/` | Step 3 | The user's call | Open |
 | PP-5 | When the composition probe (the user's) gets its own plan. Mine: after a second piece settles, since composing one piece with code tests nothing new | The parent's Slice 4.5 | A second piece settling | Open |
@@ -144,7 +146,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | Step | State |
 | --- | --- |
-| The piece probe | Not started |
+| The piece probe | Done 2026-11-10: `PieceProbe` in `calibration/oraclePieces/`, no piece registered yet |
 | The rule cell, registered | Not started |
 | Draft 1 and its batch | Not started |
 | The drafting loop | Not started |
