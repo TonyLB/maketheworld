@@ -27,7 +27,7 @@ export type OracleProbeEvent = {
     framing?: unknown
     /** `{ after?: 'none' | 'fiction' | 'whole', suppliedBy?: boolean }`. */
     show?: unknown
-    /** The scene's Rules wording: `v45` (default, the built judge's) or `violation`, a test of a method. */
+    /** The scene's Rules wording: `v45` (default, the built judge's), `violation` (a test of a method) or `inForce` (in force, voids, blocks). */
     rules?: unknown
 }
 

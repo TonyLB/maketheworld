@@ -51,6 +51,17 @@ describe('renderOracleInputs', () => {
         expect(text).toContain('Plan:\n- pour [tea2] from [teapot1] into [cup1] (from the system).\n  in the record: [tea2] goes from [teapot1] into [cup1].')
     })
 
+    it('shows the rules a step sets out to void under its action, after any record line, with the label from framing', async () => {
+        expect(await rendered(oracleCases['OC-19'], { show: { after: 'none', suppliedBy: false } })).toContain(
+            'Moves:\n- pry [teapot1] off [table1] with [hammer1].\n  sets out to void: teapot-secured-to-table')
+        const both: OracleCase = {
+            ...oracleCases['OC-6'],
+            candidates: [{ ...oracleCases['OC-6'].candidates[0], steps: [{ ...oracleCases['OC-6'].candidates[0].steps[0], voids: ['teapot-secured-to-table'] }] }],
+        }
+        expect(await rendered(both, { framing: { ...ORACLE_FRAMING, voids: 'aims to void' } })).toContain(
+            '- pour [tea2] from [teapot1] into [cup1] (from the system).\n  record: [tea2] moves from [teapot1] into [cup1].\n  aims to void: teapot-secured-to-table')
+    })
+
     it('builds the after-state from the record changes alone, skipping a step in words', async () => {
         const text = await rendered(oracleCases['OC-30/3'], { show: { after: 'fiction', suppliedBy: false } })
         expect(text).toContain('After:')

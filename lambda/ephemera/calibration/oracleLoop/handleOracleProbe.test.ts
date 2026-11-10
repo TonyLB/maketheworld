@@ -77,10 +77,12 @@ describe('handleOracleProbe', () => {
         expect(promptOf(invoke, 1)).toContain('- teapot-secured-to-table: [teapot1] is glued to [table1]. A method keeps this rule if')
         expect(promptOf(invoke, 1)).not.toContain("stays fixed relative to [table1]'s frame")
         expect(result.rules).toBe('violation')
+        await handleOracleProbe({ type: 'OracleProbe', cases: ['OC-6'], instructions: DRAFT_1, rules: 'inForce' }, { invoke })
+        expect(promptOf(invoke, 2)).toContain('- teapot-secured-to-table: [teapot1] is glued to [table1]. While this rule is in force, it blocks')
     })
 
     it.each([
-        [{ cases: ['OC-6'], instructions: DRAFT_1, rules: 'strict' }, /rules must be one of: v45, violation/],
+        [{ cases: ['OC-6'], instructions: DRAFT_1, rules: 'strict' }, /rules must be one of: v45, violation, inForce/],
         [{ cases: ['OC-99'], instructions: DRAFT_1 }, /cases must be a non-empty list/],
         [{ cases: [], instructions: DRAFT_1 }, /cases must be a non-empty list/],
         [{ cases: ['OC-6'] }, /instructions must be a draft/],

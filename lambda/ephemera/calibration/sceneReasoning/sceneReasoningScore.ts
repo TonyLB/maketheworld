@@ -75,7 +75,7 @@ export type JudgeReply = { label?: JudgeLabel; sentence?: string; lines: Record<
 export const parseJudgeReply = (reply: string): JudgeReply => {
     const lines: Record<string, string> = {}
     reply.split('\n').forEach((line) => {
-        const match = line.match(/^\s*(?:\d+\.\s*)?[*_`]*\s*([A-Za-z]+(?: \([^)]*\))?)\s*[*_`]*\s*:[*_`]*\s*(.*)$/i)
+        const match = line.match(/^\s*(?:\d+\.\s*)?[*_`]*\s*([A-Za-z]+(?:-[A-Za-z]+)*(?: \([^)]*\))?)\s*[*_`]*\s*:[*_`]*\s*(.*)$/i)
         if (match !== null && lines[match[1].toLowerCase()] === undefined) {
             lines[match[1].toLowerCase()] = match[2].trim()
         }

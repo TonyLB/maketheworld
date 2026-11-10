@@ -26,6 +26,11 @@ export type Improvisation = { fills: Slot; proposes: string }
 export type CandidateStep = {
     says: string
     change?: ProposedMove
+    /**
+     * The handles of the rules the action sets out to void (L-31): the generator's declared intent, which the oracle judges, both whether
+     * the action voids the rule and when. A guess about what the engine will emit.
+     */
+    voids?: readonly string[]
     suppliedBy: Supplier // JF-16
 }
 

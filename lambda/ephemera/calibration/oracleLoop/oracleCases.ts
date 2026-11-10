@@ -117,7 +117,7 @@ export const oracleCases: Readonly<Record<string, OracleCase>> = {
         answerToBeat: { kind: 'floor' },
         candidates: [{
             id: 'P', source: 'handWritten', polarity: 'yes',
-            steps: [{ says: 'pry [teapot1] off [table1] with [hammer1]', suppliedBy: 'player' }],
+            steps: [{ says: 'pry [teapot1] off [table1] with [hammer1]', voids: ['teapot-secured-to-table'], suppliedBy: 'player' }],
             reuses: ['[hammer1]', 'teapot-secured-to-table'],
             improvisations: [],
         }],

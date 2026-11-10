@@ -91,6 +91,16 @@ describe('judgeRulesLines, worded as a violation (oracle drafts)', () => {
             .toBe('- boat-secured: [boat1] is secured to something not shown here. A method keeps this rule if it first changes that [boat1] is secured to it. A method breaks it if it moves [boat1] relative to that thing more than "secured to" allows while [boat1] is still secured to it.')
     })
 
+    it('words each rule as what it blocks while in force, and what voids it (inForce)', () => {
+        const contents = [entry('table1', [entry('teapot1')])]
+        expect(judgeRulesLines(sceneOf(contents, { teapot1: [glued('table1')] }), 'inForce')).toEqual([
+            'Rules:',
+            '- teapot-secured-to-table: [teapot1] is glued to [table1]. While this rule is in force, it blocks an action that moves [teapot1] and [table1] relative to each other more than "glued to" allows, and it allows an action that moves them together. An action that makes it no longer true that [teapot1] is glued to [table1] voids this rule.',
+        ])
+        expect(judgeRulesLines(sceneOf([entry('boat1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'notShown' } }] }), 'inForce')[1])
+            .toBe('- boat-secured: [boat1] is secured to something not shown here. While this rule is in force, it blocks an action that moves [boat1] relative to that thing more than "secured to" allows. An action that makes it no longer true that [boat1] is secured to it voids this rule.')
+    })
+
     it('leaves the v45 wording as the default', () => {
         const scene = sceneOf([entry('table1', [entry('teapot1')])], { teapot1: [glued('table1')] })
         expect(judgeRulesLines(scene, 'v45')).toEqual(judgeRulesLines(scene))

@@ -120,11 +120,13 @@ type JudgeRule = { ends: SceneHandle[]; sentence: string }
 /**
  * How a rule's sentence is worded: `v45`, the built judge's invariant; or `violation` (oracleLoop's drafts, a Prototype the oracle harness
  * selects), a test of a method: it keeps the rule by moving the two together or by first changing the fact behind it, and breaks it by
- * moving them apart beyond what the relation allows while the fact holds. The dry run settles the graph, so the sentence is about the fiction.
+ * moving them apart beyond what the relation allows while the fact holds; or `inForce` (the same drafts, from draft 12): while in force the
+ * rule blocks an action that moves the two apart beyond what the relation allows, and an action that makes the fact no longer true voids it.
+ * The dry run settles the graph, so the sentence is about the fiction.
  */
-export type JudgeRulesWording = 'v45' | 'violation'
+export type JudgeRulesWording = 'v45' | 'violation' | 'inForce'
 
-export const JUDGE_RULES_WORDINGS: readonly JudgeRulesWording[] = ['v45', 'violation']
+export const JUDGE_RULES_WORDINGS: readonly JudgeRulesWording[] = ['v45', 'violation', 'inForce']
 
 const violationSentence = (subject: SceneHandle, target: SceneRelationTarget, words: string): string => {
     if (target.kind !== 'thing') {
@@ -132,6 +134,19 @@ const violationSentence = (subject: SceneHandle, target: SceneRelationTarget, wo
     }
     const [one, other] = [bracket(subject), bracket(target.handle)]
     return `${one} is ${words} ${other}. A method keeps this rule if it moves ${one} and ${other} together, or first changes that ${one} is ${words} ${other}. A method breaks it if it moves ${one} and ${other} relative to each other more than "${words}" allows while ${one} is still ${words} ${other}.`
+}
+
+const inForceSentence = (subject: SceneHandle, target: SceneRelationTarget, words: string): string => {
+    if (target.kind !== 'thing') {
+        return `${bracket(subject)} is ${words} something not shown here. While this rule is in force, it blocks an action that moves ${bracket(subject)} relative to that thing more than "${words}" allows. An action that makes it no longer true that ${bracket(subject)} is ${words} it voids this rule.`
+    }
+    const [one, other] = [bracket(subject), bracket(target.handle)]
+    return `${one} is ${words} ${other}. While this rule is in force, it blocks an action that moves ${one} and ${other} relative to each other more than "${words}" allows, and it allows an action that moves them together. An action that makes it no longer true that ${one} is ${words} ${other} voids this rule.`
+}
+
+const draftSentences: Record<Exclude<JudgeRulesWording, 'v45'>, (subject: SceneHandle, target: SceneRelationTarget, words: string) => string> = {
+    violation: violationSentence,
+    inForce: inForceSentence,
 }
 
 const judgeRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>): JudgeRule => {
@@ -164,7 +179,7 @@ export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 
             return []
         }
         const rule = judgeRule(subject, relation.target, hosts)
-        return [wording === 'violation' ? { ...rule, sentence: violationSentence(subject, relation.target, words) } : rule]
+        return [wording === 'v45' ? rule : { ...rule, sentence: draftSentences[wording](subject, relation.target, words) }]
     }))
     const stemmed = rules.map(({ ends }) => ruleHandle(ends.map(handleStem)))
     const lines = rules.map(({ ends, sentence }, index) => {

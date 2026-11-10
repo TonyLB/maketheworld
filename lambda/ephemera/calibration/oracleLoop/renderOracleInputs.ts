@@ -29,6 +29,8 @@ export type OracleFraming = {
     /** The label of a step's record line, and the verb of its move: "record: [tea2] moves from [teapot1] into [cup1]". */
     record: string
     recordVerb: string
+    /** The label of a step's declared intent: "sets out to void: teapot-secured-to-table". */
+    voids: string
     reuses: string
     improvises: string
     player: string
@@ -51,6 +53,7 @@ export const ORACLE_FRAMING: OracleFraming = {
     moves: 'Moves',
     record: 'record',
     recordVerb: 'moves',
+    voids: 'sets out to void',
     reuses: 'Reuses',
     improvises: 'Improvises',
     player: 'from the player',
@@ -97,9 +100,11 @@ export const renderOracleInputs = async (
     const afters = new Map(outcomes.flatMap(([candidate, outcome]) => (outcome.status === 'legal' ? [[candidate, outcome] as const] : [])))
     const stepLine = (step: CandidateStep): string => {
         const action = `${step.says}${show.suppliedBy ? ` (${framing[step.suppliedBy]})` : ''}.`
-        return step.change === undefined
-            ? action
-            : `${action}\n  ${framing.record}: ${moveText(step.change, handles, scene, framing.recordVerb)}.`
+        return [
+            action,
+            ...(step.change === undefined ? [] : [`  ${framing.record}: ${moveText(step.change, handles, scene, framing.recordVerb)}.`]),
+            ...(step.voids === undefined || step.voids.length === 0 ? [] : [`  ${framing.voids}: ${step.voids.join(', ')}`]),
+        ].join('\n')
     }
     const body = (candidate: Candidate, withAfter: boolean): string[] => {
         const after = afters.get(candidate)

@@ -13,10 +13,10 @@ export type JudgeVerdict = 'pass' | 'border' | 'failure'
 
 /**
  * The steps a reply should have, in order: the numbered steps of the instructions it was asked under, so a draft that adds a step
- * is graded by its own form. `Revises (if it happens)` is keyed `revises`.
+ * is graded by its own form. `Revises (if it happens)` is keyed `revises`, and a hyphenated name (`Play-by-play`) is kept whole.
  */
 export const judgeReplySteps = (instructions: string): string[] => (
-    [...instructions.matchAll(/^\d+\.\s*([A-Za-z]+)/gm)].map(([, step]) => step.toLowerCase())
+    [...instructions.matchAll(/^\d+\.\s*([A-Za-z]+(?:-[A-Za-z]+)*)/gm)].map(([, step]) => step.toLowerCase())
 )
 
 export type JudgeGrade = {

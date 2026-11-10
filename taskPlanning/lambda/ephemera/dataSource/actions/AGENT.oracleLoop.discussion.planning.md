@@ -58,6 +58,27 @@ The draft-by-draft record (v29 to v45 tables, each batch read reply by reply) an
 
 **Mine, along the way.** The oracle can know before asking whether there is an open fact, the hard limits and the dials, which are constraints and not a price; where it seems to pre-judge (OC-3's shrinking spell) it has imagined the item itself. The engine can list what it introduced as a hint, but only the oracle prices, since pricing compares against the answer-to-beat and the engine is the one under convenience pressure. An improvisation is an improvised fact, with an object the common case (accepted by the user). Not yet taken up: rereading OC-3's expected outcome and the corpus rubric's "how much it may stretch" as constraints, and the corpus outcomes that judge an unfilled slot as beating the floor (OC-7, OC-8; OC-31's turn 2 perhaps). OC-18 already expects the floor.
 
+## The oracle decomposes (Slice 4's exit (c), 2026-11-10)
+
+**What the drafts showed.** Twelve drafts and sixteen batches on Micro ([`iterations.md`](oracleLoopDrafts/iterations.md)). Nearly every fault left at the end was a loop or a look-back inside the one prompt:
+- a filter on a loop dropped: "for each action with a line" was answered for each rule (PR-13);
+- a join over earlier steps not computed: the window (PR-14);
+- a later step reading the wrong earlier one: `Tests` answering from `Attempts` against `Rules`;
+- several yes/no questions under one rule leaking into each other (PR-9, PR-11);
+- the nearest text copied in place of an answer: step instructions (PR-10), and the rule's clause as what the play-by-play says (L-29).
+
+What worked best was the single generative judgment: the play-by-play tilted OC-6's teapot 3 of 3 once the step was an action (draft 6).
+
+**The user's call (2026-11-10).** The oracle decomposes into smaller pieces. The user's research else-thread found the same pattern in prior art: decomposed prompting, checklist evaluation, and LLM+P's split between translation into a formal form and deterministic checking. The general rule from it is one judgment per call, with loops, filters and joins done in code. The user chose to take the exit now and leave "which pieces work?" to follow-up plans, each building one small proven piece that composes. The other option was to investigate the pieces inside this episode first. A rules-blocking oracle is the user's example of a first piece: it takes a play-by-play, one rule, and the steps before the rule is voided (if any).
+
+**Mine, agreed in direction:**
+- Code already holds part of the formal side: the dry run, the generated rules with their handles and the things they name, and the candidate's `voids` lines. The relevance filter, the window, `works` and the verdict can all be code.
+- A per-entity vocabulary ("teapot: forbids tilt") gets OC-1 wrong, since the glue allows the teapot to move with the table. The rule side's kinds come from the graph and can be listed in full. The motion side can't, so the smallest LLM judgment is a cell with one rule and the motions of its two things.
+- Micro stays the target for every piece, the decomposition included.
+- A pipeline costs more calls per round, and the 12-call cap means fewer cases per batch.
+
+**The oracle-or-engine question becomes moot (user, 2026-11-10).** Whether the play-by-play is generated in the oracle or in the improvisation engine (L-17's question, L-23's shelved form) was a question about which prompt a piece belongs in. With one judgment per call, the groupings "oracle" and "engine" were a sign of composing too much into one prompt. The play-by-play becomes a stage that code calls and feeds forward, and which side it sits on is no longer a design question.
+
 ## Carried from the judgePrompt plan
 
 That plan rewrote the prompt and was retired on 2026-11-06, once v28 was built and measured. Slice numbers below are that plan's: 3 built the prompt and 4 measured it. Drafts v1 to v27, and the earlier rows of the table, are in git history. Each Settled item has a one-line summary, with what the oracle loop does to it, in the plan's [inherited table](AGENT.oracleLoop.planning.md#what-is-inherited-as-settled).
