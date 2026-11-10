@@ -5,12 +5,15 @@
  * `examples` (SP-10, Slice 5) are the multi-register renders of `renderSceneRegisters.ts`: one function, two switches. `rulesD` and
  * `rules` are D and `registers` with the `secured` mark moved to a Rules section (`sceneRules.ts`, 2026-11-04) and each row's relations naming their subject, compared because neither base is settled for it.
  * `rulesAction` is a temporary branch of `rules`: the rule as what each move does. `judge` is the judge prompt's scene (`renderSceneJudge.ts`).
+ * `subScene` limits a scene model to named things before any of them renders it (`subScene.ts`).
  */
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
 import { renderSceneRegisters } from './renderSceneRegisters'
 import { renderSceneD } from './renderSceneTree'
 import { renderSceneJudge } from './renderSceneJudge'
 import { rulesLines, withoutSecuredMark } from './sceneRules'
+
+export { subScene } from './subScene'
 
 export type SceneFormat = 'D' | 'registers' | 'affordance' | 'examples' | 'rulesD' | 'rules' | 'rulesAction' | 'judge'
 
