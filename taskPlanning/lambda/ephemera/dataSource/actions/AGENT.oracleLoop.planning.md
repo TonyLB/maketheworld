@@ -76,7 +76,7 @@ Built, prototyped, future or imagined, as of 2026-11-10. Anything this plan says
 | The v45 judge | Built, and not the direction (JF-18). Its measurements are Observed for v45 and the oracle's tests to run again | [The built judge prompt (v45)](../../../../../lambda/ephemera/calibration/AGENT.md#the-built-judge-prompt-v45) |
 | Oracle harness | Prototype (Slice 3): `OracleProbe`, its cases and the inputs render, revised by L-18 (the step layout) and L-31 (`voids`, the `inForce` wording). Drafts 1 to 12 ran on it. Renders one case into one prompt; a piece's probe needs a mode of its own | [Oracle probe](../../../../../lambda/ephemera/calibration/AGENT.md#oracle-probe), `calibration/oracleLoop/` |
 | **The oracle** | **Imagined,** as [stages](#the-oracle-as-stages) composed by code (2026-11-10). Twelve one-prompt drafts ran in Slice 4 and are not the shape | [A comparative oracle](AGENT.oracleLoop.proposals.planning.md#a-comparative-oracle) |
-| Piece probe | Prototype (Slice 4.5, built 2026-11-10): `PieceProbe`, a harness seam for one piece at a time that a piece plugs into with a registration, graded by code against each cell's expected answer. No piece registered yet; the rule cell is the first | [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe), `calibration/oraclePieces/`, [its plan](AGENT.pieceProbe.planning.md) |
+| Piece probe | Prototype (Slice 4.5, built 2026-11-10): `PieceProbe`, a harness seam for one piece at a time that a piece plugs into with a registration, graded by code against each cell's expected answer. The rule cell is registered (`ruleCell`, 8 cells, 2026-11-10), its draft 1 not yet run | [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe), `calibration/oraclePieces/`, [its plan](AGENT.pieceProbe.planning.md) |
 | **The improvisation engine** | **Imagined** | [Judging an improvisation](AGENT.oracleLoop.proposals.planning.md#judging-an-improvisation) |
 | **The loop:** rounds, the answer-to-beat, the frontier, exits | **Imagined**; JF-19's restart is the user's chosen guess | [Finding out by trying](AGENT.oracleLoop.proposals.planning.md#finding-out-by-trying) |
 | The command pipeline's join (CA-6) | Built, with no producer for a question to the player (`askedAs` reserved) | [Command attempt phase](AGENT.commandAttemptPhase.planning.md#open-decisions-implementation--plan-only) |
@@ -230,7 +230,7 @@ New trail entries go in the [reasoning trail](AGENT.oracleLoop.discussion.planni
 | Slice 2.5: Can a candidate be read? | Done 2026-11-09: yes on Micro and Lite, for move lines. Development stays on Micro |
 | Slice 3: Oracle harness | Done 2026-11-09: `OracleProbe`, ten cases, four scenes; draft 1 ran on it, reading the candidate as in Slice 2.5 |
 | Slice 4: Oracle drafts | Opened as its own plan 2026-11-09. Exited (c) 2026-11-10 after twelve drafts: the oracle decomposes |
-| Slice 4.5: The oracle's pieces | The piece probe and rule cell plan written 2026-11-10, not started |
+| Slice 4.5: The oracle's pieces | The piece probe and rule cell plan written 2026-11-10: the probe, the sub-scene extract and the rule cell's registration built; the rule cell's draft 1 next |
 | Slices 5-6: The loop and the engine | Not started |
 | Slice 7: Handoff | Not started |
 

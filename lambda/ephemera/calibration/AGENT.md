@@ -171,6 +171,26 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   - `summary`: calls, right, wrong, malformed, errors, and the count of cells answered by code;
   - `read`: every call, with its reply and grade, for reading the wrong ones.
 
+**The rule cell** (`ruleCell`, [`oraclePieces/ruleCell.ts`](oraclePieces/ruleCell.ts)) is the first piece, the user's rules-blocking piece. Its answers are `blocks` and `allows`.
+- **A cell's inputs:**
+  - a fixture;
+  - a rule handle, as `judgeRules` in `sceneRules.ts` names it on the full scene;
+  - the plan's actions in order, each with what the play-by-play says each of the rule's things does (`motions`, keyed by exactly the rule's two ends);
+  - optionally `voidedAt`, the action that voids the rule, counted from 1.
+- **The window** is code's: the actions before the voiding one, or all of them. An empty window is `allows` by code.
+- **Options:**
+  - `wording` (`v45`, `violation` or `inForce`), by default `inForce` (PP-3, open);
+  - `show` (`subScene` or `none`), by default the rule's things' [sub-scene](../dataSource/actions/AGENT.md) (PP-1);
+  - `sceneRules`, whether the sub-scene shows its own Rules section, by default `false` (PP-7, open).
+- **The render:**
+  1. the sub-scene as the judge shows it (`Scene:`, `Fiction`, `Graph`, `End of scene.`);
+  2. `Rule:` with the one rule's line;
+  3. `The rule's things:`;
+  4. `Action n: …` for each action in the window, with a `- [handle]: motion` line for each of the rule's things.
+
+  The render throws on cell data that doesn't fit the fixture: an unknown rule, motions naming other things than the rule's, or a `voidedAt` that is not an action. The probe turns that into a refusal.
+- **Cells:** `OC-1`, `OC-6/tilted`, `OC-6/stays`, `OC-30/2/tipped`, `OC-30/2/together`, `OC-19/voided` (by code), `OC-19/glued` and `OC-20`. Each is graded given its play-by-play. `OC-6/stays` is wrong about the case on purpose. The motion wording is hand-written, paraphrased where a cell cites batch 16, and awaits review.
+
 ### The built judge prompt (v45)
 
 The judge prompt in code is v45 (2026-11-06): [`frame/frameJudge.ts`](../dataSource/actions/sceneProse/frame/frameJudge.ts) for the instructions and `judgeRulesLines` in [`sceneRules.ts`](../dataSource/actions/sceneProse/sceneRules.ts) for the scene's `Rules`. A flag-off probe reports instructions hash `22e97265`. It is a probe-only prototype: nothing in the command pipeline reads it. Its next form, a comparative oracle in a loop with an improvisation engine, is the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md). The drafts v1 to v45, and the reply-by-reply record of each, are in git history (`taskPlanning/lambda/ephemera/dataSource/actions/judgeFailureDrafts/`, last at commit `a89e21478`).

@@ -171,7 +171,11 @@ const handleStem = (handle: SceneHandle): string => handle.replace(/-?\p{N}+$/u,
 
 const ruleHandle = (ends: string[]): string => (ends.length === 1 ? `${ends[0]}-secured` : ends.join('-secured-to-'))
 
-export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): string[] => {
+/** One rule of the judge's Rules section: its handle, the things it names, and its sentence in the given wording. */
+export type JudgeRuleLine = { handle: string; ends: SceneHandle[]; sentence: string }
+
+/** The rules `judgeRulesLines` lists, one by one, so a reader can take a single rule by its handle (pieceProbe's rule cell). */
+export const judgeRules = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): JudgeRuleLine[] => {
     const hosts = hostsOf(scene)
     const rules = Object.entries(scene.things).flatMap(([subject, { relations }]) => relations.flatMap((relation) => {
         const words = securingWords(relation)
@@ -182,9 +186,13 @@ export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 
         return [wording === 'v45' ? rule : { ...rule, sentence: draftSentences[wording](subject, relation.target, words) }]
     }))
     const stemmed = rules.map(({ ends }) => ruleHandle(ends.map(handleStem)))
-    const lines = rules.map(({ ends, sentence }, index) => {
+    return rules.map(({ ends, sentence }, index) => {
         const unique = stemmed.filter((handle) => handle === stemmed[index]).length === 1
-        return `- ${unique ? stemmed[index] : ruleHandle(ends)}: ${sentence}`
+        return { handle: unique ? stemmed[index] : ruleHandle(ends), ends, sentence }
     })
+}
+
+export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): string[] => {
+    const lines = judgeRules(scene, wording).map(({ handle, sentence }) => `- ${handle}: ${sentence}`)
     return lines.length === 0 ? [] : ['Rules:', ...lines]
 }
