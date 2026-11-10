@@ -447,7 +447,7 @@ type Slot = {
 type Improvisation = { fills: Slot; proposes: string }
 
 type CandidateStep = {
-    /** The step in words: "tip [table1] so that [teapot1] pours into [cup1]". */
+    /** The step in words: "tip [table1] so that [teapot1] pours [tea2] into [cup1]". */
     says: string
     /** Where the step is a change the kernel knows. Absent for a wipe or a light. A template's `ProposedMove` is a `transferMembership`. */
     change?: PlanStep
@@ -516,7 +516,7 @@ const A: Candidate = {
 }
 const B: Candidate = {
     id: 'B', source: 'handWritten', polarity: 'yes',
-    steps: [{ says: 'tip [table1] so that [teapot1] pours into [cup1]', suppliedBy: 'system' }],
+    steps: [{ says: 'tip [table1] so that [teapot1] pours [tea2] into [cup1]', suppliedBy: 'system' }],
     reuses: ['teapot-secured-to-table'], improvisations: [],
 }
 const lift: ImprovementRequest = { candidateId: 'B', says: 'lift [cup1] off first' }

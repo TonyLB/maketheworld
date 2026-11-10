@@ -8,8 +8,9 @@ import { teaTableProposals } from '../../dataSource/positions/ludicCache/sceneFi
 import type { ProposedMove } from '../../dataSource/positions/manipulation/proposedMoves'
 import { noRounds, type Candidate, type ImprovementRequest, type OracleCase } from './oracleInputs'
 
-const template = (id: string, moves: readonly ProposedMove[]): Candidate => ({
-    id, source: 'template', polarity: 'yes', steps: moves.map((change) => ({ change, suppliedBy: 'system' })), reuses: [], improvisations: [],
+/** A template's candidate: its one record change, with the action in words that stand in for the request the template answers (a guess). */
+const template = (id: string, says: string, [change]: readonly [ProposedMove]): Candidate => ({
+    id, source: 'template', polarity: 'yes', steps: [{ says, change, suppliedBy: 'system' }], reuses: [], improvisations: [],
 })
 
 const ask = (fixture: string, request: string): Pick<OracleCase, 'scene' | 'request' | 'answers' | 'dials'> => ({
@@ -17,7 +18,7 @@ const ask = (fixture: string, request: string): Pick<OracleCase, 'scene' | 'requ
 })
 
 const pour = 'I want to pour tea from [teapot1].'
-const tipToPour = 'tip [table1] so that [teapot1] pours into [cup1]'
+const tipToPour = 'tip [table1] so that [teapot1] pours [tea2] into [cup1]'
 
 /** OC-12 and OC-13's candidate, and OC-30's B: the system supplies the tilt through the table. */
 const tipTheTable = (id: string): Candidate => ({
@@ -35,7 +36,7 @@ const moveTheSaucerOff = (candidateId: string): ImprovementRequest => ({ candida
 /** The tipping candidate repaired (user, 2026-11-09): the saucer off first, carrying the cup, then the tilt. */
 const saucerOffThenTip = (id: string): Candidate => ({
     id, source: 'handWritten', polarity: 'yes',
-    steps: [{ change: teaTableProposals.pickUpSaucer[0], suppliedBy: 'system' }, { says: tipToPour, suppliedBy: 'system' }],
+    steps: [{ says: 'pick up [saucer1]', change: teaTableProposals.pickUpSaucer[0], suppliedBy: 'system' }, { says: tipToPour, suppliedBy: 'system' }],
     reuses: ['teapot-secured-to-table'],
     improvisations: [],
 })
@@ -51,7 +52,7 @@ export const oracleCases: Readonly<Record<string, OracleCase>> = {
     'OC-1': {
         ...ask('teaTable', 'I want to pick up [table1].'),
         answerToBeat: { kind: 'floor' },
-        candidates: [template('T', teaTableProposals.pickUpTable)],
+        candidates: [template('T', 'pick up [table1]', teaTableProposals.pickUpTable)],
         rounds: noRounds,
         endResult: 'The candidate beats the floor, with no direction. The risk is reading the glue as blocking the table.',
     },
@@ -66,7 +67,7 @@ export const oracleCases: Readonly<Record<string, OracleCase>> = {
     'OC-6': {
         ...ask('teaTable', pour),
         answerToBeat: { kind: 'floor' },
-        candidates: [template('T', teaTableProposals.pour)],
+        candidates: [template('T', 'pour [tea2] from [teapot1] into [cup1]', teaTableProposals.pour)],
         rounds: noRounds,
         endResult: 'The candidate loses on the fiction, with the missing tilt as its known issue. A `better` is the wrong `simple` again.',
     },
@@ -86,7 +87,7 @@ export const oracleCases: Readonly<Record<string, OracleCase>> = {
     'OC-11': {
         ...ask('teaTableCupOnFloor', 'I want to put [table1] in [cup1].'),
         answerToBeat: { kind: 'floor' },
-        candidates: [template('T', teaTableProposals.tableInCupOnFloor)],
+        candidates: [template('T', 'put [table1] in [cup1]', teaTableProposals.tableInCupOnFloor)],
         rounds: noRounds,
         endResult: 'The candidate loses on the size, with no direction to the engine.',
     },

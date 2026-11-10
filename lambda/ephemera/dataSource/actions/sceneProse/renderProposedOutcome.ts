@@ -17,8 +17,8 @@ export type ProposedOutcomeAfter = 'fiction' | 'whole'
 export const PROPOSED_OUTCOME_FORMS: readonly ProposedOutcomeForm[] = ['moves', 'after', 'both']
 export const PROPOSED_OUTCOME_AFTERS: readonly ProposedOutcomeAfter[] = ['fiction', 'whole']
 
-/** One move in words, named with the before scene's handles: `[tea2] moves from [teapot1] into [cup1]`, with no closing stop. */
-export const moveText = (move: ProposedMove, handles: SceneHandleTable, scene: SceneModel): string => {
+/** One move in words, named with the before scene's handles: `[tea2] moves from [teapot1] into [cup1]`, with no closing stop. The oracle harness sets its own verb. */
+export const moveText = (move: ProposedMove, handles: SceneHandleTable, scene: SceneModel, verb = 'moves'): string => {
     const nameOf = (id: string): string => {
         if (isEphemeraCharacterId(id)) {
             return 'you'
@@ -33,7 +33,7 @@ export const moveText = (move: ProposedMove, handles: SceneHandleTable, scene: S
         return bracket(entry.handle)
     }
     const preposition = move.hostingKind === 'In' ? 'into' : move.hostingKind === 'On' ? 'onto' : 'to'
-    return `${nameOf(move.moved)} moves from ${nameOf(move.from)} ${preposition} ${nameOf(move.to)}`
+    return `${nameOf(move.moved)} ${verb} from ${nameOf(move.from)} ${preposition} ${nameOf(move.to)}`
 }
 
 const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable, scene: SceneModel): string => (

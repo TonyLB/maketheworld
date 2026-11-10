@@ -35,7 +35,7 @@ describe('handleOracleProbe', () => {
         expect(prompts[0]).toContain(await judgeRender('teaTable'))
         expect(prompts[1]).toContain(await judgeRender('teaTableCupOnFloor'))
         expect(prompts[0].startsWith(DRAFT_1)).toBe(true)
-        expect(prompts[0]).toMatch(/End of scene\.\n\nBest answer so far: I don't see how\.\n\nCandidate: [^\n]+\n\nMoves:\n- \[tea2\] moves from \[teapot1\] into \[cup1\] \(from the system\)\.\n\nRequest: I want to pour tea from \[teapot1\]\.$/)
+        expect(prompts[0]).toMatch(/End of scene\.\n\nBest answer so far: I don't see how\.\n\nCandidate: [^\n]+\n\nMoves:\n- pour \[tea2\] from \[teapot1\] into \[cup1\] \(from the system\)\.\n  record: \[tea2\] moves from \[teapot1\] into \[cup1\]\.\n\nRequest: I want to pour tea from \[teapot1\]\.$/)
         const result = body(response)
         expect(result.cases.map(({ case: id, endResult }: { case: string; endResult: string }) => [id, endResult])).toEqual([
             ['OC-6', oracleCases['OC-6'].endResult], ['OC-11', oracleCases['OC-11'].endResult],
@@ -64,7 +64,7 @@ describe('handleOracleProbe', () => {
             type: 'OracleProbe', cases: ['OC-6'], instructions: DRAFT_1, framing: { floor: 'Nothing works yet.' }, show: { after: 'fiction', suppliedBy: false },
         }, { invoke }))
         expect(promptOf(invoke, 0)).toContain('Best answer so far: Nothing works yet.')
-        expect(promptOf(invoke, 0)).toContain('- [tea2] moves from [teapot1] into [cup1].\n\nAfter:\n\nFiction:')
+        expect(promptOf(invoke, 0)).toContain('  record: [tea2] moves from [teapot1] into [cup1].\n\nAfter:\n\nFiction:')
         expect(result.framing).toEqual({ overridden: ['floor'] })
         expect(result.show).toEqual({ after: 'fiction', suppliedBy: false })
     })

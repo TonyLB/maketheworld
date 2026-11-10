@@ -19,12 +19,15 @@ export type Slot = {
 export type Improvisation = { fills: Slot; proposes: string }
 
 /**
- * A change the kernel knows, which the dry run checks and renders in its own words, or a step in words only (a wipe, a tilt). The sketch
- * had words always and the change optional; a change step's words are the dry run's move line, which is what a model was seen reading.
+ * An action in words, and where the kernel knows it, the record change it makes, which the dry run checks. Every record change has an
+ * action in the fiction behind it (something puts the saucer in your hands), while an action need not change the record (waving a flag),
+ * or makes a change the kernel can't compute (a pry, a tilt). Slice 2's sketch, restored: Slice 3 had made a step one or the other.
  */
-export type CandidateStep =
-    | { change: ProposedMove; suppliedBy: Supplier } // JF-16
-    | { says: string; suppliedBy: Supplier } // JF-16
+export type CandidateStep = {
+    says: string
+    change?: ProposedMove
+    suppliedBy: Supplier // JF-16
+}
 
 export type Candidate = {
     id: string

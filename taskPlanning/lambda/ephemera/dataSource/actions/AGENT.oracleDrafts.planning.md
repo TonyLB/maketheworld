@@ -10,7 +10,7 @@ Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an impl
 2. Read [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro) and the [Oracle probe](../../../../../lambda/ephemera/calibration/AGENT.md#oracle-probe): the event, `framing`, `show`, and the form-only check.
 3. Read [`oracleLoopDrafts/iterations.md`](oracleLoopDrafts/iterations.md), the problems, library and ledger, then the latest draft and its notes (draft 1: [`1.txt`](oracleLoopDrafts/1.txt), [notes](oracleLoopDrafts/1.notes.md)).
 4. Read the corpus's [How a case is written](AGENT.oracleLoop.corpus.planning.md#how-a-case-is-written). A case tests its end result. The intermediate steps are guesses a draft may revise, and an end result that is mine is revised only by the user. The cases in the harness are listed in [`oracleCases.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/oracleCases.ts).
-5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. A draft needs no test commands. A change to the harness does: from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null`, last 4512 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
+5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. A draft needs no test commands. A change to the harness does: from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null`, last 4519 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
 
 ## What is inherited as settled
 
@@ -42,6 +42,9 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
    **Cases:** OC-1 as a guard first, then OC-6 and OC-30 (pour), OC-11 (size), OC-7 (wipe), OC-5 (teapot), OC-12 and OC-13 (the dungeon and the doll-house), with OC-19 and OC-20 in the harness as well. A case not in the harness is written into it by the draft that first asks it.
    - [ ] The loop, seeded 2026-11-09 with PR-1 to PR-3 and L-1 to L-6
+   - [ ] L-18's harness change (a step is an action, with its record change under it), then draft 6 ([`6.notes.md`](oracleLoopDrafts/6.notes.md))
+     - [X] The harness change, 2026-11-09: tests 4519 passed, 9 skipped; `tsc` clean
+     - [X] Draft 6, batch 8, 2026-11-09: not kept (PR-10, 11 of 12); `Picture` tilts the teapot 3 of 3
 3. [ ] **A comparative grading mode over the settled lines.** Harness code, a Prototype: code reads the verdict and direction lines that the drafts settled on, so a batch can be tallied before it is read. It waits on step 2, since the lines are what it parses.
 4. [ ] **Hand back to the parent.** Each finding as a seam-ledger entry. Evidence for the design rows (JF-5, JF-7, JF-11, JF-13, JF-16, JF-17, and JF-6's stretch) noted on each row. The guesses a consumer now reads, listed for the map. The parent's Slice 4 row checked.
 
@@ -66,7 +69,7 @@ None yet. The design questions stay in the parent's [Open decisions](AGENT.oracl
 | Step | State |
 | --- | --- |
 | Draft 1 | Done 2026-11-09: the baseline, run twice |
-| The drafting loop | Running: L-1 and L-2 (draft 2) pulled, batch 3 is checkpoint (d); nine problems, fourteen library entries |
+| The drafting loop | Running: L-1 and L-2 (draft 2) pulled; checkpoint (d) at batch 3 held 2026-11-09 (user: carry on, pull L-14); L-14 (draft 3, batch 4) not kept, draft 2 stays the base; L-14b (draft 4, batch 5) kept as the base; L-16 (draft 5, batch 6) not kept, draft 4 stays the base; checkpoint (d) at batch 6 due, batches 7 and 7b done (PR-11 is not PR-12), L-17 (a supplied `Picture`) pinned; L-18's harness change built and kept; draft 6 (batch 8) not kept, 11 of 12 cut off (PR-10), though OC-6's `Picture` tilted the teapot 3 of 3; L-21 (draft 7, batch 9) kept as the base: nothing cut off, `Picture` right on both tilt cases, every remaining fault in the rule step; checkpoint (d) at batch 9 due; twelve problems, twenty-four library entries |
 | Comparative grading | Not started |
 | Hand back | Not started |
 

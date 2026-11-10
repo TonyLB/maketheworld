@@ -1,8 +1,8 @@
 //
 // The oracle's inputs as a draft reads them (oracleLoop Slice 3, a Prototype): one block after `End of scene.` and before `Request:`. The
 // wording belongs to the drafts, so every heading is a default a draft can override (`framing`), as `proposedOutcome`'s framing and
-// explanation are. A change step is written in the dry run's words; a template candidate gets the built explanation, since only the dry
-// run has checked it. The after-state is off by default: Slice 2.5 showed it shown and not read.
+// explanation are. A step is its action, with the record change it makes on a line under it in the dry run's words; a template candidate
+// gets the built explanation, since only the dry run has checked it. The after-state is off by default: Slice 2.5 showed it shown and not read.
 //
 import { PROPOSED_OUTCOME_EXPLANATION } from '../../dataSource/actions/sceneProse/frame'
 import { moveText, renderProposedOutcome, type ProposedOutcomeAfter } from '../../dataSource/actions/sceneProse/renderProposedOutcome'
@@ -26,6 +26,9 @@ export type OracleFraming = {
     templateExplanation: string
     says: string
     moves: string
+    /** The label of a step's record line, and the verb of its move: "record: [tea2] moves from [teapot1] into [cup1]". */
+    record: string
+    recordVerb: string
     reuses: string
     improvises: string
     player: string
@@ -46,6 +49,8 @@ export const ORACLE_FRAMING: OracleFraming = {
     templateExplanation: PROPOSED_OUTCOME_EXPLANATION,
     says: 'Says',
     moves: 'Moves',
+    record: 'record',
+    recordVerb: 'moves',
     reuses: 'Reuses',
     improvises: 'Improvises',
     player: 'from the player',
@@ -67,7 +72,7 @@ export type OracleInputsRender =
     | { status: 'rendered'; text: string }
     | { status: 'refused'; candidateId: string; reason: string }
 
-const changesOf = (candidate: Candidate): ProposedMove[] => candidate.steps.flatMap((step) => ('change' in step ? [step.change] : []))
+const changesOf = (candidate: Candidate): ProposedMove[] => candidate.steps.flatMap(({ change }) => (change === undefined ? [] : [change]))
 
 const list = (heading: string, lines: readonly string[]): string => [`${heading}:`, ...lines.map((line) => `- ${line}`)].join('\n')
 
@@ -91,8 +96,10 @@ export const renderOracleInputs = async (
     }
     const afters = new Map(outcomes.flatMap(([candidate, outcome]) => (outcome.status === 'legal' ? [[candidate, outcome] as const] : [])))
     const stepLine = (step: CandidateStep): string => {
-        const words = 'change' in step ? moveText(step.change, handles, scene) : step.says
-        return `${words}${show.suppliedBy ? ` (${framing[step.suppliedBy]})` : ''}.`
+        const action = `${step.says}${show.suppliedBy ? ` (${framing[step.suppliedBy]})` : ''}.`
+        return step.change === undefined
+            ? action
+            : `${action}\n  ${framing.record}: ${moveText(step.change, handles, scene, framing.recordVerb)}.`
     }
     const body = (candidate: Candidate, withAfter: boolean): string[] => {
         const after = afters.get(candidate)

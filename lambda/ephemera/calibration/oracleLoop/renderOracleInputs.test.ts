@@ -20,23 +20,41 @@ describe('renderOracleInputs', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
-    it('reproduces Slice 2.5\'s inputs for OC-6, with the after-state on and provenance off', async () => {
+    // Slice 2.5's composition no longer holds since a step carries its action (L-18): this pins the new layout, with the after-state still
+    // the shared builder's.
+    it('shows OC-6 as the drafts probe it: the action, its record line, then the after-state, provenance off', async () => {
         const fixture = sceneFixture('teaTable')
         const pour = fixture.judgeSets!.judge[4]
-        const slice25 = (await proposedOutcomesFor(fixture, [[4, pour]], {
+        const shared = (await proposedOutcomesFor(fixture, [[4, pour]], {
             form: 'both', after: 'fiction', framing: 'Candidate', explanation: PROPOSED_OUTCOME_EXPLANATION, explanationOverridden: false,
         })).get(4)
-        expect(slice25?.status).toBe('shown')
-        expect(await rendered(oracleCases['OC-6'], { show: { after: 'fiction', suppliedBy: false } }))
-            .toBe(`Best answer so far: I don't see how.\n\n${slice25?.status === 'shown' ? slice25.text : ''}`)
+        const after = shared?.status === 'shown' ? shared.text.slice(shared.text.indexOf('After:')) : ''
+        expect(after.startsWith('After:')).toBe(true)
+        expect(await rendered(oracleCases['OC-6'], { show: { after: 'fiction', suppliedBy: false } })).toBe([
+            "Best answer so far: I don't see how.",
+            `Candidate: ${PROPOSED_OUTCOME_EXPLANATION}`,
+            'Moves:\n- pour [tea2] from [teapot1] into [cup1].\n  record: [tea2] moves from [teapot1] into [cup1].',
+            after,
+        ].join('\n\n'))
     })
 
-    it('by default shows a template candidate\'s moves with who supplied them, and no after-state', async () => {
+    it('by default shows a template candidate\'s action and record line with who supplied it, and no after-state', async () => {
         expect(await rendered(oracleCases['OC-6'])).toBe([
             "Best answer so far: I don't see how.",
             `Candidate: ${PROPOSED_OUTCOME_EXPLANATION}`,
-            'Moves:\n- [tea2] moves from [teapot1] into [cup1] (from the system).',
+            'Moves:\n- pour [tea2] from [teapot1] into [cup1] (from the system).\n  record: [tea2] moves from [teapot1] into [cup1].',
         ].join('\n\n'))
+    })
+
+    it('takes the list heading, the record label and the record verb from framing', async () => {
+        const text = await rendered(oracleCases['OC-6'], { framing: { ...ORACLE_FRAMING, moves: 'Plan', record: 'in the record', recordVerb: 'goes' } })
+        expect(text).toContain('Plan:\n- pour [tea2] from [teapot1] into [cup1] (from the system).\n  in the record: [tea2] goes from [teapot1] into [cup1].')
+    })
+
+    it('builds the after-state from the record changes alone, skipping a step in words', async () => {
+        const text = await rendered(oracleCases['OC-30/3'], { show: { after: 'fiction', suppliedBy: false } })
+        expect(text).toContain('After:')
+        expect(text).toContain('You are holding [saucer1]')
     })
 
     it('shows no candidate when a round has none', async () => {
@@ -52,7 +70,7 @@ describe('renderOracleInputs', () => {
         ].join('\n\n'))
     })
 
-    it('shows an answer-to-beat, the round record and a candidate mixing a change with words', async () => {
+    it('shows an answer-to-beat, the round record and a candidate mixing a step with a record change and a step in words only', async () => {
         expect(await rendered(oracleCases['OC-30/3'])).toBe([
             'Best answer so far:',
             "Says: The teapot is glued to the table, so you can't pour from it.",
@@ -60,11 +78,11 @@ describe('renderOracleInputs', () => {
             'Known issues:\n- tipping [table1] slides [saucer1] and [cup1] off',
             'Tried already:\n- Candidate B: tipping [table1] slides [saucer1] and [cup1] off',
             'Worth another try: Candidate B',
-            'Moves:\n- tip [table1] so that [teapot1] pours into [cup1] (from the system).',
+            'Moves:\n- tip [table1] so that [teapot1] pours [tea2] into [cup1] (from the system).',
             'Reuses: teapot-secured-to-table',
             'Would do better with:\n- move [saucer1] off [table1] first',
             'Candidate:',
-            'Moves:\n- [saucer1] moves from [table1] to you (from the system).\n- tip [table1] so that [teapot1] pours into [cup1] (from the system).',
+            'Moves:\n- pick up [saucer1] (from the system).\n  record: [saucer1] moves from [table1] to you.\n- tip [table1] so that [teapot1] pours [tea2] into [cup1] (from the system).',
             'Reuses: teapot-secured-to-table',
         ].join('\n\n'))
     })
@@ -84,7 +102,7 @@ describe('renderOracleInputs', () => {
     it('refuses a candidate whose changes the dry run refuses, naming it', async () => {
         const glued: OracleCase = {
             ...oracleCases['OC-5'],
-            candidates: [{ id: 'X', source: 'template', polarity: 'yes', steps: [{ change: teaTableProposals.pickUpTeapot[0], suppliedBy: 'system' }], reuses: [], improvisations: [] }],
+            candidates: [{ id: 'X', source: 'template', polarity: 'yes', steps: [{ says: 'pick up [teapot1]', change: teaTableProposals.pickUpTeapot[0], suppliedBy: 'system' }], reuses: [], improvisations: [] }],
             rounds: noRounds,
         }
         expect(await renderOracleInputs(sceneFixture('teaTable'), glued)).toEqual({ status: 'refused', candidateId: 'X', reason: 'securedToBlocksMove' })
