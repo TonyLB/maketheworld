@@ -49,7 +49,7 @@ describe('subScene', () => {
         ].join('\n'))
     })
 
-    it('keeps a container\'s own containers up to the room (PP-6), and none of their other contents', async () => {
+    it('keeps a container\'s own containers up to the room, and none of their other contents', async () => {
         expect(await subD('branchInBranch', ['teapot1'])).toBe([
             'The Tavern: A low-beamed common room, smoky from the hearth.',
             'Contents of the Tavern:',

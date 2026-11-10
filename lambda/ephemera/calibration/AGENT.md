@@ -146,7 +146,7 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 
 ### Piece probe
 
-`PieceProbe` runs a draft of one piece of the oracle against that piece's cells, and grades each reply in code against the cell's expected answer ([`oraclePieces/`](oraclePieces/)). A piece makes one judgment per call. It is a **Prototype** of the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md)'s Slice 4.5, built in the [piece probe plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.pieceProbe.planning.md). Nothing in production reads it, and it goes when the parent closes. Same access boundary and cost as the judge probe.
+`PieceProbe` runs a draft of one piece of the oracle against that piece's cells, and grades each reply in code against the cell's expected answer ([`oraclePieces/`](oraclePieces/)). A piece makes one judgment per call. It is a **Prototype** of the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md)'s Slice 4.5. Nothing in production reads it, and it goes when the parent closes. Same access boundary and cost as the judge probe.
 
 ```json
 { "type": "PieceProbe", "piece": "ruleCell", "instructions": "...", "repeats": 3, "model": "NovaMicro" }
@@ -164,7 +164,7 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 - `piece` is required. `cells` defaults to all of the piece's cells. `instructions` is required, since a piece has no built prompt. `repeats` defaults to 1, `model` to `NovaMicro`, and `options` goes to the piece.
 - **Cap: called cells x repeats <= 24** (`PIECE_PROBE_CALL_CAP`, its own constant, apart from the other probes' 12). Cells answered by code don't count. Every refusal happens before the first call: an unknown piece or cell, no instructions, bad repeats or model, options the piece refuses, over the cap, or a render that fails.
 - The prompt is the instructions, a blank line, then the cell's render. There is no recap and no form check.
-- **Grading** ([`pieceAnswer.ts`](oraclePieces/pieceAnswer.ts)): the probe takes the last line starting `Answer:` and reads its first word, lowercased and with trailing punctuation dropped, against the answer set. Anything after that first word is ignored. A reply with no such line, or with a word outside the set, is `malformed`, with the reason. The verdict goes last, as Micro needs.
+- **Grading** ([`pieceAnswer.ts`](oraclePieces/pieceAnswer.ts)): a reply that ends in a JSON object, best as a trailing fenced `json` block after prose reasoning, is graded by its string `answer` field, trimmed and lowercased. The split is `splitMarkdownReasoningAndJson` in [`llm/`](../llm/AGENT.md), the house shape for reasoning then JSON. Any other reply is graded by its last line starting `Answer:`: its first word, lowercased and with trailing punctuation dropped. Anything after that first word is ignored. When a reply has both, the JSON wins. A reply with neither, JSON that doesn't parse or has no string `answer`, or an answer outside the set, is `malformed`, with the reason. The verdict goes last, as Micro needs.
 - **Returns:**
   - the instructions' `hash` and `chars`, and the parsed `options`;
   - **`cells` first:** for each cell, its `expected` answer; `n` calls, with `right`, `wrong`, `malformed` and `errors`; the `answers` given, with counts; `byCode` (the answer and whether it is right) where code answered; and the rendered inputs' `hash`;
@@ -177,19 +177,20 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   - a rule handle, as `judgeRules` in `sceneRules.ts` names it on the full scene;
   - the plan's actions in order, each with what the play-by-play says each of the rule's things does (`motions`, keyed by exactly the rule's two ends);
   - optionally `voidedAt`, the action that voids the rule, counted from 1.
-- **The window** is code's: the actions before the voiding one, or all of them. An empty window is `allows` by code.
+- **The window** is code's: the actions before the voiding one, or all of them. An empty window is `allows` by code. So every action the cell sees is one the rule is in force for.
+- **The rule is shown in parts** (user, 2026-11-10): its fact and its enforcing rubric, from `judgeRules`' `parts`, with nothing about voiding or being in force. A rule in the abstract has an enforcing rubric and a voiding rubric, and each piece shows only the one it judges. The one-prompt wordings (`v45`, `violation`, `inForce`) are unchanged.
 - **Options:**
-  - `wording` (`v45`, `violation` or `inForce`), by default `inForce` (PP-3, open);
-  - `show` (`subScene` or `none`), by default the rule's things' [sub-scene](../dataSource/actions/AGENT.md) (PP-1);
-  - `sceneRules`, whether the sub-scene shows its own Rules section, by default `false` (PP-7, open).
+  - `show` (`subScene` or `none`), by default the rule's things' [sub-scene](../dataSource/actions/AGENT.md), which keeps what a cell needs to know about what each thing is and where it sits, and leaves out the rest of the scene that one-prompt replies wandered into (user);
+  - `sceneRules`, whether the sub-scene shows its own Rules section, in the `v45` wording, by default `false` (user: the cell doesn't judge rules that interact).
 - **The render:**
   1. the sub-scene as the judge shows it (`Scene:`, `Fiction`, `Graph`, `End of scene.`);
-  2. `Rule:` with the one rule's line;
+  2. `Rule:`, with the one rule's handle, fact and enforcing rubric;
   3. `The rule's things:`;
   4. `Action n: …` for each action in the window, with a `- [handle]: motion` line for each of the rule's things.
 
   The render throws on cell data that doesn't fit the fixture: an unknown rule, motions naming other things than the rule's, or a `voidedAt` that is not an action. The probe turns that into a refusal.
-- **Cells:** `OC-1`, `OC-6/tilted`, `OC-6/stays`, `OC-30/2/tipped`, `OC-30/2/together`, `OC-19/voided` (by code), `OC-19/glued` and `OC-20`. Each is graded given its play-by-play. `OC-6/stays` is wrong about the case on purpose. The motion wording is hand-written, paraphrased where a cell cites batch 16, and awaits review.
+- **Cells:** `OC-1`, `OC-6/tilted`, `OC-6/stays`, `OC-30/2/tipped`, `OC-30/2/together`, `OC-30/2/slides`, `OC-19/voided` (by code), `OC-19/glued` and `OC-20`. Each is graded given its play-by-play. `OC-6/stays` is wrong about the case on purpose. The motion wording is hand-written, paraphrased where a cell cites batch 16, and reviewed by the user. `OC-30/2/slides` was added after draft 1, to test whether the lines are read when the action sounds like moving together and the lines say the two move apart.
+- **Settled on draft 3** (2026-11-10, Micro; [`oracleLoopDrafts/ruleCell/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/ruleCell/iterations.md)): 46 of 48 calls right over two batches, 0 malformed. The draft asks for one or two sentences on what the lines say about how the two things move relative to each other, then the verdict as a fenced `json` block. The two misses were on different cells. One was a half-wrong description. The other was a right description followed by a verdict that doesn't follow from it, which is left open. Text after the block, which about half the replies add, is graded as long as it holds no brace.
 
 ### The built judge prompt (v45)
 
@@ -233,6 +234,14 @@ What the oracle drafts 1 to 12 showed (2026-11-09 to 2026-11-10; [`oracleLoopDra
 - **An action pictured as an action gets its motion.** With the pour shown as an action and its record change under it, the play-by-play tilted the teapot 3 of 3. Shown only as a record change, it didn't.
 - **A step's label is a lever.** Renaming `Picture` to `Play-by-play` moved pour from 0 of 3 to 2 of 3, while a longer description lost the tilt.
 - **A term with a plain-English sense is read in that sense (user).** "Breaks a rule" means violating it, so it can't also mean ending the fact behind it. Chosen terms ("voids", "in force") still leaked once, when the rule's own text offered them to copy.
+
+What the rule cell drafts 1 to 3 showed (2026-11-10; [`oracleLoopDrafts/ruleCell/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/ruleCell/iterations.md)):
+
+- **One judgment per call worked, from the first draft.** In one-prompt draft 7, `Picture` had the teapot tilting with the table 3 of 3, and the rule step still judged it wrong 0 of 3. The rule cell, given the same kind of motion lines, judged it 6 of 6 on its first draft, and every later change was to the answer's form.
+- **Ask for a description before the verdict.** "Say what the lines say about how the two things move relative to each other", then the verdict, gave 46 of 48. "Give your reasoning", then the verdict, gave 14 of 24. With the reasoning asked for as reasoning, 22 of 24 replies opened with the verdict ("No, …") and bent the reason to fit it. Micro decides, then justifies, so the prose has to be something other than an answer.
+- **A sentence about form can move the judgment.** Moving the verdict from an `Answer:` line into a JSON block, with nothing else changed, cost 10 of 24. Probe a form change like any other.
+- **A verdict on a labelled last line gets joined onto the line before it** (14 of 45 calls), even though each answer was right. A trailing fenced `json` block, read through `llm/`'s `splitMarkdownReasoningAndJson`, had none.
+- **Write pronouns out in the inputs as well as in the instructions.** "Slides across [table1] as it tips" was read once as the two moving together. "As [table1] tips" was read right 3 of 3.
 
 ### Known behaviour of the built judge
 

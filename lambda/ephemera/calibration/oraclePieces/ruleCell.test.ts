@@ -1,4 +1,3 @@
-import { JUDGE_RULES_WORDINGS, judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
@@ -69,7 +68,7 @@ describe('ruleCell', () => {
                 'End of scene.',
                 '',
                 'Rule:',
-                '- teapot-secured-to-table: [teapot1] is glued to [table1]. While this rule is in force, it blocks an action that moves [teapot1] and [table1] relative to each other more than "glued to" allows, and it allows an action that moves them together. An action that makes it no longer true that [teapot1] is glued to [table1] voids this rule.',
+                '- teapot-secured-to-table: [teapot1] is glued to [table1]. This rule blocks an action that moves [teapot1] and [table1] relative to each other more than "glued to" allows, and allows an action that moves them together.',
                 '',
                 'The rule\'s things: [teapot1], [table1]',
                 '',
@@ -79,10 +78,10 @@ describe('ruleCell', () => {
             ].join('\n'))
         })
 
-        it.each(JUDGE_RULES_WORDINGS)('states the rule in the %s wording', async (wording) => {
-            const [rule] = judgeRules(await fixtureScene('teaTable'), wording)
-            const text = await renderRuleCell(ruleCellCells['OC-1'], { ...RULE_CELL_OPTIONS, wording })
-            expect(text).toContain(`Rule:\n- teapot-secured-to-table: ${rule.sentence}\n\n`)
+        it.each(Object.keys(ruleCellCells))('states %s\'s rule as its fact and enforcing rubric, with nothing of voiding or being in force', async (id) => {
+            const text = await renderRuleCell(ruleCellCells[id], RULE_CELL_OPTIONS)
+            expect(text).toMatch(/\nRule:\n- [a-z-]+: \[[^\]]+\] is [^.]+\. This rule blocks an action that moves /)
+            expect(text).not.toMatch(/void|in force/)
         })
 
         it('leaves the scene out with show: none', async () => {
@@ -124,23 +123,23 @@ describe('ruleCell', () => {
     })
 
     describe('its options', () => {
-        it('defaults to inForce, the sub-scene, and no Rules section in the scene', () => {
-            expect(ruleCell.parseOptions(undefined)).toEqual({ wording: 'inForce', show: 'subScene', sceneRules: false })
-            expect(ruleCell.parseOptions({ wording: 'v45' })).toEqual({ wording: 'v45', show: 'subScene', sceneRules: false })
+        it('defaults to the sub-scene, and no Rules section in the scene', () => {
+            expect(ruleCell.parseOptions(undefined)).toEqual({ show: 'subScene', sceneRules: false })
+            expect(ruleCell.parseOptions({ show: 'none' })).toEqual({ show: 'none', sceneRules: false })
         })
 
-        it.each([['loud'], [{ wording: 'loud' }], [{ show: 'all' }], [{ sceneRules: 'yes' }], [{ shout: true }]])('refuses %j', (value) => {
-            expect(ruleCell.parseOptions(value)).toMatch(/^options must be \{ wording\?: v45 \| violation \| inForce; show\?: subScene \| none; sceneRules\?: boolean \}$/)
+        it.each([['loud'], [{ wording: 'inForce' }], [{ show: 'all' }], [{ sceneRules: 'yes' }], [{ shout: true }]])('refuses %j', (value) => {
+            expect(ruleCell.parseOptions(value)).toMatch(/^options must be \{ show\?: subScene \| none; sceneRules\?: boolean \}$/)
         })
     })
 
-    it('is registered, and runs through the probe: seven called cells and one by code', async () => {
+    it('is registered, and runs through the probe: eight called cells, at the cap, and one by code', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: true as const, body: 'Answer: allows' }))
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'ruleCell', instructions: 'Does the rule block?', repeats: 3 }, { invoke, pieces: oraclePieces })
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(21)
+        expect(invoke).toHaveBeenCalledTimes(24)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 21, right: 12, wrong: 9, malformed: 0, errors: 0, byCode: 1 })
+        expect(result.summary).toEqual({ calls: 24, right: 12, wrong: 12, malformed: 0, errors: 0, byCode: 1 })
         expect(result.options).toEqual(RULE_CELL_OPTIONS)
     })
 })
