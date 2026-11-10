@@ -8,20 +8,21 @@ import { replyForm, type ReplyForm } from '../sceneReasoning/judgeGrade'
 import { JUDGE_PROBE_MAX_TOKENS } from '../sceneReasoning/runJudgeProbe'
 import { PROBE_TEMPERATURE, PROBE_TIMEOUT_MS, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 
+export type ProbeCall = { id: string; repeat: number; answer?: string; error?: string }
+
 export type OracleCall = { case: string; repeat: number; answer?: string; error?: string; form?: ReplyForm }
 
 export type OracleSummary = { calls: number; errors: number; malformed: number }
 
-export const runOracleProbe = async ({ prompts, steps, repeats, model, invoke = invokeBedrockConverseText }: {
-    prompts: readonly { caseId: string; prompt: string }[]
-    /** The draft's numbered steps, which each reply's form is checked against. */
-    steps: readonly string[]
+/** One Bedrock call per (prompt, repeat), concurrently, each a whole prompt in one user turn. Shared with the piece probe. */
+export const runProbeCalls = async ({ prompts, repeats, model, invoke = invokeBedrockConverseText }: {
+    prompts: readonly { id: string; prompt: string }[]
     repeats: number
     model: NovaModel
     invoke?: ProbeInvoke
-}): Promise<OracleCall[]> => {
-    const calls = prompts.flatMap(({ caseId, prompt }) => Array.from({ length: repeats }, (_, repeat) => ({ caseId, prompt, repeat: repeat + 1 })))
-    return Promise.all(calls.map(async ({ caseId, prompt, repeat }): Promise<OracleCall> => {
+}): Promise<ProbeCall[]> => {
+    const calls = prompts.flatMap(({ id, prompt }) => Array.from({ length: repeats }, (_, repeat) => ({ id, prompt, repeat: repeat + 1 })))
+    return Promise.all(calls.map(async ({ id, prompt, repeat }): Promise<ProbeCall> => {
         const result = await invoke({
             modelId: novaModelToBedrockModelId(model),
             messages: [{ role: 'user', content: [{ text: prompt }] }],
@@ -29,11 +30,23 @@ export const runOracleProbe = async ({ prompts, steps, repeats, model, invoke = 
             temperature: PROBE_TEMPERATURE,
             timeoutMs: PROBE_TIMEOUT_MS,
         })
-        return result.success
-            ? { case: caseId, repeat, answer: result.body, form: replyForm(result.body, steps) }
-            : { case: caseId, repeat, error: result.errorMessage }
+        return result.success ? { id, repeat, answer: result.body } : { id, repeat, error: result.errorMessage }
     }))
 }
+
+export const runOracleProbe = async ({ prompts, steps, repeats, model, invoke }: {
+    prompts: readonly { caseId: string; prompt: string }[]
+    /** The draft's numbered steps, which each reply's form is checked against. */
+    steps: readonly string[]
+    repeats: number
+    model: NovaModel
+    invoke?: ProbeInvoke
+}): Promise<OracleCall[]> => (
+    (await runProbeCalls({ prompts: prompts.map(({ caseId, prompt }) => ({ id: caseId, prompt })), repeats, model, ...(invoke !== undefined ? { invoke } : {}) }))
+        .map(({ id, repeat, answer, error }): OracleCall => (
+            answer !== undefined ? { case: id, repeat, answer, form: replyForm(answer, steps) } : { case: id, repeat, error }
+        ))
+)
 
 export const summarizeOracle = (calls: readonly OracleCall[]): OracleSummary => ({
     calls: calls.length,
