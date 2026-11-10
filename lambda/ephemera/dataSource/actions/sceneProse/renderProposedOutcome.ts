@@ -8,6 +8,7 @@ import { isEphemeraCharacterId, isEphemeraRoomId } from '@tonylb/mtw-interfaces/
 import type { SceneHandleTable, SceneModel } from '../../positions/ludicCache/sceneModel'
 import type { ProposedMove } from '../../positions/manipulation/proposedMoves'
 import { judgeSceneSections } from './renderSceneJudge'
+import type { JudgeRulesWording } from './sceneRules'
 import { bracket, roomRef } from './sceneWording'
 
 export type ProposedOutcomeForm = 'moves' | 'after' | 'both'
@@ -16,7 +17,8 @@ export type ProposedOutcomeAfter = 'fiction' | 'whole'
 export const PROPOSED_OUTCOME_FORMS: readonly ProposedOutcomeForm[] = ['moves', 'after', 'both']
 export const PROPOSED_OUTCOME_AFTERS: readonly ProposedOutcomeAfter[] = ['fiction', 'whole']
 
-const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable, scene: SceneModel): string => {
+/** One move in words, named with the before scene's handles: `[tea2] moves from [teapot1] into [cup1]`, with no closing stop. The oracle harness sets its own verb. */
+export const moveText = (move: ProposedMove, handles: SceneHandleTable, scene: SceneModel, verb = 'moves'): string => {
     const nameOf = (id: string): string => {
         if (isEphemeraCharacterId(id)) {
             return 'you'
@@ -30,18 +32,22 @@ const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable,
         }
         return bracket(entry.handle)
     }
-    const preposition = ({ hostingKind }: ProposedMove): string => hostingKind === 'In' ? 'into' : hostingKind === 'On' ? 'onto' : 'to'
-    return moves.length === 0
-        ? 'Moves: none.'
-        : ['Moves:', ...moves.map((move) => `- ${nameOf(move.moved)} moves from ${nameOf(move.from)} ${preposition(move)} ${nameOf(move.to)}.`)].join('\n')
+    const preposition = move.hostingKind === 'In' ? 'into' : move.hostingKind === 'On' ? 'onto' : 'to'
+    return `${nameOf(move.moved)} ${verb} from ${nameOf(move.from)} ${preposition} ${nameOf(move.to)}`
 }
 
-const afterSection = (scene: SceneModel, after: ProposedOutcomeAfter): string => {
-    const { fiction, graph, rules } = judgeSceneSections(scene)
+const movesSection = (moves: readonly ProposedMove[], handles: SceneHandleTable, scene: SceneModel): string => (
+    moves.length === 0
+        ? 'Moves: none.'
+        : ['Moves:', ...moves.map((move) => `- ${moveText(move, handles, scene)}.`)].join('\n')
+)
+
+const afterSection = (scene: SceneModel, after: ProposedOutcomeAfter, rulesWording: JudgeRulesWording): string => {
+    const { fiction, graph, rules } = judgeSceneSections(scene, rulesWording)
     return ['After:', ...(after === 'fiction' ? [fiction] : [fiction, graph, ...(rules === undefined ? [] : [rules])])].join('\n\n')
 }
 
-export const renderProposedOutcome = ({ moves, handles, scene, form, after }: {
+export const renderProposedOutcome = ({ moves, handles, scene, form, after, rulesWording = 'v45' }: {
     moves: readonly ProposedMove[]
     /** The before scene's handles, which the after scene was seeded with. */
     handles: SceneHandleTable
@@ -49,7 +55,9 @@ export const renderProposedOutcome = ({ moves, handles, scene, form, after }: {
     scene: SceneModel
     form: ProposedOutcomeForm
     after: ProposedOutcomeAfter
+    /** The Rules section's wording, for `after: 'whole'`. */
+    rulesWording?: JudgeRulesWording
 }): string => [
     ...(form === 'after' ? [] : [movesSection(moves, handles, scene)]),
-    ...(form === 'moves' ? [] : [afterSection(scene, after)]),
+    ...(form === 'moves' ? [] : [afterSection(scene, after, rulesWording)]),
 ].join('\n\n')

@@ -13,34 +13,34 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
   - **Engine:** the inputs (the request, and the direction or constraints the oracle would pass), and a rubric written before any run: what a good candidate must reuse, must avoid, and how much it may stretch. Engine output is open-ended, so it is graded against the rubric by reading, as the scene reasoning probe's open questions are.
   - **Loop:** what has to pass between the two phases over turns. These have their own [section](#loop-cases).
 - **Candidates here are written by hand,** standing in for the engine, except where a fixture holds a template `proposal`, which is the template's candidate. Bad candidates are written on purpose.
-- **Expected outcomes are not labels,** since JF-5 is open. They are mine unless marked as the user's. The engine rubrics are mine except where marked, and the user agreed their grading, OC-26 to OC-29's included (2026-11-08).
+- **Expected outcomes are not labels,** since JF-5 is open. They are mine unless marked as the user's. Under the pilot (2026-11-09) the oracle and the engine are imagined, so an expected outcome for an intermediate step (a round's verdict, the frontier, a direction and where it goes) is a guess about how an imagined loop behaves. A draft that disagrees with one may be revising the guess, not failing the case. What the case tests is the end result, what the player should end up with: a draft that gets it wrong fails. *Refined by the user (2026-11-09):* each subsystem's step has its own end result. An **oracle** part's end result is what the oracle should produce for its round (the verdict, what potential a candidate has, where the direction goes), which one call shows, so it binds an oracle draft; a **loop** case's is what the player ends up with across rounds, which binds the loop. What stays a guess is whether that round output is what an engine can use, at the oracle-to-engine seam. Where that end result is mine it is still a guess, and only the user revises it, never a draft's disagreement. The engine rubrics are mine except where marked, and the user agreed their grading, OC-26 to OC-29's included (2026-11-08).
 - **On v45:** one line per case, the limit today's single judge hits, with its replies where it was run. The v28 replies and the draft-by-draft record are in git history ([where this came from](AGENT.oracleLoop.discussion.planning.md#where-this-came-from-the-judgefailures-plan-retired-2026-11-07)). For a case not yet run the limit is a prediction, and says so.
-- **Probe:** the `JudgeProbe` asks only requests held in a fixture's `judgeSets`; `sceneText` can replace the scene but can't add a request. "Request in fixture" means a draft can ask it now, with a hand-written `sceneText` where the scene differs. "Needs a fixture request" means it waits for the [oracle harness](AGENT.oracleLoop.planning.md#recommended-order). **Neither covers the oracle's inputs:** a fixture holds the request, v45's label expectation and, for five requests, a template `proposal` as moves. The answer-to-beat, known issues, what has been tried, hand-written candidates and who supplied each step go into each draft's `sceneText` by hand until the harness gives them a fixture shape, and the probe's label grade means nothing for an oracle draft, which is graded by reading.
+- **Probe:** "In harness" means the case is in the [oracle probe](../../../../../lambda/ephemera/calibration/AGENT.md#oracle-probe)'s `oracleCases`, with its scene, request and oracle inputs in Slice 2's types, and is asked by case ID (2026-11-09). A case not in the harness is written into it by the draft step that first asks it (the travel rule, Slice 3). Before the harness: the `JudgeProbe` asks only requests held in a fixture's `judgeSets`; `sceneText` can replace the scene but can't add a request. "Request in fixture" means a draft can ask it now, with a hand-written `sceneText` where the scene differs. "Needs a fixture request" means it waits for the [oracle harness](AGENT.oracleLoop.planning.md#recommended-order). **Neither covers the oracle's inputs:** a fixture holds the request, v45's label expectation and, for five requests, a template `proposal` as moves. The answer-to-beat, known issues, what has been tried, hand-written candidates and who supplied each step go into each draft's `sceneText` by hand until the harness gives them a fixture shape, and the probe's label grade means nothing for an oracle draft, which is graded by reading.
 
 ## Index
 
 | ID | Scene | Request | Oracle | Engine | Loop | Probe |
 | --- | --- | --- | --- | --- | --- | --- |
-| OC-1 | `teaTable` | Pick up `[table1]` | ✓ | | | In fixture |
+| OC-1 | `teaTable` | Pick up `[table1]` | ✓ | | | In harness |
 | OC-2 | `teaTable` | Pick up `[cup1]` | ✓ | | | In fixture |
 | OC-3 | `teaTable` | `[table1]` in `[cup1]` | ✓ | | | In fixture |
 | OC-4 | `teaTable` | Slide `[saucer1]` across `[table1]` | ✓ | | | In fixture |
-| OC-5 | `teaTable` | Pick up `[teapot1]` | ✓ | ✓ | | In fixture |
-| OC-6 | `teaTable` | Pour from `[teapot1]` | ✓ | ✓ | OC-30 | In fixture |
-| OC-7 | `teaTable` | Wipe `[table1]` with a cloth | ✓ | ✓ | | In fixture |
+| OC-5 | `teaTable` | Pick up `[teapot1]` | ✓ | ✓ | In harness |
+| OC-6 | `teaTable` | Pour from `[teapot1]` | ✓ | ✓ | OC-30 | In harness |
+| OC-7 | `teaTable` | Wipe `[table1]` with a cloth | ✓ | ✓ | In harness |
 | OC-8 | `teaTable` | Pry `[teapot1]` off with a screwdriver | ✓ | ✓ | | In fixture |
 | OC-9 | `tavern` | Pick up `[table1]`, the trestle | ✓ | | | In fixture |
 | OC-10 | `tavern` | Pick up `[cup1]`, `[candle1]`; put `[hammer1]` on `[table1]` | ✓ | | | In fixture |
-| OC-11 | `teaTableCupOnFloor` | `[table1]` in `[cup1]` | ✓ | | | In fixture |
-| OC-12 | Dungeon | Pour from `[teapot1]` | ✓ | | | In fixture, own `sceneText` |
-| OC-13 | Doll-house | Pour from `[teapot1]` | ✓ | ✓ | | In fixture, own `sceneText` |
+| OC-11 | `teaTableCupOnFloor` | `[table1]` in `[cup1]` | ✓ | | | In harness |
+| OC-12 | Dungeon | Pour from `[teapot1]` | ✓ | | | In harness |
+| OC-13 | Doll-house | Pour from `[teapot1]` | ✓ | ✓ | In harness |
 | OC-14 | Dungeon | Tip `[table1]` to pour | ✓ | ✓ | | Needs a fixture request |
 | OC-15 | `teaTable` | Wipe `[saucer1]` with a napkin | ✓ | ✓ | | Needs a fixture request |
 | OC-16 | `teaTable` | Lift `[teapot1]`'s lid | ✓ | | | Needs a fixture request |
 | OC-17 | `teaTable` | Wipe with the cloth I'm holding | ✓ | | | Needs a fixture request |
 | OC-18 | `teaTableCupOnFloor` | Hammer `[table1]` into `[cup1]` | ✓ | | | Needs a fixture request |
-| OC-19 | `teaTable`, a hammer held | Pry `[teapot1]` off with `[hammer1]` | ✓ | | | Needs a fixture request and scene |
-| OC-20 | `teaTable`, table chained | Pick up `[table1]` | ✓ | | | In fixture, own `sceneText` |
+| OC-19 | `teaTable`, a hammer held | Pry `[teapot1]` off with `[hammer1]` | ✓ | | | In harness |
+| OC-20 | `teaTable`, table chained | Pick up `[table1]` | ✓ | | | In harness |
 | OC-21 | `tavern` | Trim `[candle1]`'s wick with something sharp | ✓ | ✓ | | Needs a fixture request |
 | OC-22 | `tavern` | Light `[candle1]` | ✓ | ✓ | | Needs a fixture request |
 | OC-23 | `tavern` | Gibberish | ✓ | | | Needs a fixture request |
@@ -50,12 +50,13 @@ Rewritten 2026-11-07 by function, under [JF-18](AGENT.oracleLoop.planning.md#set
 | OC-27 | Jungle Tavern | Soup spoons | | ✓ | | Needs a fixture request and scene |
 | OC-28 | Kitsch-horror mansion | Mask the musty smell | ✓ | ✓ | | Needs a fixture request and scene |
 | OC-29 | Plain creepy mansion | Mask the musty smell | ✓ | ✓ | | Needs a fixture request and scene |
-| OC-30 | `teaTable` | Pour, with a candidate history | ✓ | ✓ | ✓ | In fixture, history in `sceneText` |
+| OC-30 | `teaTable` | Pour, with a candidate history | ✓ | ✓ | ✓ | In harness |
 | OC-31 | Chasm | Across on the bridge, then the arrow and rope | ✓ | | ✓ | Needs fixture requests and scene |
+| OC-32 | `teaTable`, a red cup and a blue cup | Pick up the cup | ✓ | | | Needs a fixture request and scene |
 
 ## Bearing on every oracle case
 
-On 2026-11-06 the v45 judge was shown a template's candidate as a proposal block (`after`/`fiction`), for table, cup and pour, 3 repeats: 6 pass, 3 wrong `simple`, all pour's. No reply used anything only the block said, and `Revises` said "nothing" on all 9 with the changed relation stated just above it. An oracle case is mostly about reading a candidate, so this is the first thing any oracle draft has to overcome.
+On 2026-11-06 the v45 judge was shown a template's candidate as a proposal block (`after`/`fiction`), for table, cup and pour, 3 repeats: 6 pass, 3 wrong `simple`, all pour's. No reply used anything only the block said, and `Revises` said "nothing" on all 9 with the changed relation stated just above it. An oracle case is mostly about reading a candidate, so this is the first thing any oracle draft has to overcome. Oracle draft 1 did, on 2026-11-09: on Micro and Lite, every pour reply used the candidate's cup, which the request never names. Neither model used the after-state ([results](oracleLoopDrafts/1.notes.md#results-2026-11-09-first-batch)).
 
 ## Cases from the v45 measurements
 
@@ -130,12 +131,12 @@ Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so
 
 **OC-12. Dungeon: `I want to pour tea from [teapot1].`**
 - Scene (the user's vibe, my wording): a dungeon antechamber, the tea table in the middle of it. Words carved over the sealed door ahead say that it opens for one who pours the tea. The teapot is glued to the table.
-- Oracle: the candidate is a system-supplied method, tipping the table to pour. Expected (user): "just gets" an obstructed-style reply. The system's method doesn't compete, and the direction goes to the player.
+- Oracle: the candidate is a system-supplied method, tipping the table to pour. Expected (user): "just gets" an obstructed-style reply. The system's method doesn't compete: it supplies a method the player didn't bring, on a fact the scene makes a challenge, so it has no potential (user, 2026-11-09). No frontier, and the direction goes to the player.
 - On v45 (predicted): no input for the glue's role or a method dial, so this and OC-13 get the same judgment.
 
 **OC-13. Doll-house: `I want to pour tea from [teapot1].`**
 - Scene (the user's, my wording): you have been transported into a doll-house to have high tea with the Marie Antoinette doll. Dolls' furniture is glued down, the teapot to its table with the rest.
-- Oracle: the candidate is the same system-supplied method. Expected (user): a delighted yes: "The miniature teapot is glued to its table, so you heft the table up at an angle to pour the tea into the tiny cup."
+- Oracle, in two rounds (user, 2026-11-09). Round 1: the same system-supplied method. Expected: not better yet; it gets past the glue, which is its potential, and slides the saucer and cup off the tipped table, so it goes to the frontier with "move `[saucer1]` off `[table1]` first", a direction to the engine. Round 2: the saucer moved off, then the table tipped. Expected: a delighted yes: "The miniature teapot is glued to its table, so you heft the table up at an angle to pour the tea into the tiny cup." Against OC-12, the same candidate has potential here because the glue is texture.
 - Engine: rubric: the candidate supplies the tilt through the table, and accounts for the cup, which is on the saucer on the table it tips; it is lifted off first or held. The same invariant as OC-30.
 - On v45 (predicted): as OC-12.
 
@@ -164,14 +165,19 @@ Both scenes keep `teaTable`'s handles and arrangement, glued teapot included, so
 - On v45 (predicted): `impossible` or `obstructed`, with the hammer's absence as a distraction from the size.
 
 **OC-19. `teaTable` with a claw hammer held: `I want to pry [teapot1] off [table1] with [hammer1].`** A pry with an established tool.
-- Scene: `teaTable`, with the player holding `tavern`'s claw hammer.
+- Scene: `teaTable`, with the player holding `tavern`'s claw hammer, built as `teaTableHammerHeld` (2026-11-09).
 - Oracle: the candidate is the player's method over established facts, a found out, with no stretch. Expected: yes, credited to the player, with the glue as what it changes. Whether the pry works is a skill question (JP-14).
 - On v45 (predicted): as OC-8, without the unestablished tool.
 
 **OC-20. `teaTable` with the table chained to the wall: `I want to pick up [table1].`** A securing that crosses frames.
-- Scene: `teaTable`, with the table chained to the wall. Its `Rules` line is the not-shown form, `[table1] stays fixed relative to what [table1] is secured to.`, written by hand into `sceneText`.
+- Scene: `teaTable`, with the table chained to the wall, built as `teaTableChained` (2026-11-09). With the wall in the scene, its `Rules` line is the pair form, `[table1] and [wall1] stay fixed relative to each other.`, not the not-shown form this case first planned to write by hand into `sceneText`.
 - Oracle: the template's move is refused, so there is no candidate. Expected: the chain named as the fact in the way; the glued teapot plays no part.
 - On v45 (predicted): the not-shown rule wording is unprobed ([known behaviour](../../../../../lambda/ephemera/calibration/AGENT.md#known-behaviour-of-the-built-judge)); OC-1's freed table may carry over as a wrong `simple`.
+
+**OC-32. `teaTable` with two cups: `I want to pick up the cup.`** Two readings, neither ahead. Added 2026-11-08 from the user's example, for [JF-19](AGENT.oracleLoop.planning.md#settled-register).
+- Scene: `teaTable`, with the cup on the saucer red and a second cup, blue, on the table.
+- Oracle: two candidates, the template's take of each cup, both legal and zero-stretch. Expected (user): a question to the player with the two as options, "Do you mean the red cup or the blue cup?". It is the one kind of question that differs from plain text.
+- On v45 (predicted): one request, one label, and no way to offer a choice; production's Consult asks between same-named objects before any judge.
 
 ### The tavern, further requests
 
@@ -233,7 +239,7 @@ What passes between the oracle and the engine over turns, which no single call s
 
 **OC-30. `teaTable`: `I want to pour tea from [teapot1].`, with a candidate history.**
 - Turn 1: the answer-to-beat is empty. Candidate A, the finished answer: "The teapot is glued to the table, so you can't pour from it." Expected: A beats the floor and becomes the answer-to-beat.
-- Turn 2: candidate B, tipping the table, breaks an invariant nobody called: the saucer and cup slide off. Expected: B loses as a product and A stays; B goes to the frontier with its repair, the cup lifted off first; the broken invariant joins A's known issues and the tried list.
+- Turn 2: candidate B, tipping the table, breaks an invariant nobody called: the saucer and cup slide off. Expected: B loses as a product and A stays; B goes to the frontier with its repair, the saucer moved off first, carrying the cup (user, 2026-11-09, in place of the cup lifted off, which left the saucer to slide); the broken invariant joins A's known issues and the tried list.
 - Turn 3: candidate C, B repaired. Expected: whether C beats A is the method dial's, which this scene doesn't set (OC-12, OC-13).
 - What it pins: potential never displaces the answer-to-beat, a losing run still records what it found, and a frontier candidate is dropped once its repair has been tried and lost.
 - On v45: no slot for an answer-to-beat, known issues, what has been tried, or a candidate; and the [proposal block finding](#bearing-on-every-oracle-case).

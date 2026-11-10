@@ -1,6 +1,6 @@
 # Ephemera calibration (operator Bedrock tooling)
 
-Dev-only **read-only** operator tooling reached by direct Lambda invoke. Two trees: object-identity embedding calibration under [`objectMatch/`](objectMatch/) (the bulk of this doc), and the scene reasoning probe under [`sceneReasoning/`](sceneReasoning/) (see [Scene reasoning probe](#scene-reasoning-probe)). Embedding calibration tunes object-identity thresholds; production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
+Dev-only **read-only** operator tooling reached by direct Lambda invoke. Three trees: object-identity embedding calibration under [`objectMatch/`](objectMatch/) (the bulk of this doc), the scene reasoning probe under [`sceneReasoning/`](sceneReasoning/) (see [Scene reasoning probe](#scene-reasoning-probe)), and the oracle probe under [`oracleLoop/`](oracleLoop/), a prototype owned by the oracle loop plan (see [Oracle probe](#oracle-probe)). Embedding calibration tunes object-identity thresholds; production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
 
 **Layering:** this tree is Bedrock-backed operator tooling (Lambda invoke, corpus runs, snapshot JSON). Mocked parameter sweeps and admissibility A/B harnesses live in [`embeddingMatch/testing/`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/) --- see **Mocked calibration harnesses** in [`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md). Those harnesses feed the same locked constants; snapshots here are the durable record.
 
@@ -116,7 +116,7 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 
 ### Judge probe
 
-`JudgeProbe` runs the judge prompt ([the built prompt](#the-built-judge-prompt-v45); its next form is the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md)) against a fixture's named request set and grades each reply in code. Same access boundary and cost as the scene reasoning probe.
+`JudgeProbe` runs the judge prompt ([the built prompt](#the-built-judge-prompt-v45); its next form is the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md), whose drafts run on the [oracle probe](#oracle-probe)) against a fixture's named request set and grades each reply in code. Same access boundary and cost as the scene reasoning probe.
 
 ```json
 { "type": "JudgeProbe", "scene": { "fixture": "teaTable" }, "set": "judge", "only": [3, 4], "repeats": 3, "model": "NovaMicro" }
@@ -129,6 +129,20 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 - `proposedOutcome` (optional, off by default) shows each asked request that holds a `proposal` what its moves come to, in a block after `End of scene.` and before `Request:`. `{ "form": "after", "after": "fiction", "framing": "Proposed outcome", "explanation": "..." }`, every key optional, with those defaults and the built explanation: `form` is `moves`, `after` or `both`; `after` is `fiction` or `whole`; `framing` is the block's heading; `explanation` replaces the sentence on how to read it, which sits with the block and so is outside `instructions`. A request with no `proposal` gets the same prompt as with the field off. The moves run through a real dry run ([`proposedMoves.ts`](../dataSource/positions/manipulation/proposedMoves.ts)) and the after scene through the fold and the renderer, so a kernel change reaches the probes. A proposal the dry run refuses makes no call. The result gains `proposedOutcome`, with the settings and per request its `status` (`shown`, `none` or `refused`), and the `text` and `hash` shown or the `reason` refused. Only `teaTable` and `teaTableCupOnFloor` hold proposals.
 - **Grading** ([`judgeGrade.ts`](sceneReasoning/judgeGrade.ts)): the label after `Answer:` is the verdict, `pass` for the expected label, `border` for a tolerated one, `failure` otherwise, a wrong `simple` always a failure (it has no recovery). The reply's form is checked against the numbered steps of the instructions in use, so a draft that adds a step is graded by its own form. `mentions` and `avoids` are lexical, flag a reply for reading and never fail it.
 - **Returns** `summary` (totals, `wrongSimple`, `errors`, `malformed`, and per request the label counts and verdict counts) and `read`: every call, with the full reply and its grade.
+
+### Oracle probe
+
+`OracleProbe` runs a draft of the comparative oracle against the harness's cases ([`oracleLoop/`](oracleLoop/)). It is a **Prototype** of the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md) (Slice 3): its types are a guess the drafts revise, nothing in production reads it, and it goes when that plan closes. Same access boundary and cost as the judge probe.
+
+```json
+{ "type": "OracleProbe", "cases": ["OC-1", "OC-6"], "instructions": "...", "repeats": 3, "model": "NovaMicro" }
+```
+
+- `cases`: corpus case IDs, with a round suffix where a case runs over rounds (`OC-30/2`). Each case is a scene fixture, a request and the oracle's inputs (the answer-to-beat, the player's answers, the round record, candidates), in the types of [`oracleInputs.ts`](oracleLoop/oracleInputs.ts); cases from different fixtures share an invoke. The cases are in [`oracleCases.ts`](oracleLoop/oracleCases.ts), each with its `endResult`, the corpus's expected end result, which the reader grades against.
+- `instructions` is required, since there is no built oracle prompt, and must number the reply's steps ending in `Answer`. `development: true` adds the recap, as on the judge probe. **Cap: cases x repeats <= 12**, refused before any call.
+- The prompt is the draft, the case's scene in the `judge` render, the inputs block after `End of scene.`, then `Request:`. The block's headings are defaults (`ORACLE_FRAMING` in [`renderOracleInputs.ts`](oracleLoop/renderOracleInputs.ts)), each replaceable through `framing`, so the wording stays in the drafts. Each step is an action in words; a step the kernel knows adds its record change on an indented line, the dry run's move line under `framing.record` with the verb `framing.recordVerb` (`record:` and `moves` by default), and only those changes go to the dry run. A step that declares the rules it sets out to void (`voids`, by rule handle) adds another indented line under `framing.voids` (`sets out to void` by default); the oracle judges the declaration. A template candidate gets the built proposal explanation, since only the dry run has checked it; the dry run refusing a case's candidate refuses the invoke. `show`: `after` (`none` by default, or `fiction` or `whole`) adds the scene after a candidate's changes, and `suppliedBy` (on by default) marks who supplied each step. `rules` words the scene's Rules section: `v45` (the default, the built judge's) or `violation`, each rule as a test of a method (it keeps the rule by moving the two things together or by first changing the fact; it breaks it by moving them apart beyond what the relation allows while the fact holds), or `inForce`, each rule as what it blocks while in force (moving the two apart beyond what the relation allows) and what voids it (making the fact no longer true); the result reports it.
+- There is no `sceneText` override. A draft that needs to say something the inputs can't carry goes back to `JudgeProbe` with `sceneText`, which is the plan's signal that the input types need revising.
+- **Grading is form only:** each reply's steps against the draft's numbered steps. No label is graded. **Returns** each case's request, `endResult`, the hashes of its scene and inputs and the inputs' text, then `summary` (calls, errors, malformed) and `read`, every reply with its form.
 
 ### The built judge prompt (v45)
 
@@ -143,6 +157,8 @@ The judge prompt in code is v45 (2026-11-06): [`frame/frameJudge.ts`](../dataSou
 
 ### Writing prompts for Nova Micro
 
+**Micro is the target (user, 2026-11-09).** The project is meant for hobbyists running communities, and Nova 2 Lite is slower and several times the price, so cost is weighed at that scale. A prompt may be developed on Lite when Micro is costing too much time, but it then owes a calibration pass back to Micro once the problem is understood. A task can be left on Lite only after that pass has been made in earnest and Micro still can't do it.
+
 What the judge drafts v29 to v45 showed (2026-11-05 to 2026-11-06), for whoever writes the next prompt for Micro. Attributions are the user's where marked.
 
 - **Tight steps at a literal place work, and prose definitions don't.** A `Mentions` step pointed at "the last line of this prompt, the one starting `Request:`" caught the unestablished cloth where every rewording of `Picture` failed.
@@ -156,6 +172,20 @@ What the judge drafts v29 to v45 showed (2026-11-05 to 2026-11-06), for whoever 
 - **A block can be shown and not read.** With a proposed outcome shown, no reply used anything only the block said, and `Revises` stayed "nothing" with the changed relation stated just above it (9 calls).
 - **Rules in positive terms (user).** No "do not" qualifying a positive instruction. Write pronouns out as nouns where the referent could be misread.
 - **Micro can be a little dumb, but must not be recalcitrant (user).** Players accept being misunderstood; they rightly resent a legitimate intent being resisted.
+
+What the oracle drafts 1 to 12 showed (2026-11-09 to 2026-11-10; [`oracleLoopDrafts/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/iterations.md)):
+
+- **One judgment per call, with loops and joins in code (user, 2026-11-10).** Nearly every fault left after twelve drafts was a loop or a look-back inside the prompt:
+  - "For each action with a line" was answered once for each rule, with the filter dropped.
+  - A condition over earlier steps (which steps a rule is in force for) was never computed.
+  - A later step answered from the wrong earlier step.
+  - Several yes/no questions under one item leaked into each other.
+
+  Prior art finds the same: decomposed prompting, checklist evaluation, and LLM+P. A prompt classifies, extracts or judges one item. Code does the loops, filters and joins.
+- **An extractive line takes the nearest matching text.** Asked to write "what the play-by-play says [x] does", replies copied the rule's own clause 4 of 12 times. Asked to copy "the lines under Plan:", they copied the `Task`'s own numbered steps, and 11 of 12 replies were cut off.
+- **An action pictured as an action gets its motion.** With the pour shown as an action and its record change under it, the play-by-play tilted the teapot 3 of 3. Shown only as a record change, it didn't.
+- **A step's label is a lever.** Renaming `Picture` to `Play-by-play` moved pour from 0 of 3 to 2 of 3, while a longer description lost the tilt.
+- **A term with a plain-English sense is read in that sense (user).** "Breaks a rule" means violating it, so it can't also mean ending the fact behind it. Chosen terms ("voids", "in force") still leaked once, when the rule's own text offered them to copy.
 
 ### Known behaviour of the built judge
 

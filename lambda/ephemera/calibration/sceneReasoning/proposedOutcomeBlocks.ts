@@ -6,8 +6,9 @@
 import { renderProposedOutcome, PROPOSED_OUTCOME_AFTERS, PROPOSED_OUTCOME_FORMS, type ProposedOutcomeAfter, type ProposedOutcomeForm } from '../../dataSource/actions/sceneProse/renderProposedOutcome'
 import { PROPOSED_OUTCOME_EXPLANATION, PROPOSED_OUTCOME_FRAMING, proposedOutcomeBlock } from '../../dataSource/actions/sceneProse/frame'
 import { buildSceneFixture, type JudgeRequest, type SceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
+import type { SceneHandleTable, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { EphemeraLudicGraph } from '../../dataSource/positions/ludicGraph'
-import { dryRunProposedMoves } from '../../dataSource/positions/manipulation/proposedMoves'
+import { dryRunProposedMoves, type ProposedMove } from '../../dataSource/positions/manipulation/proposedMoves'
 import { textHash } from './runJudgeProbe'
 
 export type ProposedOutcomeOptions = {
@@ -54,24 +55,36 @@ export const parseProposedOutcomeOptions = (value: unknown): ProposedOutcomeOpti
     }
 }
 
+export type ProposalAfter =
+    | { status: 'refused'; reason: string }
+    | { status: 'legal'; moves: readonly ProposedMove[]; scene: SceneModel }
+
+/** A proposal's dry run over the fixture's graphs, and the scene after it, named with the before scene's `handles`. */
+export const proposalAfter = async (fixture: SceneFixture, handles: SceneHandleTable, moves: readonly ProposedMove[]): Promise<ProposalAfter> => {
+    const graphs = new Map(fixture.graphs.map(([hostId, payload]) => [hostId, EphemeraLudicGraph.fromFieldPayload(hostId, payload)]))
+    const outcome = await dryRunProposedMoves(moves, graphs)
+    if (outcome.verdict === 'refused') {
+        return { status: 'refused', reason: outcome.reason }
+    }
+    const afterCache = await buildSceneFixture({ ...fixture, graphs: [...outcome.graphs].map(([hostId, graph]) => [hostId, graph.toStored()]) })
+    return { status: 'legal', moves: outcome.moves, scene: afterCache.scene({ exits: fixture.exits, handleSeed: handles }).scene }
+}
+
 export const proposedOutcomesFor = async (
     fixture: SceneFixture,
     requests: readonly (readonly [number, JudgeRequest])[],
     { form, after, framing, explanation }: ProposedOutcomeOptions
 ): Promise<ReadonlyMap<number, ProposedOutcomeShown>> => {
     const { handles } = (await buildSceneFixture(fixture)).scene({ exits: fixture.exits })
-    const graphs = new Map(fixture.graphs.map(([hostId, payload]) => [hostId, EphemeraLudicGraph.fromFieldPayload(hostId, payload)]))
     return new Map(await Promise.all(requests.map(async ([index, { proposal }]): Promise<[number, ProposedOutcomeShown]> => {
         if (proposal === undefined) {
             return [index, { status: 'none' }]
         }
-        const outcome = await dryRunProposedMoves(proposal, graphs)
-        if (outcome.verdict === 'refused') {
-            return [index, { status: 'refused', reason: outcome.reason }]
+        const outcome = await proposalAfter(fixture, handles, proposal)
+        if (outcome.status === 'refused') {
+            return [index, outcome]
         }
-        const afterCache = await buildSceneFixture({ ...fixture, graphs: [...outcome.graphs].map(([hostId, graph]) => [hostId, graph.toStored()]) })
-        const { scene } = afterCache.scene({ exits: fixture.exits, handleSeed: handles })
-        const body = renderProposedOutcome({ moves: outcome.moves, handles, scene, form, after })
+        const body = renderProposedOutcome({ moves: outcome.moves, handles, scene: outcome.scene, form, after })
         return [index, { status: 'shown', text: proposedOutcomeBlock({ body, framing, explanation }) }]
     })))
 }

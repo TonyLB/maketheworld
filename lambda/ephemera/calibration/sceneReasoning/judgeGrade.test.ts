@@ -1,6 +1,6 @@
 import type { JudgeRequest } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import { JUDGE_INSTRUCTIONS } from '../../dataSource/actions/sceneProse/frame'
-import { gradeJudgeReply, judgeReplySteps, summarizeJudge, type JudgeCall } from './judgeGrade'
+import { gradeJudgeReply, judgeReplySteps, replyForm, summarizeJudge, type JudgeCall } from './judgeGrade'
 
 const reply = (answer: string, middle = ['Mentions: [teapot1] established.', 'Picture: The teapot stays.', 'Rules: none', 'Obstacle: [teapot1] is glued to [table1].', 'Needs: nothing', 'Revises (if it happens): nothing', 'Tests: obstructed (2): yes']) => [...middle, `Answer: ${answer}`].join('\n')
 
@@ -12,6 +12,12 @@ describe('judgeReplySteps', () => {
     it('reads the numbered steps of the instructions', () => {
         expect(judgeReplySteps(JUDGE_INSTRUCTIONS)).toEqual(['mentions', 'picture', 'rules', 'obstacle', 'needs', 'revises', 'tests', 'answer'])
         expect(judgeReplySteps('1. Picture: a\n- "x": b\n2. Rules: c\n3. Revises (if it happens): d\n4. Answer: e')).toEqual(['picture', 'rules', 'revises', 'answer'])
+    })
+
+    it('keeps a hyphenated step name whole, and finds it in a reply', () => {
+        const steps = judgeReplySteps('1. Changes: a\n2. Play-by-play: b\n3. Answer: c')
+        expect(steps).toEqual(['changes', 'play-by-play', 'answer'])
+        expect(replyForm('1. Changes: x\n2. Play-by-play: y\n3. Answer: better. z', steps)).toEqual({ missing: [], inOrder: true })
     })
 })
 
