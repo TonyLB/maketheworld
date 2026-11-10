@@ -1,6 +1,6 @@
 # Piece probe: a harness for small oracle pieces, and the rule cell as its first
 
-**Status (2026-11-10): step 1 done, the piece probe built ([Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe)); next, step 2, the rule cell.** The first sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5. Slice 4 took its exit (c): as one prompt, the oracle fails on Micro wherever it loops or looks back ([trail](AGENT.oracleLoop.discussion.planning.md#the-oracle-decomposes-slice-4s-exit-c-2026-11-10)). So the oracle is now built from pieces that each make one judgment per call, with code doing the loops, filters and joins. This plan builds two things:
+**Status (2026-11-10): step 1 done, the piece probe built ([Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe)); step 2a done, the sub-scene extract (`subScene`); next, step 2, the rule cell.** The first sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5. Slice 4 took its exit (c): as one prompt, the oracle fails on Micro wherever it loops or looks back ([trail](AGENT.oracleLoop.discussion.planning.md#the-oracle-decomposes-slice-4s-exit-c-2026-11-10)). So the oracle is now built from pieces that each make one judgment per call, with code doing the loops, filters and joins. This plan builds two things:
 - **The piece probe:** a harness seam that a piece plugs into with little labour.
 - **The rule cell:** the first piece plugged in. It is the user's rules-blocking piece.
 
@@ -18,8 +18,9 @@ Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an impl
    - [`handleOracleProbe.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/handleOracleProbe.ts) (refusals before the first call, hashes);
    - `judgeRulesLines` and its wordings in [`sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts);
    - the event router, [`routeCalibrationEvent.ts`](../../../../../lambda/ephemera/calibration/routeCalibrationEvent.ts);
+   - for step 2a, the scene model, [`sceneModel.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/sceneModel.ts), and the judge render, [`renderSceneJudge.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/renderSceneJudge.ts);
    - the piece probe, step 1's build: [`oraclePieces/`](../../../../../lambda/ephemera/calibration/oraclePieces/) and its [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) subsection.
-5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4546 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
+5. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null`, last 4559 passed, 9 skipped, and `npx tsc --noEmit </dev/null`, no output.
 
 ## What is inherited as settled
 
@@ -68,6 +69,23 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - the tally's counts;
      - the hashes are stable;
      - `OracleProbe` and `JudgeProbe` are unchanged.
+- [X] **Step 2a: The sub-scene extract** (user, 2026-11-10: PP-1 settled on a sub-scene). It is a reusable, deterministic tool, so it is **ordinary built code in [`sceneProse/`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/), not a Prototype** (user). It is built, tested and firm before step 2 uses it. **Consumer:** the rule cell's render (step 2), and later the other pieces, such as fits and the play-by-play, which would each want a scene limited to their things (mine). Nothing in production reads it.
+   - [X] **The function,** `subScene(scene, handles)` in [`sceneProse/subScene.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/subScene.ts), `SceneModel` to `SceneModel` (the name is mine), given the handles a piece names. It keeps:
+     - the named things;
+     - each one's physical containers up to the room or `held`, for every binding: the ancestor chain (PP-6, user);
+     - each one's abstract containers: the Concepts it points to by an `Associated` relation;
+     - the relations with both ends in the kept set. Every other relation is dropped (user).
+
+     Because the output is a scene model, the existing renderers read it unchanged.
+   - [X] **The shapes, each decided in the build and tested:**
+     - a kept container whose own parent is dropped: its chain up to the room is kept (PP-6);
+     - a spread thing (several bindings, `elsewhere`): every binding is kept, since the chain keeps each one's parent;
+     - a join (one binding with several parents): its host's every binding is kept, and a parent line's `joins` drops a join not kept;
+     - a held thing: kept under `held`, with its containers there;
+     - the room's name and gloss are kept; the exits are dropped (mine: they are not things);
+     - a handle not in the scene throws, listing the scene's handles (mine).
+   - [X] **Tests** ([`subScene.test.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/subScene.test.ts)): structural, over the scene fixtures (`teaTable`, `teaTableCupOnFloor`, `tavern` and the oracle cases' scenes), one for each shape, plus a pin of the judge render of one sub-scene. The full renders are unchanged: the sceneProse goldens and the `JudgeProbe` instructions hash `22e97265` pass unchanged.
+   - [X] **Docs:** the function's doc comment, and a line in [`dataSource/actions/AGENT.md`](../../../../../lambda/ephemera/dataSource/actions/AGENT.md) beside the scene render.
 2. [ ] **The rule cell, registered** (`oraclePieces/ruleCell.ts`), the user's rules-blocking piece.
    - **Its inputs:**
      - a fixture;
@@ -80,7 +98,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - the things the rule names;
      - each action in the window, with its motions.
 
-     The scene is left out by default (PP-1).
+     The scene is shown as the rule's things' sub-scene (step 2a), by default (PP-1). `show: 'none'` leaves it out, so the first batch can compare the two with no new code (mine). Whether the sub-scene's own Rules section is shown is PP-7.
    - **The first cells,** from the corpus and from replies we already have. Each case is written as "the play-by-play given, then the expected answer"; the IDs are mine:
 
      | Case | The play-by-play given | Expected |
@@ -123,7 +141,9 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | ID | Question | Informs build | Settled by | Status |
 | --- | --- | --- | --- | --- |
-| PP-1 | Does the rule cell see the scene, or only the rule, its things and their motions? Mine: none of the scene by default, since Slice 4's replies wandered into the scene's text, with `show.scene` as an option | Step 2's render | The first batch, with a second invoke under `show.scene` if a cell needs what a thing is (a table's legs, a chain's length) | Open; default none |
+| PP-1 | Does the rule cell see the scene, or only the rule, its things and their motions? Mine was none of the scene by default, since Slice 4's replies wandered into the scene's text | Step 2a, and step 2's render | The user, 2026-11-10 | **Settled: a sub-scene,** a hybrid of the two (user). It shows the things the rule names, their direct containers, both physical and abstract, and the relations within that set; physical containers up to the room, per PP-6. It keeps what a cell needs to know about what a thing is and where it sits (OC-20's wall, the floor under OC-30/2's table), and leaves out the rest of the scene that replies wandered into. Built as step 2a, in `sceneProse/`, as a reusable deterministic tool (user). `show: 'none'` stays as an option for comparison (mine) |
+| PP-6 | A kept container whose own parent is dropped: a teapot on a tray on a table keeps the tray, and a tray at the top level renders as in the room, which is false. Keep the container's chain up to the room, which loosens "direct", or mark its location as not shown, which needs a small addition to the scene model, since a top-level entry means in the room | Step 2a | The user, 2026-11-10 | **Settled: the ancestor chain** (user). A kept thing keeps its physical containers up to the room or `held`, for every binding. The kept set is then closed under "parent of any binding", so a spread thing's `elsewhere`, a join's `host` and `across`, and `first` never name a dropped line, and the scene model and renderers are unchanged |
+| PP-7 | The sub-scene's Rules section. The cell's render states its rule once, so a Rules section would state it again, with any other securing inside the set: the competing sentences of L-2b and L-34. Mine: leave it out, and let the drafts try showing the other rules inside the set. Step 2a's pinned judge render of `teaTableChained` for the teapot's rule shows the section limited to the set: the teapot's rule stays, and the table's chain to the wall goes with the wall | Step 2's render | The first batches | Open; mine, default out |
 | PP-2 | The call cap for a piece. Its calls are short, and the tally is read by code, which were reasons for the cap of 12 | Step 1's refusals: a cap of its own, `PIECE_PROBE_CALL_CAP`, apart from the shared `PROBE_CALL_CAP` | The user, 2026-11-10 | **Settled: 24 per invoke.** The premise is that decomposing makes calls shorter. If a piece's calls get long enough for 24 to become onerous, that's a different kind of problem, a sign the piece is too big, not a reason to change the cap (user) |
 | PP-3 | The rule wording for the cell: `v45`, `violation` or `inForce`. Mine: `inForce`, since its "blocks" matches the answer set. The drafts can try the others as an option, with no new code | Step 2's default | The first batches | Open |
 | PP-4 | Where a piece's drafts live: `oracleLoopDrafts/` (numbering carried on, mixed with the one-prompt drafts), or a directory per piece, such as `oraclePieceDrafts/ruleCell/`, with its own numbering and `iterations.md`. Mine: a directory per piece, owned by the parent like `oracleLoopDrafts/` | Step 3 | The user's call | Open |
@@ -138,7 +158,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 ## Verification
 
-- **Steps 1 and 2:** from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`. The built judge is unchanged: a flag-off `JudgeProbe` still reports instructions hash `22e97265`. `OracleProbe`'s tests pass unchanged.
+- **Steps 1, 2a and 2:** from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`. The built judge is unchanged: a flag-off `JudgeProbe` still reports instructions hash `22e97265`. `OracleProbe`'s tests pass unchanged.
 - **A draft:** its tally, against the rubric written before the batch.
 - **Links:** every relative link and anchor in this plan and the parent resolves.
 
@@ -147,6 +167,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | Step | State |
 | --- | --- |
 | The piece probe | Done 2026-11-10: `PieceProbe` in `calibration/oraclePieces/`, no piece registered yet |
+| The sub-scene extract (2a) | Done 2026-11-10: `subScene` in `sceneProse/subScene.ts`, PP-6 settled on the ancestor chain |
 | The rule cell, registered | Not started |
 | Draft 1 and its batch | Not started |
 | The drafting loop | Not started |
