@@ -152,7 +152,7 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 { "type": "PieceProbe", "piece": "ruleCell", "instructions": "...", "repeats": 3, "model": "NovaMicro" }
 ```
 
-- **A piece plugs in with a registration** ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)), listed in [`pieces.ts`](oraclePieces/pieces.ts) through `registerPiece`:
+- **A piece plugs in with a registration** ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)), listed in [`pieces.ts`](oraclePieces/pieces.ts) through `registerPiece`. A piece is **answered** or **read**; the registration below is the answered kind, and [a read piece](#a-read-piece) differs where it says so:
   - `name`;
   - `answers`, its closed answer set;
   - `cells` by ID, each with its `inputs`, `expected` answer, `source` (the batch and reply it was lifted from, or `hand-written`) and an optional `note`;
@@ -163,13 +163,23 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   A piece that needs more than this to plug in is the plan's revision trigger.
 - `piece` is required. `cells` defaults to all of the piece's cells. `instructions` is required, since a piece has no built prompt. `repeats` defaults to 1, `model` to `NovaMicro`, and `options` goes to the piece.
 - **Cap: called cells x repeats <= 24** (`PIECE_PROBE_CALL_CAP`, its own constant, apart from the other probes' 12). Cells answered by code don't count. Every refusal happens before the first call: an unknown piece or cell, no instructions, bad repeats or model, options the piece refuses, over the cap, or a render that fails.
-- The prompt is the instructions, a blank line, then the cell's render. There is no recap and no form check.
+- The prompt is the instructions, a blank line, then the cell's render. There is no recap, and an answered piece has no form check beyond its grade.
 - **Grading** ([`pieceAnswer.ts`](oraclePieces/pieceAnswer.ts)): a reply that ends in a JSON object, best as a trailing fenced `json` block after prose reasoning, is graded by its string `answer` field, trimmed and lowercased. The split is `splitMarkdownReasoningAndJson` in [`llm/`](../llm/AGENT.md), the house shape for reasoning then JSON. Any other reply is graded by its last line starting `Answer:`: its first word, lowercased and with trailing punctuation dropped. Anything after that first word is ignored. When a reply has both, the JSON wins. A reply with neither, JSON that doesn't parse or has no string `answer`, or an answer outside the set, is `malformed`, with the reason. The verdict goes last, as Micro needs.
 - **Returns:**
   - the instructions' `hash` and `chars`, and the parsed `options`;
   - **`cells` first:** for each cell, its `expected` answer; `n` calls, with `right`, `wrong`, `malformed` and `errors`; the `answers` given, with counts; `byCode` (the answer and whether it is right) where code answered; and the rendered inputs' `hash`;
   - `summary`: calls, right, wrong, malformed, errors, and the count of cells answered by code;
   - `read`: every call, with its reply and grade, for reading the wrong ones.
+
+#### A read piece
+
+A piece with no closed answer set, such as a generator, is registered with `kind: 'read'` ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)) and graded by hand: code checks form, and a reader reads the replies. The call loop, the refusals, the cap and the prompt are the same as an answered piece's.
+- **Registration:** `name`, `cells`, `parseOptions` and `render` as above, with no `answers` and no `byCode` (every cell is called). Each cell carries a `lookFor`, what a reader looks for, written before the batch, in place of `expected`. And `check(reply, cell)` gives the form problems of one reply as a list of reasons, empty when it passes.
+- **Returns** ([`readPiece.ts`](oraclePieces/readPiece.ts)):
+  - the instructions' `hash` and `chars`, and the parsed `options`;
+  - **`cells` first:** for each cell, its `lookFor`; `n` calls, with `formPasses`, `formFails` and `errors`; each failure's `problems` with its repeat; and the rendered inputs' `hash`;
+  - `summary`: calls, form fails and errors;
+  - `read`: **the replies grouped by cell**, in the order asked, each group with its `lookFor` and its replies (repeat, reply and form problems, or the call's error).
 
 **The rule cell** (`ruleCell`, [`oraclePieces/ruleCell.ts`](oraclePieces/ruleCell.ts)) is the first piece, the user's rules-blocking piece. Its answers are `blocks` and `allows`.
 - **A cell's inputs:**

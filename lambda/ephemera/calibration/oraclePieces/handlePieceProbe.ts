@@ -3,8 +3,9 @@ import { isNovaModel, type NovaModel } from '../../llm/novaModel'
 import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudgeProbe'
 import { textHash } from '../sceneReasoning/runJudgeProbe'
 import { PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import type { OraclePiece } from './oraclePiece'
+import type { RegisteredPiece } from './oraclePiece'
 import { oraclePieces } from './pieces'
+import { groupRead, runReadPiece, summarizeRead, tallyRead, type PreparedReadCell } from './readPiece'
 import { runPieceProbe, summarizePiece, tallyPiece, type PreparedCell } from './runPieceProbe'
 
 export type PieceProbeEvent = {
@@ -21,7 +22,7 @@ export type PieceProbeEvent = {
     options?: unknown
 }
 
-export type PieceProbeDeps = { invoke?: ProbeInvoke; pieces?: Record<string, OraclePiece> }
+export type PieceProbeDeps = { invoke?: ProbeInvoke; pieces?: Record<string, RegisteredPiece> }
 
 /** The piece probe's own cap (user): a piece's calls are short, and a sign of a piece too big is long calls, not a higher cap. */
 export const PIECE_PROBE_CALL_CAP = 24
@@ -62,14 +63,14 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     if (typeof options === 'string') {
         return refuse(options)
     }
-    const byCode = new Map(asked.map((id) => [id, piece.byCode?.(piece.cells[id])]))
+    const byCode = new Map(asked.map((id) => [id, piece.kind === 'read' ? undefined : piece.byCode?.(piece.cells[id])]))
     const called = asked.filter((id) => byCode.get(id) === undefined).length
     if (called * repeats > PIECE_PROBE_CALL_CAP) {
         return refuse(`${called} called cells x ${repeats} repeats = ${called * repeats} calls, over the cap of ${PIECE_PROBE_CALL_CAP}; trim cells or repeats`)
     }
     const rendered = await Promise.all(asked.map(async (id) => {
         try {
-            return { id, text: await piece.render(piece.cells[id], options) }
+            return { id, text: await (piece.kind === 'read' ? piece.render(piece.cells[id], options) : piece.render(piece.cells[id], options)) }
         } catch (error) {
             return { id, error: error instanceof Error ? error.message : String(error) }
         }
@@ -77,6 +78,25 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     const failed = rendered.find(({ error }) => error !== undefined)
     if (failed !== undefined) {
         return refuse(`cell ${failed.id}: the render failed (${failed.error}), a cell-data error`)
+    }
+    if (piece.kind === 'read') {
+        const readCells = rendered.map(({ id, text = '' }): PreparedReadCell => ({ cell: id, lookFor: piece.cells[id].lookFor, rendered: text }))
+        const readCalls = await runReadPiece({
+            cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id]),
+            ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
+        })
+        const readTallies = tallyRead(readCells, readCalls)
+        return calibrationJsonResponse(200, {
+            piece: piece.name,
+            model,
+            temperature: PROBE_TEMPERATURE,
+            repeats,
+            options,
+            instructions: { hash: textHash(instructions), chars: instructions.length },
+            cells: readTallies,
+            summary: summarizeRead(readTallies),
+            read: groupRead(readCells, readCalls),
+        })
     }
     const prepared = rendered.map(({ id, text = '' }): PreparedCell => {
         const answer = byCode.get(id)

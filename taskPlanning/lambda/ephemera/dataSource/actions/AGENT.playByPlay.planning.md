@@ -1,6 +1,6 @@
 # Play-by-play: the oracle's generative piece, read by hand
 
-**Status (2026-11-10): written, not started; next, step 1, the piece probe's reading mode.** The second sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, after the rule cell ([`oracleLoopDrafts/ruleCell/`](oracleLoopDrafts/ruleCell/iterations.md)). The play-by-play says what each thing does as a candidate's actions happen, transient motion included ([the oracle as stages](AGENT.oracleLoop.planning.md#the-oracle-as-stages)). Its output is the rule cell's input, and later the non-rule blocker's. This plan builds two things:
+**Status (2026-11-10): step 1 built, the piece probe's reading mode; next, step 2, the play-by-play registered.** The second sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, after the rule cell ([`oracleLoopDrafts/ruleCell/`](oracleLoopDrafts/ruleCell/iterations.md)). The play-by-play says what each thing does as a candidate's actions happen, transient motion included ([the oracle as stages](AGENT.oracleLoop.planning.md#the-oracle-as-stages)). Its output is the rule cell's input, and later the non-rule blocker's. This plan builds two things:
 - **A reading mode for the piece probe,** for a piece with no closed answer set: code checks each reply's form, and the replies are read by hand.
 - **The play-by-play,** registered on it and drafted until it settles.
 
@@ -47,19 +47,19 @@ The parent's [inherited premises](AGENT.oracleLoop.planning.md#what-is-inherited
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
-1. [ ] **The piece probe's reading mode.** A change to the probe, which is the piece probe's revision trigger firing: a second piece needs more than a registration to plug in (expected, from the user's principle above). **Rests on** the user's principle that a generator is read by hand. **Consumer:** the play-by-play (step 2), then its draft 1 run by the user (step 3). **Revision trigger:** the reading mode needs a third shape of piece, or the form check can't be written as a function of one reply and its cell.
-   - [ ] **The registration** grows a second kind (mine, details decided in the build). A piece is either:
+1. [X] **The piece probe's reading mode.** Built 2026-11-10; tests and `tsc` pass (4611 passed, 9 skipped). The registration is a second kind (`kind: 'read'`, `ReadPiece`) in `oraclePiece.ts`, run and tallied in `readPiece.ts`, branched in `handlePieceProbe.ts`; `ruleCell.ts` and its tests are untouched. `check` gives `string[]`. A change to the probe, which is the piece probe's revision trigger firing: a second piece needs more than a registration to plug in (expected, from the user's principle above). **Rests on** the user's principle that a generator is read by hand. **Consumer:** the play-by-play (step 2), then its draft 1 run by the user (step 3). **Revision trigger:** the reading mode needs a third shape of piece, or the form check can't be written as a function of one reply and its cell.
+   - [X] **The registration** grows a second kind (mine, details decided in the build). A piece is either:
      - **answered,** as now: `answers`, and an `expected` per cell, tallied by code; or
      - **read:** no answer set. It has a `check(reply, cell)` that gives the form problems of one reply (none when it passes), and each cell carries a `lookFor` in place of `expected`: what a reader looks for, written before the batch.
 
      The rest of the registration (`cells`, `parseOptions`, `render`, `byCode`) is shared. `ruleCell` is unchanged.
-   - [ ] **The result** for a read piece:
+   - [X] **The result** for a read piece:
      - the instructions' hash and length;
      - **per cell first:** its `lookFor`; the form passes and fails of n, with each failure's reason; the rendered inputs' hash;
      - a summary: calls, form fails, errors;
      - then **the replies grouped by cell,** for reading, each with its form problems.
-   - [ ] **The cap** stays 24 per invoke (PP-2, the user's: long calls mean a piece too big, not a higher cap).
-   - [ ] **Tests,** following `handlePieceProbe.test.ts`, with a toy read piece: a passing and a failing reply, the grouping, the hashes stable, and the answered piece's results byte for byte unchanged (`ruleCell.test.ts` passes unchanged).
+   - [X] **The cap** stays 24 per invoke (PP-2, the user's: long calls mean a piece too big, not a higher cap).
+   - [X] **Tests,** following `handlePieceProbe.test.ts`, with a toy read piece: a passing and a failing reply, the grouping, the hashes stable, and the answered piece's results byte for byte unchanged (`ruleCell.test.ts` passes unchanged).
 2. [ ] **The play-by-play, registered** (`oraclePieces/playByPlay.ts`), a read piece.
    - **Its inputs:**
      - a fixture;
@@ -106,7 +106,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | PB-1 | Which things the play-by-play describes. A thing the plan doesn't name can still move: OC-1's teapot, OC-30/2's saucer. Mine: for the probe, each cell lists its things by hand; computing them (the plan's things, what is on or in them, and the ends of the rules naming them) is code booked for the composition probe | Step 2's inputs | The user's call | Open; mine, by hand |
 | PB-2 | Whether the play-by-play sees the rules. Seeing them risks PR-1, the motion written to fit the rule; the Fiction says "glued to" either way. Mine: the sub-scene's Rules section off by default, built as an option so a batch can compare | Step 2's render | The first batches | Open; mine, off |
 | PB-3 | Whether the play-by-play sees the candidate's changes (the after-state), where a template gives them. Mine: not in draft 1, since the stages table puts Changes first but Slice 2.5 found an after-state shown and not read | Step 2's render | The drafts | Open; mine, not shown. A library entry, not built until a draft asks |
-| PB-4 | Where the reading mode lives: a second kind of `OraclePiece`, or a separate registration and event. Mine: a second kind of the same registration and the same `PieceProbe` event, so the call loop, the refusals and the cap are shared | Step 1 | The build | Open; mine, one registration |
+| PB-4 | Where the reading mode lives: a second kind of `OraclePiece`, or a separate registration and event. Mine: a second kind of the same registration and the same `PieceProbe` event, so the call loop, the refusals and the cap are shared | Step 1 | The build | Settled by the build (2026-11-10), mine: `ReadPiece` beside `OraclePiece` in one registry (`RegisteredPiece`), the same event. The revision trigger's second clause held: the form check is a function of one reply and its cell |
 
 ## How we work
 
@@ -125,7 +125,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | Step | State |
 | --- | --- |
-| The reading mode | Not started |
+| The reading mode | Done 2026-11-10 |
 | The play-by-play, registered | Not started |
 | Draft 1 and its batch | Not started |
 | The drafting loop | Not started |
