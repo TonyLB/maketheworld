@@ -115,6 +115,7 @@ describe('judgeRules, a rule in parts', () => {
             fact: '[teapot1] is glued to [table1].',
             enforcing: 'This rule blocks an action that moves [teapot1] and [table1] relative to each other more than "glued to" allows, and allows an action that moves them together.',
             voiding: 'An action that makes it no longer true that [teapot1] is glued to [table1] voids this rule.',
+            consequence: 'When [table1] changes its position or orientation, [teapot1] moves with it.',
         }
         expect(judgeRules(sceneOf(contents, { teapot1: [glued('table1')] }))).toEqual([{
             handle: 'teapot-secured-to-table', ends: ['teapot1', 'table1'], sentence: expect.any(String), parts,
@@ -128,7 +129,15 @@ describe('judgeRules, a rule in parts', () => {
             fact: '[boat1] is secured to something not shown here.',
             enforcing: 'This rule blocks an action that moves [boat1] relative to that thing more than "secured to" allows.',
             voiding: 'An action that makes it no longer true that [boat1] is secured to it voids this rule.',
+            consequence: 'When what [boat1] is secured to changes its position or orientation, [boat1] moves with it.',
         })
+    })
+
+    it('runs the consequence from what the subject is secured to, whatever hosts what', () => {
+        const chained = judgeRules(sceneOf([entry('table1'), entry('wall1')], { table1: [{ kind: 'SecuredTo', target: { kind: 'thing', handle: 'wall1' } }] }))
+        expect(chained[0].parts.consequence).toBe('When [wall1] changes its position or orientation, [table1] moves with it.')
+        const hostSecured = judgeRules(sceneOf([entry('table1', [entry('teapot1')])], { table1: [glued('teapot1')] }))
+        expect(hostSecured[0].parts.consequence).toBe('When [teapot1] changes its position or orientation, [table1] moves with it.')
     })
 
     it('gives the same parts in every wording', () => {

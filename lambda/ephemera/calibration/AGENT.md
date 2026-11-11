@@ -152,7 +152,7 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 { "type": "PieceProbe", "piece": "ruleCell", "instructions": "...", "repeats": 3, "model": "NovaMicro" }
 ```
 
-- **A piece plugs in with a registration** ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)), listed in [`pieces.ts`](oraclePieces/pieces.ts) through `registerPiece`:
+- **A piece plugs in with a registration** ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)), listed in [`pieces.ts`](oraclePieces/pieces.ts) through `registerPiece`. A piece is **answered** or **read**; the registration below is the answered kind, and [a read piece](#a-read-piece) differs where it says so:
   - `name`;
   - `answers`, its closed answer set;
   - `cells` by ID, each with its `inputs`, `expected` answer, `source` (the batch and reply it was lifted from, or `hand-written`) and an optional `note`;
@@ -163,13 +163,23 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   A piece that needs more than this to plug in is the plan's revision trigger.
 - `piece` is required. `cells` defaults to all of the piece's cells. `instructions` is required, since a piece has no built prompt. `repeats` defaults to 1, `model` to `NovaMicro`, and `options` goes to the piece.
 - **Cap: called cells x repeats <= 24** (`PIECE_PROBE_CALL_CAP`, its own constant, apart from the other probes' 12). Cells answered by code don't count. Every refusal happens before the first call: an unknown piece or cell, no instructions, bad repeats or model, options the piece refuses, over the cap, or a render that fails.
-- The prompt is the instructions, a blank line, then the cell's render. There is no recap and no form check.
+- The prompt is the instructions, a blank line, then the cell's render. There is no recap, and an answered piece has no form check beyond its grade.
 - **Grading** ([`pieceAnswer.ts`](oraclePieces/pieceAnswer.ts)): a reply that ends in a JSON object, best as a trailing fenced `json` block after prose reasoning, is graded by its string `answer` field, trimmed and lowercased. The split is `splitMarkdownReasoningAndJson` in [`llm/`](../llm/AGENT.md), the house shape for reasoning then JSON. Any other reply is graded by its last line starting `Answer:`: its first word, lowercased and with trailing punctuation dropped. Anything after that first word is ignored. When a reply has both, the JSON wins. A reply with neither, JSON that doesn't parse or has no string `answer`, or an answer outside the set, is `malformed`, with the reason. The verdict goes last, as Micro needs.
 - **Returns:**
   - the instructions' `hash` and `chars`, and the parsed `options`;
   - **`cells` first:** for each cell, its `expected` answer; `n` calls, with `right`, `wrong`, `malformed` and `errors`; the `answers` given, with counts; `byCode` (the answer and whether it is right) where code answered; and the rendered inputs' `hash`;
   - `summary`: calls, right, wrong, malformed, errors, and the count of cells answered by code;
   - `read`: every call, with its reply and grade, for reading the wrong ones.
+
+#### A read piece
+
+A piece with no closed answer set, such as a generator, is registered with `kind: 'read'` ([`oraclePiece.ts`](oraclePieces/oraclePiece.ts)) and graded by hand: code checks form, and a reader reads the replies. The call loop, the refusals, the cap and the prompt are the same as an answered piece's.
+- **Registration:** `name`, `cells`, `parseOptions` and `render` as above, with no `answers` and no `byCode` (every cell is called). Each cell carries a `lookFor`, what a reader looks for, written before the batch, in place of `expected`. And `check(reply, cell)` gives the form problems of one reply as a list of reasons, empty when it passes. An optional `maxTokens` raises the output cap per call from the judge probe's 512 (the play-by-play's is 1024).
+- **Returns** ([`readPiece.ts`](oraclePieces/readPiece.ts)):
+  - the instructions' `hash` and `chars`, and the parsed `options`;
+  - **`cells` first:** for each cell, its `lookFor`; `n` calls, with `formPasses`, `formFails` and `errors`; each failure's `problems` with its repeat; and the rendered inputs' `hash`;
+  - `summary`: calls, form fails and errors;
+  - `read`: **the replies grouped by cell**, in the order asked, each group with its `lookFor` and its replies (repeat, reply and form problems, or the call's error).
 
 **The rule cell** (`ruleCell`, [`oraclePieces/ruleCell.ts`](oraclePieces/ruleCell.ts)) is the first piece, the user's rules-blocking piece. Its answers are `blocks` and `allows`.
 - **A cell's inputs:**
@@ -178,7 +188,7 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   - the plan's actions in order, each with what the play-by-play says each of the rule's things does (`motions`, keyed by exactly the rule's two ends);
   - optionally `voidedAt`, the action that voids the rule, counted from 1.
 - **The window** is code's: the actions before the voiding one, or all of them. An empty window is `allows` by code. So every action the cell sees is one the rule is in force for.
-- **The rule is shown in parts** (user, 2026-11-10): its fact and its enforcing rubric, from `judgeRules`' `parts`, with nothing about voiding or being in force. A rule in the abstract has an enforcing rubric and a voiding rubric, and each piece shows only the one it judges. The one-prompt wordings (`v45`, `violation`, `inForce`) are unchanged.
+- **The rule is shown in parts** (user, 2026-11-10): its fact and its enforcing rubric, from `judgeRules`' `parts`, with nothing about voiding or being in force. A rule in the abstract has an enforcing rubric, a voiding rubric and a consequence, and each piece shows only the part it uses. The consequence (user, 2026-11-10) is what the rule does when the thing its subject is secured to changes its position or orientation: the subject moves with it. It runs from the securing edge's target to its subject, so moving the subject away is left to the enforcing rubric. The one-prompt wordings (`v45`, `violation`, `inForce`) are unchanged.
 - **Options:**
   - `show` (`subScene` or `none`), by default the rule's things' [sub-scene](../dataSource/actions/AGENT.md), which keeps what a cell needs to know about what each thing is and where it sits, and leaves out the rest of the scene that one-prompt replies wandered into (user);
   - `sceneRules`, whether the sub-scene shows its own Rules section, in the `v45` wording, by default `false` (user: the cell doesn't judge rules that interact).
@@ -191,6 +201,16 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   The render throws on cell data that doesn't fit the fixture: an unknown rule, motions naming other things than the rule's, or a `voidedAt` that is not an action. The probe turns that into a refusal.
 - **Cells:** `OC-1`, `OC-6/tilted`, `OC-6/stays`, `OC-30/2/tipped`, `OC-30/2/together`, `OC-30/2/slides`, `OC-19/voided` (by code), `OC-19/glued` and `OC-20`. Each is graded given its play-by-play. `OC-6/stays` is wrong about the case on purpose. The motion wording is hand-written, paraphrased where a cell cites batch 16, and reviewed by the user. `OC-30/2/slides` was added after draft 1, to test whether the lines are read when the action sounds like moving together and the lines say the two move apart.
 - **Settled on draft 3** (2026-11-10, Micro; [`oracleLoopDrafts/ruleCell/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/ruleCell/iterations.md)): 46 of 48 calls right over two batches, 0 malformed. The draft asks for one or two sentences on what the lines say about how the two things move relative to each other, then the verdict as a fenced `json` block. The two misses were on different cells. One was a half-wrong description. The other was a right description followed by a verdict that doesn't follow from it, which is left open. Text after the block, which about half the replies add, is graded as long as it holds no brace.
+
+**The play-by-play** (`playByPlay`, [`oraclePieces/playByPlay.ts`](oraclePieces/playByPlay.ts)) is the first read piece: what each listed thing does physically in each of a candidate's actions. Its drafts are in [`oracleLoopDrafts/playByPlay/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/playByPlay/iterations.md). Its plan exited (c) on 2026-11-11: the play-by-play is the first ask of the imagination, the family of generating prompts, and the [imagination plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.imagination.planning.md) renames it `imagination`, with the ask as an input.
+- **A cell's inputs:**
+  - a fixture;
+  - the actions in order, each in its words, read from the [oracle probe](#oracle-probe)'s case where there is one;
+  - the things to describe, by handle, listed by hand.
+- **Option:** `rules`, `none` (the default) or `consequence`: the sub-scene's rules shown as each rule's fact and its consequence, with nothing about blocking, since whether a rule blocks is the rule cell's, and seeing it risks a motion written to fit it (user, 2026-11-10). It replaced a `sceneRules` boolean that showed the `v45` sentences.
+- **The render:** the [sub-scene](../dataSource/actions/AGENT.md) of the listed things and of every handle the actions name, as the judge shows it; `Action n: …` for each action; then `The things: [a], [b], …`. It throws when there are no actions or no things, a thing is listed twice, or a handle isn't in the fixture.
+- **The form check:** the reply ends in a fenced `json` block (read through `splitMarkdownReasoningAndJson`) whose `actions` has one entry per action. Each entry maps some of the listed handles, and no others, to non-empty strings: a listed thing with no line is silent, and stays in its frame (user, 2026-11-10). A key is read with or without its brackets (`[teapot1]` is `teapot1`), and where both spellings appear their lines are merged (user, 2026-11-10). That is the rule cell's `motions` for any pair of the things. Each problem is named: no block, a block that doesn't parse, no `actions`, the wrong count, or, per action, an entry that isn't an object, a handle not listed, or a line that is empty or not a string.
+- **Cells:** `OC-1`, `OC-6`, `OC-30/2`, `OC-19` and `OC-20`, each with what a reader looks for. `OC-20`'s action is hand-written, since the oracle probe has no candidate for it.
 
 ### The built judge prompt (v45)
 
@@ -242,6 +262,15 @@ What the rule cell drafts 1 to 3 showed (2026-11-10; [`oracleLoopDrafts/ruleCell
 - **A sentence about form can move the judgment.** Moving the verdict from an `Answer:` line into a JSON block, with nothing else changed, cost 10 of 24. Probe a form change like any other.
 - **A verdict on a labelled last line gets joined onto the line before it** (14 of 45 calls), even though each answer was right. A trailing fenced `json` block, read through `llm/`'s `splitMarkdownReasoningAndJson`, had none.
 - **Write pronouns out in the inputs as well as in the instructions.** "Slides across [table1] as it tips" was read once as the two moving together. "As [table1] tips" was read right 3 of 3.
+
+What the play-by-play drafts 1 to 10 showed (2026-11-10 to 2026-11-11; [`oracleLoopDrafts/playByPlay/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/playByPlay/iterations.md)), on a generator read by hand:
+
+- **One call can't both keep an action succeeding and report what undoes its purpose.** Over seven whole-scene drafts, the knock-on (a saucer sliding off a tipped table) never held alongside the actions succeeding. The same sentence carried one or the other: "what each … has to do physically for the action to happen" kept the action succeeding, and "how each of the things … moves" freed the knock-on. Ask them in separate calls, each with its own wording.
+- **Say that the action happens.** "For the action to happen" is the premise that keeps a method ordinary. Cut, the reply narrates an attempt and lets the rule settle it ("You attempt to lift the table, but the chain …").
+- **A focus that names a secured pair asks the rule's question.** "With a particular eye for how [teapot1] moves relative to [table1]", with "glued to" in the scene, gave "the teapot doesn't move relative to the table" 3 of 3.
+- **Give a fact somewhere to go.** Shown the glue with no other place for it, the reply wrote it into the motion. Given a separate `problems` list, it flagged the glue and wrote the method the ordinary way (0 of 3 to 3 of 3). "Might get in the way of doing it that way" kept the problems hypothetical, beside the method; "runs into" made them actual, inside the steps, and the method was bent to avoid them.
+- **Examples are copied in shape.** Example lines labelled "Play-by-play:" were copied into the JSON block as sentences, and examples with `Relations` and `In the telling` lines brought those sections into replies. Keep an example to what the reply should copy.
+- **Grain is shown, not said.** "Briefly" was in every draft and never held; "step by step" and "possible problems" were read as every motion of the hands and every ordinary risk. Examples at the wanted grain moved it. Give a simple example the same grain as the rest, or simple cases get coarser replies.
 
 ### Known behaviour of the built judge
 

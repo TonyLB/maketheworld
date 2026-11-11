@@ -148,8 +148,12 @@ const inForceSentence = (subject: SceneHandle, target: SceneRelationTarget, word
  * A rule in parts (user, 2026-11-10, for the oracle's pieces): the fact behind it, the rubric for enforcing it, and the rubric for voiding it. A rule
  * in the abstract has both rubrics, and a piece of the oracle shows only the one it judges: the rule cell, which judges actions the rule
  * is in force for, the fact and the enforcing rubric. The parts don't depend on a wording; the wordings above stay as they were.
+ *
+ * The consequence (user, 2026-11-10, for the play-by-play) is what the rule does when the thing its subject is secured to is the one moved:
+ * the subject goes with it. It runs one way, from the securing edge's target to its subject, so an action that moves the subject away is
+ * left to the enforcing rubric. Its terms are the frame model's, a change of position or orientation.
  */
-export type JudgeRuleParts = { fact: string; enforcing: string; voiding: string }
+export type JudgeRuleParts = { fact: string; enforcing: string; voiding: string; consequence: string }
 
 const ruleParts = (subject: SceneHandle, target: SceneRelationTarget, words: string): JudgeRuleParts => {
     if (target.kind !== 'thing') {
@@ -157,6 +161,7 @@ const ruleParts = (subject: SceneHandle, target: SceneRelationTarget, words: str
             fact: `${bracket(subject)} is ${words} something not shown here.`,
             enforcing: `This rule blocks an action that moves ${bracket(subject)} relative to that thing more than "${words}" allows.`,
             voiding: `An action that makes it no longer true that ${bracket(subject)} is ${words} it voids this rule.`,
+            consequence: `When what ${bracket(subject)} is ${words} changes its position or orientation, ${bracket(subject)} moves with it.`,
         }
     }
     const [one, other] = [bracket(subject), bracket(target.handle)]
@@ -164,6 +169,7 @@ const ruleParts = (subject: SceneHandle, target: SceneRelationTarget, words: str
         fact: `${one} is ${words} ${other}.`,
         enforcing: `This rule blocks an action that moves ${one} and ${other} relative to each other more than "${words}" allows, and allows an action that moves them together.`,
         voiding: `An action that makes it no longer true that ${one} is ${words} ${other} voids this rule.`,
+        consequence: `When ${other} changes its position or orientation, ${one} moves with it.`,
     }
 }
 

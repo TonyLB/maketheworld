@@ -1,6 +1,6 @@
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from './handlePieceProbe'
-import { registerPiece, type OraclePiece } from './oraclePiece'
+import { registerPiece, type RegisteredPiece } from './oraclePiece'
 
 /** A toy piece: a cell's inputs are a word, rendered as a line; an empty word is answered `no` by code. */
 const TOY = registerPiece<{ word: string }, { shout: boolean }>({
@@ -28,7 +28,30 @@ const TOY = registerPiece<{ word: string }, { shout: boolean }>({
     },
     byCode: ({ inputs: { word } }) => (word === '' ? 'no' : undefined),
 })
-const pieces: Record<string, OraclePiece> = { toy: TOY }
+/** A toy read piece: a reply passes when it ends in a fenced json block holding a non-empty string `line`. */
+const TOY_READ = registerPiece<{ word: string }, undefined>({
+    kind: 'read',
+    name: 'toyRead',
+    cells: {
+        A: { inputs: { word: 'apple' }, lookFor: 'mentions fruit', source: 'hand-written' },
+        B: { inputs: { word: 'brick' }, lookFor: 'mentions building', source: 'hand-written' },
+    },
+    check: (reply, { inputs: { word } }) => {
+        const match = reply.trim().match(/```json\n([\s\S]*)\n```$/)
+        if (match === null) {
+            return ['no json block']
+        }
+        try {
+            const { line } = JSON.parse(match[1])
+            return typeof line === 'string' && line.length > 0 ? [] : [`no line for ${word}`]
+        } catch {
+            return ['the json block does not parse']
+        }
+    },
+    parseOptions: () => undefined,
+    render: async ({ inputs: { word } }) => `Word: ${word}`,
+})
+const pieces: Record<string, RegisteredPiece> = { toy: TOY, toyRead: TOY_READ }
 const INSTRUCTIONS = 'Is the word edible?\nAnswer: yes or Answer: no'
 
 const invokeReplying = (reply: (prompt: string) => string) => jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => ({
@@ -125,5 +148,61 @@ describe('handlePieceProbe', () => {
     it('says when no piece is registered', async () => {
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', instructions: INSTRUCTIONS }, { pieces: {} })
         expect(body(response).error).toBe('piece must be one of: (none registered)')
+    })
+
+    describe('a read piece', () => {
+        const GOOD = 'Thinking.\n```json\n{ "line": "falls" }\n```'
+        const ask = (event: Record<string, unknown>, invoke: ReturnType<typeof invokeReplying>) => (
+            handlePieceProbe({ type: 'PieceProbe', piece: 'toyRead', instructions: INSTRUCTIONS, ...event }, { invoke, pieces })
+        )
+
+        it('checks each reply\'s form, tallies it per cell with its look-for, and groups the replies by cell', async () => {
+            const replies = [GOOD, 'no block here', '```json\n{ "line": "" }\n```']
+            let next = 0
+            const invoke = invokeReplying((prompt) => (prompt.endsWith('apple') ? replies[next++] : GOOD))
+            const response = await ask({ repeats: 3 }, invoke)
+            expect(response.statusCode).toBe(200)
+            const result = body(response)
+            expect(invoke).toHaveBeenCalledTimes(6)
+            expect(promptOf(invoke, 0)).toBe(`${INSTRUCTIONS}\n\nWord: apple`)
+            expect(result.cells.map(({ inputs, ...tally }: { inputs: unknown }) => tally)).toEqual([
+                { cell: 'A', lookFor: 'mentions fruit', n: 3, formPasses: 1, formFails: 2, failures: expect.any(Array), errors: 0 },
+                { cell: 'B', lookFor: 'mentions building', n: 3, formPasses: 3, formFails: 0, failures: [], errors: 0 },
+            ])
+            expect(result.cells[0].failures.map(({ problems }: { problems: string[] }) => problems).sort()).toEqual([['no json block'], ['no line for apple']])
+            expect(result.summary).toEqual({ calls: 6, formFails: 2, errors: 0 })
+            expect(result.read.map(({ cell, lookFor, replies }: { cell: string; lookFor: string; replies: unknown[] }) => [cell, lookFor, replies.length])).toEqual([
+                ['A', 'mentions fruit', 3], ['B', 'mentions building', 3],
+            ])
+            expect(result.read[0].replies.map(({ repeat }: { repeat: number }) => repeat)).toEqual([1, 2, 3])
+            expect(result.read[0].replies.find(({ reply }: { reply: string }) => reply === 'no block here')).toEqual({ repeat: expect.any(Number), reply: 'no block here', problems: ['no json block'] })
+            expect(result.read[1].replies[0]).toEqual({ repeat: 1, reply: GOOD, problems: [] })
+        })
+
+        it('counts a failed call as an error, not a form fail', async () => {
+            const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: false as const, errorMessage: 'timeout' }))
+            const result = body(await ask({ cells: ['A'] }, invoke))
+            expect(result.cells[0]).toMatchObject({ n: 1, formPasses: 0, formFails: 0, errors: 1 })
+            expect(result.summary).toEqual({ calls: 1, formFails: 0, errors: 1 })
+            expect(result.read).toEqual([{ cell: 'A', lookFor: 'mentions fruit', replies: [{ repeat: 1, error: 'timeout' }] }])
+        })
+
+        it('gives stable hashes of the instructions and each cell\'s rendered inputs', async () => {
+            const run = async () => body(await ask({}, invokeReplying(() => GOOD)))
+            const [first, second] = [await run(), await run()]
+            expect(second.instructions).toEqual(first.instructions)
+            expect(second.cells.map(({ inputs }: { inputs: { hash: string } }) => inputs.hash)).toEqual(first.cells.map(({ inputs }: { inputs: { hash: string } }) => inputs.hash))
+            expect(first.cells[0].inputs.hash).not.toBe(first.cells[1].inputs.hash)
+        })
+
+        it('shares the refusals and the cap: every called cell counts', async () => {
+            const invoke = invokeReplying(() => GOOD)
+            const over = await ask({ repeats: 13 }, invoke)
+            expect(over.statusCode).toBe(400)
+            expect(body(over).error).toMatch(/2 called cells x 13 repeats = 26 calls, over the cap of 24/)
+            const unknown = await ask({ cells: ['Z'] }, invoke)
+            expect(body(unknown).error).toMatch(/cells must be a non-empty list of toyRead's cell IDs: A, B/)
+            expect(invoke).not.toHaveBeenCalled()
+        })
     })
 })
