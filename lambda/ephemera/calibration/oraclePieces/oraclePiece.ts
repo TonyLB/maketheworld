@@ -45,6 +45,8 @@ export type ReadPiece<Inputs = unknown, Options = unknown> = {
     check: (reply: string, cell: ReadPieceCell<Inputs>) => string[]
     parseOptions: (value: unknown) => Options | string
     render: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<string>
+    /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
+    maxTokens?: number
 }
 
 /** What the probe registry holds. */

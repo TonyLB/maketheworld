@@ -138,6 +138,7 @@ describe('ruleCell', () => {
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'ruleCell', instructions: 'Does the rule block?', repeats: 3 }, { invoke, pieces: oraclePieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(24)
+        expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 512)).toBe(true)
         const result = JSON.parse(response.body)
         expect(result.summary).toEqual({ calls: 24, right: 12, wrong: 12, malformed: 0, errors: 0, byCode: 1 })
         expect(result.options).toEqual(RULE_CELL_OPTIONS)

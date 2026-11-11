@@ -1,6 +1,6 @@
 # Play-by-play: the oracle's generative piece, read by hand
 
-**Status (2026-11-10): steps 1 and 2 built, the piece probe's reading mode and the play-by-play registered on it; next, step 3: the user reviews the five cells' look-fors, then draft 1 and its batch.** The second sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, after the rule cell ([`oracleLoopDrafts/ruleCell/`](oracleLoopDrafts/ruleCell/iterations.md)). The play-by-play says what each thing does as a candidate's actions happen, transient motion included ([the oracle as stages](AGENT.oracleLoop.planning.md#the-oracle-as-stages)). Its output is the rule cell's input, and later the non-rule blocker's. This plan builds two things:
+**Status (2026-11-10): steps 1 and 2 built, the piece probe's reading mode and the play-by-play registered on it. Step 3 done: draft 1's batch is the baseline ([`oracleLoopDrafts/playByPlay/`](oracleLoopDrafts/playByPlay/iterations.md)). OC-6's teapot is tilted 3 of 3 with nothing fitted to the glue (PR-1 met); form 8 of 15, 10 of 15 under the revised check; OC-30/2's knock-on slide 0 of 3. Step 4 under way: draft 2, the silence contract (user), solved the form (15 of 15) but brought PR-1 back on OC-6 (1 of 3). Draft 3, the consequence framing (user), brought the knock-on (OC-30/2 2 of 3, from 0), but the actions were read as attempts whose outcome the rules settle (PB-P5). The consequence view of the rules is built (`rules: 'consequence'`, user). Batch 4, draft 3 with it: PB-P5 unchanged, and OC-30/2's knock-on lost (0 of 3), with "moves with" spread to everything on the table. Batch 5, draft 4 (the actions carried out as written, PB-L14) with the view on: no effect, with OC-6 and OC-19 0 of 3. At the checkpoint the user chose to continue. Draft 5, draft 1's framing plus a sentence for the consequences with the view off (PB-L15), is the base: in batch 6, OC-6, OC-19, OC-20 and OC-1 are 3 of 3 with no attempts, and the knock-on 1 of 3, partly.** The second sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, after the rule cell ([`oracleLoopDrafts/ruleCell/`](oracleLoopDrafts/ruleCell/iterations.md)). The play-by-play says what each thing does as a candidate's actions happen, transient motion included ([the oracle as stages](AGENT.oracleLoop.planning.md#the-oracle-as-stages)). Its output is the rule cell's input, and later the non-rule blocker's. This plan builds two things:
 - **A reading mode for the piece probe,** for a piece with no closed answer set: code checks each reply's form, and the replies are read by hand.
 - **The play-by-play,** registered on it and drafted until it settles.
 
@@ -40,7 +40,9 @@ The parent's [inherited premises](AGENT.oracleLoop.planning.md#what-is-inherited
 **Future subsystems that touch this work:**
 - **The rule cell** (settled on draft 3) reads this piece's output. Nothing here changes it.
 - **The non-rule blocker,** next in Slice 4.5 (user), would read this piece's output for "fits". Its cases (OC-11, table in cup) are not this plan's, unless a draft asks for one.
-- **The composition probe** (user), after both pieces. Nothing here builds toward it beyond giving the output as plain data in the rule cell's shape.
+- **The composition probe** (user), after both pieces. Nothing here builds toward it beyond giving the output as plain data in the rule cell's shape. Under the silence contract, it owns the code that fills in a silent rule end from the scene ("stays on [table1]").
+- **Unwanted consequences, judged later** (user, 2026-11-10): an action's consequences that go against the request (the saucer sliding out from under the cup) are judged by a later stage that sees the request. They go to Improve, which tries preparatory or mitigating actions, and code runs the play-by-play again on the revised candidate. So the play-by-play reports consequences neutrally, the bad ones included, and never sees the request. For the parent's stages table at the hand-back: a judgment the table lacks, and "works" as no rule blocking, fitting, and no unwanted consequence.
+- **An iterative play-by-play generator** (user, 2026-11-10), later but soon: one that reasons over actions a rule forbids. Until then, this piece's drafts carry no example of a forbidden action.
 - **Relevance by code:** which things the play-by-play is asked about, computed from the plan's things, what is on or in them, and the ends of the rules naming them. Here a cell lists its things by hand (PB-1).
 
 ## Recommended order
@@ -79,18 +81,32 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
      OC-20 has no candidate in the oracle probe, since the template refuses the move; the cell writes the action by hand, as the rule cell's did. Five cells x 3 is 15 calls: small, since every reply is read.
    - [X] **Tests** (`playByPlay.test.ts`): the render; the check over a passing reply and each problem; every cell's handles resolve in its fixture.
-3. [ ] **Draft 1, and its first batch.**
+   - **Revised 2026-11-10, after batch 1: the silence contract** (user: an action doesn't affect every thing). A listed thing with no line is no longer a form failure. It is silent, and it stays in its frame. The line for every thing came from the rule cell's `motions` (mine, the guess that the output feeds the rule cell as is). Code filling in a silent rule end is the composition probe's (below).
+3. [X] **Draft 1, and its first batch.**
    - **The draft (mine):** short. A role; "Reading the scene", the rule cell's; the label `Play-by-play` (L-30, the user's); what each thing has to do physically for the actions to happen, each thing in order; first the narration in a few sentences, then the block (the rule cell's describe-first, draft 3).
    - **Where it lives:** `oracleLoopDrafts/playByPlay/`, with notes, a rubric written before the batch and its own `iterations.md`, as the rule cell's.
    - **The rubric's questions** (mine, for every reply): (a) physics or the record: does it say what has to happen, or restate the action (draft 10's register)? (b) fit to the rule: is a motion written to keep a rule true (PR-1)? (c) knock-on motion: the saucer and cup on OC-30/2; (d) the lines read relationally: would the rule cell read each pair's lines as together or apart without guessing (PR-11's "tilts"/"tilts")? (e) narration and lines agree; (f) invented things or handles.
    - **The batch:** the five cells, 3 repeats, Micro. The form check is read first, then every reply.
-4. [ ] **The drafting loop,** one change per draft, until it settles. **Exits:**
+   - **Written 2026-11-10** ([`1.txt`](oracleLoopDrafts/playByPlay/1.txt), hash `5371b3bc`, 3,872 characters; [notes and rubric](oracleLoopDrafts/playByPlay/1.notes.md); [`iterations.md`](oracleLoopDrafts/playByPlay/iterations.md)). Not short, against the sketch above: a first, minimal draft (mine) lost most of what made the step work in the one prompt, so draft 1 carries one-prompt draft 11's context over as it is (user, 2026-11-10): the game-master role, `Reading the scene` without its `Rules` bullet, and `Relations and frames` with the crate and rug examples. Cutting back is the later drafts' job, one cut per draft (PB-L6). Left out:
+     - the bolted-lamp example (user): reasoning over forbidden actions is for a later, iterative play-by-play generator;
+     - `Improvising`, and the motorcycle-and-shoebox sentence, which is about fits;
+     - "each thing in order" (mine), since draft 10's "each thing that moves, in order" lost the tilt; the physics is asked for in drafts 6, 11 and 12's words.
+
+     The lines are not asked to name the other thing, so rubric (d) reads the baseline unprompted (mine). The cells' inputs hashes are in the notes, for the deploy check.
+   - **Batch 1 run 2026-11-10** (15 calls, Micro; [results](oracleLoopDrafts/playByPlay/1.notes.md#results-2026-11-10-batch-1)), the baseline:
+     - **The motion carries.** OC-6's teapot is lifted and tilted 3 of 3, the table still, and nothing is fitted to the glue (PR-1 met). OC-1's carry is 3 of 3, given the frame model's reason. OC-19 and OC-20 are 3 of 3 in substance.
+     - **Form: 8 of 15** (PB-P1). The `actions` list is written as one entry per thing, or with a line only for the thing the action names.
+     - **A goal-directed register (mine, a reading).** "What each thing has to do for the actions to happen" is read as what the plan needs. So OC-30/2's saucer and cup "need to stay", and slide 0 of 3 (PB-P3). And 4 replies add a step that clears the chain or the glue (PB-P2), the forbidden-action reasoning left for a later generator.
+     - **Not exit (c) yet (mine).** Where the lines are missing, the narration is right, but the misses are in the block's shape, which one draft can try (PB-L7) before the piece is split.
+4. [ ] **The drafting loop,** one change per draft, until it settles. Draft 2 ([notes](oracleLoopDrafts/playByPlay/2.notes.md), hash `ab5bf3c3`) is the silence contract (PB-L10), written 2026-11-10. Batch 2: form 15 of 15; OC-30/2's tip-with 3 of 3; OC-6 1 of 3, with the teapot kept "stationary relative to the table" because it is glued (PR-1), likely from the sentence's relational wording. Draft 3 ([notes](oracleLoopDrafts/playByPlay/3.notes.md), hash `4c72c6fd`) is the consequence framing (PB-L12, user, 2026-11-10): what is done and what follows from it, whether or not the plan needs it, with rules used only for what they cause. Batch 3: OC-30/2's knock-on 2 of 3 (from 0 of 3), but 14 of 15 descriptions open "You attempt" or "You are attempting", with the outcome settled by the rule: OC-20's lift blocked 2 of 3, OC-19 branched on the glue 2 of 3. Form 8 of 15, in a new record shape. **Exits:**
    - (a) the library has nothing left worth a draft;
    - (b) every reply on every cell meets its look-for and the form, for two drafts running;
    - (c) a batch shows the piece needs a new approach, such as the narration right and the lines wrong, which splits it into a narration and an extraction. That gets a seam-ledger entry, and the episode stops;
    - (d) a checkpoint with the user every three batches.
 
    Cells are added as the drafts find gaps, each with a source.
+
+   **Before exit (b): shorten the reply** (user, 2026-11-10: needlessly verbose). The output cap was raised to 1024 tokens for this piece when draft 5's replies were cut off at 512 (PB-P6). Once the replies are good, a draft (or a few) asks for a shorter reply, and the cap comes back down if it can (PB-L16).
 5. [ ] **Hand back to the parent:**
    - seam-ledger entries for the reading mode (the revision trigger) and the piece;
    - the play-by-play's row in the stages table, marked Observed if it settles;
@@ -104,10 +120,10 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | ID | Question | Informs build | Settled by | Status |
 | --- | --- | --- | --- | --- |
 | PB-1 | Which things the play-by-play describes. A thing the plan doesn't name can still move: OC-1's teapot, OC-30/2's saucer. Mine: for the probe, each cell lists its things by hand; computing them (the plan's things, what is on or in them, and the ends of the rules naming them) is code booked for the composition probe | Step 2's inputs | The user's call | Open; mine, by hand. Built that way (2026-11-10): `things` on each cell |
-| PB-2 | Whether the play-by-play sees the rules. Seeing them risks PR-1, the motion written to fit the rule; the Fiction says "glued to" either way. Mine: the sub-scene's Rules section off by default, built as an option so a batch can compare | Step 2's render | The first batches | Open; mine, off. Built as the `sceneRules` option, `false` by default (2026-11-10) |
+| PB-2 | Whether the play-by-play sees the rules. Seeing them risks PR-1, the motion written to fit the rule; the Fiction says "glued to" either way. Mine: the sub-scene's Rules section off by default, built as an option so a batch can compare | Step 2's render | The first batches | Open; mine, off. Built as the `sceneRules` option, `false` by default (2026-11-10). Batch 1, with it off: no motion fitted to the glue on OC-6, but the Fiction's "glued to" and "chained to" were read as things the plan must clear (PB-P2). **Revised 2026-11-10** (user): the play-by-play uses a rule only for what it causes, so the option is `rules`, `none` or `consequence` (each rule's fact and its consequence, read off the securing edge: when the thing secured to moves, the secured thing moves with it), replacing `sceneRules` |
 | PB-3 | Whether the play-by-play sees the candidate's changes (the after-state), where a template gives them. Mine: not in draft 1, since the stages table puts Changes first but Slice 2.5 found an after-state shown and not read | Step 2's render | The drafts | Open; mine, not shown. A library entry, not built until a draft asks |
 | PB-4 | Where the reading mode lives: a second kind of `OraclePiece`, or a separate registration and event. Mine: a second kind of the same registration and the same `PieceProbe` event, so the call loop, the refusals and the cap are shared | Step 1 | The build | Settled by the build (2026-11-10), mine: `ReadPiece` beside `OraclePiece` in one registry (`RegisteredPiece`), the same event. The revision trigger's second clause held: the form check is a function of one reply and its cell |
-| PB-5 | How much of the scene the play-by-play sees. A thing can move without being listed or named (OC-1's teapot, OC-30/2's saucer), so this may be the piece that most needs the whole scene (user, 2026-11-10). Built (mine): the sub-scene of the listed things and the handles the actions name. A possible option (user): the whole scene's render | Step 2's render; the drafts | The drafts | Open; trying the sub-scene first (user). The whole scene is a library entry, not built until a draft asks |
+| PB-5 | How much of the scene the play-by-play sees. A thing can move without being listed or named (OC-1's teapot, OC-30/2's saucer), so this may be the piece that most needs the whole scene (user, 2026-11-10). Built (mine): the sub-scene of the listed things and the handles the actions name. A possible option (user): the whole scene's render | Step 2's render; the drafts | The drafts | Open; trying the sub-scene first (user). The whole scene is a library entry, not built until a draft asks. Batch 1: OC-30/2's missing slide is not for want of the scene, since the saucer and cup are listed and shown; it reads as the register (PB-P3) |
 
 ## How we work
 
@@ -128,8 +144,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | --- | --- |
 | The reading mode | Done 2026-11-10 |
 | The play-by-play, registered | Done 2026-11-10 |
-| Draft 1 and its batch | Not started |
-| The drafting loop | Not started |
+| Draft 1 and its batch | Done 2026-11-10 (batch 1, the baseline) |
+| The drafting loop | Started 2026-11-10: batches 2 to 6 run; checkpoint 2026-11-10 (continue); draft 5 the base |
 | Hand back | Not started |
 
 ## When it finishes

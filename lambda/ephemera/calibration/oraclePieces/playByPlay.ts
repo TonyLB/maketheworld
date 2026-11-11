@@ -5,6 +5,7 @@
 // reader reads the replies against each cell's `lookFor` (AGENT.playByPlay.planning.md).
 //
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
+import { judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
 import { subScene } from '../../dataSource/actions/sceneProse/subScene'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
@@ -22,22 +23,26 @@ export type PlayByPlayInputs = {
 }
 
 export type PlayByPlayOptions = {
-    /** The sub-scene's own Rules section, in the built judge's `v45` wording; off by default (PB-2: seeing the rules risks PR-1). */
-    sceneRules: boolean
+    /**
+     * How the sub-scene's rules are shown: `none` (the default), or `consequence`, each rule's fact and what it does when the thing its
+     * subject is secured to is moved (user, 2026-11-10). Whether a rule blocks is the rule cell's, so the play-by-play is shown only what a
+     * rule causes (PB-2, PR-1). Replaces a `sceneRules` boolean that showed v45's sentences.
+     */
+    rules: 'none' | 'consequence'
 }
 
-export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { sceneRules: false }
+export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'none' }
 
 const parsePlayByPlayOptions = (value: unknown): PlayByPlayOptions | string => {
     if (value === undefined) {
         return PLAY_BY_PLAY_OPTIONS
     }
-    const shape = 'options must be { sceneRules?: boolean }'
+    const shape = "options must be { rules?: 'none' | 'consequence' }"
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
-    const { sceneRules = PLAY_BY_PLAY_OPTIONS.sceneRules, ...rest } = value as Record<string, unknown>
-    return Object.keys(rest).length > 0 || typeof sceneRules !== 'boolean' ? shape : { sceneRules }
+    const { rules = PLAY_BY_PLAY_OPTIONS.rules, ...rest } = value as Record<string, unknown>
+    return Object.keys(rest).length > 0 || (rules !== 'none' && rules !== 'consequence') ? shape : { rules }
 }
 
 const fixtureScene = async (name: string): Promise<SceneModel> => {
@@ -48,7 +53,13 @@ const fixtureScene = async (name: string): Promise<SceneModel> => {
 /** The handles a text names in brackets, in order. */
 export const namedHandles = (text: string): SceneHandle[] => [...text.matchAll(/\[([^\]]+)\]/g)].map(([, handle]) => handle)
 
-export const renderPlayByPlay = async ({ inputs: { fixture, actions, things } }: ReadPieceCell<PlayByPlayInputs>, { sceneRules }: PlayByPlayOptions): Promise<string> => {
+/** The sub-scene's rules as fact and consequence, or none when it has no securing. */
+const consequenceRules = (scene: SceneModel): string[] => {
+    const lines = judgeRules(scene).map(({ handle, parts }) => `- ${handle}: ${parts.fact} ${parts.consequence}`)
+    return lines.length === 0 ? [] : [['Rules:', ...lines].join('\n')]
+}
+
+export const renderPlayByPlay = async ({ inputs: { fixture, actions, things } }: ReadPieceCell<PlayByPlayInputs>, { rules }: PlayByPlayOptions): Promise<string> => {
     if (actions.length === 0) {
         throw new Error('No actions')
     }
@@ -66,12 +77,13 @@ export const renderPlayByPlay = async ({ inputs: { fixture, actions, things } }:
         throw new Error(`The actions name ${unknown.join(', ')}, not in ${fixture}'s scene`)
     }
     // The listed things and every thing the actions name, so the prompt names nothing the scene doesn't show (mine).
-    const sections = judgeSceneSections(subScene(full, [...new Set([...things, ...named])]))
+    const sub = subScene(full, [...new Set([...things, ...named])])
+    const sections = judgeSceneSections(sub)
     return [
         `Scene: ${heading(full)}`,
         sections.fiction,
         sections.graph,
-        ...(sceneRules && sections.rules !== undefined ? [sections.rules] : []),
+        ...(rules === 'consequence' ? consequenceRules(sub) : []),
         'End of scene.',
         ...actions.map((says, index) => `Action ${index + 1}: ${says}`),
         `The things: ${things.map((handle) => `[${handle}]`).join(', ')}`,
@@ -90,8 +102,9 @@ const linesByHandle = (entry: Record<string, unknown>): Map<SceneHandle, unknown
 }, new Map<SceneHandle, unknown[]>())
 
 /**
- * The form problems of one reply: a fenced `json` block whose `actions` has an entry per action, each a non-empty line for exactly the
- * listed things, keyed by handle with or without its brackets.
+ * The form problems of one reply: a fenced `json` block whose `actions` has an entry per action, each a non-empty line for some of the
+ * listed things and no others, keyed by handle with or without its brackets. A listed thing with no line is silent, not a form failure:
+ * it keeps its relations and stays in its frame (user, 2026-11-10).
  */
 export const checkPlayByPlay = (reply: string, { inputs: { actions, things } }: ReadPieceCell<PlayByPlayInputs>): string[] => {
     const split = splitMarkdownReasoningAndJson(reply)
@@ -117,7 +130,6 @@ export const checkPlayByPlay = (reply: string, { inputs: { actions, things } }: 
             }
             const lines = linesByHandle(entry)
             return [
-                ...things.filter((handle) => !lines.has(handle)).map((handle) => `${action}: no line for ${handle}`),
                 ...[...lines.keys()].filter((handle) => !things.includes(handle)).map((handle) => `${action}: ${handle} is not a listed thing`),
                 ...things.flatMap((handle) => {
                     const values = lines.get(handle)
@@ -167,9 +179,16 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
 }
 
+/**
+ * Draft 5's replies ran past 512 tokens (PB-P6), so the cap is raised while the drafts tune what is said. Shortening the reply is booked
+ * for when the replies are good (user, 2026-11-10: needlessly verbose).
+ */
+export const PLAY_BY_PLAY_MAX_TOKENS = 1024
+
 export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
     kind: 'read',
     name: 'playByPlay',
+    maxTokens: PLAY_BY_PLAY_MAX_TOKENS,
     cells: playByPlayCells,
     check: checkPlayByPlay,
     parseOptions: parsePlayByPlayOptions,

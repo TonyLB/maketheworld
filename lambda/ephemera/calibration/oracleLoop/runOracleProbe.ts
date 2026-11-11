@@ -15,10 +15,12 @@ export type OracleCall = { case: string; repeat: number; answer?: string; error?
 export type OracleSummary = { calls: number; errors: number; malformed: number }
 
 /** One Bedrock call per (prompt, repeat), concurrently, each a whole prompt in one user turn. Shared with the piece probe. */
-export const runProbeCalls = async ({ prompts, repeats, model, invoke = invokeBedrockConverseText }: {
+export const runProbeCalls = async ({ prompts, repeats, model, maxTokens = JUDGE_PROBE_MAX_TOKENS, invoke = invokeBedrockConverseText }: {
     prompts: readonly { id: string; prompt: string }[]
     repeats: number
     model: NovaModel
+    /** The output cap per call; the judge probe's by default. */
+    maxTokens?: number
     invoke?: ProbeInvoke
 }): Promise<ProbeCall[]> => {
     const calls = prompts.flatMap(({ id, prompt }) => Array.from({ length: repeats }, (_, repeat) => ({ id, prompt, repeat: repeat + 1 })))
@@ -26,7 +28,7 @@ export const runProbeCalls = async ({ prompts, repeats, model, invoke = invokeBe
         const result = await invoke({
             modelId: novaModelToBedrockModelId(model),
             messages: [{ role: 'user', content: [{ text: prompt }] }],
-            maxTokens: JUDGE_PROBE_MAX_TOKENS,
+            maxTokens,
             temperature: PROBE_TEMPERATURE,
             timeoutMs: PROBE_TIMEOUT_MS,
         })

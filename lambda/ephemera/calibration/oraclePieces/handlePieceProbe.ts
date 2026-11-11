@@ -83,6 +83,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
         const readCells = rendered.map(({ id, text = '' }): PreparedReadCell => ({ cell: id, lookFor: piece.cells[id].lookFor, rendered: text }))
         const readCalls = await runReadPiece({
             cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id]),
+            ...(piece.maxTokens !== undefined ? { maxTokens: piece.maxTokens } : {}),
             ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
         })
         const readTallies = tallyRead(readCells, readCalls)

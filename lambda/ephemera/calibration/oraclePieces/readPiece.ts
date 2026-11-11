@@ -28,19 +28,21 @@ export type ReadSummary = { calls: number; formFails: number; errors: number }
 
 export type ReadGroup = { cell: string; lookFor: string; replies: { repeat: number; reply?: string; error?: string; problems?: string[] }[] }
 
-export const runReadPiece = async ({ cells, instructions, check, repeats, model, invoke }: {
+export const runReadPiece = async ({ cells, instructions, check, repeats, model, maxTokens, invoke }: {
     cells: readonly PreparedReadCell[]
     instructions: string
     /** The piece's form check of one reply, given the cell's id. */
     check: (reply: string, cell: string) => string[]
     repeats: number
     model: NovaModel
+    maxTokens?: number
     invoke?: ProbeInvoke
 }): Promise<ReadCall[]> => (
     (await runProbeCalls({
         prompts: cells.map(({ cell, rendered }) => ({ id: cell, prompt: `${instructions}\n\n${rendered}` })),
         repeats,
         model,
+        ...(maxTokens !== undefined ? { maxTokens } : {}),
         ...(invoke !== undefined ? { invoke } : {}),
     })).map(({ id, repeat, answer, error }): ReadCall => (
         answer !== undefined ? { cell: id, repeat, reply: answer, problems: check(answer, id) } : { cell: id, repeat, error }

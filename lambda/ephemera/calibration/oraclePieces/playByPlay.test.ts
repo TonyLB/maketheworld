@@ -46,9 +46,16 @@ describe('playByPlay', () => {
             expect(['saucer1', 'tea2', 'cup1', 'teapot1', 'table1'].filter((handle) => !scene.includes(`[${handle}]`))).toEqual([])
         })
 
-        it('adds the sub-scene\'s own Rules section with sceneRules, and not by default', async () => {
-            expect(await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)).not.toContain('\n\nRules:\n')
-            expect(await renderPlayByPlay(cellOf({}), { sceneRules: true })).toContain('\n\nRules:\n- teapot-secured-to-table: ')
+        it('shows the sub-scene\'s rules as fact and consequence with rules: consequence, and no rules by default', async () => {
+            expect(await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)).not.toContain('Rules:')
+            const text = await renderPlayByPlay(cellOf({}), { rules: 'consequence' })
+            expect(text).toContain('\n\nRules:\n- teapot-secured-to-table: [teapot1] is glued to [table1]. When [table1] changes its position or orientation, [teapot1] moves with it.\n\nEnd of scene.')
+            expect(text).not.toContain('blocks')
+        })
+
+        it('runs a chain\'s consequence from the wall, which no action moves', async () => {
+            const text = await renderPlayByPlay(cellOf({ fixture: 'teaTableChained', actions: ['pick up [table1]'], things: ['table1', 'wall1'] }), { rules: 'consequence' })
+            expect(text).toContain('[table1] is chained to [wall1]. When [wall1] changes its position or orientation, [table1] moves with it.')
         })
 
         it.each([
@@ -63,13 +70,13 @@ describe('playByPlay', () => {
     })
 
     describe('its options', () => {
-        it('defaults to no Rules section', () => {
-            expect(playByPlay.parseOptions(undefined)).toEqual({ sceneRules: false })
-            expect(playByPlay.parseOptions({ sceneRules: true })).toEqual({ sceneRules: true })
+        it('defaults to no rules', () => {
+            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'none' })
+            expect(playByPlay.parseOptions({ rules: 'consequence' })).toEqual({ rules: 'consequence' })
         })
 
-        it.each([['loud'], [{ sceneRules: 'yes' }], [{ show: 'none' }]])('refuses %j', (value) => {
-            expect(playByPlay.parseOptions(value)).toBe('options must be { sceneRules?: boolean }')
+        it.each([['loud'], [{ rules: 'v45' }], [{ sceneRules: true }], [{ show: 'none' }]])('refuses %j', (value) => {
+            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence' }")
         })
     })
 
@@ -84,13 +91,16 @@ describe('playByPlay', () => {
             expect(checkPlayByPlay(fenced({ actions: [{ '[teapot1]': 'rises', '[table1]': 'stays' }, { teapot1: 'tilts', '[teapot1]': 'to pour', table1: 'stays' }] }), cell)).toEqual([])
         })
 
+        it('passes a listed thing with no line, or an action with no lines, since a silent thing stays in its frame', () => {
+            expect(checkPlayByPlay(fenced({ actions: [{ teapot1: 'tilts' }, {}] }), cell)).toEqual([])
+        })
+
         it.each([
             ['no block', 'The teapot rises.', ['no JSON block']],
             ['a block that does not parse', 'Prose.\n\n```json\n{ "actions": [ }\n```', ['the JSON block does not parse']],
             ['no actions array', fenced({ motions: [line, line] }), ['the JSON block has no "actions" array']],
             ['the wrong count', fenced({ actions: [line] }), ['expected 2 actions, got 1']],
             ['an entry that is not an object', fenced({ actions: [line, 'rises'] }), ['action 2 is not an object']],
-            ['a listed thing missing', fenced({ actions: [line, { teapot1: 'tilts' }] }), ['action 2: no line for table1']],
             ['a thing not listed', fenced({ actions: [line, { ...line, cup1: 'fills' }] }), ['action 2: cup1 is not a listed thing']],
             ['a bracketed thing not listed', fenced({ actions: [line, { ...line, '[cup1]': 'fills' }] }), ['action 2: cup1 is not a listed thing']],
             ['both spellings, one empty and one not a string', fenced({ actions: [line, { teapot1: 'tilts', '[teapot1]': 4, table1: '', '[table1]': ' ' }] }), [
@@ -123,6 +133,7 @@ describe('playByPlay', () => {
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Say what each thing does.', repeats: 3 }, { invoke, pieces: oraclePieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(15)
+        expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)
         const result = JSON.parse(response.body)
         expect(result.summary).toEqual({ calls: 15, formFails: 0, errors: 0 })
         expect(result.options).toEqual(PLAY_BY_PLAY_OPTIONS)
