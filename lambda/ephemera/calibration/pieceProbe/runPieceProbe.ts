@@ -4,7 +4,7 @@
 //
 import type { NovaModel } from '../../llm/novaModel'
 import { runProbeCalls } from '../oracleLoop/runOracleProbe'
-import { textHash } from '../sceneReasoning/runJudgeProbe'
+import { textHash } from '../textHash'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { pieceAnswer, type PieceGrade } from './pieceAnswer'
 

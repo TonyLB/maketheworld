@@ -1,9 +1,9 @@
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import { handlePieceProbe } from './handlePieceProbe'
-import type { ReadPieceCell } from './oraclePiece'
-import { oraclePieces } from './pieces'
+import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
+import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { pieces } from '../pieceProbe/pieces'
 import { PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, playByPlay, playByPlayCells, renderPlayByPlay, type PlayByPlayInputs } from './playByPlay'
 
 const fixtureScene = async (name: string): Promise<SceneModel> => {
@@ -130,7 +130,7 @@ describe('playByPlay', () => {
             const actions = prompt.split('\n\n').filter((part) => part.startsWith('Action ')).length
             return { success: true as const, body: fenced({ actions: Array(actions).fill(Object.fromEntries(things.map((handle) => [handle, 'stays']))) }) }
         })
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Say what each thing does.', repeats: 3 }, { invoke, pieces: oraclePieces })
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Say what each thing does.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(15)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)

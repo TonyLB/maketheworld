@@ -1,9 +1,9 @@
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import { handlePieceProbe } from './handlePieceProbe'
-import type { PieceCell } from './oraclePiece'
-import { oraclePieces } from './pieces'
+import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
+import type { PieceCell } from '../pieceProbe/oraclePiece'
+import { pieces } from '../pieceProbe/pieces'
 import { RULE_CELL_OPTIONS, renderRuleCell, ruleCell, ruleCellCells, ruleCellWindow, type RuleCellAction, type RuleCellInputs } from './ruleCell'
 
 const fixtureScene = async (name: string): Promise<SceneModel> => {
@@ -135,7 +135,7 @@ describe('ruleCell', () => {
 
     it('is registered, and runs through the probe: eight called cells, at the cap, and one by code', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: true as const, body: 'Answer: allows' }))
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'ruleCell', instructions: 'Does the rule block?', repeats: 3 }, { invoke, pieces: oraclePieces })
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'ruleCell', instructions: 'Does the rule block?', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(24)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 512)).toBe(true)

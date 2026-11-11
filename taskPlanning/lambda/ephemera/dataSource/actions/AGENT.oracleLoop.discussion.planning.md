@@ -96,7 +96,7 @@ What worked best was the single generative judgment: the play-by-play tilted OC-
 
 **Mine, agreed:**
 - **The tension sits in one sentence.** The premise ("what each … has to do physically for the action to happen") kept the method ordinary and the action succeeding (batch 11). "How each of the things … moves" freed the knock-on (batch 10, 2 of 3, flagged as a problem). So the knock-on is a later ask's, with its own wording.
-- **Exit (c), now.** The play-by-play plan's premises no longer stood (a stage feeding the rule cell as is, a piece that never sees the request, an iterative generator as later work), and its names would carry into every later ask by path dependency (user). So the episode ends with its findings, and the [imagination plan](AGENT.imagination.planning.md) renames the piece before a second ask is built.
+- **Exit (c), now.** The play-by-play plan's premises no longer stood (a stage feeding the rule cell as is, a piece that never sees the request, an iterative generator as later work), and its names would carry into every later ask by path dependency (user). So the episode ends with its findings, and the [imagination plan](AGENT.imagination.planning.md) renames the piece before a second ask is built. Revised the same day (user): the probe's folder splits by family instead (`pieceProbe/`, `oraclePieces/`, `imaginationPieces/`), and each ask is its own read piece named for what it returns, so `playByPlay` keeps its name and ask 2 is `consequences`.
 - **The family test:** a prompt that picks from a closed answer set is the oracle's (an answered piece); one that produces something to read is the imagination's (a read piece).
 
 ## Carried from the judgePrompt plan

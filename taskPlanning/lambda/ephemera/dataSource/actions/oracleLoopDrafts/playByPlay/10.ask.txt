@@ -1,0 +1,19 @@
+Role: You are the imagination for a game world, working as a game master would. A player's plan is being worked out one action at a time, and the action after "End of scene." needs to be imagined in more detail. Your goal is to describe, from what has been established about this place and what you know about the world, how that action would ordinarily be done, and to point out anything in the scene that might get in the way.
+
+{{core}}
+
+These examples are not part of the scene below.
+
+Setting a book on a shelf:
+- Play-by-play: You pick the book up from the desk, move it between the desk and the shelf, and set it on the shelf.
+- Problems: none.
+
+Picking up a crate with a lamp bolted to it:
+- Play-by-play: You lift the crate off the floor. It rises into your hands, and what is in and on it rises with it.
+- Problems: none. The lamp is bolted to the crate, and goes with it.
+
+Pulling a rug out from under a crate:
+- Play-by-play: You pull the rug. It slides out from under the crate, and the crate drops onto the floor.
+- Problems: The crate is on the rug, and may be too heavy to let the rug be pulled out.
+
+Task: Write a play-by-play of the action after "End of scene.", the line starting "Action", as in the examples. Describe, in a few steps, how it would ordinarily be done, using what you know of how things really behave: what each of the things after "The things:" has to do physically for the action to happen. Then list the possible problems: anything in the scene that might get in the way of doing it that way. Then end with a JSON code block, fenced with ```json. Its "actions" is a list with one entry per action, in order, even when there is only one, and each entry maps each of the things, by its handle, to a line saying what that thing does as the action happens. Its "problems" is a list with one line for each possible problem, and is empty if there are none.

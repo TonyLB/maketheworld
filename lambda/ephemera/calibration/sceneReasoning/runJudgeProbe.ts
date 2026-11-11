@@ -3,7 +3,6 @@
 // by `judgeGrade.ts`. Separate from `runSceneReasoningProbe.ts`: that one varies format x answer format x question, and the judge
 // has one prompt, a set of requests with expected labels, and drafts of its text to compare.
 //
-import { createHash } from 'crypto'
 import type { JudgeRequest } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import { JUDGE_INSTRUCTIONS, composeJudgePrompt } from '../../dataSource/actions/sceneProse/frame'
 import { invokeBedrockConverseText } from '../../llm/invokeBedrockConverseText'
@@ -13,9 +12,6 @@ import { gradeJudgeReply, judgeReplySteps, type JudgeCall } from './judgeGrade'
 
 /** The judge's reply is a few short lines. */
 export const JUDGE_PROBE_MAX_TOKENS = 512
-
-/** A short hash of the text a batch used, so two batches are comparable and a draft is never mistaken for the deployed text. */
-export const textHash = (text: string): string => createHash('sha256').update(text).digest('hex').slice(0, 8)
 
 export const runJudgeProbe = async ({ sceneText, requests, repeats, model, instructions = JUDGE_INSTRUCTIONS, invoke = invokeBedrockConverseText }: {
     sceneText: string

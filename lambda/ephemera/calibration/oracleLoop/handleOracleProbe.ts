@@ -7,7 +7,7 @@ import { PROPOSED_OUTCOME_AFTERS } from '../../dataSource/actions/sceneProse/ren
 import { isNovaModel, type NovaModel } from '../../llm/novaModel'
 import { judgeReplySteps } from '../sceneReasoning/judgeGrade'
 import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudgeProbe'
-import { textHash } from '../sceneReasoning/runJudgeProbe'
+import { textHash } from '../textHash'
 import { PROBE_CALL_CAP, PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { oracleCaseIds, oracleCases } from './oracleCases'
 import { ORACLE_FRAMING, ORACLE_FRAMING_KEYS, ORACLE_SHOW, renderOracleInputs, type OracleFraming, type OracleShow } from './renderOracleInputs'

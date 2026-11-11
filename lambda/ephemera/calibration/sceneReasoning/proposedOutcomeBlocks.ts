@@ -9,7 +9,7 @@ import { buildSceneFixture, type JudgeRequest, type SceneFixture } from '../../d
 import type { SceneHandleTable, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { EphemeraLudicGraph } from '../../dataSource/positions/ludicGraph'
 import { dryRunProposedMoves, type ProposedMove } from '../../dataSource/positions/manipulation/proposedMoves'
-import { textHash } from './runJudgeProbe'
+import { textHash } from '../textHash'
 
 export type ProposedOutcomeOptions = {
     form: ProposedOutcomeForm

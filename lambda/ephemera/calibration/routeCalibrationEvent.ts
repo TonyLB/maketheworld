@@ -6,7 +6,7 @@ import { handleEmbeddingSimulateIdentity } from './objectMatch/handlers/simulate
 import { handleEmbeddingVerifyRepeat } from './objectMatch/handlers/verifyRepeatEmbed'
 import { handleJudgeProbe } from './sceneReasoning/handlers/runJudgeProbe'
 import { handleOracleProbe } from './oracleLoop/handleOracleProbe'
-import { handlePieceProbe } from './oraclePieces/handlePieceProbe'
+import { handlePieceProbe } from './pieceProbe/handlePieceProbe'
 import { handleSceneReasoningFixtures } from './sceneReasoning/handlers/runFixtures'
 import { handleSceneReasoningProbe } from './sceneReasoning/handlers/runProbe'
 import { calibrationJsonResponse, type CalibrationRouteResponse } from './calibrationResponse'

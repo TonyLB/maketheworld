@@ -2,7 +2,7 @@
 // The play-by-play (a Prototype of the oracle loop plan's Slice 4.5): a read piece. Given a fixture, a candidate's actions in order and the
 // things to describe, it says what each thing does physically in each action, transient motion included. Its block is a line per thing per
 // action, the shape of the rule cell's `motions` for any pair of the things. There is no answer set: code checks each reply's form, and a
-// reader reads the replies against each cell's `lookFor` (AGENT.imagination.planning.md, which renames it).
+// reader reads the replies against each cell's `lookFor` (AGENT.imagination.planning.md: the imagination family's first ask, more detail).
 //
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
@@ -12,7 +12,7 @@ import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludi
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { splitMarkdownReasoningAndJson } from '../../llm/splitMarkdownReasoningAndJson'
 import { oracleCases } from '../oracleLoop/oracleCases'
-import { registerPiece, type ReadPiece, type ReadPieceCell } from './oraclePiece'
+import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 
 export type PlayByPlayInputs = {
     fixture: string
