@@ -1,4 +1,4 @@
-import { textHash } from '../sceneReasoning/runJudgeProbe'
+import { textHash } from '../textHash'
 import { assembleDraft } from './assembleDraft'
 
 describe('assembleDraft', () => {

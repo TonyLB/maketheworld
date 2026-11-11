@@ -3,7 +3,7 @@
 // line) and a version of the shared core (AGENT.imagination.planning.md, step 1). Each part gets its own hash, by the probe's `textHash`,
 // so a draft's notes can say which part changed and so what it costs to test. Run from the command line through `assembleDraftCli.ts`.
 //
-import { textHash } from '../sceneReasoning/runJudgeProbe'
+import { textHash } from '../textHash'
 
 export const CORE_SLOT = '{{core}}'
 

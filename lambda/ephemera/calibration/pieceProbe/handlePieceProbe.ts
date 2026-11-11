@@ -1,7 +1,7 @@
 import { calibrationJsonResponse } from '../calibrationResponse'
 import { isNovaModel, type NovaModel } from '../../llm/novaModel'
 import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudgeProbe'
-import { textHash } from '../sceneReasoning/runJudgeProbe'
+import { textHash } from '../textHash'
 import { PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import type { RegisteredPiece } from './oraclePiece'
 import { pieces as registeredPieces } from './pieces'
