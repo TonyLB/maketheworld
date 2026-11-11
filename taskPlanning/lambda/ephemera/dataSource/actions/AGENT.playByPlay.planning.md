@@ -1,6 +1,6 @@
 # Play-by-play: the oracle's generative piece, read by hand
 
-**Status (2026-11-10): step 1 built, the piece probe's reading mode; next, step 2, the play-by-play registered.** The second sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, after the rule cell ([`oracleLoopDrafts/ruleCell/`](oracleLoopDrafts/ruleCell/iterations.md)). The play-by-play says what each thing does as a candidate's actions happen, transient motion included ([the oracle as stages](AGENT.oracleLoop.planning.md#the-oracle-as-stages)). Its output is the rule cell's input, and later the non-rule blocker's. This plan builds two things:
+**Status (2026-11-10): steps 1 and 2 built, the piece probe's reading mode and the play-by-play registered on it; next, step 3: the user reviews the five cells' look-fors, then draft 1 and its batch.** The second sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, after the rule cell ([`oracleLoopDrafts/ruleCell/`](oracleLoopDrafts/ruleCell/iterations.md)). The play-by-play says what each thing does as a candidate's actions happen, transient motion included ([the oracle as stages](AGENT.oracleLoop.planning.md#the-oracle-as-stages)). Its output is the rule cell's input, and later the non-rule blocker's. This plan builds two things:
 - **A reading mode for the piece probe,** for a piece with no closed answer set: code checks each reply's form, and the replies are read by hand.
 - **The play-by-play,** registered on it and drafted until it settles.
 
@@ -60,7 +60,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - then **the replies grouped by cell,** for reading, each with its form problems.
    - [X] **The cap** stays 24 per invoke (PP-2, the user's: long calls mean a piece too big, not a higher cap).
    - [X] **Tests,** following `handlePieceProbe.test.ts`, with a toy read piece: a passing and a failing reply, the grouping, the hashes stable, and the answered piece's results byte for byte unchanged (`ruleCell.test.ts` passes unchanged).
-2. [ ] **The play-by-play, registered** (`oraclePieces/playByPlay.ts`), a read piece.
+2. [X] **The play-by-play, registered** (`oraclePieces/playByPlay.ts`), a read piece. Built 2026-11-10; tests and `tsc` pass (4640 passed, 9 skipped). It plugged in with a registration alone, so the reading mode's revision trigger didn't fire. One departure from the render as written (mine): the sub-scene is over the listed things **and the handles the actions name**, since OC-6 and OC-30/2 name `[tea2]`, which no cell lists, and the prompt would otherwise name a thing the scene doesn't show. The rule cell's sub-scene is its rule's ends alone. The user accepted it to try first, with the whole scene as a possible later option (PB-5). The actions of OC-1, OC-6, OC-30/2 and OC-19 are read from `oracleCases`, not copied. A key is read with or without its brackets, since the prompt writes every handle in brackets, and where both spellings appear their lines are merged (user, 2026-11-10): spelling is code's to normalize, not a form failure for a draft to fix.
    - **Its inputs:**
      - a fixture;
      - the candidate's actions in order, each as its words (`says`); taken from an oracle probe case where there is one;
@@ -78,7 +78,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      | OC-20 | pick up [table1] | table1, wall1 | the table lifted and pulled from the wall, the wall staying |
 
      OC-20 has no candidate in the oracle probe, since the template refuses the move; the cell writes the action by hand, as the rule cell's did. Five cells x 3 is 15 calls: small, since every reply is read.
-   - [ ] **Tests** (`playByPlay.test.ts`): the render; the check over a passing reply and each problem; every cell's handles resolve in its fixture.
+   - [X] **Tests** (`playByPlay.test.ts`): the render; the check over a passing reply and each problem; every cell's handles resolve in its fixture.
 3. [ ] **Draft 1, and its first batch.**
    - **The draft (mine):** short. A role; "Reading the scene", the rule cell's; the label `Play-by-play` (L-30, the user's); what each thing has to do physically for the actions to happen, each thing in order; first the narration in a few sentences, then the block (the rule cell's describe-first, draft 3).
    - **Where it lives:** `oracleLoopDrafts/playByPlay/`, with notes, a rubric written before the batch and its own `iterations.md`, as the rule cell's.
@@ -103,10 +103,11 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | ID | Question | Informs build | Settled by | Status |
 | --- | --- | --- | --- | --- |
-| PB-1 | Which things the play-by-play describes. A thing the plan doesn't name can still move: OC-1's teapot, OC-30/2's saucer. Mine: for the probe, each cell lists its things by hand; computing them (the plan's things, what is on or in them, and the ends of the rules naming them) is code booked for the composition probe | Step 2's inputs | The user's call | Open; mine, by hand |
-| PB-2 | Whether the play-by-play sees the rules. Seeing them risks PR-1, the motion written to fit the rule; the Fiction says "glued to" either way. Mine: the sub-scene's Rules section off by default, built as an option so a batch can compare | Step 2's render | The first batches | Open; mine, off |
+| PB-1 | Which things the play-by-play describes. A thing the plan doesn't name can still move: OC-1's teapot, OC-30/2's saucer. Mine: for the probe, each cell lists its things by hand; computing them (the plan's things, what is on or in them, and the ends of the rules naming them) is code booked for the composition probe | Step 2's inputs | The user's call | Open; mine, by hand. Built that way (2026-11-10): `things` on each cell |
+| PB-2 | Whether the play-by-play sees the rules. Seeing them risks PR-1, the motion written to fit the rule; the Fiction says "glued to" either way. Mine: the sub-scene's Rules section off by default, built as an option so a batch can compare | Step 2's render | The first batches | Open; mine, off. Built as the `sceneRules` option, `false` by default (2026-11-10) |
 | PB-3 | Whether the play-by-play sees the candidate's changes (the after-state), where a template gives them. Mine: not in draft 1, since the stages table puts Changes first but Slice 2.5 found an after-state shown and not read | Step 2's render | The drafts | Open; mine, not shown. A library entry, not built until a draft asks |
 | PB-4 | Where the reading mode lives: a second kind of `OraclePiece`, or a separate registration and event. Mine: a second kind of the same registration and the same `PieceProbe` event, so the call loop, the refusals and the cap are shared | Step 1 | The build | Settled by the build (2026-11-10), mine: `ReadPiece` beside `OraclePiece` in one registry (`RegisteredPiece`), the same event. The revision trigger's second clause held: the form check is a function of one reply and its cell |
+| PB-5 | How much of the scene the play-by-play sees. A thing can move without being listed or named (OC-1's teapot, OC-30/2's saucer), so this may be the piece that most needs the whole scene (user, 2026-11-10). Built (mine): the sub-scene of the listed things and the handles the actions name. A possible option (user): the whole scene's render | Step 2's render; the drafts | The drafts | Open; trying the sub-scene first (user). The whole scene is a library entry, not built until a draft asks |
 
 ## How we work
 
@@ -126,7 +127,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | Step | State |
 | --- | --- |
 | The reading mode | Done 2026-11-10 |
-| The play-by-play, registered | Not started |
+| The play-by-play, registered | Done 2026-11-10 |
 | Draft 1 and its batch | Not started |
 | The drafting loop | Not started |
 | Hand back | Not started |
