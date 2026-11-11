@@ -4,7 +4,7 @@ import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudg
 import { textHash } from '../sceneReasoning/runJudgeProbe'
 import { PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import type { RegisteredPiece } from './oraclePiece'
-import { oraclePieces } from './pieces'
+import { pieces as registeredPieces } from './pieces'
 import { groupRead, runReadPiece, summarizeRead, tallyRead, type PreparedReadCell } from './readPiece'
 import { runPieceProbe, summarizePiece, tallyPiece, type PreparedCell } from './runPieceProbe'
 
@@ -35,7 +35,7 @@ const refuse = (error: string) => calibrationJsonResponse(400, { error })
  * the first call.
  */
 export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeDeps = {}) {
-    const pieces = deps.pieces ?? oraclePieces
+    const pieces = deps.pieces ?? registeredPieces
     const names = Object.keys(pieces)
     const piece = typeof event.piece === 'string' ? pieces[event.piece] : undefined
     if (piece === undefined) {

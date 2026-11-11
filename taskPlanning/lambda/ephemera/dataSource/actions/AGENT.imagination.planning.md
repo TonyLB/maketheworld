@@ -1,6 +1,6 @@
 # Imagination: the generating family's asks, read by hand
 
-**Status (2026-11-11): written; nothing built.** Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, when the play-by-play plan took its exit (c) ([trail](AGENT.oracleLoop.discussion.planning.md#the-imagination-answers-the-oracles-asks-the-play-by-plays-exit-c-2026-11-11)). That plan's drafting loop found that the play-by-play is one ask of a loop, not a stage: the orchestration layer asks, and the imagination answers one focused ask at a time. "More loops of a process we can _create_ are better than fewer loops of a process that will elude us" (user, 2026-11-11). **Next: step 1,** the folder split and an ask per piece.
+**Status (2026-11-11): step 1 done.** Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, when the play-by-play plan took its exit (c) ([trail](AGENT.oracleLoop.discussion.planning.md#the-imagination-answers-the-oracles-asks-the-play-by-plays-exit-c-2026-11-11)). That plan's drafting loop found that the play-by-play is one ask of a loop, not a stage: the orchestration layer asks, and the imagination answers one focused ask at a time. "More loops of a process we can _create_ are better than fewer loops of a process that will elude us" (user, 2026-11-11). Step 1 split the probe's folder by family and the drafts into a shared core and an ask part per ask. **Next: step 2,** ask 1, more detail, from draft 10 split.
 
 The imagination is the **family of generating prompts**, beside the oracle, the family of judging prompts (user, 2026-11-11). What the oracle loop plan called the improvisation engine is one of its asks: "propose a filler for this slot". This plan builds the asks one at a time on the piece probe's reading mode, starting with "more detail" from the play-by-play's draft 10. Composing the asks with the oracle's pieces is the composition probe's work, not this plan's.
 
@@ -13,8 +13,9 @@ Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an impl
 3. Read the play-by-play's record, which is this plan's history: [`oracleLoopDrafts/playByPlay/iterations.md`](oracleLoopDrafts/playByPlay/iterations.md), its [disposition](oracleLoopDrafts/playByPlay/iterations.md#disposition-at-the-play-by-play-plans-exit-c-2026-11-11) first; then [`8.notes.md`](oracleLoopDrafts/playByPlay/8.notes.md) (the user's loop sketch, the problems bucket), [`9.notes.md`](oracleLoopDrafts/playByPlay/9.notes.md) and [`10.notes.md`](oracleLoopDrafts/playByPlay/10.notes.md), and [`10.txt`](oracleLoopDrafts/playByPlay/10.txt), ask 1's starting draft.
 4. Read [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro), the play-by-play's findings included, and the [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) with [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece).
 5. Read the code it builds on:
-   - the probe: [`oraclePieces/`](../../../../../lambda/ephemera/calibration/oraclePieces/): `oraclePiece.ts`, `readPiece.ts`, `handlePieceProbe.ts` (split by step 1 into `pieceProbe/`, `oraclePieces/` and `imaginationPieces/`);
-   - the piece step 1 moves, [`playByPlay.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/playByPlay.ts), and its tests;
+   - the probe's harness: [`pieceProbe/`](../../../../../lambda/ephemera/calibration/pieceProbe/): `oraclePiece.ts`, `readPiece.ts`, `handlePieceProbe.ts`, and the registry `pieces.ts`;
+   - the imagination's pieces, [`imaginationPieces/`](../../../../../lambda/ephemera/calibration/imaginationPieces/): [`playByPlay.ts`](../../../../../lambda/ephemera/calibration/imaginationPieces/playByPlay.ts) and its tests;
+   - the drafts' assembler, [`pieceProbe/assembleDraft.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/assembleDraft.ts) (`npm run assemble-draft`, in calibration's [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece)), and the shared core, [`oracleLoopDrafts/imaginationCore/`](oracleLoopDrafts/imaginationCore/1.txt);
    - the oracle probe's cases, [`oracleCases.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/oracleCases.ts), whose requests are the intents and whose candidates' steps are the actions.
 6. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`, no output.
 
@@ -50,18 +51,19 @@ The parent's [inherited premises](AGENT.oracleLoop.planning.md#what-is-inherited
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
-1. [ ] **The folder split and an ask per piece.** The probe's folder is split by family before a second ask is built, so neither family's code sits under the other's name (user, 2026-11-11). Each ask is its own read piece, named for what it returns: `playByPlay` keeps its name, since it is an accurate name for ask 1 within the imagination family (user, 2026-11-11). This replaces a rename of `playByPlay` to `imagination` with the ask as an input. A payload runs one ask anyway, since its `instructions` are one text, so an input gained nothing. **Rests on** the two families and the prompt per ask. **Consumer:** ask 1's first batch (step 2). **Revision trigger:** the asks need to share more than a module and a core text.
-   - **The folders** (user, 2026-11-11):
+1. [X] **The folder split and an ask per piece** (done 2026-11-11). The probe's folder is split by family before a second ask is built, so neither family's code sits under the other's name (user, 2026-11-11). Each ask is its own read piece, named for what it returns: `playByPlay` keeps its name, since it is an accurate name for ask 1 within the imagination family (user, 2026-11-11). This replaces a rename of `playByPlay` to `imagination` with the ask as an input. A payload runs one ask anyway, since its `instructions` are one text, so an input gained nothing. **Rests on** the two families and the prompt per ask. **Consumer:** ask 1's first batch (step 2). **Revision trigger:** the asks need to share more than a module and a core text.
+   - [X] **The folders** (user, 2026-11-11):
      - `calibration/pieceProbe/`, the harness both families use: `handlePieceProbe.ts`, `runPieceProbe.ts`, the registration types (`oraclePiece.ts`), both grading modes (`pieceAnswer.ts`, answered; `readPiece.ts`, read) and the registry (`pieces.ts`, its export `oraclePieces` renamed `pieces`). The event type stays `PieceProbe`, so payloads don't change.
      - `calibration/oraclePieces/`, the oracle's pieces: `ruleCell.ts` and its test.
      - `calibration/imaginationPieces/`, the imagination's: `playByPlay.ts` and its test, moved unchanged; `consequences.ts` joins them in step 3.
      - The grading modes stay in the harness, though answered and read line up with the families, since the handler dispatches on both (mine). `oracleLoop/` is the composite oracle probe and doesn't move.
-   - The imports (`routeCalibrationEvent.ts` included) and calibration's [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) and [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece) paths follow the move. The probe's reading mode is unchanged.
-   - **Each piece has its own cells, inputs and check,** so a cell keeps its plain name (`OC-6`) and nothing in a piece dispatches on an ask. What the pieces render in common, such as the scene's sections, goes in one module in `imaginationPieces/` when the second piece needs it, not before (mine).
-   - **The drafts:** ask 1's continue in [`oracleLoopDrafts/playByPlay/`](oracleLoopDrafts/playByPlay/iterations.md), from draft 11, since the plan that exited was the play-by-play plan, not the piece's drafting; its Problems, Library and Ledger carry on (mine). Ask 2's go in `oracleLoopDrafts/consequences/`, laid out the same way.
-   - **The shared core** is kept once as its own file, and each ask's Role, Task and examples are a file beside it. A script assembles each payload's `instructions`, and each part has its own hash, so a draft's notes say which part changed and so what it costs to test (mine).
-   - **Tests:** the moved tests passing unchanged, and the registry listing both families' pieces.
-2. [ ] **Ask 1, more detail,** from the play-by-play's [draft 10](oracleLoopDrafts/playByPlay/10.txt) (`93a12284`): the ordinary method and its possible problems.
+   - [X] The imports (`routeCalibrationEvent.ts` included) and calibration's [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) and [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece) paths follow the move. The probe's reading mode is unchanged.
+   - [X] **Each piece has its own cells, inputs and check,** so a cell keeps its plain name (`OC-6`) and nothing in a piece dispatches on an ask. What the pieces render in common, such as the scene's sections, goes in one module in `imaginationPieces/` when the second piece needs it, not before (mine).
+   - [X] **The drafts:** ask 1's continue in [`oracleLoopDrafts/playByPlay/`](oracleLoopDrafts/playByPlay/iterations.md), from draft 11, since the plan that exited was the play-by-play plan, not the piece's drafting; its Problems, Library and Ledger carry on (mine). Ask 2's go in `oracleLoopDrafts/consequences/`, laid out the same way.
+   - [X] **The shared core** is kept once as its own file, and each ask's Role, Task and examples are a file beside it. A script assembles each payload's `instructions`, and each part has its own hash, so a draft's notes say which part changed and so what it costs to test (mine). **Built:** the core's versions are [`oracleLoopDrafts/imaginationCore/N.txt`](oracleLoopDrafts/imaginationCore/1.txt), version 1 being draft 10's `Reading the scene` and `Relations and frames`. An ask's part is `N.ask.txt` in its drafts folder, with one `{{core}}` line where the core goes. [`pieceProbe/assembleDraft.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/assembleDraft.ts), run as `npm run assemble-draft` from `lambda/ephemera/`, builds the payload and prints the ask's, the core's and the instructions' hashes. Draft 10, split, reassembles to `93a12284` byte for byte (ask `4b18b3b0`, core `006c128e`).
+     - **The block's form stays in the ask's part** (mine; a departure from "the core is … the block's form"): draft 10's form sentence ends its `Task` and names this ask's keys (`actions`, `problems`), so moving it would take a second slot and cut the Task in two. A generic form wording shared by the asks would move into the core as a core change.
+   - [X] **Tests:** the moved tests passing with only their imports changed, and the registry listing both families' pieces (`pieceProbe/pieces.test.ts`). The registry's export is `pieces`.
+2. [ ] **Ask 1, more detail,** from the play-by-play's [draft 10](oracleLoopDrafts/playByPlay/10.txt) (`93a12284`): the ordinary method and its possible problems. Draft 11 starts from its split, [`10.ask.txt`](oracleLoopDrafts/playByPlay/10.ask.txt) with core 1.
    - **Its cells:** OC-1, OC-6, OC-19 and OC-20, as the play-by-play's. OC-30/2 is a method already chosen, which this ask doesn't serve.
    - **Open for its drafts:**
      - the problems' scope: securing flagged wherever it is, and generic cautions (spills, injury). Under the deferral premise these cost oracle calls, not answers;
@@ -107,7 +109,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 ## Verification
 
-- **Step 1:** from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`. The moved piece's cells render the same inputs hashes as before (OC-1 `3a664ea2`, OC-6 `a5a71d32`, OC-30/2 `c3f3bca2`, OC-19 `8ab35bc0`, OC-20 `2bde4926`).
+- **Step 1** (passed 2026-11-11): from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`. The moved piece's cells render the same inputs hashes as before (OC-1 `3a664ea2`, OC-6 `a5a71d32`, OC-30/2 `c3f3bca2`, OC-19 `8ab35bc0`, OC-20 `2bde4926`).
 - **A draft:** its form check, then every reply against the rubric written before the batch.
 - **Links:** every relative link and anchor in this plan and the parent resolves.
 
@@ -115,7 +117,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | Step | State |
 | --- | --- |
-| The folder split and an ask per piece | Not started |
+| The folder split and an ask per piece | Done 2026-11-11 |
 | Ask 1, more detail | Not started; starts from the play-by-play's draft 10 |
 | Ask 2, consequences | Not started |
 | The booked asks | Booked |

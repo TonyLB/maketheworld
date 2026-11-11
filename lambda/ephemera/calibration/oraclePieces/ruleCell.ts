@@ -10,7 +10,7 @@ import { subScene } from '../../dataSource/actions/sceneProse/subScene'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
-import { registerPiece, type OraclePiece, type PieceCell } from './oraclePiece'
+import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
 
 /** An action of the plan, and what the play-by-play says each of the rule's things does in it, keyed by the rule's ends exactly. */
 export type RuleCellAction = { says: string; motions: Readonly<Record<SceneHandle, string>> }

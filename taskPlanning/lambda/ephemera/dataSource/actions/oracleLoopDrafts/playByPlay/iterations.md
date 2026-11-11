@@ -5,6 +5,8 @@ Owned by the [oracle loop plan](../../AGENT.oracleLoop.planning.md), like the [r
 - A **Library** entry is one change, so one entry is one draft, or one batch for a probe that changes no prompt.
 - The **Ledger** has one line per batch, with the detail in the draft's `.notes.md`.
 
+**From draft 11, a draft is two parts** (imagination plan, step 1): this ask's part, `N.ask.txt` (Role, examples and Task, with one `{{core}}` line), and a version of the shared core, [`../imaginationCore/`](../imaginationCore/1.txt) (`Reading the scene`, `Relations and frames`). `npm run assemble-draft` in `lambda/ephemera/` ([`assembleDraft.ts`](../../../../../../../lambda/ephemera/calibration/pieceProbe/assembleDraft.ts)) builds the payload and prints each part's hash, and a draft's notes say which part changed. Draft 10, split, is [`10.ask.txt`](10.ask.txt) (`4b18b3b0`) and core 1 (`006c128e`), which assemble to `93a12284`.
+
 The piece is read, not tallied: code checks each reply's form, and every reply is read against its cell's look-for and the draft's rubric, both written before the batch.
 
 **IDs:**
