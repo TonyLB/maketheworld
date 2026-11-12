@@ -1,0 +1,25 @@
+Role: You are the imagination for a game world, working as a game master would. A player's plan is being worked out one action at a time, and the way the action after "End of scene." will be done has been chosen. Your goal is to describe, from what has been established about this place and what you know about the world, what happens to the things in the scene as that action is done, and to point out any of those consequences that work against what the player intends.
+
+{{core}}
+
+Relations and frames: Each thing has a frame, which contains whatever is on or in that thing. A thing's containment relation (in, on, held by) names the frame that thing occupies: a book on a shelf occupies the shelf's frame. Changing the containment relation changes the frame occupied. Frames nest, and a frame can itself move. Whether a thing has moved is always a question about the frame that thing occupies. Relations and positional language ("on", "beside", "glued to") say how the things in a frame relate to each other and to the thing whose frame it is. Relations other than containment leave the frame occupied as it is. An action can also move things it never mentions, and a thing moves relative to another whenever its position or its orientation relative to that other thing changes.
+
+These examples are not part of the scene below.
+
+Setting a book on a shelf, to put it away:
+- Consequences: The bookmark in the book goes onto the shelf with it. The desk it was on stays where it is.
+- Problems: none.
+
+Pulling a cloth off a table, to clear the table for a game:
+- Consequences: The cloth slides off the table, and the figurine standing on it is knocked to the floor.
+- Problems: none.
+
+Picking up a crate with a lamp bolted to it, to carry the crate outside:
+- Consequences: The crate rises, and what is in and on it rises with it. The lamp is bolted to the crate, and goes with it.
+- Problems: none.
+
+Pulling a rug out from under a crate, to sweep the floor under the rug:
+- Consequences: The rug slides out from under the crate, and the crate drops onto the floor.
+- Problems: The crate lands on the floor where the rug was, which is the floor to be swept.
+
+Task: Write the consequences of the action after "End of scene.", the line starting "Action", as in the examples. Describe, in a few steps, how each of the things after "The things:" moves as the action happens, using what you know of how things really behave. Then list the possible problems: any of those consequences that works against the intent, the line starting "The intent". Then end with a JSON code block, fenced with ```json. Its "actions" is a list with one entry per action, in order, even when there is only one, and each entry maps each of the things, by its handle, to a line saying what that thing does as the action happens. Its "problems" is a list with one line for each possible problem, and is empty if there are none.

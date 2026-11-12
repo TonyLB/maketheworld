@@ -4,7 +4,7 @@ import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
-import { PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, playByPlay, playByPlayCells, renderPlayByPlay, type PlayByPlayInputs } from './playByPlay'
+import { PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, playByPlay, playByPlayCells, playByPlayThings, renderPlayByPlay, type PlayByPlayInputs } from './playByPlay'
 
 const fixtureScene = async (name: string): Promise<SceneModel> => {
     const fixture = sceneFixture(name)
@@ -12,13 +12,13 @@ const fixtureScene = async (name: string): Promise<SceneModel> => {
 }
 
 const cellOf = (inputs: Partial<PlayByPlayInputs>): ReadPieceCell<PlayByPlayInputs> => ({
-    inputs: { fixture: 'teaTable', actions: ['pick up [saucer1]', 'pour [tea2] from [teapot1] into [cup1]'], things: ['teapot1', 'table1'], ...inputs },
+    inputs: { fixture: 'teaTable', actions: ['pick up [saucer1]', 'pour [tea2] from [teapot1] into [cup1]'], alsoShown: ['table1'], ...inputs },
     lookFor: 'anything',
     source: 'hand-written',
 })
 
 const fenced = (value: unknown): string => `The teapot rises.\n\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\``
-const line = { teapot1: 'rises off [table1]', table1: 'stays where it is' }
+const line = { teapot1: 'rises off [table1]', cup1: 'stays where it is' }
 
 describe('playByPlay', () => {
     beforeEach(() => {
@@ -28,7 +28,7 @@ describe('playByPlay', () => {
     afterEach(() => jest.restoreAllMocks())
 
     describe('the render', () => {
-        it('gives the sub-scene, then each action in order, then the things last', async () => {
+        it('gives the sub-scene, then each action in order, then the things the actions name last, each once', async () => {
             const text = await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)
             expect(text.startsWith('Scene: ')).toBe(true)
             const parts = text.split('\n\n')
@@ -36,11 +36,11 @@ describe('playByPlay', () => {
                 'End of scene.',
                 'Action 1: pick up [saucer1]',
                 'Action 2: pour [tea2] from [teapot1] into [cup1]',
-                'The things: [teapot1], [table1]',
+                'The things: [saucer1], [tea2], [teapot1], [cup1]',
             ])
         })
 
-        it('shows the things the actions name in the scene, as well as the listed things', async () => {
+        it('shows the things the actions name in the scene, as well as the things also shown', async () => {
             const text = await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)
             const scene = text.slice(0, text.indexOf('End of scene.'))
             expect(['saucer1', 'tea2', 'cup1', 'teapot1', 'table1'].filter((handle) => !scene.includes(`[${handle}]`))).toEqual([])
@@ -53,17 +53,17 @@ describe('playByPlay', () => {
             expect(text).not.toContain('blocks')
         })
 
-        it('runs a chain\'s consequence from the wall, which no action moves', async () => {
-            const text = await renderPlayByPlay(cellOf({ fixture: 'teaTableChained', actions: ['pick up [table1]'], things: ['table1', 'wall1'] }), { rules: 'consequence' })
+        it('runs a chain\'s consequence from the wall, which no action names, when the wall is also shown', async () => {
+            const text = await renderPlayByPlay(cellOf({ fixture: 'teaTableChained', actions: ['pick up [table1]'], alsoShown: ['wall1'] }), { rules: 'consequence' })
             expect(text).toContain('[table1] is chained to [wall1]. When [wall1] changes its position or orientation, [table1] moves with it.')
         })
 
         it.each([
             [{ actions: [] }, /No actions/],
-            [{ things: [] }, /No things to describe/],
-            [{ things: ['teapot1', 'table1', 'teapot1'] }, /Things listed twice: teapot1/],
+            [{ actions: ['look around'] }, /The actions name no things to describe/],
+            [{ alsoShown: ['table1', 'wall1', 'table1'] }, /Things shown twice: table1/],
             [{ actions: ['pick up [kettle1]'] }, /The actions name kettle1, not in teaTable's scene/],
-            [{ things: ['kettle1'] }, /Unknown scene handle\(s\) kettle1/],
+            [{ alsoShown: ['kettle1'] }, /Unknown scene handle\(s\) kettle1/],
         ])('throws on %j', async (inputs, error) => {
             await expect(renderPlayByPlay(cellOf(inputs), PLAY_BY_PLAY_OPTIONS)).rejects.toThrow(error)
         })
@@ -83,15 +83,15 @@ describe('playByPlay', () => {
     describe('the check', () => {
         const cell = cellOf({})
 
-        it('passes reasoning then a fenced json block with a line for each listed thing in each action', () => {
+        it('passes reasoning then a fenced json block with a line for things the actions name, in each action', () => {
             expect(checkPlayByPlay(fenced({ actions: [line, line] }), cell)).toEqual([])
         })
 
         it('reads a handle in brackets as the handle, and merges the two spellings where both appear', () => {
-            expect(checkPlayByPlay(fenced({ actions: [{ '[teapot1]': 'rises', '[table1]': 'stays' }, { teapot1: 'tilts', '[teapot1]': 'to pour', table1: 'stays' }] }), cell)).toEqual([])
+            expect(checkPlayByPlay(fenced({ actions: [{ '[teapot1]': 'rises', '[cup1]': 'stays' }, { teapot1: 'tilts', '[teapot1]': 'to pour', cup1: 'stays' }] }), cell)).toEqual([])
         })
 
-        it('passes a listed thing with no line, or an action with no lines, since a silent thing stays in its frame', () => {
+        it('passes a named thing with no line, or an action with no lines, since a silent thing stays in its frame', () => {
             expect(checkPlayByPlay(fenced({ actions: [{ teapot1: 'tilts' }, {}] }), cell)).toEqual([])
         })
 
@@ -101,12 +101,12 @@ describe('playByPlay', () => {
             ['no actions array', fenced({ motions: [line, line] }), ['the JSON block has no "actions" array']],
             ['the wrong count', fenced({ actions: [line] }), ['expected 2 actions, got 1']],
             ['an entry that is not an object', fenced({ actions: [line, 'rises'] }), ['action 2 is not an object']],
-            ['a thing not listed', fenced({ actions: [line, { ...line, cup1: 'fills' }] }), ['action 2: cup1 is not a listed thing']],
-            ['a bracketed thing not listed', fenced({ actions: [line, { ...line, '[cup1]': 'fills' }] }), ['action 2: cup1 is not a listed thing']],
-            ['both spellings, one empty and one not a string', fenced({ actions: [line, { teapot1: 'tilts', '[teapot1]': 4, table1: '', '[table1]': ' ' }] }), [
-                "action 2: teapot1's line is not a string", "action 2: table1's line is empty",
+            ['a thing the actions don\'t name, though shown', fenced({ actions: [line, { ...line, table1: 'stays' }] }), ['action 2: table1 is not a listed thing']],
+            ['a bracketed thing not named', fenced({ actions: [line, { ...line, '[table1]': 'stays' }] }), ['action 2: table1 is not a listed thing']],
+            ['both spellings, one empty and one not a string', fenced({ actions: [line, { teapot1: 'tilts', '[teapot1]': 4, cup1: '', '[cup1]': ' ' }] }), [
+                "action 2: teapot1's line is not a string", "action 2: cup1's line is empty",
             ]],
-            ['an empty line', fenced({ actions: [line, { ...line, table1: '  ' }] }), ["action 2: table1's line is empty"]],
+            ['an empty line', fenced({ actions: [line, { ...line, cup1: '  ' }] }), ["action 2: cup1's line is empty"]],
             ['a line that is not a string', fenced({ actions: [{ ...line, teapot1: 3 }, line] }), ["action 1: teapot1's line is not a string"]],
         ])('reports %s', (_, reply, problems) => {
             expect(checkPlayByPlay(reply, cell)).toEqual(problems)
@@ -114,16 +114,32 @@ describe('playByPlay', () => {
     })
 
     describe('its cells', () => {
-        it.each(Object.keys(playByPlayCells))('%s renders, and every thing it lists or its actions name is in its fixture\'s scene', async (id) => {
+        it.each(Object.keys(playByPlayCells))('%s renders, and every thing it shows or its actions name is in its fixture\'s scene', async (id) => {
             const cell = playByPlayCells[id]
             await expect(renderPlayByPlay(cell, PLAY_BY_PLAY_OPTIONS)).resolves.toEqual(expect.any(String))
             const scene = await fixtureScene(cell.inputs.fixture)
-            const named = [...cell.inputs.things, ...cell.inputs.actions.flatMap(namedHandles)]
+            const named = [...cell.inputs.alsoShown, ...cell.inputs.actions.flatMap(namedHandles)]
             expect(named.filter((handle) => scene.things[handle] === undefined)).toEqual([])
+        })
+
+        it.each([
+            ['OC-1', ['table1']],
+            ['OC-6', ['tea2', 'teapot1', 'cup1']],
+            ['OC-19', ['teapot1', 'table1', 'hammer1']],
+            ['OC-20', ['table1']],
+        ])('%s describes the things its actions name: %j', (id, things) => {
+            expect(playByPlayThings(playByPlayCells[id].inputs)).toEqual(things)
+        })
+
+        it('OC-20 shows the wall and the chain, though its action names only the table', async () => {
+            const text = await renderPlayByPlay(playByPlayCells['OC-20'], PLAY_BY_PLAY_OPTIONS)
+            const scene = text.slice(0, text.indexOf('End of scene.'))
+            expect(scene).toContain('[wall1]')
+            expect(scene).toContain('chained to')
         })
     })
 
-    it('is registered, and runs through the probe: five cells x 3, each reply form-checked and grouped by cell', async () => {
+    it('is registered, and runs through the probe: four cells x 3, each reply form-checked and grouped by cell', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => {
             const prompt = messages[0].content?.[0]?.text ?? ''
             const things = namedHandles(prompt.slice(prompt.lastIndexOf('The things: ')))
@@ -132,10 +148,10 @@ describe('playByPlay', () => {
         })
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Say what each thing does.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(15)
+        expect(invoke).toHaveBeenCalledTimes(12)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 15, formFails: 0, errors: 0 })
+        expect(result.summary).toEqual({ calls: 12, formFails: 0, errors: 0 })
         expect(result.options).toEqual(PLAY_BY_PLAY_OPTIONS)
         expect(result.read.map(({ cell, replies }: { cell: string; replies: unknown[] }) => [cell, replies.length])).toEqual(
             Object.keys(playByPlayCells).map((id) => [id, 3]),
