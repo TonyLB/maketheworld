@@ -175,6 +175,57 @@ So the grading is per hop (mine, agreed):
 
 This reverses the 2026-11-12 entry's "the rule cell adjusted, next"; the design in that entry stands.
 
+## The non-rule cell's steps carry roles (2026-11-13)
+
+**The user's question,** opening the [non-rule cell](AGENT.nonRuleCell.planning.md)'s design pass: is there a chicken-and-egg between the question and the inputs? The question can be phrased more precisely if each step, whether from `playByPlay`, `consequences` or both, carries a type. The result is in that plan's [The step layout and the two shapes](AGENT.nonRuleCell.planning.md#the-step-layout-and-the-two-shapes).
+
+**The user's design:**
+- **Three roles.** *Intended*, the goal or the stated method: "tea is in cup" isn't just something that happens, it is the goal, and "tea pours from teapot" is the method, so siphoning from the top isn't an alternate approach to that method. *Improvised method:* picking up the teapot and tilting it, which can be revised. *Consequence:* "and therefore the saucer slides off", improvised too, but it can't be sidestepped by changing the method's details. So when a step can't be done as written, its role says what follows: the stated method is impossible, an alternate method may be an improvement, or a mitigation is called for.
+- **Steps encode an implicit state.** The problem with pouring into a cup that fell off the table isn't exactly that it fell. It's the implied consequence that it is now on the floor, lop-sided or shattered, and neither step shows that alone.
+- **The state is text, and cost is why.** The world schema could hold long-term consequences, but recording every transitional state in a dry run of it would cost orders of magnitude more than the rest of the loop. Consequences are text in the fiction's register: "[cup1] is on the floor, on its side or broken". Cost is what keeps us from defining deterministic frames for every phenomenon. The lossiness is acceptable.
+- **Text states have no natural aggregator,** so a prompt judging step N is told its state by listing steps 1 to N−1.
+- **The fallback looks forward.** Reaching back is a known problem for LLMs, so a per-step call is also given steps N+1 to the end. It takes in steps 1 to N−1, considers what step N does to that state and whether that blocks step N itself, and, if not, whether step N makes any later step impossible. The calls are independent, so they run in parallel. Results per step aren't needed separately, since a step strongly implies them.
+- **No relevance filter.** "Which consequences of this are relevant to later steps?" is likely more expensive than the full judgment. If we don't need an intermediate step in its own right, we don't compute it.
+- **One pass is hoped for,** and the per-step form is a strong further decomposition if Micro can't do it in one.
+
+**Mine, agreed:**
+- Making the layout NR-6's first decision, before the question, since it changes NR-1 to NR-3: with roles, the route after a block is code's, and the piece's own answers shrink to allows, blocks with a reason, needs detail and perhaps a fact.
+- Blame goes to the cause, not to the step that fails: the pour fails at the intended step, and its cause is the consequence.
+- Roles are read from the request's words: OC-6's request names no cup, so "into [cup1]" is improvised.
+- The per-step calls overlap, and code joins them. A failure an earlier call claims belongs to that step, and one no call claims belongs to the step itself, which covers a step blocked by two earlier steps together. If the self-check and forward check leak into each other, they split into two calls per step.
+- Withdrawn: my first fallback, code looping one call per step over earlier steps only, which the implicit state defeats; and "now" lines asked of the imagination, which the steps make unnecessary.
+
+## The corpus's loop cases as chains of hops (2026-11-13)
+
+**Where it came from.** The non-rule cell's cells, redrafted in the step layout, seemed to have no case where the piece asks for detail of the action (mine).
+
+**The user's correction:** the corpus is read as freestanding, often similar, cases, but they were imagined as sections of composite runs. A `consequences` cell answering a request about tilting the table implies a case one hop earlier, where the non-rule cell saw the tilt, couldn't tell what it would do to the pour, and asked. So a subset of the corpus becomes composite tests: sequences of orchestration hops, each with its expected output, and each testable by hand against its own prompt.
+
+**Also the user's:**
+- **Step and cause** are both quoted in a `blocks`. Code routes by the cause, and the reason may explain it by reference to the step.
+- **The OC-30 chain's intent is amended** to "pour tea from [teapot1] into [cup1]". Players will still type "pour tea". When they do, the best UI may be to choose a physically possible purpose and ask: "Given the situation, you can pour the tea onto the floor. Is that what you want?" That is booked as OC-30's variant.
+
+**Mine, agreed:**
+- The chain bullet in the corpus's "How a case is written". The single cases stay, as guards and as the cases where asking is wrong.
+- OC-30 written as ten hops beside its turns, which the harness's IDs and the drafts' notes cite.
+- OC-31's turn 1 is the first case of action detail. Its step is intended, so the request goes to the player, not to `playByPlay`.
+- The amended intent may bear on `consequences`' open cup gap (0 of 3 in its batch 1), whose intent never named the cup.
+
+## The imagination's problems are a bucket; whether a judge reads them is an experiment (2026-11-13)
+
+**Where it came from.** Settling the non-rule cell's inputs, the user left the imagination's flagged problems out of the baseline: "a bucket to allow imagination the room to defer them, not an output expected to be picked up by later stages". That conflicted with the imagination plan's premise (the oracle classifies each flag) and with IM-4's hold (the flags' sensitivity waits for a reader's reactions), so I asked which held.
+
+**The user's framing:**
+- **The imagination will likely always be bad at judging what is actually a problem.** Tuning for inventiveness may always cost judgment. That is what the one composed prompt showed: push one lever, and gain ground only by losing it elsewhere.
+- **The bucket works.** Giving the imagination a place for that kind of thinking keeps it out of the parts it is meant to focus on, much better than any instruction of the "don't think about an elephant" kind.
+- **So the open question:** we have a result we trust (the imagined part) arriving with one we have reason to mistrust (the separated judgments), handed to a system that is good at exactly the part we mistrust. Do we ignore it, include it so the judge can be skeptical of it, or something else? There is a framing, and probably useful experiments, but we haven't got far enough to run them.
+
+**Mine, agreed:**
+- The baseline without the flags is also the control any later experiment needs.
+- Four options, not exclusive: ignore them; show them framed for skepticism, where the risk is anchoring, since Micro copies the nearest text (PR-10, L-29) and the flags are noisy; classify each in a call of its own, which is skeptical by construction; or use them in code, as a trigger for which piece or shape runs, or as an audit of the judge in the probes.
+- The experiment runs once the composition probe gives real flagged replies feeding judging hops: the non-rule cell's NR-9, on hops 5 and 7 and the guard cells.
+- Recorded as revisions to the imagination plan's two problems rows, its IM-4 and its `playByPlay` hold, and to the non-rule cell's hand-back.
+
 ## Carried from the judgePrompt plan
 
 That plan rewrote the prompt and was retired on 2026-11-06, once v28 was built and measured. Slice numbers below are that plan's: 3 built the prompt and 4 measured it. Drafts v1 to v27, and the earlier rows of the table, are in git history. Each Settled item has a one-line summary, with what the oracle loop does to it, in the plan's [inherited table](AGENT.oracleLoop.planning.md#what-is-inherited-as-settled).

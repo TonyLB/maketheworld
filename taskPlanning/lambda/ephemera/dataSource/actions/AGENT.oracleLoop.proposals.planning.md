@@ -20,6 +20,7 @@ Moved on 2026-11-07 from the retired judgeFailures plan, unchanged except for li
 | [What the corpus uses](#what-the-corpus-uses) | Live: the oracle's inputs, swept from the corpus (Slice 2, 2026-11-08) | Guess: what hand-written cases use, not what a running oracle needed |
 | [A type sketch](#a-type-sketch) | Live: mine, **proposed grounding for a first implementation**, with no approval gate (pilot, 2026-11-09). The harness is built on it and revises it | Guess |
 | [Noticing](#noticing) | Live: what any oracle prompt still has to notice. The fixes listed are candidates, unprobed in the comparative form | Observed for v45 for the failures; the fixes are guesses |
+| [A trial, for a judgment out of its depth](#a-trial-for-a-judgment-out-of-its-depth) | **Parked** (user, 2026-11-13): "a future likely-boondoggle", recorded so it isn't lost, not booked | Imagined |
 
 ## A shared back half: the proposed outcome
 
@@ -626,3 +627,19 @@ Expect overuse (user, 2026-11-05): asking for a hard skill check is a trap begin
 
 - **v28 without the rule's second sentence,** on table and teapot, 4 calls. The user's hypothesis is that frame language let Micro grasp the concept. The table replies could equally be repeating "travels along with". It decides whether the frames section and examples earn their characters, and how far the result carries to scenes without that rule. Run it before trimming the prompt or reusing the frames module elsewhere.
 - **Nova 2 Lite on the baseline,** 6 calls, if a failure seems to resist wording. It separates what the prompt doesn't get across from what Micro can't do.
+
+## A trial, for a judgment out of its depth
+
+**Parked** (user, 2026-11-13): written down as a likely boondoggle for the future, not booked anywhere. It came from thinking about oracles as judges.
+
+**The user's design.** If an oracle piece really thinks a yes-or-no question exceeds its own capabilities, the fallback is to convene a **trial** of three agents:
+- an **advocate for "yes"**, who can pose questions to the imagination to get evidence for its claim;
+- an **advocate for "no"**, with the same capacity;
+- a joint **disclosure**: both advocates get the results of every question either one poses, aggregated;
+- a **judge**, the third agent, who synthesizes the two arguments.
+
+**Notes (mine):**
+- **Prior art,** from memory and unchecked: AI safety via debate (Irving, Christiano and Amodei, 2018), and multi-agent debate for reasoning (Du et al., 2023). Neither has disclosure in this form, as far as I recall.
+- **It fits the house rules.** Each turn can be a fresh call, and the aggregation is code's. Disclosure answers the worry that set tool calls aside (the [trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)): neither side reasons only over the evidence it chose to ask for.
+- **The trigger is an answer no piece has.** "This is beyond me" is not `needs detail` (more information would help), nor the skill-or-chance outcome (JF-2; the world decides, not the judge). It would be another escalation, with its own over-use risk, as `needs detail` has.
+- **Why it is likely a boondoggle.** The cost: calls times rounds times three roles. And the advocates' evidence comes from the imagination, whose judgment we mistrust (the [problems bucket](AGENT.oracleLoop.discussion.planning.md#the-imaginations-problems-are-a-bucket-whether-a-judge-reads-them-is-an-experiment-2026-11-13)), so the judge has to weigh evidence, not rhetoric. If it is ever tried, the judge's seat is where a larger model than Micro might earn its cost.
