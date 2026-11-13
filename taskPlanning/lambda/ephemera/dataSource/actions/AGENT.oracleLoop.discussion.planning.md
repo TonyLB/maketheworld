@@ -99,6 +99,82 @@ What worked best was the single generative judgment: the play-by-play tilted OC-
 - **Exit (c), now.** The play-by-play plan's premises no longer stood (a stage feeding the rule cell as is, a piece that never sees the request, an iterative generator as later work), and its names would carry into every later ask by path dependency (user). So the episode ends with its findings, and the [imagination plan](AGENT.imagination.planning.md) renames the piece before a second ask is built. Revised the same day (user): the probe's folder splits by family instead (`pieceProbe/`, `oraclePieces/`, `imaginationPieces/`), and each ask is its own read piece named for what it returns, so `playByPlay` keeps its name and ask 2 is `consequences`.
 - **The family test:** a prompt that picks from a closed answer set is the oracle's (an answered piece); one that produces something to read is the imagination's (a read piece).
 
+## An oracle piece answers with a verdict or a request (2026-11-12)
+
+**Where it came from.** With the imagination plan held for the judging pieces (its IM-4, settled by the user), the next piece is the rule cell adjusted to the split asks. As first booked, the adjustment ran one way: the rule cell reading `playByPlay`'s lines. The user: it runs two ways, since something has to send the more-detail ask in the first place. That was the imagination plan's IM-2, "a 'not enough detail to judge' piece", which was mine.
+
+**The user's design:**
+- **The answers say what is called for.** `blocks` was never absolute. It means "void the rule, or find an alternate method around it", and both of those are asks for the imagination. So "needs detail" is one more answer of the same kind, and so is the path to `consequences`, perhaps a fourth. More will come.
+- **Two kinds of output.** An oracle piece that knows it can ask for more says one of two things:
+  - "I have what I need, and here is my judgment";
+  - "my judgment is that this isn't enough for a judgment, in the following way(s)".
+- **The vocabulary of requests is in flux,** but there will be many kinds to accommodate. They grow on two sides: the imagination's library of asks, and the oracle pieces' ability to say how more information would improve their read.
+
+**Mine, agreed:**
+- **Sufficiency is entangled with the judgment, so the two share a call.** What is missing shows up only when the judgment is tried: seeing that "tilts" and "tilts" doesn't settle the glue means knowing the glue turns on whether the teapot moves relative to the table. A separate sufficiency piece would:
+  - do the judgment twice;
+  - sometimes disagree with the piece that judges;
+  - lose the request's "in the following way(s)", which only the judging call knows.
+
+  So IM-2's piece of its own is superseded. The exception is a structural gap, such as a rule's end with no line or an action with no motions, which code catches before any call.
+- **A verdict and a request differ in what code does next.** A verdict, `blocks` included, is a known answer about the plan as written, so code may change the plan. A request is "can't judge yet", so code keeps the plan and asks for more description.
+- **The requests are typed by the imagination's asks,** with parameters: more detail on which step, which thing and which question; what happens to which unnamed thing; and the later asks.
+- **The over-asking risk:** a piece that can ask has an easy way out, the oracle's counterpart of the imagination's over-flagging. The settled rule cell judges "tilts" and "tilts" rather than deferring it. So the corpus needs cells where asking is wrong as well as where it is right, and the loop's cap (the imagination plan's IM-3) is the backstop. Refined below: it is read per hop, not from the count of rounds.
+
+**Tool calls, considered and set aside.**
+- **Mine:** a request is a parameterised call addressed to someone else, so tool calls would carry it, with typed arguments, several requests in a turn, and dispatch that maps directly onto asks.
+- **The user's counter:** a tool's result comes back into the same context. The oracle gets the new information together with its own reasoning for asking, which may help it follow its thread, but leaves it **more open to compounding errors and confirmation bias**.
+- **Agreed:** the format and the conversation separate, and the conversation is the cost.
+  - A fresh call keeps one judgment per call, with the loop in code (user, 2026-11-10).
+  - It judges the new detail against the scene, not against the earlier call's expectation.
+  - It is a function of its inputs, so it can be a probe cell.
+  - Most of the benefit can be kept by passing the **question** the oracle asked into the fresh call, without its reasoning. Whether to pass it is a probe question.
+  - Once every call is fresh, a tool call is only another output syntax, so a fenced JSON block, which the probe already reads, carries the two kinds as well. This design doesn't depend on Micro's tool use, so Slice 6's tool-call check keeps its own reasons.
+
+**The direction:**
+1. Each oracle piece answers in one fenced JSON block, with either a verdict from its own closed set or one or more requests typed by the imagination's asks.
+2. Code checks structural gaps before the call, carries each request to the imagination, and calls the piece again fresh, with the richer inputs and perhaps the question asked.
+
+**Open:**
+- the request vocabulary, in flux by design;
+- where the line falls between judging and asking, such as whether "tilts" and "tilts" stays `allows`, which is a corpus call;
+- whether adding answers costs the settled cell's accuracy on Micro (46 of 48 with two);
+- passing the question, or not.
+
+**The composition probe moves up** (the user's question, agreed). Its first placing, after the non-rule blocker, rested on "composing one piece with code tests nothing new". Now the rule cell and `playByPlay` meet across a real seam, and a request's worth shows only in what comes back: whether the detail lets the cell judge, and whether the loop settles. So it is built alongside the rule cell's adjustment, starting with that pair of hops (mine), and is where the imagination's held flags and form get a consumer's reactions.
+
+**Rounds are not the signal** (user). A hard case takes many rounds, each warranted. The user's sketch of the tilted-table pour:
+1. The oracle needs detail on what tilting the table does to the teapot; `playByPlay` answers that it tilts with the table, and the tea pours.
+2. The oracle *now* needs detail on the other things on the table; `consequences` answers that they slide off and fall.
+3. The oracle: "That's a problem … need an attempted mitigation"; the mitigation answers "pick up the saucer *first*, then tilt the table".
+4. The oracle: "That will work. Approved."
+
+So the grading is per hop (mine, agreed):
+- **An unwarranted request** asks for what the inputs already establish, repeats one already answered, or comes where the corpus says judge. An answer that changes nothing in the next judgment is a weaker sign, since confirming can be fair.
+- **Under-asking,** judging where something is missing, is the mirror fault.
+- **The cap** is a backstop sized for chains like this one, not a limit on rounds.
+
+**The sketch is a corpus chain already:** OC-30 (A, the glued pour), OC-30/2 (B, tip the table, the saucer and cup slide) and OC-30/3 (C, B repaired, the saucer off first). It is the composition probe's target. Its hops need pieces not built yet: a request type for `consequences`, a judgment of a consequence against the intent, and the mitigation ask. So hops join as their pieces land, and a hop with no piece yet can be played by hand, as Slice 5 had it (mine). "That's a problem, need a mitigation" is a **verdict with an implied ask**, like `blocks`, not a request for information, so the two kinds hold (mine).
+
+**Overlap** (mine): the composition probe takes up much of Slice 5 (the loop by hand on OC-30 and OC-31), and its rounds are Slice 6's multi-turn probe as fresh calls looped in code. Whether those slices fold in is the user's call.
+
+## The non-rule blocker first, the rule cell later (2026-11-13)
+
+**The user's question:** the responses beyond `allows` and `blocks` need prototyping, but should that be done while drafting the non-rule blocker, returning to refactor the rule cell once the design is more mature? The 2026-11-12 entry had the rule cell adjusted next.
+
+**Mine, agreed by the user:**
+- **The blocker is new,** so the verdict-or-request contract costs nothing extra there. On the rule cell it means redrafting a settled prompt (46 of 48) against a contract still in flux.
+- **The blocker will press the request vocabulary harder.** The rule cell needs only how a rule's two ends move. The blocker judges impossibility for reasons no rule names, so its requests are open-ended, a fact such as a size as well as a method. The vocabulary is then shaped to serve both pieces, and the rule cell adopts it rather than sets it.
+- **The rule cell can wait unrefactored.** Code asks `playByPlay` before calling it, so it never needs to ask. Reading `playByPlay`'s lines is adapter code: the lines for the named things, and the silence contract for a rule's other end.
+- **The argument the other way,** and why it waits: the rule cell is the only piece with a known baseline, so it alone can measure what a third answer costs on Micro. That measurement is worth more once the vocabulary has settled, so it comes with the refactor.
+
+**The order:**
+1. the non-rule blocker, verdict-or-request from the start;
+2. a composition probe alongside it, first composing what exists (`playByPlay` into the settled rule cell, through the adapter), then the blocker as it is built;
+3. the rule cell refactored to the matured contract.
+
+This reverses the 2026-11-12 entry's "the rule cell adjusted, next"; the design in that entry stands.
+
 ## Carried from the judgePrompt plan
 
 That plan rewrote the prompt and was retired on 2026-11-06, once v28 was built and measured. Slice numbers below are that plan's: 3 built the prompt and 4 measured it. Drafts v1 to v27, and the earlier rows of the table, are in git history. Each Settled item has a one-line summary, with what the oracle loop does to it, in the plan's [inherited table](AGENT.oracleLoop.planning.md#what-is-inherited-as-settled).
