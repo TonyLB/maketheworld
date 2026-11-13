@@ -4,6 +4,7 @@
 // either answered (a closed answer set, tallied by code against each cell's expected answer) or read (no answer set: code checks
 // each reply's form, and a reader reads the replies against each cell's `lookFor`).
 //
+import type { PieceGrade } from './pieceAnswer'
 
 /** The shared part of a cell: its inputs, where it was lifted from, and a note for the reader. */
 type PieceCellBase<Inputs> = {
@@ -15,8 +16,13 @@ type PieceCellBase<Inputs> = {
 
 /** One case an answered piece is graded on: its inputs, and the answer it should give. */
 export type PieceCell<Inputs = unknown> = PieceCellBase<Inputs> & {
-    /** One of the piece's `answers`. Graded given the inputs, even where the inputs are wrong about the case. */
-    expected: string
+    /**
+     * The answer as the piece's grade gives it: one of its `answers`, or its own canonical form where it has a `grade`. Graded given the
+     * inputs, even where the inputs are wrong about the case. Absent for a cell whose answer is open: its calls are tallied, not graded.
+     */
+    expected?: string
+    /** What a reader looks for in the parts of a reply code doesn't grade, written before the batch. Code doesn't read it. */
+    lookFor?: string
 }
 
 /** A cell of a read piece: in place of an expected answer, what a reader looks for in its replies, written before the batch. */
@@ -35,6 +41,8 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
     render: (cell: PieceCell<Inputs>, options: Options) => Promise<string>
     /** An answer code gives without a call, such as for an empty window; `undefined` when the cell needs a call. */
     byCode?: (cell: PieceCell<Inputs>) => string | undefined
+    /** The piece's own grade of one reply, given its cell, in place of `pieceAnswer` against `answers`: for answers with parameters. */
+    grade?: (reply: string, cell: PieceCell<Inputs>) => PieceGrade
 }
 
 /** A read piece: no answer set. `check` gives the form problems of one reply, given its cell, and none when the reply passes. */

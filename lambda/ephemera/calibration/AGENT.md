@@ -155,10 +155,11 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 - **A piece plugs in with a registration** ([`oraclePiece.ts`](pieceProbe/oraclePiece.ts)), listed in [`pieces.ts`](pieceProbe/pieces.ts) through `registerPiece`. A piece is **answered** or **read**; the registration below is the answered kind, and [a read piece](#a-read-piece) differs where it says so:
   - `name`;
   - `answers`, its closed answer set;
-  - `cells` by ID, each with its `inputs`, `expected` answer, `source` (the batch and reply it was lifted from, or `hand-written`) and an optional `note`;
+  - `cells` by ID, each with its `inputs`, `expected` answer, `source` (the batch and reply it was lifted from, or `hand-written`) and an optional `note`. An optional `lookFor` says what a reader looks for in the parts of a reply code doesn't grade, and is carried into the tally. A cell with no `expected` has an open answer: its calls are tallied and not graded;
   - `parseOptions`, which checks the event's `options` and gives the piece's options or a refusal;
   - `render(cell, options)`, the prompt text after the instructions, which is async so it can build a fixture's scene;
-  - optionally `byCode(cell)`, an answer code gives without a call.
+  - optionally `byCode(cell)`, an answer code gives without a call;
+  - optionally `grade(reply, cell)`, the piece's own grade in place of the one below, for answers with parameters. It gives an answer string in the piece's canonical form, which its cells' `expected` uses, or `malformed` with the reason. `replyJsonObject` in [`pieceAnswer.ts`](pieceProbe/pieceAnswer.ts) reads the reply's block for it.
 
   A piece that needs more than this to plug in is the plan's revision trigger.
 - `piece` is required. `cells` defaults to all of the piece's cells. `instructions` is required, since a piece has no built prompt. `repeats` defaults to 1, `model` to `NovaMicro`, and `options` goes to the piece.
@@ -167,8 +168,8 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
 - **Grading** ([`pieceAnswer.ts`](pieceProbe/pieceAnswer.ts)): a reply that ends in a JSON object, best as a trailing fenced `json` block after prose reasoning, is graded by its string `answer` field, trimmed and lowercased. The split is `splitMarkdownReasoningAndJson` in [`llm/`](../llm/AGENT.md), the house shape for reasoning then JSON. Any other reply is graded by its last line starting `Answer:`: its first word, lowercased and with trailing punctuation dropped. Anything after that first word is ignored. When a reply has both, the JSON wins. A reply with neither, JSON that doesn't parse or has no string `answer`, or an answer outside the set, is `malformed`, with the reason. The verdict goes last, as Micro needs.
 - **Returns:**
   - the instructions' `hash` and `chars`, and the parsed `options`;
-  - **`cells` first:** for each cell, its `expected` answer; `n` calls, with `right`, `wrong`, `malformed` and `errors`; the `answers` given, with counts; `byCode` (the answer and whether it is right) where code answered; and the rendered inputs' `hash`;
-  - `summary`: calls, right, wrong, malformed, errors, and the count of cells answered by code;
+  - **`cells` first:** for each cell, its `expected` answer and `lookFor`, where it has them; `n` calls, with `right`, `wrong` (both 0 with no `expected`), `malformed` and `errors`; the `answers` given, with counts; `byCode` (the answer and whether it is right) where code answered; and the rendered inputs' `hash`;
+  - `summary`: calls, right, wrong, malformed, errors, the count of cells answered by code, and `ungraded`, the calls on cells with no `expected`;
   - `read`: every call, with its reply and grade, for reading the wrong ones.
 
 #### A read piece
@@ -201,6 +202,29 @@ A piece with no closed answer set, such as a generator, is registered with `kind
   The render throws on cell data that doesn't fit the fixture: an unknown rule, motions naming other things than the rule's, or a `voidedAt` that is not an action. The probe turns that into a refusal.
 - **Cells:** `OC-1`, `OC-6/tilted`, `OC-6/stays`, `OC-30/2/tipped`, `OC-30/2/together`, `OC-30/2/slides`, `OC-19/voided` (by code), `OC-19/glued` and `OC-20`. Each is graded given its play-by-play. `OC-6/stays` is wrong about the case on purpose. The motion wording is hand-written, paraphrased where a cell cites batch 16, and reviewed by the user. `OC-30/2/slides` was added after draft 1, to test whether the lines are read when the action sounds like moving together and the lines say the two move apart.
 - **Settled on draft 3** (2026-11-10, Micro; [`oracleLoopDrafts/ruleCell/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/ruleCell/iterations.md)): 46 of 48 calls right over two batches, 0 malformed. The draft asks for one or two sentences on what the lines say about how the two things move relative to each other, then the verdict as a fenced `json` block. The two misses were on different cells. One was a half-wrong description. The other was a right description followed by a verdict that doesn't follow from it, which is left open. Text after the block, which about half the replies add, is graded as long as it holds no brace.
+
+**The non-rule cell** (`nonRuleCell`, [`oraclePieces/nonRuleCell.ts`](oraclePieces/nonRuleCell.ts)) judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first piece to answer with a verdict **or** a request ([its plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.nonRuleCell.planning.md)). Its drafts are in [`oracleLoopDrafts/nonRuleCell/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/nonRuleCell/iterations.md).
+- **A cell's inputs:**
+  - a fixture;
+  - the player's request;
+  - the plan's steps in order, each with its role: `intended` (what the request states), `method` (a step supplied to carry it out) or `consequence` (what follows from the steps).
+- **No options.**
+- **The render:** the **whole** scene as the judge shows it, with no Rules section, since securing is the rule cell's; `The player's request: …`; then `The steps, in order:`, one `- (role) step` line each, unnumbered. It throws when there are no steps, the request is empty, a handle isn't in the fixture, or two steps are the same once normalized.
+- **The answer** is one fenced `json` block, after prose that walks the steps:
+  - `{"answer": "allows"}`;
+  - `{"answer": "blocks", "step", "cause", "reason"}`, quoting the step that can't happen and the step to blame;
+  - `{"answer": "needs detail", "of": "action" | "consequences", "step", "missing"}`.
+- **The grade** (`gradeNonRuleCell`):
+  - the block has to parse, `answer` has to be one of the three, and each answer needs its own fields as non-empty strings and none of the others' (fields no answer has are ignored);
+  - each quote is matched to one step, after case, brackets, whitespace, surrounding quotes and end punctuation are normalized: whole first, otherwise inside exactly one step on word boundaries;
+  - the canonical answer is `allows`, `blocks <step>/<cause>` or `needs detail of <of> <step>`, by position from 1. `reason` and `missing` are read by hand against each cell's `lookFor`.
+- **Cells:**
+  - the size cases OC-11, OC-18 and OC-3;
+  - the guards OC-1, OC-2, OC-20 and OC-6;
+  - the OC-30 chain's hops h5 (`needs detail of consequences 1`), h7 (`blocks 3/2`) and h10, with the intent amended to pour into the cup;
+  - OC-9, the trestle, with no `expected` (JF-2).
+
+  Eleven called cells x3 is over the cap, so a full batch is two payloads.
 
 **The play-by-play** (`playByPlay`, [`imaginationPieces/playByPlay.ts`](imaginationPieces/playByPlay.ts)) is the first read piece: how each of a candidate's actions would ordinarily be done, as what each thing the actions name does physically, and what in the scene might get in the way. Its drafts are in [`oracleLoopDrafts/playByPlay/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/playByPlay/iterations.md). Its plan exited (c) on 2026-11-11: the play-by-play is the first ask of the imagination, the family of generating prompts, and the [imagination plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.imagination.planning.md) builds the asks, each its own piece in `imaginationPieces/`; this one keeps its name. Its drafts from 11 are an ask part and a version of the shared core ([`oracleLoopDrafts/imaginationCore/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/imaginationCore/1.txt)), built into a payload by [`assembleDraft.ts`](pieceProbe/assembleDraft.ts), which hashes each part by `textHash`. From `lambda/ephemera/`: `npm run assemble-draft -- <ask.txt> <core.txt> <out.json> --piece <name> [--repeats N] [--cells A,B] [--model M]` writes the payload and prints the ask's, the core's and the instructions' hashes ([`assembleDraftCli.ts`](pieceProbe/assembleDraftCli.ts), bundled by esbuild and piped to node).
 - **A cell's inputs:**
