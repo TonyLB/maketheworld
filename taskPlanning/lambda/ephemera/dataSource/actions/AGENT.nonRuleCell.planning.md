@@ -209,7 +209,7 @@ The alternate method and the mitigation are not the piece's answers, since code 
 
 ## The considerations proposal: what to consider, generated on its own
 
-**For review; not built.** The register and the split are the user's (2026-11-13): before any finding, get out into the open what should be considered for each step. For now, generate only that, and see whether the set looks right. Later, judge the assembled set in its own pass, probably against draft 4's categories, which became hunting targets when asked for up front. The shapes, names and defaults below are mine unless marked.
+**Accepted by the user, 2026-11-13, with free text; built the same day** (the piece and its tests, [`1.txt`](oracleLoopDrafts/stepConsiderations/1.txt) and [`1.notes.md`](oracleLoopDrafts/stepConsiderations/1.notes.md)). The register and the split are the user's (2026-11-13): before any finding, get out into the open what should be considered for each step. For now, generate only that, and see whether the set looks right. Later, judge the assembled set in its own pass, probably against draft 4's categories, which became hunting targets when asked for up front. The shapes, names and defaults below are mine unless marked.
 
 **Why on its own.** Drafts 4 and 5 put the reasoning in front of the finding, inside the same call. Each time the finding's categories leaked into the reasoning: draft 4 hunted for an "against", and draft 5 filled four tag headings (NR-P9). With no finding to give, nothing downstream pulls the list toward a verdict. That is the oracle's one-judgment-per-call rule applied inside this piece. Generating considerations is one job; judging them is a later one.
 
@@ -225,7 +225,7 @@ The alternate method and the mitigation are not the piece's answers, since code 
 > Task: For each step, in order, list what someone judging whether it can happen as written should be considering: the things it touches, what they are like, where they are, and what the steps before it have left. Each item is a few words, naming things by their handles. First go through the steps in prose, then end with a single JSON code block, fenced with ```json, holding one object whose "steps" is a list with one entry for each step, in order: {"step": "<the step, quoted>", "considering": ["<item>", ...]}.
 
 - **No categories, no tags, no count.** The list is one plain list, so there is nothing to fill.
-- **Free text, not quotes** (mine; your call). Quoting only the given lines would rule out invention ("player's strength"), but it would also rule out the gaps we want named. h5's tip needs "what tipping does to [saucer1] and [cup1]", and no line states that. Free text allows both, so the rubric counts the invented items. A quote-only list stays a later variant if invention dominates.
+- **Free text, not quotes** (mine; the user's call, 2026-11-13: free text, since there are many tuning steps before the output has to be matched against an earlier stage). Quoting only the given lines would rule out invention ("player's strength"), but it would also rule out the gaps we want named. h5's tip needs "what tipping does to [saucer1] and [cup1]", and no line states that. Free text allows both, so the rubric counts the invented items. A quote-only list stays a later variant if invention dominates.
 - **"Things it touches, what they are like, where they are, what the earlier steps left"** points at the scene and the walk, not at the player. That aims the list away from batch 5's player-ability items without a "do not". It is still a list of kinds, so the rubric watches whether those four become headings (NR-P9).
 
 **Probing:** one payload, 11 cells, `repeats: 1`, 11 calls, with the results saved to a file.
@@ -250,6 +250,52 @@ The alternate method and the mitigation are not the piece's answers, since code 
 - `stepConsiderations/1.txt`, `1.notes.md` and `iterations.md`, for review before the batch;
 - here: a step 3 item, and the judging pass booked after it;
 - calibration `AGENT.md`'s Piece probe section: a `stepConsiderations` paragraph.
+
+## The trial proposal: argue against, rebut, judge
+
+**For review; not built.** The triad is the user's (2026-11-14): one prompt makes the single best case that the plan can't happen, a second rebuts it, and a third judges which argued better. The user's reasoning is to lean into Micro's bias, not mitigate it: concise biased answers of 200 to 400 tokens may beat unguided ones of 1500 or more. The names, shapes, staging and defaults below are mine unless marked.
+
+**Why lean in** (the evidence, mine). Every draft that kept judgment out of the reasoning got the bias back in whatever slot it offered:
+- the non-rule cell's draft 4 "against" hunted;
+- its draft 5 tags were all filled (NR-P9);
+- `stepConsiderations` reached verdicts in its prose in batch 1 (SC-P3);
+- and inside its items in batch 2.
+
+Micro pursues the job it is given relentlessly (the user's observation). The triad gives the bias a job, then gives the opposite bias a job, and leaves the choice to a third call. Each call is one judgment, as the oracle's decomposition has it. Choosing between two short concrete arguments is a smaller judgment than open weighing, the bet that debate and critique-then-judge setups rest on.
+
+**The three pieces,** in `oraclePieces/`, each with one job:
+1. **`trialAgainst`, the case against** (a read piece). It takes the non-rule cell's inputs and render, reused, so the inputs hashes match. It gives its single best argument that the whole plan can't happen as written. The reply is brief prose, then `{"step": "<the step it turns on, quoted>", "argument": "<in one or two sentences>"}`. The quote is kept (mine) for routing later, and checked as the non-rule cell checks it.
+2. **`trialRebuttal`, the rebuttal** (a read piece). It takes the same inputs plus one argument, and rebuts it concisely: `{"kind": "invented" | "not established" | "wrong", "rebuttal": "<in one or two sentences>"}`. The three kinds are the user's examples: the concern is invented, it assumes details that aren't established, or it is plainly wrong. Mine: `kind` is a single choice, like a finding, not a set of buckets. It is kept because "not established" is the likeliest route to `needs detail`. It gives no option to concede (the user's design: the judge decides).
+3. **`trialVerdict`, the judgment** (an answered piece). It takes the same inputs plus the argument and the rebuttal, and answers which is the better argument: `{"answer": "argument" | "rebuttal"}`, after brief prose. Code grades it against each pair's expected answer.
+
+**The order in each prompt** (mine): the scene, the request and the steps first, then the argument (and the rebuttal), then the task. Each prompt reads the scene before the text it answers. This is the first lever against anchoring (below).
+
+**The caps** (mine): `maxTokens` 400 for each, against the non-rule cell's 1536.
+
+**The prompts' shared sections:** Reading the scene and Reading the steps, word for word from the non-rule cell's draft 3, with the securing sentence. Each Role and Task is new and short.
+
+**The risks, in order** (the user's correction, 2026-11-14: Micro pursues the bias it is given, so a defender told to refute will refute; concession is not a headline risk):
+1. **Over-refuting.** The rebuttal will argue even against the size ("tables can be small"). The judge must see through it. The size cells test this.
+2. **Anchoring to the nearest text.** Micro copies the nearest text in place of an answer (the play-by-play's PR-10 and L-29). The argument is the rebuttal's nearest text, so the rebuttal may dispute the argument's **weight** within its framing ("the glue isn't strong enough to stop the lift") rather than its **premise** ("the glue means the teapot comes up with the table"). The judge would then choose between two arguments sharing the misreading. The first check is premise or weight, in the rebuttal batch. The levers, if needed: the scene first (already the order), or the task worded as "what the argument gets wrong about the scene".
+3. **The judge is the model we have struggled with,** on a smaller question.
+4. **Requests.** The triad gives possible or impossible. How its outcomes map to the verdict-or-request set (`needs detail` and its `of`; the step and `cause`) is open, and not for the prototype. "Not established" winning is the obvious candidate for `needs detail`.
+
+**Staged, one piece at a time, in the chain's order** (mine), as the drafts-in-isolation habit has it:
+1. **Build `trialAgainst` only,** with its draft 1 and rubric, and run it on the 11 cells, `repeats: 1`. Read: on the size cells, is the best argument the size? On the guards and hops, which argument does it pick (the glue, the chain, the slide, something invented), and is it concise?
+2. **Then `trialRebuttal`,** with its cells lifted by hand from the first batch's arguments (each cell's `source` naming the batch and reply). It is designed after reading them, since its inputs are their outputs. Read: premise or weight; over-refuting on the size; which `kind`.
+3. **Then `trialVerdict`,** on the lifted pairs. Each pair's expected answer is written by hand before its batch: the argument on the size cells and h7; the rebuttal on the guards and h10; for h5, whichever the pair's contents warrant. OC-9 is ungraded.
+
+Chaining the three in code belongs with the composition probe (step 4) once each works alone.
+
+**Where it sits.** It is a prototype inside step 3, beside the non-rule cell (draft 3 with `cause` optional is its base) and `stepConsiderations` (paused at draft 2, its base). If the triad works where the single cell hasn't, that is step 3's exit (c), a new approach for the piece, with a seam-ledger entry. That is the user's call when the evidence is in. `stepConsiderations` may yet feed it: a list of considerations is a possible input for the rebuttal or the judge.
+
+**The drafts:** `oracleLoopDrafts/trial/`, one folder for the three pieces, since they are tuned together. Files are named by piece and number (`against.1.txt`, `against.1.notes.md`, and so on), with one `iterations.md` (`TR-Pn`, `TR-Ln`).
+
+**What changes, if accepted (stage 1 only):**
+- `trialAgainst.ts` and its tests (render reuse, the check, cells with `lookFor`), registered, plus a line in `pieces.test.ts`;
+- `trial/against.1.txt`, `against.1.notes.md` and `iterations.md`, for review before the batch;
+- here: a step 3 item, ticked as the parts land;
+- calibration `AGENT.md`: a paragraph on the trial pieces.
 
 ## Recommended order
 
@@ -310,7 +356,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - **`cause` made optional, as a form fix** (mine): given only when an earlier step or a consequence line is to blame, and absent means this step. Two wordings failed (NR-P7), so this is a contract change: the grade and NR-4's row.
      - **The JSON slot:** a compact `"factors"` list of short tagged lines ahead of `finding`, read by hand. The prose stays brief, since draft 4's doubled reasoning is where its form failures came from.
      - **What to watch:** OC-1 may tag the glue "effect unclear" and ask for consequences. That is wrong against `allows`, but in composition it may be a sound move, so it may be composition-shaped. Read it, don't re-expect in advance.
-   - [ ] **Next: what to consider, generated on its own** (the user's, 2026-11-13, after batch 5). Design for review: [The considerations proposal](#the-considerations-proposal-what-to-consider-generated-on-its-own). A read piece lists, per step, what should be considered, with no finding. Judging the assembled list, probably against draft 4's categories, is a later pass, booked once the list looks right.
+   - [ ] **Next: what to consider, generated on its own** (the user's, 2026-11-13, after batch 5). **Design accepted and built** (2026-11-13): [The considerations proposal](#the-considerations-proposal-what-to-consider-generated-on-its-own); the `stepConsiderations` read piece, [`1.txt`](oracleLoopDrafts/stepConsiderations/1.txt) and its rubric in [`1.notes.md`](oracleLoopDrafts/stepConsiderations/1.notes.md), batch 1 run ([results](oracleLoopDrafts/stepConsiderations/1.notes.md#results-2026-11-13-batch-1): an inventory, not what bears; the size absent on the size cells; the player's ability kept out); drafts tracked in [its own `iterations.md`](oracleLoopDrafts/stepConsiderations/iterations.md). A read piece lists, per step, what should be considered, with no finding. Judging the assembled list, probably against draft 4's categories, is a later pass, booked once the list looks right.
+   - [ ] **Next: the trial, argue against, rebut, judge** (the user's, 2026-11-14, after `stepConsiderations` batch 2). Design for review: [The trial proposal](#the-trial-proposal-argue-against-rebut-judge). Three small biased calls in place of one balanced one, built and probed one piece at a time. `stepConsiderations` is paused at draft 2, its base.
    - [ ] **Then: the skill-or-chance finding** (the booked item below), as a contract change of its own: a fourth finding that code can tell apart. Draft 5's "difficult" factors show how much it's needed. Batches 3 and 4 had "difficult" under "blocked" in at least six replies, and OC-9 asking for "the player's capability".
    - [ ] **Then: intended consequences** (the user's, 2026-11-13; [NR-L10](oracleLoopDrafts/nonRuleCell/iterations.md#library)). A line under a step can be something the method relies on (intended: "[teapot1] tilts with [table1]"), not only a side effect. A failure of an intended line routes toward an alternate method, as a method step's does; a side effect routes toward a mitigation. It is designed here first as a step-layout amendment, since it changes the OC-30 cells' inputs and who writes such lines in composition (the imagination plan's question). It then becomes a draft.
    - **Held: the securing (batch 4's main failure).** The glue or chain read as holding a thing still decides OC-1, OC-6, OC-20 and every OC-30 pour. Option (a) is the rules' consequence in the scene (below); option (b) is the securing left out of what this piece sees. Mine: (a), since the pours need the teapot to move with the table. It is held until draft 5 shows whether "effect unclear" catches the glue by itself, and intended consequences cover the pours.

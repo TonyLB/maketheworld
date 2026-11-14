@@ -3,8 +3,10 @@ import { registeredConsequences } from '../imaginationPieces/consequences'
 import { registeredPlayByPlay } from '../imaginationPieces/playByPlay'
 import { registeredNonRuleCell } from '../oraclePieces/nonRuleCell'
 import { registeredRuleCell } from '../oraclePieces/ruleCell'
+import { registeredStepConsiderations } from '../oraclePieces/stepConsiderations'
 
 /** The pieces the probe can run, by name. */
 export const pieces: Record<string, RegisteredPiece> = {
     ruleCell: registeredRuleCell, nonRuleCell: registeredNonRuleCell, playByPlay: registeredPlayByPlay, consequences: registeredConsequences,
+    stepConsiderations: registeredStepConsiderations,
 }
