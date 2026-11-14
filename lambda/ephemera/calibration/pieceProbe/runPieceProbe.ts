@@ -33,19 +33,22 @@ export type PieceTally = {
 
 export type PieceSummary = { calls: number; right: number; wrong: number; malformed: number; errors: number; byCode: number; ungraded: number }
 
-export const runPieceProbe = async ({ cells, instructions, grade, repeats, model, invoke }: {
+export const runPieceProbe = async ({ cells, instructions, grade, repeats, model, maxTokens, invoke }: {
     cells: readonly PreparedCell[]
     instructions: string
     /** The piece's grade of one reply, given the cell's id. */
     grade: (reply: string, cell: string) => PieceGrade
     repeats: number
     model: NovaModel
+    /** The output cap per call, where the piece sets one. */
+    maxTokens?: number
     invoke?: ProbeInvoke
 }): Promise<PieceCall[]> => (
     (await runProbeCalls({
         prompts: cells.filter(({ byCode }) => byCode === undefined).map(({ cell, rendered }) => ({ id: cell, prompt: `${instructions}\n\n${rendered}` })),
         repeats,
         model,
+        ...(maxTokens !== undefined ? { maxTokens } : {}),
         ...(invoke !== undefined ? { invoke } : {}),
     })).map(({ id, repeat, answer, error }): PieceCall => (
         answer !== undefined ? { cell: id, repeat, answer, grade: grade(answer, id) } : { cell: id, repeat, error }

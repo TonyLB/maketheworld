@@ -114,7 +114,9 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     const grade = (reply: string, id: string) => (piece.grade !== undefined ? piece.grade(reply, piece.cells[id]) : pieceAnswer(reply, piece.answers))
 
     const calls = await runPieceProbe({
-        cells: prepared, instructions, grade, repeats, model, ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
+        cells: prepared, instructions, grade, repeats, model,
+        ...(piece.maxTokens !== undefined ? { maxTokens: piece.maxTokens } : {}),
+        ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
     })
     const tallies = tallyPiece(prepared, calls)
     return calibrationJsonResponse(200, {

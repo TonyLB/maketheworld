@@ -159,7 +159,8 @@ Standing operator tooling: puts questions about a rendered scene to a Nova model
   - `parseOptions`, which checks the event's `options` and gives the piece's options or a refusal;
   - `render(cell, options)`, the prompt text after the instructions, which is async so it can build a fixture's scene;
   - optionally `byCode(cell)`, an answer code gives without a call;
-  - optionally `grade(reply, cell)`, the piece's own grade in place of the one below, for answers with parameters. It gives an answer string in the piece's canonical form, which its cells' `expected` uses, or `malformed` with the reason. `replyJsonObject` in [`pieceAnswer.ts`](pieceProbe/pieceAnswer.ts) reads the reply's block for it.
+  - optionally `grade(reply, cell)`, the piece's own grade in place of the one below, for answers with parameters. It gives an answer string in the piece's canonical form, which its cells' `expected` uses, or `malformed` with the reason. `replyJsonObject` in [`pieceAnswer.ts`](pieceProbe/pieceAnswer.ts) reads the reply's block for it;
+  - optionally `maxTokens`, the output cap per call, as a read piece's.
 
   A piece that needs more than this to plug in is the plan's revision trigger.
 - `piece` is required. `cells` defaults to all of the piece's cells. `instructions` is required, since a piece has no built prompt. `repeats` defaults to 1, `model` to `NovaMicro`, and `options` goes to the piece.
@@ -207,21 +208,22 @@ A piece with no closed answer set, such as a generator, is registered with `kind
 - **A cell's inputs:**
   - a fixture;
   - the player's request;
-  - the plan's steps in order, each with its role: `intended` (what the request states), `method` (a step supplied to carry it out) or `consequence` (what follows from the steps).
+  - the plan's steps in order, each with its role, `intended` (what the request states) or `method` (a step supplied to carry it out), and optionally the consequence lines it causes, as `consequences` gives them per action.
 - **No options.**
-- **The render:** the **whole** scene as the judge shows it, with no Rules section, since securing is the rule cell's; `The player's request: …`; then `The steps, in order:`, one `- (role) step` line each, unnumbered. It throws when there are no steps, the request is empty, a handle isn't in the fixture, or two steps are the same once normalized.
-- **The answer** is one fenced `json` block, after prose that walks the steps:
-  - `{"answer": "allows"}`;
-  - `{"answer": "blocks", "step", "cause", "reason"}`, quoting the step that can't happen and the step to blame;
-  - `{"answer": "needs detail", "of": "action" | "consequences", "step", "missing"}`.
+- **The render:** the **whole** scene as the judge shows it, with no Rules section, since securing is the rule cell's; `The player's request: …`; then `The steps, in order:`, one `- (role) step` line each, unnumbered, with each consequence line under its step as `  - (consequence) line`. It throws when there are no steps, the request is empty, a handle isn't in the fixture, or two steps or lines are the same once normalized.
+- **The answer** is one fenced `json` block, after prose that walks every step (the non-branching walk, from draft 3): `{"steps": [...]}`, one entry per step in order, each quoting its step, with a `finding` and what it `establishes`:
+  - `works`;
+  - `blocked`, with `reason`, and optionally `cause` (an earlier step or consequence line to blame, quoted; draft 5). A `cause` that is absent, or that quotes nothing given, means the blocked step itself;
+  - `needs detail`, with `of` (`action` or `consequences`) and `missing`.
 - **The grade** (`gradeNonRuleCell`):
-  - the block has to parse, `answer` has to be one of the three, and each answer needs its own fields as non-empty strings and none of the others' (fields no answer has are ignored);
-  - each quote is matched to one step, after case, brackets, whitespace, surrounding quotes and end punctuation are normalized: whole first, otherwise inside exactly one step on word boundaries;
-  - the canonical answer is `allows`, `blocks <step>/<cause>` or `needs detail of <of> <step>`, by position from 1. `reason` and `missing` are read by hand against each cell's `lookFor`.
+  - the block has to parse, with an entry per step; each entry's `finding` has to be one of the three, with its own fields as non-empty strings and none of the others'. Fields no finding has are ignored, so a draft can add a slot read only by hand, such as draft 4's `for and against` or draft 5's `factors`;
+  - each quote is matched after case, brackets, whitespace, surrounding quotes and end punctuation are normalized: whole first, otherwise inside exactly one candidate on word boundaries. An entry's `step` has to match its own step; a `cause` is matched among the steps and their lines, at or before the blocked step; a quote of several things is malformed;
+  - code applies the first-non-works rule: the canonical answer is `allows`, `blocks <step>/<cause>` or `needs detail of <of> <step>`, by position from 1, a cause on a consequence line as `NcK` (line K under step N). The later findings, `establishes`, `reason` and `missing` are read by hand against each cell's `lookFor`.
+- **The cap:** `maxTokens` 1536, since every step gets an entry and draft 5 lists its factors in the prose and again in the block (1024 for drafts 3 and 4).
 - **Cells:**
   - the size cases OC-11, OC-18 and OC-3;
   - the guards OC-1, OC-2, OC-20 and OC-6;
-  - the OC-30 chain's hops h5 (`needs detail of consequences 1`), h7 (`blocks 3/2`) and h10, with the intent amended to pour into the cup;
+  - the OC-30 chain's hops h5 (`needs detail of consequences 1`), h7 (the tip with the slide as its consequence line, `blocks 2/1c1`) and h10, with the intent amended to pour into the cup;
   - OC-9, the trestle, with no `expected` (JF-2).
 
   Eleven called cells x3 is over the cap, so a full batch is two payloads.

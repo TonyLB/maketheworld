@@ -43,6 +43,8 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
     byCode?: (cell: PieceCell<Inputs>) => string | undefined
     /** The piece's own grade of one reply, given its cell, in place of `pieceAnswer` against `answers`: for answers with parameters. */
     grade?: (reply: string, cell: PieceCell<Inputs>) => PieceGrade
+    /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
+    maxTokens?: number
 }
 
 /** A read piece: no answer set. `check` gives the form problems of one reply, given its cell, and none when the reply passes. */

@@ -1,6 +1,6 @@
 # The non-rule cell: an oracle piece that answers with a verdict or a request
 
-**Status (2026-11-13): steps 1 and 2 done; the baseline is batch 1, 11 of 30 graded calls right, the size cells 9 of 9. Step 3, drafts in isolation (round 1), begun, with a provisional bar for passable: draft 2, the outcomes framed by what they indicate, for the reluctance to allow (NR-P6), changed nothing (batch 2) and isn't kept; draft 3, the non-branching walk with consequences on their step, is next. Step 4 can run alongside; step 5, the cell in composition, waits on step 3's exit.** The step layout is agreed ([The step layout and the two shapes](#the-step-layout-and-the-two-shapes)), and NR-1 to NR-4, NR-6 (for the baseline) and NR-7 are settled. The probe's change for NR-7 and the piece are built. Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, where the non-rule blocker was made next (user, 2026-11-13; [trail](AGENT.oracleLoop.discussion.planning.md#the-non-rule-blocker-first-the-rule-cell-later-2026-11-13)). It is renamed `nonRuleCell` here (user, 2026-11-13): under the verdict-or-request contract, `blocks` is one answer among several, and the name parallels `ruleCell`, its nearest analogue. The piece judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first oracle piece designed from the start to answer with a verdict **or** with requests typed by the imagination's asks ([trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)), so the request contract is drafted here, on a new piece, and the rule cell adopts it later. **The composition probe's first two steps are built in this plan** (mine, 2026-11-13): a request's worth shows only in what comes back, so the cell's requests can't be graded without it. Its growth toward OC-30's chain may outgrow this plan; if so it gets its own.
+**Status (2026-11-13): steps 1 and 2 done; the baseline is batch 1, 11 of 30 graded calls right, the size cells 9 of 9. Step 3, drafts in isolation (round 1), begun, with a provisional bar for passable: draft 2, the outcomes framed by what they indicate, for the reluctance to allow (NR-P6), changed nothing (batch 2) and isn't kept; draft 3, the non-branching walk with consequences on their step (the contract amended, NR-4), moved the guards in substance (batch 3). At the batch 3 checkpoint it was kept as the base; draft 4, for and against before the finding, wasn't kept (batch 4): the weighing took, and the securing decides it. Draft 5, a tagged factor list before the finding with `cause` made optional, ran (batch 5): the tags became four headings to fill and the guards fell to 0 of 4, while `cause` optional fixed its form fault; the factor list not kept, pending the user. Step 4 can run alongside; step 5, the cell in composition, waits on step 3's exit.** The step layout is agreed ([The step layout and the two shapes](#the-step-layout-and-the-two-shapes)), and NR-1 to NR-4, NR-6 (for the baseline) and NR-7 are settled. The probe's change for NR-7 and the piece are built. Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, where the non-rule blocker was made next (user, 2026-11-13; [trail](AGENT.oracleLoop.discussion.planning.md#the-non-rule-blocker-first-the-rule-cell-later-2026-11-13)). It is renamed `nonRuleCell` here (user, 2026-11-13): under the verdict-or-request contract, `blocks` is one answer among several, and the name parallels `ruleCell`, its nearest analogue. The piece judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first oracle piece designed from the start to answer with a verdict **or** with requests typed by the imagination's asks ([trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)), so the request contract is drafted here, on a new piece, and the rule cell adopts it later. **The composition probe's first two steps are built in this plan** (mine, 2026-11-13): a request's worth shows only in what comes back, so the cell's requests can't be graded without it. Its growth toward OC-30's chain may outgrow this plan; if so it gets its own.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an implementation plan under the parent's pilot of the [proposed design variant](../../../../AGENT.designVariant.proposed.md). The parent holds the subsystem map, the stages (a guess), the seam ledger and the corpus. This plan holds one episode. What it shows about a guess goes **up** to the parent's seam ledger.
 
@@ -64,7 +64,7 @@ The blame goes to the cause, not to the step that fails (mine): a pour into a cu
 **The state is the steps.**
 - The in-between states are text in the fiction's register, not the world schema. The schema can't hold a tilt or a broken cup, and recording every transitional state in it would cost orders of magnitude more than the rest of the loop. Cost is also what keeps us from defining a deterministic frame for every phenomenon. The text is lossy, and the next judging piece is its only check (mine).
 - Text states have no natural aggregator, so the state before step N is steps 1 to N−1 themselves.
-- What a step leaves is implied by the step, so there are no separate result lines. The knock-ons are steps, with the consequence role.
+- What a step leaves is implied by the step, so there are no separate result lines. The knock-ons are steps, with the consequence role. **Amended for draft 3** (user, 2026-11-13; NR-L6): the knock-ons are consequence lines under the step that causes them, each quotable, so a step and what it causes are judged as one.
 - No relevance filter. Deciding which consequences matter to a later step is the judgment itself, so a filter would cost more than it saves and isn't needed in its own right.
 
 **The inputs:** the scene, the player's request, and every step in order with its role.
@@ -98,6 +98,158 @@ The alternate method and the mitigation are not the piece's answers, since code 
 - ~~whether the roles are shown~~: shown, as the settled question has them (NR-6);
 - who assigns the roles in composition. The ask that produced a line doesn't settle it: `playByPlay` repeats the goal in its lines (tea2 "flows into cup1"). That is the composition probe's question; step 2's cells are written by hand, roles included.
 - a consequence step that can't happen ("the cup flies to the ceiling") is the imagination's mistake, not the plan's failure, and routing by cause would wrongly send it to a mitigation (mine, 2026-11-13). Rare; a note, not designed for.
+
+## Draft 3's proposal: the non-branching walk, with consequences on their step
+
+**Accepted by the user, 2026-11-13; built the same day** (the piece, its tests, [`3.txt`](oracleLoopDrafts/nonRuleCell/3.txt) and [`3.notes.md`](oracleLoopDrafts/nonRuleCell/3.notes.md)). The two changes are the user's (NR-L5, NR-L6); the shapes, names and defaults below are mine unless marked. It amends NR-4 and the step layout once accepted. Draft 3 is a contract change as well as a prompt change, so it departs from "one change per draft" the way the imagination's draft 11 did: it is a new baseline for the walk, with draft 1's wording carried over wherever the contract doesn't touch it.
+
+**Consequences are input, not output.** The cell is never asked to produce consequences. It reads them, placed under the step that causes them. `consequences` needs no change for this: its block already gives one entry per action, mapping each described thing to a line, so its output is already grouped by step. In composition the adapter puts those lines under the action they came from. `consequences` gives a line for every listed thing, including things that stay put, and under the settled "no relevance filter" all of them go in. In step 2's cells the lines are written by hand.
+
+**The inputs and render (NR-L6):**
+- A step is `{ says, role: 'intended' | 'method', consequences?: string[] }`. `consequence` stops being a step's role and becomes the role of a line under a step. Any step can carry consequence lines, an intended one included (a pour can spill).
+- The render nests the lines under their step, each with its own role label, so each can be quoted:
+  ```
+  The steps, in order:
+  - (method) tip [table1]
+    - (consequence) [saucer1] and [cup1] slide off [table1] onto the floor
+  - (intended) [teapot1] pours [tea2] into [cup1]
+  ```
+- A step with no lines renders as it does now, so every cell but h7 keeps its inputs hash, and the deploy check still covers them.
+- **h7** becomes two steps, the tip carrying the slide as a line, and its expected answer becomes `blocks 2/1c1`. h5 (the tip with no lines) still expects `needs detail of consequences 1`, which now reads as "the step that tips a laden table states nothing of what it does to what is on it".
+- Open, not for draft 3: whether a step with no lines should say so ("no consequences given") so the cell can tell "none" from "not asked". In composition, code knows whether `consequences` was asked. Left out of draft 3 to keep the change to the layout.
+
+**The reply (NR-L5):** the prose walk stays first (the rule cell's settled describe-then-JSON form), now going through every step, and the block holds one entry per step, in order:
+```json
+{"steps": [
+  {"step": "<the step, quoted>", "finding": "works", "establishes": "<what is now true>"},
+  {"step": "<the step, quoted>", "finding": "blocked", "cause": "<the step or consequence line to blame, quoted>", "reason": "<what keeps it from happening>", "establishes": "<what would be true if it happened anyway>"},
+  {"step": "<the step, quoted>", "finding": "needs detail", "of": "action" | "consequences", "missing": "<what should be available>", "establishes": "<what is certain from the step as written>"}
+]}
+```
+- **`establishes` on every finding,** so each of the three outcomes has a structured endpoint, and "works" can't be written as an absence. On a one-step cell it is the only place success goes. For "blocked" it is the user's "So now the table is inside the teacup".
+- **Each entry quotes its step** (mine), though positions alone would do. A skipped or merged step then shows as a quote that doesn't match, not as silently shifted entries, and the quote keeps its job as the reasoning's place to go.
+- **`cause` can quote a consequence line** as well as a step, at or before the blocked step.
+- **The finding words** are draft 2's framing ("works", "blocked", "needs detail"). Draft 2's wording of what each one indicates is carried into draft 3, since it was adopted in form and cost nothing on the size cells.
+- **No stop.** "Stop at the first step whose finding isn't that it works" goes. The walk ends when the steps do.
+
+**The grade:**
+- The block needs a `steps` array with one entry per step. Entry *i*'s quote must match step *i* (a whole match, or a word-boundary partial inside that step only). A wrong count, an out-of-order quote or a quote that matches nothing is malformed.
+- Each finding has its own fields as non-empty strings, `establishes` on all three, and no fields from another finding; unknown fields are ignored, as now.
+- `cause` is matched against the steps and their lines, giving `N` for a step and `NcK` for line K under step N. A cause after the blocked step is malformed.
+- **Code applies the first-non-works rule** (the user's "joins in code"). The canonical answer is unchanged: `allows`, `blocks <step>/<cause>`, or `needs detail of <of> <step>`, with the cause now possibly `NcK`. So batch 3's tally reads against batches 1 and 2 on every cell but h7.
+- The findings after the first non-works don't move the grade. They are read by hand: whether the walk carries on, and whether the state is carried forward (NR-P5).
+
+**The open question, what a needs-detail step leaves** (recommendation mine). Its `establishes` gives what is certain from the step as written ("the table is tipped; what happens to the saucer and cup isn't stated"), and the later steps are judged against that, which may give them a needs-detail of their own. Since code takes the first non-works, this doesn't change the graded answer in isolation. It matters in composition, if a needs-detail later in the walk is ever dispatched alongside the first one. That is a step 5 question, so draft 3 doesn't settle it.
+
+**The cap** (mine): every step now gets an entry beside its prose, so a three-step reply is longer. The piece sets `maxTokens: 1024`, as both imagination asks do, and the rubric counts replies cut off.
+
+**What changes, if accepted:**
+- `nonRuleCell.ts`: the step type, the render, matching over steps and lines, the grade, h7's cell, and its tests;
+- `3.txt`, from draft 1 with the walk and the block replaced and draft 2's outcome wording carried over, and `3.notes.md` with the rubric, both for review before the batch;
+- here: NR-4's row and the step layout amended; step 3's draft 3 items ticked as they land;
+- calibration `AGENT.md`'s non-rule cell paragraph.
+
+## Draft 5's proposal: a tagged factor list, with `cause` made optional
+
+**Accepted by the user, 2026-11-13; built the same day** (the grade change and its tests, [`5.txt`](oracleLoopDrafts/nonRuleCell/5.txt) and [`5.notes.md`](oracleLoopDrafts/nonRuleCell/5.notes.md)). The factor list and its four tags are the user's (NR-L8). `cause` made optional is mine (NR-L9). The labels, the wording and the defaults below are mine unless marked. Built from draft 3, since draft 4 wasn't kept. It makes two changes, an agreed exception to one change per draft, since each shows in its own measure: the substance on the guards and the hops, and the form in the malformed count.
+
+**The factor list (NR-L8).** Draft 3's findings, its "every step leaves a state" paragraph, and its other sections stay word for word, the securing sentence included (the securing is held). Ahead of the walk comes this new paragraph:
+
+> Before giving a step its finding, list the factors that bear on how well it would go. A factor can be something the scene, the steps before it, or the step itself states, or something the step depends on that none of them states. Mark each one with a tag:
+> - For: it is stated, and it helps the step happen.
+> - Against: it is stated, and it hinders the step.
+> - Effect unclear: it is stated, and how it bears on the step is unclear.
+> - Not given: the step depends on it, and nothing given states it.
+>
+> List as many as bear on the step, under whichever tags fit. Then weigh them to give the finding.
+
+- **Two kinds of factor** (the user's catch, 2026-11-13). An earlier wording framed every factor as a "fact from" the scene, the earlier steps or the step. That left Not given with no source, since it is exactly what none of them states. A thing the step needs but nobody mentions would have been excluded by the lead-in. The lead-in now names both kinds, and each tag says which kind it takes: three are stated, and Not given is the unstated one. Not given is moved last so the three stated tags sit together.
+
+- **No quota per tag** ("under whichever tags fit"). Draft 4 failed by asking for both sides, so the model filled the "for" side with filler and searched for an "against". Here a step can list only For factors.
+- **No tag is mapped to a finding** (mine). I first drafted Not given → `of: action` and Effect unclear → `of: consequences`. h5 breaks that mapping: the tip's effect on the saucer and cup is Not given, yet the right ask is `consequences`. So the prompt leaves the weighing to the model, and the rubric reads which tags lead to which findings.
+- **The walk's sentence becomes:** "First, take every step in order, through to the last. For each, say in one sentence what it does in the state left by the steps before it, list its factors, then give its finding and the state it leaves." This puts the factors after the description and before the finding, in the prose as well as in the block. If the prose gives the finding first, a slot in the block can't undo it.
+
+**The block.** Each entry gains `"factors"`, a list of strings of the form `"<factor in a few words>: <tag>"`, between `step` and `finding`:
+```json
+{"steps": [
+  {"step": "<the step, quoted>", "factors": ["[cup1] is far smaller than [table1]: Against"], "finding": "blocked", "reason": "…", "establishes": "…"}
+]}
+```
+- **The factor first, its tag after** (the user's question; mine to recommend, 2026-11-13). This is the draft's verdict-first worry at the scale of one factor. With the tag first, the model commits to a side and then writes a fact to fit it, as draft 4's buckets did. With the tag last, it states the fact and then judges how it bears. The prose list uses the same order (a fact, then its tag). For `jq`, the tag is whatever follows the last colon. Held as an alternative: `{"factor": …, "tag": …}` objects, in that key order. They are cleaner to read but cost more tokens, and plain strings come first.
+- The lead-in says the block holds "the same factors, a few words each", and that it is **a single** JSON code block, with "single" in place of draft 3's "a". This is aimed at draft 4's per-step blocks, which didn't parse.
+- **The grade ignores `factors`** (an unknown field, as now). It is read by hand with `jq`: the tags per cell, and which tags precede which findings. Mine: no form check on it, since a malformed factor list shouldn't hide an answer, which is the trap NR-P7 fell into.
+
+**`cause` made optional (NR-L9).** The blocked shape loses `cause`, and a sentence after it adds it back on condition:
+> - {"step": "<the step, quoted>", "factors": [...], "finding": "blocked", "reason": "<…>", "establishes": "<…>"}. Add "cause": "<the earlier step or consequence line to blame, quoted>" when the trouble comes from an earlier step or from a consequence line.
+- **The grade:** `cause` absent means the blocked step itself (`blocks N/N`). When present it is matched as now. It may quote the step itself, an earlier step, or a line at or before the step. **A `cause` that quotes nothing given is read as the step itself** (the user, 2026-11-13: see whether that gives coherent results before tuning the wording further). NR-P7 is then counted by hand: a `cause` present on a self-blamed step. A quote of several things, or of something after the step, is still malformed.
+- **The other findings are unchanged.** `of` and `missing` stay required. The two batch 4 replies with no `of` were inside per-step blocks, which the "single" change aims at.
+
+**The cap** (mine): `maxTokens` goes from 1024 to 1536. The factors appear in the prose and again in the block, and draft 4's one cut-off reply was a three-step cell with the same doubling. The cap is a setting on the piece, not the prompt, so it changes no hash. The rubric counts cut-off replies and reply lengths.
+
+**Held as a fallback, not in draft 5** (mine): factors in the block only, with the prose cut to the description, finding and state. Reach for it if the doubling brings back draft 4's form failures. It would undo the factor-first order in the prose, so it is not the first try.
+
+**How it is probed:** one payload, all 11 cells, `repeats: 1` (11 calls), as the probing defaults have it. Results are saved to a scratchpad file whose full path I give with the payload's. Cells that draft 5 seems to fix get `repeats: 3` in a confirming payload.
+
+**The rubric outline** (written in full in `5.notes.md` before the batch):
+- **The guards and h10:** count of `allows`. Read the glue and the chain by tag: Against (as in draft 4), Effect unclear (OC-1 may then ask for consequences, which may be composition-shaped; read it, don't re-expect it), or For or absent.
+- **The size cells hold:** OC-11, OC-18 and OC-3 `blocks 1/1`, with the size tagged Against.
+- **The hops:** whether the tip is still "not feasible" (NR-P3); whether h5's missing slide is tagged Not given or Effect unclear and leads to `needs detail of consequences`; whether h7's pour blames `1c1`.
+- **Filler:** For factors that restate the step ("the player can reach it"), and lists padded to fill all four tags.
+- **Invented Not given factors** (the user's, 2026-11-13): Not given factors that a plain reading of the step doesn't need ("whether the player is strong enough", "whether the cup is clean"). Naming unstated factors may invite NR-P2's preconditions back under a new tag. Counted per cell, and read against which ones push a finding to `needs detail`. The balance between eliciting the real gaps and inventing new ones is expected to take more than one draft.
+- **Tag form:** factors whose tag is missing, misplaced (put first), or not one of the four.
+- **Order:** does the prose give a finding before the step's factors?
+- **OC-9:** what its factors call the trestle's weight ("difficult" under Against or Not given), as evidence for the skill-or-chance finding.
+- **Form:** NR-P7's count (a `cause` present on a self-blamed step, and whether it matched); parse failures; cut-off replies; reply lengths against batches 3 and 4.
+
+**What changes, if accepted:**
+- `nonRuleCell.ts`: `cause` made optional in the blocked fields and in `readEntry`, `maxTokens: 1536`, the doc comment; tests for an absent `cause`, a self-quoting `cause`, and an unmatched one, plus a probe-run test asserting 1536;
+- `5.txt` from `3.txt`, and `5.notes.md` with the full rubric, both for review before the batch; NR-L8 and NR-L9 marked as being run;
+- here: NR-4's row amended (`cause` optional); step 3's draft 5 item ticked as each part lands;
+- calibration `AGENT.md`'s non-rule cell paragraph (optional `cause`, the 1536 cap, `factors` read by hand).
+
+## The considerations proposal: what to consider, generated on its own
+
+**For review; not built.** The register and the split are the user's (2026-11-13): before any finding, get out into the open what should be considered for each step. For now, generate only that, and see whether the set looks right. Later, judge the assembled set in its own pass, probably against draft 4's categories, which became hunting targets when asked for up front. The shapes, names and defaults below are mine unless marked.
+
+**Why on its own.** Drafts 4 and 5 put the reasoning in front of the finding, inside the same call. Each time the finding's categories leaked into the reasoning: draft 4 hunted for an "against", and draft 5 filled four tag headings (NR-P9). With no finding to give, nothing downstream pulls the list toward a verdict. That is the oracle's one-judgment-per-call rule applied inside this piece. Generating considerations is one job; judging them is a later one.
+
+**A read piece, not a new draft of the cell.** The output has no answer, so it can't be graded as `nonRuleCell` is. Following the house rule that generators are graded by hand, it is a read piece:
+- **The name:** `stepConsiderations`, in `oraclePieces/`.
+- **The inputs and render** are `nonRuleCell`'s, reused, as are the 11 cells. The inputs hashes then match batches 1 to 5, and the deploy check carries over.
+- **The `check`** covers form only. The block parses and holds `steps`, with one entry per step in order, each quoting its own step (`matchQuote`, as now). Each entry's `considering` is a non-empty list of non-empty strings.
+- **`lookFor`, per cell,** is what a good set considers, written before the batch, as the rubric.
+- **`maxTokens`** is 1024: there's one list per step, and no finding or `establishes`.
+- **Its drafts** go in `oracleLoopDrafts/stepConsiderations/`, numbered from 1, with their own `iterations.md`. The prompt is built from `nonRuleCell`'s draft 3, keeping Role, Reading the scene and Reading the steps (the securing sentence included).
+
+**The task, as drafted** (wording mine):
+> Task: For each step, in order, list what someone judging whether it can happen as written should be considering: the things it touches, what they are like, where they are, and what the steps before it have left. Each item is a few words, naming things by their handles. First go through the steps in prose, then end with a single JSON code block, fenced with ```json, holding one object whose "steps" is a list with one entry for each step, in order: {"step": "<the step, quoted>", "considering": ["<item>", ...]}.
+
+- **No categories, no tags, no count.** The list is one plain list, so there is nothing to fill.
+- **Free text, not quotes** (mine; your call). Quoting only the given lines would rule out invention ("player's strength"), but it would also rule out the gaps we want named. h5's tip needs "what tipping does to [saucer1] and [cup1]", and no line states that. Free text allows both, so the rubric counts the invented items. A quote-only list stays a later variant if invention dominates.
+- **"Things it touches, what they are like, where they are, what the earlier steps left"** points at the scene and the walk, not at the player. That aims the list away from batch 5's player-ability items without a "do not". It is still a list of kinds, so the rubric watches whether those four become headings (NR-P9).
+
+**Probing:** one payload, 11 cells, `repeats: 1`, 11 calls, with the results saved to a file.
+
+**The rubric outline** (in full in the draft's notes before the batch):
+- **Per cell, against its `lookFor`:**
+  - the size on OC-11, OC-18 and OC-3;
+  - the glue and what it binds on OC-1, OC-2, OC-6 and the hops;
+  - the chain on OC-20;
+  - the saucer and cup on the table when it tips (h5, h7's line);
+  - the cup's place after the tip (h7's pour);
+  - the cup carried with the saucer (h10);
+  - the trestle's weight (OC-9).
+- **Invented items:** the player's ability or strength, weights, the glue's nature, technique.
+- **Verdicts leaking in:** items that judge ("impossible", "difficult", "prevents").
+- **Headings:** do the four kinds in the task become sections, filled each time?
+- **The walk:** do later steps' lists use what earlier steps left?
+- **Length and form:** items per step, check failures, cut-off replies.
+
+**What changes, if accepted:**
+- `stepConsiderations.ts` and its tests (render reuse, `check`, cells with `lookFor`), registered, plus a line in `pieces.test.ts`;
+- `stepConsiderations/1.txt`, `1.notes.md` and `iterations.md`, for review before the batch;
+- here: a step 3 item, and the judging pass booked after it;
+- calibration `AGENT.md`'s Piece probe section: a `stepConsiderations` paragraph.
 
 ## Recommended order
 
@@ -141,18 +293,29 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - (d) a checkpoint with the user every three batches. Batch 3 is the first.
    - **The bar for (b), provisional** (mine, accepted by the user as a starting point, 2026-11-13): every cell right for two batches running, except OC-30/h5 and h7 where their failure is composition-shaped, that is, where the information they lack is what composition supplies (h7's consequence as a step of its own is the clearest case). **Likely to be re-examined as evidence comes in** (user): how much can be reached in isolation isn't known until it is tried, and a bar fixed in advance is a guess, not a gate. Each checkpoint (d) looks at the bar as well as the batches.
    - [X] **Draft 2: the outcomes framed by what they indicate** (batch 2: no change, 11 of 30 again, not kept; [results](oracleLoopDrafts/nonRuleCell/2.notes.md#results-2026-11-13-batch-2)) (user's framing, 2026-11-13; [notes](oracleLoopDrafts/nonRuleCell/2.notes.md)), for NR-P6. Batch 1 showed a reluctance to allow: the stop was the only structured endpoint and drew the reply to it (user's diagnosis, refined in discussion: not token economy, since the single-step cells have no early exit). Each step's finding is that it works, is blocked, or needs detail, each stated as what it indicates. The stop and the block are unchanged.
-   - [ ] **Next, draft 3: the non-branching walk** (user, 2026-11-13; [NR-L5](oracleLoopDrafts/nonRuleCell/iterations.md#library)), the structural change. Draft 2 was expected to fix some but not all of the bias, since the stop stays the only structured endpoint; it fixed none (batch 2).
+   - [X] **Draft 3: the non-branching walk** (batch 3: in substance the guards 6 of 12 `allows` against 2, OC-6 3 of 3, every `works` an outcome; 12 malformed on `cause`; the hops 0 of 9; kept at the checkpoint, [results](oracleLoopDrafts/nonRuleCell/3.notes.md#results-2026-11-13-batch-3)) (user, 2026-11-13; [NR-L5](oracleLoopDrafts/nonRuleCell/iterations.md#library)), the structural change. **Design accepted and built** (2026-11-13): [Draft 3's proposal](#draft-3s-proposal-the-non-branching-walk-with-consequences-on-their-step); [`3.txt`](oracleLoopDrafts/nonRuleCell/3.txt) and its rubric in [`3.notes.md`](oracleLoopDrafts/nonRuleCell/3.notes.md), batch 3 run. Draft 2 was expected to fix some but not all of the bias, since the stop stays the only structured endpoint; it fixed none (batch 2).
      - A step that works gets a structured slot for what it establishes (mine, from batch 2, where every "works" finding stated an absence), so success has a structured endpoint of its own, even on a one-step cell.
      - Every step gets a result, even after an impossible one. A blocked step says what it would establish if it happened anyway ("so now the table is inside the teacup") and why it doesn't work, so later steps have a state to be judged against.
      - Code applies the first-non-pass rule, as the "joins in code" direction has it. That also fixes h7's case in batch 1, where a reply saw step 3's failure and answered with step 1's can't-tell.
      - It amends NR-4's block and the grade.
      - Open: what state a needs-detail step leaves for the steps after it.
-   - [ ] **With draft 3: consequences attached to their step** (user, 2026-11-13; [NR-L6](oracleLoopDrafts/nonRuleCell/iterations.md#library)), the information change.
+   - [X] **With draft 3: consequences attached to their step** (built 2026-11-13, with draft 3) (user, 2026-11-13; [NR-L6](oracleLoopDrafts/nonRuleCell/iterations.md#library)), the information change.
      - Consequence lines sit under the step that causes them, each quotable on its own, in place of consequence steps. Otherwise a per-step check asks for consequences at step N that step N+1 gives. The unit of judgment is the step and what it causes, and the h5/h7 difference becomes whether the tip states its consequences.
      - It matches what `consequences` already returns, a line set per action.
      - It amends the step layout (consequence becomes a line's role, not a step's) and NR-4's canonical string (for example `blocks 2/1c1`). Of the cells, it touches only h7's data.
+   - [X] **Draft 4: for and against, before the finding, with the `cause` rewording** (batch 4: the weighing took, but it finds the securing; the guards 3 of 12 in substance, OC-6 lost; `cause` 22 malformed; not kept, mine, pending the user; [results](oracleLoopDrafts/nonRuleCell/4.notes.md#batch-4-overall)) (the batch 3 checkpoint, user, 2026-11-13: draft 3 kept as the base; [NR-L7](oracleLoopDrafts/nonRuleCell/iterations.md#library); [notes](oracleLoopDrafts/nonRuleCell/4.notes.md)). Batch 3's replies give the verdict first and fit a reason to it (the user's diagnosis, RC-P2's pattern). Each step now says what in the state bears on it, for and against, before its finding, with a slot for it ahead of `finding`. Combined with NR-P7's fix as a stated exception to one change per draft, since each shows in its own measure. Built and run. The bar for (b) left as it is until draft 4 shows how much of batch 3 was form.
+   - **The path forward from batch 4, in order** (agreed with the user, 2026-11-13). Draft 3 is the base, since draft 4 wasn't kept. Each item gets its design written here for review before it's built.
+   - [X] **Draft 5: a tagged factor list before the finding, with `cause` made optional** (batch 5, 11 calls: the tags read as four headings, each filled (NR-P9); Not given gathered invented preconditions and decided 5 findings; the guards 0 of 4; `cause` optional worked, 0 malformed; the factor list not kept, NR-L9 kept on its own, mine, pending the user; [results](oracleLoopDrafts/nonRuleCell/5.notes.md#results-2026-11-13-batch-5)) ([NR-L8, NR-L9](oracleLoopDrafts/nonRuleCell/iterations.md#library)). **Design accepted and built** (2026-11-13): [Draft 5's proposal](#draft-5s-proposal-a-tagged-factor-list-with-cause-made-optional); [`5.txt`](oracleLoopDrafts/nonRuleCell/5.txt) and its rubric in [`5.notes.md`](oracleLoopDrafts/nonRuleCell/5.notes.md), for review before batch 5. Draft 4 showed that verdict-first is worth fixing, but "list the for and against" was read as two buckets to fill. The "for" bucket got filler, and the "against" bucket hunted out the securing.
+     - **The factor list** (the user's): the factors that bear on how successful the step would be, each tagged. The tags are For, Against, Not given and Effect unclear. "Not given" is a fact the step depends on that the scene doesn't state; it points to `needs detail`, usually of the action. "Effect unclear" is a fact the scene does state, but whose effect isn't clear (the glue when the table tips); it points to `needs detail of consequences`, which goes to the ask that holds the carry model. The fourth tag is the user's; the labels are mine. Then the finding, weighed from the list.
+     - **`cause` made optional, as a form fix** (mine): given only when an earlier step or a consequence line is to blame, and absent means this step. Two wordings failed (NR-P7), so this is a contract change: the grade and NR-4's row.
+     - **The JSON slot:** a compact `"factors"` list of short tagged lines ahead of `finding`, read by hand. The prose stays brief, since draft 4's doubled reasoning is where its form failures came from.
+     - **What to watch:** OC-1 may tag the glue "effect unclear" and ask for consequences. That is wrong against `allows`, but in composition it may be a sound move, so it may be composition-shaped. Read it, don't re-expect in advance.
+   - [ ] **Next: what to consider, generated on its own** (the user's, 2026-11-13, after batch 5). Design for review: [The considerations proposal](#the-considerations-proposal-what-to-consider-generated-on-its-own). A read piece lists, per step, what should be considered, with no finding. Judging the assembled list, probably against draft 4's categories, is a later pass, booked once the list looks right.
+   - [ ] **Then: the skill-or-chance finding** (the booked item below), as a contract change of its own: a fourth finding that code can tell apart. Draft 5's "difficult" factors show how much it's needed. Batches 3 and 4 had "difficult" under "blocked" in at least six replies, and OC-9 asking for "the player's capability".
+   - [ ] **Then: intended consequences** (the user's, 2026-11-13; [NR-L10](oracleLoopDrafts/nonRuleCell/iterations.md#library)). A line under a step can be something the method relies on (intended: "[teapot1] tilts with [table1]"), not only a side effect. A failure of an intended line routes toward an alternate method, as a method step's does; a side effect routes toward a mitigation. It is designed here first as a step-layout amendment, since it changes the OC-30 cells' inputs and who writes such lines in composition (the imagination plan's question). It then becomes a draft.
+   - **Held: the securing (batch 4's main failure).** The glue or chain read as holding a thing still decides OC-1, OC-6, OC-20 and every OC-30 pour. Option (a) is the rules' consequence in the scene (below); option (b) is the securing left out of what this piece sees. Mine: (a), since the pours need the teapot to move with the table. It is held until draft 5 shows whether "effect unclear" catches the glue by itself, and intended consequences cover the pours.
    - **A candidate, not booked: the rules' consequence in the scene** (mine, from batch 2; it revisits NR-6, the user's call). OC-1's replies read glue as stopping the pair from moving, not as moving them together, and h10's as a teapot that "would fall off or break". The piece has the fact ("glued to") and not its consequence ("moves with what it is secured to"), which the imagination's `rules: 'consequence'` wording gives. To be weighed after draft 3, whose `establishes` slot may show the misreading in its own words.
-   - **Booked for a later iteration, not the baseline: a skill-or-chance outcome** (user, 2026-11-13). Sometimes "I don't know whether that's possible" isn't answered by more detail of the situation: the attempt may or may not work out, depending on the character's skill and on chance. That is a separate exit from the loop, not a request to the imagination. It may take tuning to get it answered without contradicting the instructions that look for a plain physical impossibility as written. This is the parent's JF-2 (`challenging`, "possible, and hard") in this piece's per-step form, and OC-9's trestle is its cell. It is a later iteration, not a gate on this plan's exits; it may land in either round. OC-9 is excepted from the bar for (b), since it has no expected answer.
+   - **Booked, next after draft 5 (above): a skill-or-chance outcome** (user, 2026-11-13). Sometimes "I don't know whether that's possible" isn't answered by more detail of the situation: the attempt may or may not work out, depending on the character's skill and on chance. That is a separate exit from the loop, not a request to the imagination. It may take tuning to get it answered without contradicting the instructions that look for a plain physical impossibility as written. This is the parent's JF-2 (`challenging`, "possible, and hard") in this piece's per-step form, and OC-9's trestle is its cell. It is a later iteration, not a gate on this plan's exits; it may land in either round. OC-9 is excepted from the bar for (b), since it has no expected answer.
 4. [ ] **The composition probe, first form: what exists** (the parent's Slice 4.5, mine, revised 2026-11-13). `playByPlay` feeding the settled rule cell through an adapter (its lines for the named things; the silence contract for a rule's other end), with code asking `playByPlay` first, on OC-1, OC-6 and OC-20. Each hop's inputs and answer are logged. **Rests on** IM-5's provisional split. **Consumer:** a batch read per hop. It tests the reading direction, and gives the harness the next step plugs into. It doesn't touch the non-rule cell, so it can run beside step 3.
 5. [ ] **The cell in composition.** **Gated on** step 3's exit (a) or (b). Its requests dispatched to the imagination, the fresh call with and without the question asked (NR-5), and a round cap (IM-3). Graded per hop: each request warranted or not, each verdict against the corpus. **Consumer:** a batch on the cells where asking is right, and step 6.
 6. [ ] **Drafts in composition (round 2),** one change per draft, from step 3's last kept draft, in composition and in the piece probe as each problem calls for.
@@ -201,7 +364,7 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
 | NR-1 | The piece's question, in one sentence | Draft 1 | The user's call, step 1 | **Settled** (user, 2026-11-13): step 1's wording, mine, accepted as succinct and asking nothing it shouldn't. It states what is judged; the prompt's own wording is the drafts' |
 | NR-2 | The verdict set. Mine: `allows` and `blocks`, as the rule cell's, so Works joins them alike; `blocks` with its reason and, in the one-pass shape, the step blamed. What follows a `blocks` is code's, from that step's role ([the step layout](#the-step-layout-and-the-two-shapes)) | The registration, Works | The user's call, step 1 | **Settled** (user, 2026-11-13): per step, `blocks`, doesn't block or can't tell; the step quoted, which gives the reasoning a place to go; the reason worded as the brief for the alternate-method or mitigation ask; the first non-"doesn't block" step in order is the answer, else `allows` |
 | NR-3 | The first request kinds and their parameters, and whether a fact (a size) is a new imagination ask or a kind of more detail. Methods and facts are two kinds (JF-15). Narrowed by the step layout: the alternate method and the mitigation are reached by code from a role, not requested | The registration; the imagination plan's asks | Step 1, then the drafts | **First kinds settled** (user, 2026-11-13): more detail of the action (`playByPlay`) or of its consequences (`consequences`), with the step quoted and what is missing; one request per reply (mine). Open: a fact, such as a size, if a cell needs it |
-| NR-4 | The reply's form: one fenced JSON block, a verdict or requests | The check | Step 1 | **Settled** (mine, accepted by the user, 2026-11-13), in step 1: describe first, then `allows`, `blocks` with the step quoted and the reason, or `needs detail` with `of`, the step quoted and what is missing; code matches the quote to one step. Amended (user, 2026-11-13): `blocks` quotes both `step` and `cause`, and code routes by `cause`. **Booked amendment** (user, 2026-11-13; step 3, draft 3): a result for every step (the non-branching walk), with consequences as lines under their step |
+| NR-4 | The reply's form: one fenced JSON block, a verdict or requests | The check | Step 1 | **Settled** (mine, accepted by the user, 2026-11-13), in step 1: describe first, then `allows`, `blocks` with the step quoted and the reason, or `needs detail` with `of`, the step quoted and what is missing; code matches the quote to one step. Amended (user, 2026-11-13): `blocks` quotes both `step` and `cause`, and code routes by `cause`. **Amended for draft 3** (user, 2026-11-13; built; [Draft 3's proposal](#draft-3s-proposal-the-non-branching-walk-with-consequences-on-their-step)): the block is `steps`, an entry per step with its finding and what it `establishes`; code applies the first-non-works rule, so the canonical answer stands, a cause on a consequence line as `NcK` **Amended for draft 5** (user, 2026-11-13; built): `cause` is optional on `blocked`; absent, or quoting nothing given, it means the blocked step itself |
 | NR-5 | Whether the fresh call is told the question it asked | Step 5 | The composition probe | Open (from the trail) |
 | NR-6 | What the piece sees: the scene, the actions, the intent; the imagination's lines and flags on a fresh call; the rules shown or not (PB-2's analogue: the rules are the rule cell's) | Render | Step 1, then the drafts | **Settled for the baseline** (2026-11-13). The step layout (user): the scene, the request, and every step in order with its role, with no result lines and no relevance filter. The roles shown, as NR-1 has them, worded by the drafts. The request in its own section (mine, agreed by the user). No Rules section, so the guard cells (OC-1, OC-20) test whether the piece sets aside the securing the prose states; the whole scene, since the piece's job is noticing what the steps leave out; no flagged problems, which are a bucket that lets the imagination defer, not an output later stages are expected to pick up (user). Open: who assigns the roles in composition |
 | NR-7 | How the probe grades a request with parameters | The probe | Step 1 | **Settled** (user, 2026-11-13, as a place to start): `answer`, the steps and `of` by code; `reason` and `missing` by hand against a look-for. The probe's change (mine): a piece's own grade giving a canonical answer string, and `lookFor` on an answered cell. **Built** (2026-11-13), with an optional `expected` for a cell whose answer is open |
@@ -213,7 +376,11 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
 ## How we work
 
 - The parent's [How we work](AGENT.oracleLoop.planning.md#how-we-work) holds.
-- The user runs each batch and pastes the result. I write each payload to a file and give its full path.
+- The user runs each batch. I write each payload to a file and give its full path.
+- **Probing defaults for step 3, from draft 5 on** (agreed with the user, 2026-11-13, after batch 4's replies were too large to paste):
+  - **Results go to a file,** not the conversation. The user saves each response to a path I give, in the scratchpad. I pull the tally, the blocks and the rubric's checks with `jq`, and read in full only the replies the rubric points to.
+  - **One repeat while exploring.** `repeats: 1` on every cell, or on the cells a targeted draft aims at plus a guard. Then `repeats: 3` to confirm, only on the cells a draft seems to have fixed, or for the bar's "two batches running".
+  - A batch is one payload again, since its size no longer matters, within the cap of 24.
 - One change per draft, a rubric written before each batch, and every reply read, not only tallied: requests carry parameters code doesn't grade.
 - Each change is attributed. Anything not from the user is labelled "mine" until accepted. A cell's expected answer is mine unless the corpus or the user gives it.
 
@@ -229,7 +396,7 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
 | --- | --- |
 | The design pass | Done: the step layout agreed, NR-1 to NR-4 settled, the cells reviewed, NR-6 settled for the baseline, NR-7 settled (2026-11-13); the design pass is complete, step 2 next |
 | The piece and its baseline | Done (2026-11-13): the probe's change, the piece, draft 1; batch 1, 11 right of 30 graded, the size cells 9 of 9 |
-| Drafts in isolation (round 1) | Under way: draft 2 not kept (batch 2); draft 3 next. The bar for passable is provisional |
+| Drafts in isolation (round 1) | Under way: draft 2 not kept (batch 2); draft 3 moved the guards (batch 3) and is the base; draft 4 not kept (batch 4); draft 5 (tagged factors, `cause` optional) ran (batch 5): the factor list not kept, `cause` optional kept, pending the user. The bar for passable is provisional |
 | The composition probe, first form | Not started |
 | The cell in composition | Not started; gated on round 1's exit |
 | Drafts in composition (round 2) | Not started |

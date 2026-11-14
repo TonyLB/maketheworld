@@ -1,9 +1,10 @@
 //
-// The non-rule cell (AGENT.nonRuleCell.planning.md, step 2; a Prototype of the oracle loop plan's Slice 4.5): whether a plan can go ahead
-// for reasons no rule names, such as stuffing a table into a teacup. It sees the whole scene with no Rules section, the player's request,
-// and the plan's steps in order, each with its role. It answers with a verdict or a request, in one fenced JSON block (NR-4):
-// `allows`; `blocks`, quoting the step that can't happen and the step to blame; or `needs detail` of the action or of its consequences,
-// quoting the step. Code matches each quote to one step, so the piece never gives a number, and grades by a canonical answer string.
+// The non-rule cell (AGENT.nonRuleCell.planning.md, steps 2 and 3; a Prototype of the oracle loop plan's Slice 4.5): whether a plan can
+// go ahead for reasons no rule names, such as stuffing a table into a teacup. It sees the whole scene with no Rules section, the player's
+// request, and the plan's steps in order, each with its role and the consequence lines it causes, if any. It walks every step (draft 3's
+// non-branching walk) and ends with one fenced JSON block holding a finding per step: `works`, `blocked` (quoting the step or line to
+// blame) or `needs detail` of the action or of its consequences, each with what it establishes. Code matches each quote, so the piece
+// never gives a number, applies the first-non-works rule, and grades by a canonical answer string.
 //
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
@@ -13,12 +14,13 @@ import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/o
 import { replyJsonObject, type PieceGrade } from '../pieceProbe/pieceAnswer'
 
 /**
- * A step's role (the step layout): `intended`, what the player's request states; `method`, a step the system supplies to carry it out;
- * `consequence`, what follows from the steps. Code routes a failure by the blamed step's role.
+ * A step's role (the step layout): `intended`, what the player's request states; `method`, a step the system supplies to carry it out.
+ * Code routes a failure by the blamed step's role; a consequence line under a step routes toward a mitigation.
  */
-export type NonRuleRole = 'intended' | 'method' | 'consequence'
+export type NonRuleRole = 'intended' | 'method'
 
-export type NonRuleStep = { says: string; role: NonRuleRole }
+/** A step, with the consequence lines it causes (NR-L6), as `consequences` gives them per action. Each line can be quoted. */
+export type NonRuleStep = { says: string; role: NonRuleRole; consequences?: readonly string[] }
 
 export type NonRuleCellInputs = {
     fixture: string
@@ -27,7 +29,11 @@ export type NonRuleCellInputs = {
     steps: readonly NonRuleStep[]
 }
 
+/** The plan's answers, by the first step whose finding isn't `works`. */
 export const NON_RULE_ANSWERS = ['allows', 'blocks', 'needs detail'] as const
+
+/** Each step's findings in the reply's block. */
+export const NON_RULE_FINDINGS = ['works', 'blocked', 'needs detail'] as const
 
 /** A quote or a step as code compares them: lowercased, brackets and surrounding quotes and end punctuation dropped, whitespace collapsed. */
 export const normalizeStep = (text: string): string => text
@@ -39,81 +45,149 @@ export const normalizeStep = (text: string): string => text
     .replace(/[\s.,;:!?]+$/, '')
     .trim()
 
+/** Something a reply can quote: a step, labelled by its position (`2`), or a consequence line under one (`2c1`). */
+export type Quotable = { label: string; step: number; says: string }
+
+/** The steps alone, or the steps with their consequence lines, in order. */
+export const quotables = (steps: readonly NonRuleStep[], withLines: boolean): Quotable[] => steps.flatMap(({ says, consequences = [] }, index) => [
+    { label: `${index + 1}`, step: index + 1, says },
+    ...(withLines ? consequences.map((line, lineIndex) => ({ label: `${index + 1}c${lineIndex + 1}`, step: index + 1, says: line })) : []),
+])
+
 /**
- * The step a quote names, counted from 1: the one step it matches whole, or else the one step it falls inside, on word boundaries (so
- * "tip" isn't inside "tipping"); or why there is none.
+ * What a quote names: the one quotable it matches whole, or else the one it falls inside, on word boundaries (so "tip" isn't inside
+ * "tipping"); or why there is none.
  */
-export const matchStep = (quote: string, steps: readonly NonRuleStep[]): { position: number } | { malformed: string } => {
+export const matchQuote = (quote: string, among: readonly Quotable[]): { quoted: Quotable } | { malformed: string } => {
     const wanted = normalizeStep(quote)
     if (wanted === '') {
         return { malformed: 'an empty quote' }
     }
-    const normalized = steps.map(({ says }) => normalizeStep(says))
-    const positions = (matches: (step: string) => boolean): number[] => normalized.flatMap((step, index) => (matches(step) ? [index + 1] : []))
-    const whole = positions((step) => step === wanted)
+    const normalized = among.map(({ says }) => normalizeStep(says))
+    const found = (matches: (text: string) => boolean): Quotable[] => among.filter((_, index) => matches(normalized[index]))
+    const whole = found((text) => text === wanted)
     if (whole.length === 1) {
-        return { position: whole[0] }
+        return { quoted: whole[0] }
     }
-    const inside = positions((step) => ` ${step} `.includes(` ${wanted} `))
+    const inside = found((text) => ` ${text} `.includes(` ${wanted} `))
     if (inside.length === 1) {
-        return { position: inside[0] }
+        return { quoted: inside[0] }
     }
-    return { malformed: inside.length === 0 ? `"${quote}" quotes no step` : `"${quote}" quotes ${inside.length} steps` }
+    return { malformed: inside.length === 0 ? `"${quote}" quotes nothing given` : `"${quote}" quotes ${inside.length} things` }
 }
 
-/** Each answer's own fields; a reply carrying another answer's field is malformed. */
-const FIELDS: Readonly<Record<typeof NON_RULE_ANSWERS[number], readonly string[]>> = {
-    allows: [],
-    blocks: ['step', 'cause', 'reason'],
-    'needs detail': ['of', 'step', 'missing'],
+/** Each finding's required fields; an entry carrying another finding's field (required or optional) is malformed. */
+const FIELDS: Readonly<Record<typeof NON_RULE_FINDINGS[number], readonly string[]>> = {
+    works: ['step', 'finding', 'establishes'],
+    blocked: ['step', 'finding', 'reason', 'establishes'],
+    'needs detail': ['step', 'finding', 'of', 'missing', 'establishes'],
+}
+
+/** Each finding's optional fields (draft 5, NR-L9): `cause` on `blocked`, given only when an earlier step or a line is to blame. */
+const OPTIONAL_FIELDS: Readonly<Record<typeof NON_RULE_FINDINGS[number], readonly string[]>> = {
+    works: [],
+    blocked: ['cause'],
+    'needs detail': [],
 }
 
 const DETAIL_OF = ['action', 'consequences']
 
+type Finding = { finding: 'works' } | { finding: 'blocked'; cause: string } | { finding: 'needs detail'; of: string }
+
+/** One entry's check, against the step it must quote: its finding, its own fields as non-empty strings and none of the others', its quotes. */
+const readEntry = (entry: unknown, position: number, steps: readonly NonRuleStep[]): Finding | { malformed: string } => {
+    if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) {
+        return { malformed: 'is not an object' }
+    }
+    const object = entry as Record<string, unknown>
+    const finding = typeof object.finding === 'string' ? object.finding.trim().toLowerCase() : undefined
+    if (finding === undefined) {
+        return { malformed: 'has no string "finding"' }
+    }
+    if (!(NON_RULE_FINDINGS as readonly string[]).includes(finding)) {
+        return { malformed: `"${finding}" is not one of ${NON_RULE_FINDINGS.join(', ')}` }
+    }
+    const own = FIELDS[finding as keyof typeof FIELDS]
+    const optional = OPTIONAL_FIELDS[finding as keyof typeof OPTIONAL_FIELDS]
+    const others = [...new Set([...Object.values(FIELDS), ...Object.values(OPTIONAL_FIELDS)].flat())]
+        .filter((field) => !own.includes(field) && !optional.includes(field) && field in object)
+    if (others.length > 0) {
+        return { malformed: `${finding} has another finding's fields: ${others.join(', ')}` }
+    }
+    const missing = own.filter((field) => typeof object[field] !== 'string' || (object[field] as string).trim() === '')
+    if (missing.length > 0) {
+        return { malformed: `${finding} needs non-empty string fields: ${missing.join(', ')}` }
+    }
+    const step = matchQuote(object.step as string, quotables(steps, false))
+    if ('malformed' in step) {
+        return { malformed: `step: ${step.malformed}` }
+    }
+    if (step.quoted.step !== position) {
+        return { malformed: `step: quotes step ${step.quoted.step}, not step ${position}` }
+    }
+    if (finding === 'blocked') {
+        // `cause` absent, empty, or quoting nothing given means the blocked step itself (the user, 2026-11-13: read it as the step, and
+        // see whether that is coherent). A quote of several things, or of something after the step, is still malformed.
+        if (typeof object.cause !== 'string' || object.cause.trim() === '') {
+            return { finding, cause: `${position}` }
+        }
+        const cause = matchQuote(object.cause, quotables(steps, true))
+        if ('malformed' in cause) {
+            return cause.malformed.endsWith('quotes nothing given') ? { finding, cause: `${position}` } : { malformed: `cause: ${cause.malformed}` }
+        }
+        return cause.quoted.step > position
+            ? { malformed: `cause: quotes ${cause.quoted.label}, after the blocked step` }
+            : { finding, cause: cause.quoted.label }
+    }
+    if (finding === 'needs detail') {
+        const of = (object.of as string).trim().toLowerCase()
+        return DETAIL_OF.includes(of) ? { finding, of } : { malformed: `"of" is "${of}", not one of ${DETAIL_OF.join(', ')}` }
+    }
+    return { finding: 'works' }
+}
+
 /**
- * NR-4's check, as the probe's grade: the block parses; `answer` is one of the three; each answer has its fields as non-empty strings and
- * none of the others'; `of` is `action` or `consequences`; each quote matches one step. The canonical answer is `allows`,
- * `blocks <step>/<cause>`, or `needs detail of <of> <step>`, by position. Fields no answer has are ignored.
+ * NR-4's check as amended for draft 3, as the probe's grade: the block parses and holds `steps`, an entry per step in order, each
+ * quoting its own step; each entry passes `readEntry`. Code then applies the first-non-works rule: the canonical answer is `allows`,
+ * `blocks <step>/<cause>` (the cause a step, `2`, or a consequence line, `1c1`; the blocked step itself when `cause` is absent or
+ * quotes nothing given, as draft 5 makes it optional), or `needs detail of <of> <step>`. Fields no finding
+ * has are ignored, so a draft can add a slot read only by hand (draft 4's `for and against`, draft 5's `factors`); the findings after the first non-works
+ * are read by hand.
  */
 export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell<NonRuleCellInputs>): PieceGrade => {
     const parsed = replyJsonObject(reply)
     if ('malformed' in parsed) {
         return parsed
     }
-    const { object } = parsed
-    const answer = typeof object.answer === 'string' ? object.answer.trim().toLowerCase() : undefined
-    if (answer === undefined) {
-        return { malformed: 'the JSON block has no string "answer"' }
+    const entries = parsed.object.steps
+    if (!Array.isArray(entries)) {
+        return { malformed: 'the JSON block has no "steps" array' }
     }
-    if (!(NON_RULE_ANSWERS as readonly string[]).includes(answer)) {
-        return { malformed: `"${answer}" is not one of ${NON_RULE_ANSWERS.join(', ')}` }
+    if (entries.length !== steps.length) {
+        return { malformed: `"steps" has ${entries.length} entries for ${steps.length} steps` }
     }
-    const own = FIELDS[answer as keyof typeof FIELDS]
-    const others = [...new Set(Object.values(FIELDS).flat())].filter((field) => !own.includes(field) && field in object)
-    if (others.length > 0) {
-        return { malformed: `${answer} has another answer's fields: ${others.join(', ')}` }
+    const findings: Finding[] = []
+    for (const [index, entry] of entries.entries()) {
+        const read = readEntry(entry, index + 1, steps)
+        if ('malformed' in read) {
+            return { malformed: `entry ${index + 1}: ${read.malformed}` }
+        }
+        findings.push(read)
     }
-    const missing = own.filter((field) => typeof object[field] !== 'string' || (object[field] as string).trim() === '')
-    if (missing.length > 0) {
-        return { malformed: `${answer} needs non-empty string fields: ${missing.join(', ')}` }
+    const first = findings.findIndex(({ finding }) => finding !== 'works')
+    if (first === -1) {
+        return { answer: 'allows' }
     }
-    const at = (field: string) => matchStep(object[field] as string, steps)
-    if (answer === 'allows') {
-        return { answer }
-    }
-    const step = at('step')
-    if ('malformed' in step) {
-        return { malformed: `step: ${step.malformed}` }
-    }
-    if (answer === 'blocks') {
-        const cause = at('cause')
-        return 'malformed' in cause ? { malformed: `cause: ${cause.malformed}` } : { answer: `blocks ${step.position}/${cause.position}` }
-    }
-    const of = (object.of as string).trim().toLowerCase()
-    return DETAIL_OF.includes(of) ? { answer: `needs detail of ${of} ${step.position}` } : { malformed: `"of" is "${of}", not one of ${DETAIL_OF.join(', ')}` }
+    const stop = findings[first]
+    return stop.finding === 'blocked'
+        ? { answer: `blocks ${first + 1}/${stop.cause}` }
+        : { answer: `needs detail of ${(stop as { of: string }).of} ${first + 1}` }
 }
 
-/** The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered. */
+/**
+ * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
+ * consequence lines indented under it.
+ */
 export const renderNonRuleCell = async ({ inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>): Promise<string> => {
     if (steps.length === 0) {
         throw new Error('No steps')
@@ -122,14 +196,15 @@ export const renderNonRuleCell = async ({ inputs: { fixture, request, steps } }:
         throw new Error('No request')
     }
     const full = await fixtureScene(fixture)
-    const unknown = [...new Set([request, ...steps.map(({ says }) => says)].flatMap(namedHandles))].filter((handle) => full.things[handle] === undefined)
+    const all = quotables(steps, true)
+    const unknown = [...new Set([request, ...all.map(({ says }) => says)].flatMap(namedHandles))].filter((handle) => full.things[handle] === undefined)
     if (unknown.length > 0) {
         throw new Error(`The cell names ${unknown.join(', ')}, not in ${fixture}'s scene`)
     }
-    const normalized = steps.map(({ says }) => normalizeStep(says))
-    const twice = steps.filter((_, index) => normalized.indexOf(normalized[index]) !== index)
+    const normalized = all.map(({ says }) => normalizeStep(says))
+    const twice = all.filter((_, index) => normalized.indexOf(normalized[index]) !== index)
     if (twice.length > 0) {
-        throw new Error(`Steps a quote can't tell apart: ${twice.map(({ says }) => says).join('; ')}`)
+        throw new Error(`Lines a quote can't tell apart: ${twice.map(({ says }) => says).join('; ')}`)
     }
     const { fiction, graph } = judgeSceneSections(full)
     return [
@@ -138,7 +213,10 @@ export const renderNonRuleCell = async ({ inputs: { fixture, request, steps } }:
         graph,
         'End of scene.',
         `The player's request: ${request}`,
-        ['The steps, in order:', ...steps.map(({ says, role }) => `- (${role}) ${says}`)].join('\n'),
+        [
+            'The steps, in order:',
+            ...steps.flatMap(({ says, role, consequences = [] }) => [`- (${role}) ${says}`, ...consequences.map((line) => `  - (consequence) ${line}`)]),
+        ].join('\n'),
     ].join('\n\n')
 }
 
@@ -146,7 +224,6 @@ const parseNonRuleCellOptions = (value: unknown): undefined | string => (value =
 
 const intended = (says: string): NonRuleStep => ({ says, role: 'intended' })
 const method = (says: string): NonRuleStep => ({ says, role: 'method' })
-const consequence = (says: string): NonRuleStep => ({ says, role: 'consequence' })
 
 /** A case's request and its first candidate's actions, each intended: the single-step cells, where the template's step is the request. */
 const caseCell = (id: string): Pick<PieceCell<NonRuleCellInputs>, 'inputs' | 'source'> => ({
@@ -216,11 +293,11 @@ export const nonRuleCellCells: Record<string, PieceCell<NonRuleCellInputs>> = {
         note: 'A cell where asking is right: whether the cup is still under the spout turns on what the tip does to it, which no step says.',
     },
     'OC-30/h7': {
-        inputs: { fixture: 'teaTable', request: pourIntoCup, steps: [tip, consequence('tipping [table1] slides [saucer1] and [cup1] off'), pours] },
-        expected: 'blocks 3/2',
+        inputs: { fixture: 'teaTable', request: pourIntoCup, steps: [{ ...tip, consequences: ['[saucer1] and [cup1] slide off [table1] onto the floor'] }, pours] },
+        expected: 'blocks 2/1c1',
         lookFor: 'a reason fit to brief a mitigation: the cup has slid off with the saucer, so it is no longer under the spout',
         source: 'hand-written, the OC-30 chain\'s hop 7',
-        note: 'The pour is the step that fails, and the slide is to blame.',
+        note: 'The pour is the step that fails, and the slide, a consequence line under the tip, is to blame.',
     },
     'OC-30/h10': {
         inputs: { fixture: 'teaTable', request: pourIntoCup, steps: [method('pick up [saucer1]'), tip, pours] },
@@ -244,6 +321,7 @@ export const nonRuleCell: OraclePiece<NonRuleCellInputs, undefined> = {
     parseOptions: parseNonRuleCellOptions,
     render: renderNonRuleCell,
     grade: gradeNonRuleCell,
+    maxTokens: 1536,
 }
 
 export const registeredNonRuleCell = registerPiece(nonRuleCell)
