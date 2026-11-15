@@ -2,7 +2,7 @@ import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import { pieces } from '../pieceProbe/pieces'
 import { nonRuleCellCells, renderNonRuleCell } from './nonRuleCell'
-import { checkTrialRebuttal, evidenceLines, renderTrialRebuttal, trialRebuttal, trialRebuttalCells } from './trialRebuttal'
+import { checkTrialRebuttal, evidenceLines, parseRebuttal, quotesALine, renderTrialRebuttal, trialRebuttal, trialRebuttalCells } from './trialRebuttal'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
 
@@ -73,9 +73,8 @@ describe('trialRebuttal', () => {
         const oc1 = trialRebuttalCells['OC-1']
         const h7 = trialRebuttalCells['OC-30/h7']
         const check = async (json: unknown, cell = oc1) => checkTrialRebuttal(fence(json), cell, await renderTrialRebuttal(cell, GOLDEN))
-        const reply = (fields: Record<string, unknown> = {}) => ({
-            claim: 'too large and heavy', evidence: '[table1] Table (a small round tea table)', kind: 'wrong', rebuttal: 'The table is small.', ...fields,
-        })
+        const reply = (rebuttal: unknown) => ({ rebuttal })
+        const SMALL = "Incoming argues 'the table is too heavy', but the scene says '[table1] Table (a small round tea table), in the Parlour'."
 
         it('draws the evidence lines from the scene and the steps only, without markers or roles', async () => {
             const lines = evidenceLines(await renderTrialRebuttal(h7, GOLDEN))
@@ -87,26 +86,70 @@ describe('trialRebuttal', () => {
             expect(lines.some((line) => line.includes('The player\'s request') || line.includes('The question the argument') || line.includes('The argument against'))).toBe(false)
         })
 
+        describe('parses the sentence into its summary and branch', () => {
+            it.each([
+                [SMALL, { summary: 'the table is too heavy', source: 'the scene says', quote: '[table1] Table (a small round tea table), in the Parlour' }],
+                ['Incoming argues "the cup falls", but the steps say "tip [table1]"', { summary: 'the cup falls', source: 'the steps say', quote: 'tip [table1]' }],
+                ['incoming argues ‘the tea must move first’, but common sense indicates that ‘a teapot is what tea is poured from’ is actually true.', { summary: 'the tea must move first', source: 'common sense indicates', claim: 'a teapot is what tea is poured from' }],
+                ["Incoming argues 'the table is glued to the floor', but the only facts the scene and the steps establish about [table1] are: 'a small round tea table', 'On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', and 'tip [table1]'", {
+                    summary: 'the table is glued to the floor', source: 'the only facts', handle: '[table1]', facts: ['a small round tea table', 'On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', 'tip [table1]'],
+                }],
+                ["Incoming argues 'the table's legs are short' but the scene says 'a small round tea table', so it is light.", { summary: "the table's legs are short", source: 'the scene says', quote: 'a small round tea table' }],
+            ])('%s', (sentence, parsed) => {
+                expect(parseRebuttal(sentence)).toEqual(parsed)
+            })
+
+            it.each([
+                ['The table is light.', '"rebuttal" doesn\'t open "Incoming argues \'…\', but"'],
+                ["Incoming argues '', but the scene says 'x'", '"rebuttal" doesn\'t open "Incoming argues \'…\', but"'],
+                ["Incoming argues 'it is heavy', but it is not.", '"rebuttal" continues with none of "the scene says", "the steps say", "common sense indicates", "the only facts"'],
+                ["Incoming argues 'it is heavy', but the scene says it is small.", '"the scene says" is not followed by a quoted line'],
+                ["Incoming argues 'it is heavy', but the only facts about [table1] are: none", '"the only facts" has no quoted list'],
+            ])('refuses %s', (sentence, malformed) => {
+                expect(parseRebuttal(sentence)).toEqual({ malformed })
+            })
+        })
+
+        describe('reads a quote with the render\'s furniture as the line (TR-P11)', () => {
+            const lines = ['In the Parlour there is [table1] Table (a small round tea table).', '[table1] Table (a small round tea table), in the Parlour', '[teapot1] Teapot, on [table1]', '[saucer1] and [cup1] slide off [table1] onto the floor']
+            it.each([
+                'Fiction: In the Parlour there is [table1] Table (a small round tea table).',
+                'consequence : [saucer1] and [cup1] slide off [table1] onto the floor',
+                '(consequence) [saucer1] and [cup1] slide off [table1] onto the floor',
+                'Graph: Contents of the Parlour: - [table1] Table (a small round tea table), in the Parlour  - [teapot1] Teapot, on [table1]',
+                'Contents of the Parlour:\n- [table1] Table (a small round tea table), in the Parlour\n- [teapot1] Teapot, on [table1]',
+            ])('passes %j', (quote) => {
+                expect(quotesALine(quote, lines)).toBe(true)
+            })
+
+            it('refuses an elision, and a row that isn\'t there', () => {
+                expect(quotesALine('Contents of the Parlour:... - [table1] Table (a small round tea table), in the Parlour', lines)).toBe(false)
+                expect(quotesALine('[table1] Table (a small round tea table), in the Parlour - [cup1] Cup, glued down', lines)).toBe(false)
+            })
+        })
+
         it.each([
-            ['a quoted claim and scene line', reply(), oc1],
-            ['"none" as evidence, any case', reply({ evidence: ' None ', kind: 'invented' }), oc1],
-            ['a part of a scene sentence, and the kind in another case', reply({ evidence: 'a small round tea table', kind: ' Not Established ' }), oc1],
-            ['a consequence line as evidence', reply({ claim: 'cause the cup to fall off the table', evidence: '[saucer1] and [cup1] slide off [table1] onto the floor', kind: 'wrong' }), h7],
-            ['a step as evidence', reply({ claim: 'The first step', evidence: 'tip [table1]' }), h7],
-            ['a line quoted with its role label, as the prompt shows it (TR-P5)', reply({ claim: 'cause the cup to fall off the table', evidence: '(consequence) [saucer1] and [cup1] slide off [table1] onto the floor' }), h7],
-            ['a step quoted with its marker and role', reply({ claim: 'The first step', evidence: '- (method) tip [table1]' }), h7],
+            ['a quoted scene line', reply(SMALL), oc1],
+            ['a common-sense claim, unchecked', reply("Incoming argues 'it is too heavy', but common sense indicates that 'a tea table is light' is actually true"), oc1],
+            ['a consequence line from the steps', reply("Incoming argues 'the cup is gone', but the steps say '[saucer1] and [cup1] slide off [table1] onto the floor'"), h7],
+            ['the facts about a handle, each quoting a line naming it', reply("Incoming argues 'it is heavy', but the only facts the scene establishes about [table1] are: 'In the Parlour there is [table1] Table (a small round tea table).', 'pick up [table1]'"), oc1],
         ])('passes %s', async (_, json, cell) => {
             expect(await check(json, cell)).toEqual([])
         })
 
         it.each([
-            [reply({ claim: 'the glue holds it' }), ['"claim" "the glue holds it" is not quoted from the argument']],
-            [reply({ evidence: '[table1] is huge' }), ['"evidence" "[table1] is huge" quotes no line of the scene or the steps']],
-            [reply({ evidence: 'I want to pick up [table1].' }), ['"evidence" "I want to pick up [table1]." quotes no line of the scene or the steps']],
-            [reply({ evidence: 'Is [table1] too large and heavy to be picked up by a single person?' }), ['"evidence" "Is [table1] too large and heavy to be picked up by a single person?" quotes no line of the scene or the steps']],
-            [reply({ claim: undefined, evidence: '' }), ['has no non-empty string "claim"', 'has no non-empty string "evidence"']],
-            [reply({ kind: 'concede' }), ['"kind" is "concede", not one of invented, not established, wrong']],
-            [reply({ rebuttal: '' }), ['has no non-empty string "rebuttal"']],
+            [reply("Incoming argues 'it is heavy', but the scene says '[table1] is huge'"), ['"[table1] is huge" quotes no line of the scene or the steps']],
+            [reply("Incoming argues 'it is heavy', but the only facts about [lamp1] are: 'You are holding nothing.'"), [
+                'the facts are about [lamp1], which is not in the scene',
+                '"You are holding nothing." doesn\'t name [lamp1]',
+            ]],
+            [reply("Incoming argues 'it is heavy', but the only facts about [table1] are: 'You are holding nothing.', '[table1] is oak'"), [
+                '"You are holding nothing." doesn\'t name [table1]',
+                '"[table1] is oak" quotes no line of the scene or the steps',
+            ]],
+            [reply("Incoming argues 'it is heavy', but it isn't"), ['"rebuttal" continues with none of "the scene says", "the steps say", "common sense indicates", "the only facts"']],
+            [reply(''), ['has no non-empty string "rebuttal"']],
+            [{ answerWrong: 'x' }, ['has no non-empty string "rebuttal"']],
         ])('lists every form problem: %j', async (json, problems) => {
             expect(await check(json)).toEqual(problems)
         })
@@ -122,16 +165,16 @@ describe('trialRebuttal', () => {
     })
 
     it('is registered, and runs through the probe: every cell once, at the cap, each reply form-checked', async () => {
-        // A stub that claims the argument's first word and gives no evidence.
+        // A stub that restates the argument and answers it from common sense.
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => {
             const prompt = messages.map(({ content }) => (content ?? []).map((block) => ('text' in block ? block.text ?? '' : '')).join('')).join('')
             const argument = prompt.slice(prompt.lastIndexOf('": ') + 3)
-            return { success: true as const, body: fence({ claim: argument.split(' ')[0], evidence: 'none', kind: 'invented', rebuttal: 'No.' }) }
+            return { success: true as const, body: fence({ rebuttal: `Incoming argues '${argument.trim()}', but common sense indicates that 'it is not so' is actually true.` }) }
         })
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trialRebuttal', instructions: 'Rebut it.', options: GOLDEN, repeats: 1 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(11)
-        expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 400)).toBe(true)
+        expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 600)).toBe(true)
         expect(JSON.parse(response.body).summary).toEqual({ calls: 11, formFails: 0, errors: 0 })
     })
 

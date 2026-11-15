@@ -1,9 +1,9 @@
 //
 // The rebuttal (AGENT.nonRuleCell.planning.md, step 3, the trial proposal, stage 2; the triad is the user's, 2026-11-14): a read piece,
 // the second of three small biased calls. Given the non-rule cell's inputs, one argument that the plan can't happen and the question the
-// argument answers, it quotes the argument's most refutable claim, quotes the scene or step line that bears on it (or `none`), names the
-// kind by how the two relate, `invented`, `not established` or `wrong` (the user's three), and rebuts it concisely (draft 2's chain; the
-// question from draft 3, the user's separating test). It has no way to concede: a judgment between the two follows in its own call.
+// argument answers, it rebuts the argument in one sentence (draft 5, the user's shape): "Incoming argues '<the argument's answer,
+// briefly>', but" a source that something else is so (the scene says, the steps say, common sense indicates), or the only facts the scene
+// and the steps establish about the thing in question. It has no way to concede: a judgment between the two follows in its own call.
 // Each cell's argument has two sources (`stageInput.ts`): `golden`, in the case against's current contract (with its question), and
 // `lifted`, a real `trialAgainst` output. A payload names which. It sees the scene the argument was made in, with the securing omitted,
 // since the rule cell judges the securing. There is no answer set: code checks each reply's form, and a reader reads the replies against
@@ -22,21 +22,27 @@ export type TrialArgument = { step: string; argument: string; question?: string 
 
 export type TrialRebuttalInputs = NonRuleCellInputs & { against: StageInput<TrialArgument> }
 
-export const TRIAL_REBUTTAL_KINDS = ['invented', 'not established', 'wrong'] as const
+export const TRIAL_REBUTTAL_SOURCES = ['the scene says', 'the steps say', 'common sense indicates', 'the only facts'] as const
+export type TrialRebuttalSource = typeof TRIAL_REBUTTAL_SOURCES[number]
 
 const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
 
 const QUESTION_LINE = 'The question the argument answers: '
 const ARGUMENT_LINE = 'The argument against the plan, turning on the step '
 
-/** The argument as the render shows it, read back from the rendered text, so the check sees the source the payload chose. */
-const renderedArgument = (rendered: string): string => {
-    const line = rendered.split('\n').find((text) => text.startsWith(ARGUMENT_LINE)) ?? ''
-    return line.slice(line.indexOf('": ') + 3)
-}
+const ROLES = '(?:intended|method|consequence)'
 
-/** A quote without a leading list marker or role label, as the prompt shows them (TR-P5: "(consequence) [saucer1] and …"). */
-const withoutLabel = (quote: string): string => quote.trim().replace(/^- /, '').replace(/^\((?:intended|method|consequence)\) /i, '')
+/**
+ * A quote without the render's furniture: a list marker, a `Fiction:` or `Graph:` section prefix, or a role label as the prompt shows it
+ * (`(consequence) …`, TR-P5) or respelled (`consequence : …`, TR-P11).
+ */
+const withoutLabel = (quote: string): string => quote.trim()
+    .replace(/^(?:Fiction|Graph)\s*:\s*/i, '')
+    .replace(/^- /, '')
+    .replace(new RegExp(`^\\(${ROLES}\\) `, 'i'), '')
+    .replace(new RegExp(`^"?${ROLES}"?\\s*:\\s*"?`, 'i'), '')
+    .replace(/"$/, '')
+    .trim()
 
 /** A text as words only: the non-rule cell's normalizing, then any run of punctuation read as a space. */
 const words = (text: string): string => normalizeStep(text).replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
@@ -60,33 +66,113 @@ export const evidenceLines = (rendered: string): string[] => {
     ].map((line) => line.trim().replace(/^- /, '').replace(/^\((?:intended|method|consequence)\) /, ''))
 }
 
+/** A Graph section's header, quoted along with its rows: furniture, not a fact. An elided header ("Contents of the Tavern:...") is not one. */
+const isGraphHeader = (piece: string): boolean => /^Contents of [^.:]*:$/i.test(piece.trim())
+
 /**
- * The form: the block parses; `claim` falls inside the argument as rendered; `evidence` is `none` or falls inside one of the render's
- * scene or step lines (`evidenceLines`), with or without the line's marker and role label; `kind` is one of the three (case and spacing aside); and `rebuttal` is a non-empty string. Every problem is listed.
+ * Whether a quote is a rendered line, with or without its furniture (`withoutLabel`). A quote spanning several Graph rows (one per line,
+ * or run together on " - ") passes when each row does, its section header aside (TR-P11). An elision is a misquote.
+ */
+export const quotesALine = (quote: string, lines: readonly string[]): boolean => {
+    const matches = (piece: string) => lines.some((line) => quotedIn(withoutLabel(piece), line))
+    if (matches(quote)) {
+        return true
+    }
+    const pieces = withoutLabel(quote).split(/\n|\s+-\s+/).map((piece) => piece.trim()).filter((piece) => piece !== '' && !isGraphHeader(piece))
+    return pieces.length > 1 && pieces.every(matches)
+}
+
+/** The sentence, parsed into its two parts (draft 5, the user's shape): the summary, and what follows the pivot, by branch. */
+export type ParsedRebuttal = { summary: string } & (
+    | { source: 'the scene says' | 'the steps say'; quote: string }
+    | { source: 'common sense indicates'; claim: string }
+    | { source: 'the only facts'; handle: string; facts: string[] }
+)
+
+const QUOTE_CHARS = /[‘’“”]/g
+const straightQuotes = (text: string): string => text.replace(QUOTE_CHARS, (char) => ('‘’'.includes(char) ? "'" : '"'))
+
+/** The text inside one pair of quotes around the whole, the end punctuation outside them aside. Undefined when it isn't quoted. */
+const unquoted = (text: string): string | undefined => {
+    const match = /^(['"])([\s\S]*)\1[\s.,;:!]*$/.exec(text.trim())
+    return match && match[2].trim() !== '' ? match[2].trim() : undefined
+}
+
+/**
+ * Parses `Incoming argues '<summary>', but <rest>`, the quote characters read leniently (single or double, straight or curly). The rest
+ * is one of: `the scene says '<line>'`, `the steps say '<step>'`, `common sense indicates that '<claim>' is actually true`, or `the only
+ * facts the scene and the steps establish about <[handle]> are: '<line>', '<line>', …`. A malformed reason otherwise.
+ */
+export const parseRebuttal = (sentence: string): ParsedRebuttal | { malformed: string } => {
+    const text = straightQuotes(sentence).trim()
+    const opening = /^incoming argues\s+(?:that\s+)?(['"])([\s\S]*?)\1\s*,?\s*but\s+([\s\S]*)$/i.exec(text)
+    if (!opening || opening[2].trim() === '') {
+        return { malformed: '"rebuttal" doesn\'t open "Incoming argues \'…\', but"' }
+    }
+    const summary = opening[2].trim()
+    const rest = opening[3].trim()
+    const said = /^the (scene says|steps? says?)\s+(?:that\s+)?([\s\S]*)$/i.exec(rest)
+    if (said) {
+        const source = /^scene/i.test(said[1]) ? 'the scene says' : 'the steps say'
+        const quote = unquoted(said[2]) ?? /^(['"])([\s\S]*)\1/.exec(said[2].trim())?.[2].trim()
+        return quote === undefined || quote === '' ? { malformed: `"${source}" is not followed by a quoted line` } : { summary, source, quote }
+    }
+    const sense = /^common sense indicates\s+(?:that\s+)?([\s\S]*?)(?:\s+is actually true)?[\s.]*$/i.exec(rest)
+    if (sense) {
+        const claim = unquoted(sense[1]) ?? sense[1].trim()
+        return claim === '' ? { malformed: '"common sense indicates" has no claim' } : { summary, source: 'common sense indicates', claim }
+    }
+    const facts = /^the only facts\b[\s\S]*?\babout\s+(\[[^\]]+\])[^:]*?\bare\b\s*:?\s*([\s\S]*)$/i.exec(rest)
+    if (facts) {
+        const list = unquoted(facts[2])
+        return list === undefined
+            ? { malformed: '"the only facts" has no quoted list' }
+            : { summary, source: 'the only facts', handle: facts[1], facts: list.split(/['"]\s*[,;]\s*(?:and\s+)?['"]|['"]\s+and\s+['"]/).map((fact) => fact.trim()) }
+    }
+    return { malformed: `"rebuttal" continues with none of ${TRIAL_REBUTTAL_SOURCES.map((source) => `"${source}"`).join(', ')}` }
+}
+
+/** Whether a fact names the handle, by words: "[table1]" in "on [table1]". */
+const namesHandle = (fact: string, handle: string): boolean => ` ${words(fact)} `.includes(` ${words(handle)} `)
+
+/**
+ * The form (draft 5): the block parses, `rebuttal` is a string that parses (`parseRebuttal`), and the branch holds. A scene or steps
+ * source quotes a rendered line (`quotesALine`); the facts branch names a handle in the scene and lists facts that each quote a rendered
+ * line naming it. A common-sense claim is read, not checked. Every problem is listed. Whether the facts are all of them is a rubric
+ * measure, not a form problem.
  */
 export const checkTrialRebuttal = (reply: string, _cell: ReadPieceCell<TrialRebuttalInputs>, rendered: string): string[] => {
     const parsed = replyJsonObject(reply)
     if ('malformed' in parsed) {
         return [parsed.malformed]
     }
-    const { claim, evidence, kind, rebuttal } = parsed.object
-    const normalized = typeof kind === 'string' ? kind.trim().toLowerCase() : undefined
+    const { rebuttal } = parsed.object
+    if (!isNonEmptyString(rebuttal)) {
+        return ['has no non-empty string "rebuttal"']
+    }
+    const sentence = parseRebuttal(rebuttal)
+    if ('malformed' in sentence) {
+        return [sentence.malformed]
+    }
     const lines = evidenceLines(rendered)
-    const argument = renderedArgument(rendered)
-    return [
-        ...(!isNonEmptyString(claim)
-            ? ['has no non-empty string "claim"']
-            : quotedIn(claim, argument) ? [] : [`"claim" ${JSON.stringify(claim)} is not quoted from the argument`]),
-        ...(!isNonEmptyString(evidence)
-            ? ['has no non-empty string "evidence"']
-            : evidence.trim().toLowerCase() === 'none' || lines.some((line) => quotedIn(withoutLabel(evidence), line))
-                ? []
-                : [`"evidence" ${JSON.stringify(evidence)} quotes no line of the scene or the steps`]),
-        ...(normalized !== undefined && (TRIAL_REBUTTAL_KINDS as readonly string[]).includes(normalized)
-            ? []
-            : [`"kind" is ${JSON.stringify(kind)}, not one of ${TRIAL_REBUTTAL_KINDS.join(', ')}`]),
-        ...(isNonEmptyString(rebuttal) ? [] : ['has no non-empty string "rebuttal"']),
-    ]
+    const misquote = (quote: string) => `${JSON.stringify(quote)} quotes no line of the scene or the steps`
+    switch (sentence.source) {
+        case 'the scene says':
+        case 'the steps say':
+            return quotesALine(sentence.quote, lines) ? [] : [misquote(sentence.quote)]
+        case 'common sense indicates':
+            return []
+        case 'the only facts': {
+            const scene = rendered.split('End of scene.')[0]
+            return [
+                ...(scene.includes(sentence.handle) ? [] : [`the facts are about ${sentence.handle}, which is not in the scene`]),
+                ...sentence.facts.flatMap((fact) => [
+                    ...(quotesALine(fact, lines) ? [] : [misquote(fact)]),
+                    ...(namesHandle(fact, sentence.handle) ? [] : [`${JSON.stringify(fact)} doesn't name ${sentence.handle}`]),
+                ]),
+            ]
+        }
+    }
 }
 
 /** The current contract: an argument with its question (draft 3). A value without one was recorded under the older contract. */
@@ -169,7 +255,7 @@ export const trialRebuttal: ReadPiece<TrialRebuttalInputs, UpstreamOptions> = {
     check: checkTrialRebuttal,
     parseOptions: parseUpstreamOptions,
     render: renderTrialRebuttal,
-    maxTokens: 400,
+    maxTokens: 600,
 }
 
 export const registeredTrialRebuttal = registerPiece(trialRebuttal)
