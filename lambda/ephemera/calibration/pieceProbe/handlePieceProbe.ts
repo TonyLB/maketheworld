@@ -4,6 +4,7 @@ import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudg
 import { textHash } from '../textHash'
 import { PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import type { RegisteredPiece } from './oraclePiece'
+import { pieceAnswer } from './pieceAnswer'
 import { pieces as registeredPieces } from './pieces'
 import { groupRead, runReadPiece, summarizeRead, tallyRead, type PreparedReadCell } from './readPiece'
 import { runPieceProbe, summarizePiece, tallyPiece, type PreparedCell } from './runPieceProbe'
@@ -32,7 +33,7 @@ const refuse = (error: string) => calibrationJsonResponse(400, { error })
 /**
  * A draft of one piece against its cells: each cell code doesn't answer is rendered after the instructions and called `repeats` times, and
  * each reply's `Answer:` is read against the piece's answer set and tallied against the cell's expected answer. Every refusal happens before
- * the first call.
+ * the first call. A piece with its own `grade` is graded by it in place of the `Answer:` read.
  */
 export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeDeps = {}) {
     const pieces = deps.pieces ?? registeredPieces
@@ -82,7 +83,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     if (piece.kind === 'read') {
         const readCells = rendered.map(({ id, text = '' }): PreparedReadCell => ({ cell: id, lookFor: piece.cells[id].lookFor, rendered: text }))
         const readCalls = await runReadPiece({
-            cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id]),
+            cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id], readCells.find(({ cell }) => cell === id)?.rendered ?? ''),
             ...(piece.maxTokens !== undefined ? { maxTokens: piece.maxTokens } : {}),
             ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
         })
@@ -101,11 +102,21 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     }
     const prepared = rendered.map(({ id, text = '' }): PreparedCell => {
         const answer = byCode.get(id)
-        return { cell: id, expected: piece.cells[id].expected, rendered: text, ...(answer === undefined ? {} : { byCode: answer }) }
+        const { expected, lookFor } = piece.cells[id]
+        return {
+            cell: id,
+            ...(expected === undefined ? {} : { expected }),
+            ...(lookFor === undefined ? {} : { lookFor }),
+            rendered: text,
+            ...(answer === undefined ? {} : { byCode: answer }),
+        }
     })
+    const grade = (reply: string, id: string) => (piece.grade !== undefined ? piece.grade(reply, piece.cells[id]) : pieceAnswer(reply, piece.answers))
 
     const calls = await runPieceProbe({
-        cells: prepared, instructions, answers: piece.answers, repeats, model, ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
+        cells: prepared, instructions, grade, repeats, model,
+        ...(piece.maxTokens !== undefined ? { maxTokens: piece.maxTokens } : {}),
+        ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
     })
     const tallies = tallyPiece(prepared, calls)
     return calibrationJsonResponse(200, {

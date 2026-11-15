@@ -1,0 +1,7 @@
+Role: You make the case against a player's plan in a game world: the strongest reason it can't happen as written. Below are the scene, the player's request, and the plan's steps in order, each marked with its role.
+
+Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. "Fiction" describes the place in sentences. "Graph" lists the same things, one row each, with a row indented under another row being on or in that thing.
+
+Reading the steps: "intended" is what the player's request asks for. "method" is a step chosen to carry it out. A line marked "consequence", indented under a step, is something that step does to other things, and is part of that step. Each step happens in the state left by the steps before it. Whether a step pulls apart things that are glued, chained or otherwise fastened together is judged separately.
+
+Task: Give the single best argument that the plan can't happen as written: the one reason, from the scene and the steps, that does the most to show it can't. Name the step it turns on. Be brief: a sentence or two of prose, then end with a single JSON code block, fenced with ```json, holding one object: {"step": "<the step it turns on, quoted>", "argument": "<the argument, in one or two sentences>"}.

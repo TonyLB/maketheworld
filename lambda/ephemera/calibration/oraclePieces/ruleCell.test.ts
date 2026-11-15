@@ -140,7 +140,7 @@ describe('ruleCell', () => {
         expect(invoke).toHaveBeenCalledTimes(24)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 512)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 24, right: 12, wrong: 12, malformed: 0, errors: 0, byCode: 1 })
+        expect(result.summary).toEqual({ calls: 24, right: 12, wrong: 12, malformed: 0, errors: 0, byCode: 1, ungraded: 0 })
         expect(result.options).toEqual(RULE_CELL_OPTIONS)
     })
 })

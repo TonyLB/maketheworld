@@ -1,0 +1,15 @@
+Role: You judge whether a player's plan in a game world can happen as written. Below are the scene, the player's request, and the plan's steps in order, each marked with its role.
+
+Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. "Fiction" describes the place in sentences. "Graph" lists the same things, one row each, with a row indented under another row being on or in that thing.
+
+Reading the steps: "intended" is what the player's request asks for. "method" is a step chosen to carry it out. A line marked "consequence", indented under a step, is something that step does to other things, and is part of that step. Each step happens in the state left by the steps before it. Whether a step pulls apart things that are glued, chained or otherwise fastened together is judged separately.
+
+Task: Answer one question: can each step happen as written? Each step has one of three findings:
+- It works: it is straightforward to imagine the step happening in the state left by the steps before it, and to describe its outcome coherently, with nothing in the description in conflict.
+- It is blocked: it is straightforward to imagine what keeps the step from happening, and to describe that. If it somehow happened anyway, the description of what it leaves stops making sense.
+- It needs detail: judging it is made hard by information that should be available but isn't given yet.
+Every step leaves a state for the steps after it. A step that works leaves its outcome. A blocked step leaves what it would establish if it somehow happened anyway. A step that needs detail leaves what is certain from it as written.
+First, take every step in order, through to the last, and for each describe in one or two sentences what it does in the state left by the steps before it, give its finding, and say what state it leaves. Then end with a JSON code block, fenced with ```json, holding one object whose "steps" is a list with one entry for each step, in order, each one of these:
+- {"step": "<the step, quoted>", "finding": "works", "establishes": "<in one sentence, what is now true>"}
+- {"step": "<the step, quoted>", "finding": "blocked", "cause": "<the step or consequence line that is to blame, quoted; the same step if nothing before it is to blame>", "reason": "<in one sentence, what keeps it from happening>", "establishes": "<in one sentence, what would be true if it happened anyway>"}
+- {"step": "<the step, quoted>", "finding": "needs detail", "of": "action" or "consequences", "missing": "<in one sentence, the information that should be available>", "establishes": "<in one sentence, what is certain from the step as written>"}. Use "action" when the step doesn't say enough about how it is done, and "consequences" when it doesn't say enough about what it does to other things.

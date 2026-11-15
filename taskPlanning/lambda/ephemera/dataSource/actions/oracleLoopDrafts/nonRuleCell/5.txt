@@ -1,0 +1,21 @@
+Role: You judge whether a player's plan in a game world can happen as written. Below are the scene, the player's request, and the plan's steps in order, each marked with its role.
+
+Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. "Fiction" describes the place in sentences. "Graph" lists the same things, one row each, with a row indented under another row being on or in that thing.
+
+Reading the steps: "intended" is what the player's request asks for. "method" is a step chosen to carry it out. A line marked "consequence", indented under a step, is something that step does to other things, and is part of that step. Each step happens in the state left by the steps before it. Whether a step pulls apart things that are glued, chained or otherwise fastened together is judged separately.
+
+Task: Answer one question: can each step happen as written? Each step has one of three findings:
+- It works: it is straightforward to imagine the step happening in the state left by the steps before it, and to describe its outcome coherently, with nothing in the description in conflict.
+- It is blocked: it is straightforward to imagine what keeps the step from happening, and to describe that. If it somehow happened anyway, the description of what it leaves stops making sense.
+- It needs detail: judging it is made hard by information that should be available but isn't given yet.
+Every step leaves a state for the steps after it. A step that works leaves its outcome. A blocked step leaves what it would establish if it somehow happened anyway. A step that needs detail leaves what is certain from it as written.
+Before giving a step its finding, list the factors that bear on how well it would go. A factor can be something the scene, the steps before it, or the step itself states, or something the step depends on that none of them states. Write each factor, then its tag:
+- For: it is stated, and it helps the step happen.
+- Against: it is stated, and it hinders the step.
+- Effect unclear: it is stated, and how it bears on the step is unclear.
+- Not given: the step depends on it, and nothing given states it.
+List as many as bear on the step, under whichever tags fit. Then weigh them to give the finding.
+First, take every step in order, through to the last. For each, say in one sentence what it does in the state left by the steps before it, list its factors, then give its finding and the state it leaves. Then end with a single JSON code block, fenced with ```json, holding one object whose "steps" is a list with one entry for each step, in order. Each entry's "factors" holds the same factors, a few words each, as "<factor>: <tag>". Each entry is one of these:
+- {"step": "<the step, quoted>", "factors": [...], "finding": "works", "establishes": "<in one sentence, what is now true>"}
+- {"step": "<the step, quoted>", "factors": [...], "finding": "blocked", "reason": "<in one sentence, what keeps it from happening>", "establishes": "<in one sentence, what would be true if it happened anyway>"}. Add "cause": "<the earlier step or consequence line to blame, quoted>" when the trouble comes from an earlier step or from a consequence line.
+- {"step": "<the step, quoted>", "factors": [...], "finding": "needs detail", "of": "action" or "consequences", "missing": "<in one sentence, the information that should be available>", "establishes": "<in one sentence, what is certain from the step as written>"}. Use "action" when the step doesn't say enough about how it is done, and "consequences" when it doesn't say enough about what it does to other things.

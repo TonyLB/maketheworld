@@ -76,7 +76,7 @@ describe('handlePieceProbe', () => {
             { cell: 'A', expected: 'yes', n: 3, right: 1, wrong: 1, malformed: 1, errors: 0, answers: { yes: 1, no: 1 } },
             { cell: 'B', expected: 'no', n: 3, right: 3, wrong: 0, malformed: 0, errors: 0, answers: { no: 3 } },
         ])
-        expect(result.summary).toEqual({ calls: 6, right: 4, wrong: 1, malformed: 1, errors: 0, byCode: 0 })
+        expect(result.summary).toEqual({ calls: 6, right: 4, wrong: 1, malformed: 1, errors: 0, byCode: 0, ungraded: 0 })
         expect(result.read.find(({ answer }: { answer: string }) => answer === 'It is.').grade).toEqual({ malformed: 'no Answer line' })
         expect(result.instructions).toEqual({ hash: expect.stringMatching(/^[0-9a-f]{8}$/), chars: INSTRUCTIONS.length })
     })
@@ -86,7 +86,43 @@ describe('handlePieceProbe', () => {
         const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', cells: ['E'], instructions: INSTRUCTIONS, repeats: 3 }, { invoke, pieces }))
         expect(invoke).not.toHaveBeenCalled()
         expect(result.cells[0]).toMatchObject({ cell: 'E', n: 0, right: 0, byCode: { answer: 'no', right: true } })
-        expect(result.summary).toEqual({ calls: 0, right: 0, wrong: 0, malformed: 0, errors: 0, byCode: 1 })
+        expect(result.summary).toEqual({ calls: 0, right: 0, wrong: 0, malformed: 0, errors: 0, byCode: 1, ungraded: 0 })
+    })
+
+    describe('a piece with its own grade', () => {
+        /** A toy whose grade gives the reply's word and its length, so an answer carries a parameter; a cell with no expected answer is open. */
+        const GRADED = registerPiece<{ word: string }, undefined>({
+            name: 'graded',
+            answers: ['say'],
+            cells: {
+                A: { inputs: { word: 'apple' }, expected: 'say 5', lookFor: 'a fruit', source: 'hand-written' },
+                O: { inputs: { word: 'open' }, lookFor: 'anything', source: 'hand-written' },
+            },
+            parseOptions: () => undefined,
+            render: async ({ inputs: { word } }) => `Word: ${word}`,
+            grade: (reply) => (reply === '' ? { malformed: 'empty' } : { answer: `say ${reply.length}` }),
+        })
+        const ask = (event: Record<string, unknown>, invoke: ReturnType<typeof invokeReplying>) => (
+            handlePieceProbe({ type: 'PieceProbe', piece: 'graded', instructions: INSTRUCTIONS, ...event }, { invoke, pieces: { graded: GRADED } })
+        )
+
+        it('grades by the piece\'s grade, not the answer set, and carries each cell\'s look-for into its tally', async () => {
+            const replies = ['apple', 'pear', '']
+            let next = 0
+            const invoke = invokeReplying(() => replies[next++])
+            const result = body(await ask({ cells: ['A'], repeats: 3 }, invoke))
+            expect(result.cells.map(({ inputs, ...tally }: { inputs: unknown }) => tally)).toEqual([
+                { cell: 'A', expected: 'say 5', lookFor: 'a fruit', n: 3, right: 1, wrong: 1, malformed: 1, errors: 0, answers: { 'say 5': 1, 'say 4': 1 } },
+            ])
+            expect(result.summary).toEqual({ calls: 3, right: 1, wrong: 1, malformed: 1, errors: 0, byCode: 0, ungraded: 0 })
+        })
+
+        it('tallies a cell with no expected answer without grading it', async () => {
+            const result = body(await ask({ cells: ['O'], repeats: 2 }, invokeReplying(() => 'open')))
+            expect(result.cells[0]).not.toHaveProperty('expected')
+            expect(result.cells[0]).toMatchObject({ cell: 'O', lookFor: 'anything', n: 2, right: 0, wrong: 0, answers: { 'say 4': 2 } })
+            expect(result.summary).toEqual({ calls: 2, right: 0, wrong: 0, malformed: 0, errors: 0, byCode: 0, ungraded: 2 })
+        })
     })
 
     it('counts a failed call as an error, not malformed', async () => {
@@ -177,6 +213,12 @@ describe('handlePieceProbe', () => {
             expect(result.read[0].replies.map(({ repeat }: { repeat: number }) => repeat)).toEqual([1, 2, 3])
             expect(result.read[0].replies.find(({ reply }: { reply: string }) => reply === 'no block here')).toEqual({ repeat: expect.any(Number), reply: 'no block here', problems: ['no json block'] })
             expect(result.read[1].replies[0]).toEqual({ repeat: 1, reply: GOOD, problems: [] })
+        })
+
+        it('hands the check each cell\'s rendered text, so it can match quotes against what the prompt showed', async () => {
+            const check = jest.spyOn(TOY_READ, 'check')
+            await ask({ cells: ['B'] }, invokeReplying(() => GOOD))
+            expect(check).toHaveBeenCalledWith(GOOD, TOY_READ.cells.B, 'Word: brick')
         })
 
         it('counts a failed call as an error, not a form fail', async () => {
