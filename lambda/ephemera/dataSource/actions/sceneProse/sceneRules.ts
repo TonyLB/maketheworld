@@ -33,6 +33,19 @@ export const withoutSecuredMark = (scene: SceneModel): SceneModel => ({
 })
 
 /**
+ * The scene with its securing left out: each tie (a `Custom` relation with `secured` set) and each bare `SecuredTo` is dropped, and the
+ * other relations stay. For a piece whose judgment is everything but the securing, which the rule cell judges in its own call (the trial's
+ * case against, AGENT.nonRuleCell.planning.md, user, 2026-11-14).
+ */
+export const withoutSecuring = (scene: SceneModel): SceneModel => ({
+    ...scene,
+    things: Object.fromEntries(Object.entries(scene.things).map(([handle, thing]) => [handle, {
+        ...thing,
+        relations: thing.relations.filter((relation) => securingWords(relation) === undefined),
+    }])),
+})
+
+/**
  * The rule as what each move does, with no "relative to" (user, 2026-11-04), a temporary branch for `rulesAction`. "Moving X relative to
  * Y" is symmetric as a phrase, and the replies swapped its ends ("the table is glued to the teapot") and read a host's move as relative
  * movement, 10 of 10 on picking up the table. Handles in place of pronouns, since those are where direction slips.

@@ -215,6 +215,12 @@ describe('handlePieceProbe', () => {
             expect(result.read[1].replies[0]).toEqual({ repeat: 1, reply: GOOD, problems: [] })
         })
 
+        it('hands the check each cell\'s rendered text, so it can match quotes against what the prompt showed', async () => {
+            const check = jest.spyOn(TOY_READ, 'check')
+            await ask({ cells: ['B'] }, invokeReplying(() => GOOD))
+            expect(check).toHaveBeenCalledWith(GOOD, TOY_READ.cells.B, 'Word: brick')
+        })
+
         it('counts a failed call as an error, not a form fail', async () => {
             const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: false as const, errorMessage: 'timeout' }))
             const result = body(await ask({ cells: ['A'] }, invoke))

@@ -75,7 +75,7 @@ export const stepConsiderations: ReadPiece<NonRuleCellInputs, undefined> = {
     cells: stepConsiderationsCells,
     check: checkStepConsiderations,
     parseOptions: parseStepConsiderationsOptions,
-    render: renderNonRuleCell,
+    render: (cell) => renderNonRuleCell(cell),
     maxTokens: 1024,
 }
 

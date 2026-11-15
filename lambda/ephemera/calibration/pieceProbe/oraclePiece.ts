@@ -47,12 +47,15 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
     maxTokens?: number
 }
 
-/** A read piece: no answer set. `check` gives the form problems of one reply, given its cell, and none when the reply passes. */
+/**
+ * A read piece: no answer set. `check` gives the form problems of one reply, given its cell and the cell's rendered text (for a check
+ * that matches quotes against what the prompt showed), and none when the reply passes.
+ */
 export type ReadPiece<Inputs = unknown, Options = unknown> = {
     kind: 'read'
     name: string
     cells: Record<string, ReadPieceCell<Inputs>>
-    check: (reply: string, cell: ReadPieceCell<Inputs>) => string[]
+    check: (reply: string, cell: ReadPieceCell<Inputs>, rendered: string) => string[]
     parseOptions: (value: unknown) => Options | string
     render: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<string>
     /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */

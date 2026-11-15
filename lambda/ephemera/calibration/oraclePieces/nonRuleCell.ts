@@ -7,6 +7,7 @@
 // never gives a number, applies the first-non-works rule, and grades by a canonical answer string.
 //
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
+import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { caseActions, fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
 import { oracleCases } from '../oracleLoop/oracleCases'
@@ -184,18 +185,25 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
         : { answer: `needs detail of ${(stop as { of: string }).of} ${first + 1}` }
 }
 
+/** How a piece on these inputs shows the securing: as the scene has it (the default), or left out (`withoutSecuring`). */
+export type SecuringShown = 'shown' | 'omitted'
+
 /**
  * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
- * consequence lines indented under it.
+ * consequence lines indented under it. With `securing: 'omitted'`, the scene's securing is left out as well (the trial's case against).
  */
-export const renderNonRuleCell = async ({ inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>): Promise<string> => {
+export const renderNonRuleCell = async (
+    { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
+    { securing = 'shown' }: { securing?: SecuringShown } = {},
+): Promise<string> => {
     if (steps.length === 0) {
         throw new Error('No steps')
     }
     if (request.trim() === '') {
         throw new Error('No request')
     }
-    const full = await fixtureScene(fixture)
+    const scene = await fixtureScene(fixture)
+    const full = securing === 'omitted' ? withoutSecuring(scene) : scene
     const all = quotables(steps, true)
     const unknown = [...new Set([request, ...all.map(({ says }) => says)].flatMap(namedHandles))].filter((handle) => full.things[handle] === undefined)
     if (unknown.length > 0) {
@@ -319,7 +327,7 @@ export const nonRuleCell: OraclePiece<NonRuleCellInputs, undefined> = {
     answers: NON_RULE_ANSWERS,
     cells: nonRuleCellCells,
     parseOptions: parseNonRuleCellOptions,
-    render: renderNonRuleCell,
+    render: (cell) => renderNonRuleCell(cell),
     grade: gradeNonRuleCell,
     maxTokens: 1536,
 }
