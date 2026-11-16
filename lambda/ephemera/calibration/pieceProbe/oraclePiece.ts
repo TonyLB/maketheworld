@@ -62,8 +62,21 @@ export type ReadPiece<Inputs = unknown, Options = unknown> = {
     maxTokens?: number
 }
 
-/** What the probe registry holds. */
+/** A registered piece, answered or read. */
 export type RegisteredPiece = OraclePiece | ReadPiece
+
+/**
+ * A family of pieces under one name (the trial, AGENT.nonRuleCell.planning.md, Slice A; the user's idea, 2026-11-16): stages that share
+ * their cells' inputs, each a piece of its own with its own render, check and cap. A payload names the stage in `options.stage`, and the
+ * rest of its options are that stage's. Each payload runs exactly one stage: an earlier stage's part is a recorded value, never a live call.
+ */
+export type PieceFamily = { kind: 'family'; name: string; stages: Record<string, RegisteredPiece> }
+
+/** What the probe registry holds: a piece, or a family of them. */
+export type RegistryEntry = RegisteredPiece | PieceFamily
+
+/** A family from its stages, each already registered, in their order. */
+export const registerFamily = (name: string, stages: Record<string, RegisteredPiece>): PieceFamily => ({ kind: 'family', name, stages })
 
 /** Erases a piece's own types for the registry, which only passes a piece's cells and options back to that same piece. */
 export function registerPiece<Inputs, Options>(piece: OraclePiece<Inputs, Options>): OraclePiece

@@ -1,15 +1,15 @@
-import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
-import { pieces } from '../pieceProbe/pieces'
-import { nonRuleCellCells, renderNonRuleCell } from './nonRuleCell'
-import { checkTrialAgainst, trialAgainst, trialAgainstCells } from './trialAgainst'
+import type { ProbeInvoke } from '../../sceneReasoning/runSceneReasoningProbe'
+import { handlePieceProbe } from '../../pieceProbe/handlePieceProbe'
+import { pieces } from '../../pieceProbe/pieces'
+import { nonRuleCellCells, renderNonRuleCell } from '../nonRuleCell'
+import { checkTrialAgainst, trialAgainst, trialAgainstCells } from './against'
 
 const h7 = trialAgainstCells['OC-30/h7']
 const fence = (json: unknown): string => ['The cup is on the floor.', '', '```json', JSON.stringify(json), '```'].join('\n')
 const POUR = '[teapot1] pours [tea2] into [cup1]'
 const check = (json: unknown) => checkTrialAgainst(fence(json), h7)
 
-describe('trialAgainst', () => {
+describe('the trial\'s against stage', () => {
     beforeEach(() => {
         jest.spyOn(console, 'log').mockImplementation(() => {})
         jest.spyOn(console, 'info').mockImplementation(() => {})
@@ -92,17 +92,24 @@ describe('trialAgainst', () => {
         })
     })
 
-    it('is registered, and runs through the probe: every cell once, at the cap, each reply form-checked', async () => {
+    it('is the trial\'s against stage, and runs through the probe: every cell once, at the cap, each reply form-checked', async () => {
         // A stub that argues against the last step, quoted from the prompt's step lines.
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => {
             const prompt = messages.map(({ content }) => (content ?? []).map((block) => ('text' in block ? block.text ?? '' : '')).join('')).join('')
             const steps = [...prompt.matchAll(/^- \((?:intended|method)\) (.*)$/gm)].map(([, says]) => says)
             return { success: true as const, body: fence({ step: steps[steps.length - 1], argument: 'It cannot happen.' }) }
         })
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trialAgainst', instructions: 'Argue against it.', repeats: 1 }, { invoke, pieces })
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Argue against it.', options: { stage: 'against' }, repeats: 1 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(11)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 400)).toBe(true)
-        expect(JSON.parse(response.body).summary).toEqual({ calls: 11, formFails: 0, errors: 0 })
+        expect(JSON.parse(response.body)).toMatchObject({ piece: 'trial', stage: 'against', options: { securing: 'shown' }, summary: { calls: 11, formFails: 0, errors: 0 } })
+    })
+
+    it('refuses the upstream option, since it is the first stage', async () => {
+        const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>()
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Argue against it.', options: { stage: 'against', upstream: 'golden' } }, { invoke, pieces })
+        expect(JSON.parse(response.body).error).toBe("options must be { securing?: 'shown' | 'omitted' }")
+        expect(invoke).not.toHaveBeenCalled()
     })
 })

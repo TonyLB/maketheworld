@@ -3,7 +3,7 @@ import { isNovaModel, type NovaModel } from '../../llm/novaModel'
 import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudgeProbe'
 import { textHash } from '../textHash'
 import { PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import type { RegisteredPiece } from './oraclePiece'
+import type { RegisteredPiece, RegistryEntry } from './oraclePiece'
 import { pieceAnswer } from './pieceAnswer'
 import { pieces as registeredPieces } from './pieces'
 import { groupRead, runReadPiece, summarizeRead, tallyRead, type PreparedReadCell } from './readPiece'
@@ -11,7 +11,7 @@ import { runPieceProbe, summarizePiece, tallyPiece, type PreparedCell } from './
 
 export type PieceProbeEvent = {
     type: 'PieceProbe'
-    /** The registered piece's name. */
+    /** The registered piece's name, or a family's. */
     piece?: unknown
     /** Cell IDs of the piece; all of its cells by default. */
     cells?: unknown
@@ -19,11 +19,27 @@ export type PieceProbeEvent = {
     instructions?: unknown
     repeats?: unknown
     model?: unknown
-    /** Piece-specific, checked by the piece. */
+    /** Piece-specific, checked by the piece. A family's options name the stage in `stage`, and the rest are that stage's. */
     options?: unknown
 }
 
-export type PieceProbeDeps = { invoke?: ProbeInvoke; pieces?: Record<string, RegisteredPiece> }
+export type PieceProbeDeps = { invoke?: ProbeInvoke; pieces?: Record<string, RegistryEntry> }
+
+/**
+ * The piece a payload runs: a plain piece as registered, or a family's stage named by `options.stage`, with the rest of the options for
+ * that stage's `parseOptions`. A refusal when a family's stage is missing or isn't one of its stages.
+ */
+export const resolvePiece = (entry: RegistryEntry, options: unknown): { piece: RegisteredPiece; options: unknown; stage?: string } | string => {
+    if (entry.kind !== 'family') {
+        return { piece: entry, options }
+    }
+    const stages = Object.keys(entry.stages)
+    const { stage, ...rest } = typeof options === 'object' && options !== null && !Array.isArray(options) ? options as Record<string, unknown> : {} as Record<string, unknown>
+    if (typeof stage !== 'string' || !stages.includes(stage)) {
+        return `${entry.name} is a family: options.stage must be one of: ${stages.join(', ')}`
+    }
+    return { piece: entry.stages[stage], options: rest, stage }
+}
 
 /** The piece probe's own cap (user): a piece's calls are short, and a sign of a piece too big is long calls, not a higher cap. */
 export const PIECE_PROBE_CALL_CAP = 24
@@ -38,10 +54,17 @@ const refuse = (error: string) => calibrationJsonResponse(400, { error })
 export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeDeps = {}) {
     const pieces = deps.pieces ?? registeredPieces
     const names = Object.keys(pieces)
-    const piece = typeof event.piece === 'string' ? pieces[event.piece] : undefined
-    if (piece === undefined) {
+    const entry = typeof event.piece === 'string' ? pieces[event.piece] : undefined
+    if (entry === undefined) {
         return refuse(`piece must be one of: ${names.length > 0 ? names.join(', ') : '(none registered)'}`)
     }
+    const resolved = resolvePiece(entry, event.options)
+    if (typeof resolved === 'string') {
+        return refuse(resolved)
+    }
+    const { piece, stage } = resolved
+    /** How the response names what ran: a family's name with its stage, or the piece's name. */
+    const ran = stage === undefined ? { piece: piece.name } : { piece: entry.name, stage }
     const cellIds = Object.keys(piece.cells)
     const { cells = cellIds } = event
     if (!Array.isArray(cells) || cells.length === 0 || !cells.every((id) => typeof id === 'string' && cellIds.includes(id))) {
@@ -60,7 +83,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     if (!isNovaModel(model)) {
         return refuse('model must be a NovaModel (NovaMicro or Nova2Lite)')
     }
-    const options = piece.parseOptions(event.options)
+    const options = piece.parseOptions(resolved.options)
     if (typeof options === 'string') {
         return refuse(options)
     }
@@ -89,7 +112,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
         })
         const readTallies = tallyRead(readCells, readCalls)
         return calibrationJsonResponse(200, {
-            piece: piece.name,
+            ...ran,
             model,
             temperature: PROBE_TEMPERATURE,
             repeats,
@@ -120,7 +143,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     })
     const tallies = tallyPiece(prepared, calls)
     return calibrationJsonResponse(200, {
-        piece: piece.name,
+        ...ran,
         model,
         temperature: PROBE_TEMPERATURE,
         repeats,

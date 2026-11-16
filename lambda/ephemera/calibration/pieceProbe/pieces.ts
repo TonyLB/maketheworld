@@ -1,15 +1,13 @@
-import type { RegisteredPiece } from './oraclePiece'
+import type { RegistryEntry } from './oraclePiece'
 import { registeredConsequences } from '../imaginationPieces/consequences'
 import { registeredPlayByPlay } from '../imaginationPieces/playByPlay'
 import { registeredNonRuleCell } from '../oraclePieces/nonRuleCell'
 import { registeredRuleCell } from '../oraclePieces/ruleCell'
 import { registeredStepConsiderations } from '../oraclePieces/stepConsiderations'
-import { registeredTrialAgainst } from '../oraclePieces/trialAgainst'
-import { registeredTrialRebuttal } from '../oraclePieces/trialRebuttal'
+import { registeredTrial } from '../oraclePieces/trial'
 
-/** The pieces the probe can run, by name. */
-export const pieces: Record<string, RegisteredPiece> = {
+/** The pieces the probe can run, by name, and the families of them (the trial). */
+export const pieces: Record<string, RegistryEntry> = {
     ruleCell: registeredRuleCell, nonRuleCell: registeredNonRuleCell, playByPlay: registeredPlayByPlay, consequences: registeredConsequences,
-    stepConsiderations: registeredStepConsiderations, trialAgainst: registeredTrialAgainst,
-    trialRebuttal: registeredTrialRebuttal,
+    stepConsiderations: registeredStepConsiderations, trial: registeredTrial,
 }

@@ -23,7 +23,7 @@ One payload, all 11 cells, `repeats: 1`, 11 calls, Micro, instructions `f44fab8a
 
 ## Rubric (written before the batch)
 
-Each cell's `lookFor` is in [`trialRebuttal.ts`](../../../../../../../lambda/ephemera/calibration/oraclePieces/trialRebuttal.ts). **h5 and h10 are read apart from the tallies** (consequences-dependent: TR-P3, NR-P5).
+Each cell's `lookFor` is in [`trialCases.ts`](../../../../../../../lambda/ephemera/calibration/oraclePieces/trial/trialCases.ts), once `trialRebuttal.ts`. **h5 and h10 are read apart from the tallies** (consequences-dependent: TR-P3, NR-P5).
 - **Sound arguments, the over-refuting test (OC-11, OC-18, OC-3, h7):** nothing true refutes them, so what does the rebuttal claim? Count it as an invented smallness or another invented fact; "not established" (sizes not given); a misreading (h7: the cup could still be reached); or a hedge that concedes in substance. These are what the judge must see through.
 - **Weak arguments (OC-1, OC-2, OC-20, OC-6):** is the rebuttal right, and is it on the **premise**? OC-1 and OC-20: the scene says "a small round tea table". OC-2: empty hands are what lifting needs. OC-6: a teapot is what tea is poured from. Is the kind `wrong`? A rebuttal that argues the **weight** ("it isn't that heavy") or reaches for something else counts as anchoring.
 - **OC-9 (open):** the kind. Does "not established" come with the player's strength or the trestle's weight? That is the skill-or-chance signal.

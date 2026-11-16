@@ -1,6 +1,6 @@
 # The non-rule cell: an oracle piece that answers with a verdict or a request
 
-**Status (2026-11-13): steps 1 and 2 done; the baseline is batch 1, 11 of 30 graded calls right, the size cells 9 of 9. Step 3, drafts in isolation (round 1), begun, with a provisional bar for passable: draft 2, the outcomes framed by what they indicate, for the reluctance to allow (NR-P6), changed nothing (batch 2) and isn't kept; draft 3, the non-branching walk with consequences on their step (the contract amended, NR-4), moved the guards in substance (batch 3). At the batch 3 checkpoint it was kept as the base; draft 4, for and against before the finding, wasn't kept (batch 4): the weighing took, and the securing decides it. Draft 5, a tagged factor list before the finding with `cause` made optional, ran (batch 5): the tags became four headings to fill and the guards fell to 0 of 4, while `cause` optional fixed its form fault; the factor list not kept, pending the user. Step 4 can run alongside; step 5, the cell in composition, waits on step 3's exit.** The step layout is agreed ([The step layout and the two shapes](#the-step-layout-and-the-two-shapes)), and NR-1 to NR-4, NR-6 (for the baseline) and NR-7 are settled. The probe's change for NR-7 and the piece are built. Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, where the non-rule blocker was made next (user, 2026-11-13; [trail](AGENT.oracleLoop.discussion.planning.md#the-non-rule-blocker-first-the-rule-cell-later-2026-11-13)). It is renamed `nonRuleCell` here (user, 2026-11-13): under the verdict-or-request contract, `blocks` is one answer among several, and the name parallels `ruleCell`, its nearest analogue. The piece judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first oracle piece designed from the start to answer with a verdict **or** with requests typed by the imagination's asks ([trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)), so the request contract is drafted here, on a new piece, and the rule cell adopts it later. **The composition probe's first two steps are built in this plan** (mine, 2026-11-13): a request's worth shows only in what comes back, so the cell's requests can't be graded without it. Its growth toward OC-30's chain may outgrow this plan; if so it gets its own.
+**Status (2026-11-16): steps 1 and 2 done; the baseline is batch 1, 11 of 30 graded calls right, the size cells 9 of 9. Step 3, drafts in isolation (round 1), begun, with a provisional bar for passable: draft 2, the outcomes framed by what they indicate, for the reluctance to allow (NR-P6), changed nothing (batch 2) and isn't kept; draft 3, the non-branching walk with consequences on their step (the contract amended, NR-4), moved the guards in substance (batch 3). At the batch 3 checkpoint it was kept as the base; draft 4, for and against before the finding, wasn't kept (batch 4): the weighing took, and the securing decides it. Draft 5, a tagged factor list before the finding with `cause` made optional, ran (batch 5): the tags became four headings to fill and the guards fell to 0 of 4, while `cause` optional fixed its form fault; the factor list not kept, pending the user. Since then, step 3 has gone to separate pieces: `stepConsiderations` (paused at draft 2), then the trial. The case against is kept on draft 1 with the securing omitted. The rebuttal's base is draft 5, confirmed at x3 (batch 8): weak arguments rebutted truly, sound ones visibly falsely. The trial family (Slice A) is built: one harness kind, `trial`, with the stage by `options.stage`, renders pinned to the batches. Next is the verdict (Slice B), its prompt designed here first. Step 4 can run alongside; step 5, the cell in composition, waits on step 3's exit.** The step layout is agreed ([The step layout and the two shapes](#the-step-layout-and-the-two-shapes)), and NR-1 to NR-4, NR-6 (for the baseline) and NR-7 are settled. The probe's change for NR-7 and the piece are built. Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, where the non-rule blocker was made next (user, 2026-11-13; [trail](AGENT.oracleLoop.discussion.planning.md#the-non-rule-blocker-first-the-rule-cell-later-2026-11-13)). It is renamed `nonRuleCell` here (user, 2026-11-13): under the verdict-or-request contract, `blocks` is one answer among several, and the name parallels `ruleCell`, its nearest analogue. The piece judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first oracle piece designed from the start to answer with a verdict **or** with requests typed by the imagination's asks ([trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)), so the request contract is drafted here, on a new piece, and the rule cell adopts it later. **The composition probe's first two steps are built in this plan** (mine, 2026-11-13): a request's worth shows only in what comes back, so the cell's requests can't be graded without it. Its growth toward OC-30's chain may outgrow this plan; if so it gets its own.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an implementation plan under the parent's pilot of the [proposed design variant](../../../../AGENT.designVariant.proposed.md). The parent holds the subsystem map, the stages (a guess), the seam ledger and the corpus. This plan holds one episode. What it shows about a guess goes **up** to the parent's seam ledger.
 
@@ -408,6 +408,172 @@ The hops' questions ask about the state at the step that fails (the user's amend
 
 A deploy, since the render changes.
 
+### Rebuttal draft 4: evidence, then both attacks
+
+**Accepted by the user, 2026-11-15; built the same day** (the check's fields, the cap of 600, [`rebuttal.4.txt`](oracleLoopDrafts/trial/rebuttal.4.txt) and [`rebuttal.4.notes.md`](oracleLoopDrafts/trial/rebuttal.4.notes.md)). The shape is the user's, settled in discussion on 2026-11-15. The question is attacked first, with the evidence quoted before the attack. Relevance is a separate attack, after the answer. **The rebuttal attacks both, as well as it can, every time.** The field names, wording and defaults are mine unless marked.
+
+**Why** (rebuttal batch 5, TR-P7): the question was supplied and never used, since no step of the Task named it. **An input only counts once a step uses it** (agreed with the user). So each step names what it reads.
+
+**Biased throughout, not honest** (the user's correction to my first version of this design). My first version asked for the question's answer "given honestly", so that a sound argument would draw an agreeing answer. That asks the rebuttal to weigh the evidence fairly, which is the unguided judgment the triad exists to avoid. The triad works by giving each call a bias and leaving the weighing to the judge. With both attacks always made, the user's three cases fall out on their own:
+- bad evidence for a relevant question: the attack on the answer is strong, and the attack on the question is forced;
+- good evidence for the wrong question: the attack on the answer is forced, and the attack on the question is strong;
+- both bad: both attacks are strong.
+
+On a sound argument both attacks are forced. The judge's signal is which attacks hold.
+
+**The procedure, in the prose and in the block's order:**
+1. **`evidence`:** the lines of the scene or the steps that bear on the question, quoted, or `["none"]`. It comes first, as the reading, so both attacks argue from lines on the table. Choosing the lines that help is advocacy, and the judge sees what was chosen.
+2. **`answerWrong`:** an argument, as strong as it can make it and from those lines, that the argument's answer to the question is wrong.
+3. **`kind`:** after that argument, so it classifies what was argued, not what will be: `wrong` (the lines say otherwise), `invented` (no line bears on it), `not established` (it turns on a detail the scene could have given). These are draft 2's three.
+4. **`questionIrrelevant`:** an argument, as strong as it can make it, that the question doesn't bear on whether the plan can happen, so the argument wouldn't prove the plan impossible even if its answer were right.
+
+**Relevance comes last** (the user's order). Attacking the answer first forces a claim about the world before the relevance attack is open. The two are independent, and the rebuttal makes both and chooses neither. **It is in this batch rather than the next** (mine): it is generated last, so it can't shape the earlier slots except through the prompt's wording, and the answer-side measures stay comparable to batch 5. This is a stated exception to one change per draft.
+
+**The Task** (wording mine):
+> Task: Rebut the argument in four parts, a sentence or two each. First, quote the lines of the scene or the steps that bear on the question the argument answers, exactly as they are written, or say "none" if no line bears on it. Second, argue as strongly as you can, from those lines, that the argument's answer to that question is wrong. Third, give the kind of what you argued: "wrong" when the lines say otherwise, "invented" when no line bears on it, or "not established" when it turns on a detail the scene could have given but didn't. Fourth, argue as strongly as you can that the question doesn't bear on whether the plan can happen, so the argument wouldn't show the plan impossible even if its answer were right. Then end with a single JSON code block, fenced with ```json, holding one object: {"evidence": ["<a quoted line>", ...] or ["none"], "answerWrong": "<the first argument>", "kind": "wrong" or "invented" or "not established", "questionIrrelevant": "<the second argument>"}.
+
+**The check:**
+- `evidence` is a non-empty list, either `["none"]` or each item quoting a scene or step line, as now;
+- `answerWrong` and `questionIrrelevant` are non-empty strings;
+- `kind` is one of the three.
+
+The `claim` and `rebuttal` fields and their checks go. The claim step never worked (TR-P6), and the two attacks replace the single rebuttal.
+
+**Unchanged:** the cells, the golden questions and arguments (`upstream: golden`), the render, the Role and the Reading sections. **The cap:** 400 to 600 tokens (mine), for the second attack.
+
+**What we expect of the relevance attack in this cell set: forced everywhere.** The hops' questions claim their bearing ("is [cup1] still where [teapot1] can pour into it?"), and the single-step questions are premises that bear directly (size, weight). Cells where it should be strong, salient but irrelevant arguments like batch 1's glue, need golden cells of their own. They are written later with the guard goldens.
+
+**The rubric outline** (in full in `rebuttal.4.notes.md` before the batch):
+- **The main measure, world or support claim,** sorted by hand on `answerWrong`. Batches 4 and 5: about 3 of 11.
+- **Weak arguments:** does `evidence` hold "a small round tea table" (OC-1, OC-20), "You are holding nothing." (OC-2), the teapot's tea (OC-6)? Does `answerWrong` use it, with `kind` `wrong`?
+- **Sound arguments:** is `answerWrong` visibly forced, and does it stay forced, with no concession? h7: does `evidence` hold the slide line, and what does the attack do with it?
+- **Evidence before the attack:** does the attack draw on the quoted lines, or ignore them?
+- **`questionIrrelevant`:** forced on every cell, as expected? Read whether any is persuasive, a false strong attack, and what it claims.
+- **The kinds' spread,** the quote checks, length against batch 5's 594 to 1209 chars, cut-offs at 600, h5 and h10 apart.
+
+**What changes, if accepted:**
+- `trialRebuttal.ts`: the check's fields, the cap; and its tests;
+- `rebuttal.4.txt` (draft 3 with the Task replaced) and `rebuttal.4.notes.md`;
+- here, the trial item; calibration `AGENT.md`.
+
+A deploy, since the check changes. **The judge, when built,** reads the argument against both attacks.
+
+**Run, 2026-11-15 (batch 6):** [results](oracleLoopDrafts/trial/rebuttal.4.notes.md#results-2026-11-15-batch-6). Evidence-first took; the block's slots did not (TR-P8 to P10).
+
+### Rebuttal draft 5: one sentence, incoming argues, but
+
+**Accepted by the user, 2026-11-15; built the same day** (the check, [`rebuttal.5.txt`](oracleLoopDrafts/trial/rebuttal.5.txt) and [`rebuttal.5.notes.md`](oracleLoopDrafts/trial/rebuttal.5.notes.md)). The shape is the user's, from the discussion after batch 6:
+- the sentence opens with a ruthlessly concise summary, "Incoming argues '…'";
+- it pivots straight to a source, "… but the scene says / common sense indicates …", that something else is actually true;
+- a second branch, for a premise the scene never gives, lists "the only facts the scene establishes about" the thing in question;
+- relevance is left out of this draft, to see whether the structure changes how the rebuttal weighs the incoming argument against the evidence.
+
+The single-string contract, the closed list of sources, the check, the block-only reply and the Task's wording are mine.
+
+**Why** (batch 6, TR-P8 to P10): about three quarters of each reply restated the argument, its question and the quoted lines, part by part, before the block. The user's concern: a rebuttal that generates most of its output by regurgitating the case against will argue inside its frame. The data fit that. h7 quoted the slide line, then attacked "falling" in the argument's words. Five `answerWrong` fields restated the answer. `kind` classified the argument. This form allows one labelled restatement, then puts the rebuttal's own source and the scene's lines next.
+
+**The two branches:**
+1. `Incoming argues '<the argument's answer, briefly>', but <source> …`, where the source is one of:
+   - `the scene says '<a line, quoted>'`;
+   - `the steps say '<a step, quoted>'`;
+   - `common sense indicates that '<a claim>' is actually true`.
+2. `Incoming argues '<the argument's answer, briefly>', but the only facts the scene and the steps establish about <[handle]> are: '<a line>', '<a line>', …`
+
+Branch 2 is the "not established" move, with the absence **shown** rather than asserted (the user's widening). `invented` and `not established` fold into it, and `wrong` and world knowledge are branch 1.
+
+**The Task** (wording mine; Role and the Reading sections unchanged from draft 4):
+> Task: Rebut the argument in one sentence, as strongly as you can. Begin with the argument's answer to its question, as briefly as you can: Incoming argues '<that answer>'. Then continue with what is actually so, in whichever of these forms rebuts it most strongly: ", but the scene says '<a line of the scene, quoted exactly>'"; ", but the steps say '<a step, quoted exactly>'"; ", but common sense indicates that '<what is actually true>' is actually true"; or ", but the only facts the scene and the steps establish about <the thing, by its [handle]> are: '<a line, quoted exactly>', '<another>', …". Reply with a single JSON code block, fenced with ```json, holding one object: {"rebuttal": "<the sentence>"}.
+
+**The block only** (mine). The sentence is the reasoning, and the prose before the block was where the restating happened. If Micro writes prose anyway, the rubric counts it.
+
+**The check** (mine):
+- `rebuttal` is a string opening `Incoming argues '…'` and pivoting on `, but `. The quote characters are read leniently (single or double, straight or curly).
+- **Branch 1:** the source is one of the three. A scene or steps source carries a quote that matches a rendered line.
+- **Branch 2:** the handle is in the scene. The list is non-empty, and each item quotes a rendered line naming that handle.
+- **TR-P11, the quote tolerance:** a line passes when quoted with its `Fiction:`/`Graph:` prefix or a role label (`(consequence)` or `consequence :`), or as several Graph rows each matching. An elision is still a misquote.
+- `evidence`, `answerWrong`, `kind` and `questionIrrelevant` go.
+
+**Unchanged:** the cells, the golden questions and arguments (`upstream: golden`), the render, Role and the Reading sections, the cap of 600 tokens.
+
+**The rubric outline** (in full in `rebuttal.5.notes.md` before the batch):
+- **The branch split per cell**, against batch 3's `not established` 9 of 11: does branch 2 become the universal move?
+- **The summary:** one premise or the whole argument (TR-P6)? A strawman? Restated more than once?
+- **Weak arguments:**
+  - OC-1 and OC-20: "a small round tea table", through either branch;
+  - OC-2: "You are holding nothing." used as what picking up needs;
+  - OC-6: a teapot as what tea is poured from (branch 1, the scene or common sense).
+- **Sound arguments** (the size cells, h7): is the forced rebuttal visibly false? That is the tell. Read a size cell's branch 2 list of "a small round tea table", which looks like a rebuttal and isn't one (batch 4's inverted tell). h7: is the slide line among the facts about [cup1], and what does the sentence do with it?
+- **Branch 2's completeness**, a measure, not a gate: the rendered lines naming the handle that the list leaves out, and whether what's left out is the inconvenient line.
+- **World or support** on branch 1 claims; the quote checks; length against batch 6's 1233 to 2302 chars; prose outside the block; cut-offs; h5 and h10 apart.
+
+**What changes, if accepted:**
+- `trialRebuttal.ts`: the check, for one string in two branches with the TR-P11 tolerance; and its tests;
+- `rebuttal.5.txt` (draft 4 with the Task replaced) and `rebuttal.5.notes.md`;
+- the trial `iterations.md` (TR-L8);
+- here, the trial item;
+- calibration `AGENT.md`.
+
+A deploy, since the check changes. **The relevance attack** comes back as its own sentence once the answer side works.
+
+**Run, 2026-11-15 (batch 7):** [results](oracleLoopDrafts/trial/rebuttal.5.notes.md#results-2026-11-15-batch-7). The summary dropped everywhere (TR-P12). "The scene says '<line>', which implies <claim>" on every cell.
+
+### The trial family: one harness kind, the stage by specifier
+
+**Designed 2026-11-16; Slice A built the same day, Slice B not yet.** The idea is the user's: collect the trial's pieces under one harness kind, with a specifier for the stage under test and the `golden`/`lifted` choice already settled. This is a step toward a pipeline-aware harness, short of a full pipeline that feeds against into rebuttal into verdict. The layout below, the pairing rule and the slicing are mine unless marked.
+
+**Why now:** the verdict is the first piece with two upstream inputs. As separate pieces, each stage copies the cells again: `trialRebuttal`'s cells already spread the non-rule cell's inputs and add `against`, and the verdict would spread them once more and add `rebuttal`. A lifted rebuttal is also a reply to one particular argument (batch 8 answered the golden arguments), so the verdict can't pair stages freely.
+
+**The shape:**
+- **One trial record per cell** (`trialCases.ts`):
+  - the non-rule cell's inputs, source and note;
+  - a `StageInput` slot per later stage: `against: StageInput<TrialArgument>` now, `rebuttal: StageInput<TrialRebuttalReply>` with the verdict;
+  - a `lookFor` per stage: `{ against, rebuttal, verdict? }`, each written before its batch, as now.
+- **One harness kind, `trial`, with stages:**
+  - `against`: options `{ stage: 'against', securing?: 'shown' | 'omitted' }`, with no upstream, since it is the first stage;
+  - `rebuttal`: `{ stage: 'rebuttal', upstream: 'golden' | 'lifted' }`;
+  - `verdict` (Slice B): `{ stage: 'verdict', upstream }`.
+
+  Each stage is a read piece underneath, with its own render, check and cap (400 and 600 tokens, as now). The payload is `{"piece": "trial", "options": {"stage": "rebuttal", "upstream": "golden"}, …}`. An unknown or missing stage is refused, with the list of stages.
+- **The harness change** (`pieceProbe/`):
+  - `oraclePiece.ts` gains a `PieceFamily` (`kind: 'family'`, `name`, `stages`) and `registerFamily`;
+  - in `handlePieceProbe.ts`, a family resolves to its stage's piece from `options.stage`, and the remaining options go to that stage's `parseOptions`. Everything after that runs as for any read piece;
+  - the response gives `piece: "trial"` and `stage`.
+
+  The other pieces are untouched.
+- **The pairing rule, for the verdict** (mine; Slice B). A lifted value records what it consumed: `lifted.consumed = { upstream, hash }`, the source of the stage before and a hash of the value it read.
+  - `upstream: 'lifted'` at the verdict then takes a real rebuttal **with the argument it actually answered**. That argument is found through `consumed`, and the hash is checked, so editing a golden argument later breaks the pair loudly, not silently.
+  - `upstream: 'golden'` is hand-written all the way up.
+
+  One switch keeps a clear meaning at every stage. "Golden argument, real rebuttal" is just what a rebuttal lifted from batch 8 is.
+
+**The slices:**
+- **Slice A, the family with the two stages built so far:**
+  - move `trialAgainst.ts` and `trialRebuttal.ts` into `oraclePieces/trial/` as `against.ts` and `rebuttal.ts`, with their tests, over one `trialCases.ts`;
+  - register `trial`, retiring the names `trialAgainst` and `trialRebuttal` (pre-rollout, no outside consumers);
+  - **renders byte-identical:** a test pins each stage's inputs hashes to the ones batches 2 and 8 reported. No prompt changes, and no batch is needed.
+
+  The scratchpad's old payloads stop working, and new ones say `piece: "trial"`.
+
+  **As built** (mine): the rebuttal's notes on h5 and h10 differ from the non-rule cell's, so a record carries `notes` per stage beside its `lookFor`, not one shared note. Both against renders are pinned (securing shown, batch 1; omitted, batch 2), as well as the rebuttal's golden (batch 8).
+- **Slice B, the verdict stage:**
+  - **a typed stage contract** (mine, 2026-11-16; to design here with the verdict's prompt). Each stage declares its `Input` and its `Output`, with `parse(reply) → Output | problems` as the single source of truth. Its form check is that parse, and a lifted value is that parse recorded with what it `consumed`. This replaces hand-copying replies into `trialCases.ts`.
+    - **Why now:** today a check returns problems and throws the reply's structure away. The against stage has no parser that gives a `TrialArgument`, so chaining (step 4) has nothing typed to pass on. The verdict is the first stage with two upstream outputs, so it tests the contract on the case it exists for.
+    - **Where it lives** (from the user's point, 2026-11-16, that the probe is a lasting tool): somewhere both the probe and production import, not inside `pieceProbe/`. Then the probe tunes exactly what production runs, and the probe's and production's copies can't drift. Before designing it, read the pipeline it will join (the command-attempt pipeline in `actions/`), and don't wire into it.
+    - **Not yet:** classes, or a coordinator that runs stages in order. They wait for step 4's live chaining, when what coordinating involves is known. Merging the three quote matchers (`matchQuote`, `quotesALine`, `evidenceLines`) is tidying, with batch replays as its tests, and is not part of this;
+  - `lifted.consumed` in `stageInput.ts`, with the pairing check;
+  - the batch 8 rebuttals recorded as lifted values on the trial records, through the rebuttal's `parse`;
+  - the verdict's render: the scene and steps, then the question, then the argument followed directly by the rebuttal, so "But …" reads as its reply;
+  - its check, cells and prompt. **The verdict's prompt and reply get their own design here before Slice B is built.**
+
+**What changes, Slice A:**
+- `pieceProbe/oraclePiece.ts`, `handlePieceProbe.ts`, `pieces.ts`, and their tests (a stub family: stage resolved, unknown stage refused, the stage's options parsed);
+- `oraclePieces/trial/`, moved from the two piece files, and their tests;
+- calibration `AGENT.md`: the Piece probe section (families) and the trial paragraphs;
+- here, the trial item;
+- the trial `iterations.md` header (the files named by stage).
+
+**The step it takes:** toward [step 4](#recommended-order), the composition probe, where pieces feed each other in code. The trial proposal already places "chaining the three in code" there, once each works alone (the user pointed to it, 2026-11-16). The family gives step 4's chaining a home: the stage order and each lifted value's provenance, which it can later fill by running the stage before instead of reading a recorded batch.
+
 ### Rebuttal draft 3, first design: gather the lines, then the claim (withdrawn)
 
 **Withdrawn before review** (the user, 2026-11-15: the problem hadn't been diagnosed enough for a next design; kept as a record of the option). Mine, from batch 4. The aim is still the user's chain (read, find the weak point, classify), with the reading made an operation that has an output.
@@ -523,13 +689,27 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - **The JSON slot:** a compact `"factors"` list of short tagged lines ahead of `finding`, read by hand. The prose stays brief, since draft 4's doubled reasoning is where its form failures came from.
      - **What to watch:** OC-1 may tag the glue "effect unclear" and ask for consequences. That is wrong against `allows`, but in composition it may be a sound move, so it may be composition-shaped. Read it, don't re-expect in advance.
    - [ ] **Next: what to consider, generated on its own** (the user's, 2026-11-13, after batch 5). **Design accepted and built** (2026-11-13): [The considerations proposal](#the-considerations-proposal-what-to-consider-generated-on-its-own); the `stepConsiderations` read piece, [`1.txt`](oracleLoopDrafts/stepConsiderations/1.txt) and its rubric in [`1.notes.md`](oracleLoopDrafts/stepConsiderations/1.notes.md), batch 1 run ([results](oracleLoopDrafts/stepConsiderations/1.notes.md#results-2026-11-13-batch-1): an inventory, not what bears; the size absent on the size cells; the player's ability kept out). **Draft 2** (mine, approved by the user 2026-11-14; [notes](oracleLoopDrafts/stepConsiderations/2.notes.md)): the four kinds replaced by "facts about the things it involves, and how they relate to each other and to what the step asks of them", items as short statements. Batch 2 ([results](oracleLoopDrafts/stepConsiderations/2.notes.md#results-2026-11-14-batch-2)): statements 11 of 11, the size on the size cells, h7 carried forward; verdicts inside the items, 10 of 11; knock-ons missing. Kept as the base, then paused for the trial. **The single-list variant** (the user's question, SC-L2) is booked after the content is relational; drafts tracked in [its own `iterations.md`](oracleLoopDrafts/stepConsiderations/iterations.md). A read piece lists, per step, what should be considered, with no finding. Judging the assembled list, probably against draft 4's categories, is a later pass, booked once the list looks right.
-   - [ ] **Next: the trial, argue against, rebut, judge** (the user's, 2026-11-14, after `stepConsiderations` batch 2). **Design accepted** (2026-11-14): [The trial proposal](#the-trial-proposal-argue-against-rebut-judge). Stage 1 built and run: `trialAgainst` ([`against.1.txt`](oracleLoopDrafts/trial/against.1.txt); batch 1, the securing in 10 of 11; batch 2, the securing omitted, the size 3 of 3 and h7's slide; [results](oracleLoopDrafts/trial/against.1.notes.md#results-2026-11-14-batch-2-the-securing-omitted)). Stage 2 built and run: `trialRebuttal` on the lifted arguments ([`rebuttal.1.txt`](oracleLoopDrafts/trial/rebuttal.1.txt); batch 3, [results](oracleLoopDrafts/trial/rebuttal.1.notes.md#results-2026-11-14-batch-3): `not established` 9 of 11, uniform rebuttals, only OC-6 on its premise, TR-P4). **Rebuttal draft 2, built and run** ([design](#rebuttal-draft-2-claim-evidence-kind); batch 4, [results](oracleLoopDrafts/trial/rebuttal.2.notes.md#results-2026-11-15-batch-4)): the chain taken as headings; `invented` the universal move; the tell inverted, the sound size arguments rebutted with a quote and `wrong`, the weak ones with `none`. Not clearly better than draft 1, pending the user. Two loose drafts are a loop doing its job, not a verdict on the triad (the user, 2026-11-15); the judge waits until the rebuttal cites the evidence that is there, since a judge working without it would only show the rebuttal unneeded. Rebuttal draft 3's first design ([gather the lines](#rebuttal-draft-3-first-design-gather-the-lines-then-the-claim-withdrawn)) is withdrawn until the failure is diagnosed (the user, 2026-11-15). **Diagnosed:** [the rebuttal's failure](#the-rebuttals-failure-diagnosed-2026-11-15): it gets the answer without the question (the user's mechanism). The separating test, **built** ([the question supplied](#rebuttal-draft-3-the-question-supplied-the-separating-test); [`rebuttal.3.txt`](oracleLoopDrafts/trial/rebuttal.3.txt) and its rubric; golden and lifted sources in `stageInput.ts`), batch 5 to run, golden; then a two-target rebuttal (the answer or the question's bearing). **Order agreed** (user, 2026-11-14): the triad first, on the cells the consequences gap doesn't touch, h5 and h10 read apart; then consequences (intended lines, state lines on h10), since only the hops depend on them and the triad is the larger unknown; drafts tracked in [the trial's `iterations.md`](oracleLoopDrafts/trial/iterations.md). Three small biased calls in place of one balanced one, built and probed one piece at a time. `stepConsiderations` is paused at draft 2, its base.
+   - [ ] **Next: the trial, argue against, rebut, judge** (the user's, 2026-11-14, after `stepConsiderations` batch 2; [design](#the-trial-proposal-argue-against-rebut-judge)). Three small biased calls in place of one balanced one, built and probed one piece at a time. **Order agreed** (user, 2026-11-14): the triad first, on the cells the consequences gap doesn't touch, with h5 and h10 read apart; then consequences (intended lines, state lines on h10), since only the hops depend on them and the triad is the larger unknown. Drafts, problems (TR-P) and library (TR-L) are in [the trial's `iterations.md`](oracleLoopDrafts/trial/iterations.md).
+     - [X] **Stage 1, the case against (`trialAgainst`), draft 1.** Batch 1: the securing argued in 10 of 11 (TR-P1). Batch 2, the securing omitted (TR-L2): the size 3 of 3, h7's slide, and the pours lose the teapot's tilt (TR-P3) ([results](oracleLoopDrafts/trial/against.1.notes.md#results-2026-11-14-batch-2-the-securing-omitted)). Kept, pending the user.
+     - [X] **Stage 2, the rebuttal (`trialRebuttal`): draft 5 is the base** (mine, pending the user). The drafts:
+       - [X] Draft 1, a concise rebuttal with its kind (batch 3): `not established` 9 of 11, uniform (TR-P4) ([results](oracleLoopDrafts/trial/rebuttal.1.notes.md#results-2026-11-14-batch-3)).
+       - [X] Draft 2, claim, evidence, kind ([design](#rebuttal-draft-2-claim-evidence-kind); batch 4): the chain taken as headings, the tell inverted ([results](oracleLoopDrafts/trial/rebuttal.2.notes.md#results-2026-11-15-batch-4)). Its successor's first design was withdrawn ([gather the lines](#rebuttal-draft-3-first-design-gather-the-lines-then-the-claim-withdrawn)) until [the failure was diagnosed](#the-rebuttals-failure-diagnosed-2026-11-15): the answer without the question (the user's mechanism).
+       - [X] Draft 3, the question supplied ([design](#rebuttal-draft-3-the-question-supplied-the-separating-test); batch 5): inconclusive, the question never used (TR-P7) ([results](oracleLoopDrafts/trial/rebuttal.3.notes.md#results-2026-11-15-batch-5)). Golden and lifted inputs added (`stageInput.ts`).
+       - [X] Draft 4, evidence then both attacks ([design](#rebuttal-draft-4-evidence-then-both-attacks); batch 6): evidence quoted but not argued from; the slots misread (TR-P8 to P10) ([results](oracleLoopDrafts/trial/rebuttal.4.notes.md#results-2026-11-15-batch-6)).
+       - [X] Draft 5, one sentence, "but the scene says …" ([design](#rebuttal-draft-5-one-sentence-incoming-argues-but); the user's shape). Batch 7: the summary dropped (TR-P12, not a fault: the render ends on the argument), world claims 11 of 11 ([results](oracleLoopDrafts/trial/rebuttal.5.notes.md#results-2026-11-15-batch-7)). Batch 8, confirmed at x3: weak arguments rebutted truly from a quoted line 12 of 12, sound ones visibly falsely 9 of 9; h7 never quotes the slide (TR-P14); h5 and h10 invent stability ([results](oracleLoopDrafts/trial/rebuttal.5.notes.md#results-2026-11-16-batch-8)).
+     - [x] **Slice A: the trial family, the two stages built so far** (the user's idea, 2026-11-16; [design](#the-trial-family-one-harness-kind-the-stage-by-specifier)). **Built** (2026-11-16): one harness kind, `trial`, with `options.stage` and the stage's own options, over one trial record per cell (`oraclePieces/trial/`); the names `trialAgainst` and `trialRebuttal` retired. Every stage's renders pinned by test to batches 1, 2 and 8's inputs hashes, green before and after the move, so no batch. TR-P13 fixed: batch 8 replays at 31 of 33. A step toward step 4's chaining. Deploy before the next trial payload.
+     - [ ] **Slice B: the verdict stage (`trialVerdict`).** The typed stage contract (each stage's `Input`, `Output` and `parse`, shared by the probe and production; [design](#the-trial-family-one-harness-kind-the-stage-by-specifier)), the pairing rule (`lifted.consumed`), the batch 8 rebuttals recorded as lifted values, the render (the argument, then the rebuttal as its reply), the check and the cells. **The verdict's prompt and reply get their own design here before it's built.** h7 tests whether the judge reads an evasion as weak (TR-P14).
+     - [ ] **Later in the trial:**
+       - the relevance attack as its own sentence, once the answer side works (left out of draft 5);
+       - golden cells for salient-but-irrelevant arguments and the guards (the glue), where the facts branch and the relevance attack should be strong;
+       - the case against giving its question, so a lifted argument fits the rebuttal's current contract;
+       - chaining the three in code, in step 4.
    - [ ] **Then: the skill-or-chance finding** (the booked item below), as a contract change of its own: a fourth finding that code can tell apart. Draft 5's "difficult" factors show how much it's needed. Batches 3 and 4 had "difficult" under "blocked" in at least six replies, and OC-9 asking for "the player's capability".
    - [ ] **Then: intended consequences** (the user's, 2026-11-13; [NR-L10](oracleLoopDrafts/nonRuleCell/iterations.md#library)). A line under a step can be something the method relies on (intended: "[teapot1] tilts with [table1]"), not only a side effect. A failure of an intended line routes toward an alternate method, as a method step's does; a side effect routes toward a mitigation. It is designed here first as a step-layout amendment, since it changes the OC-30 cells' inputs and who writes such lines in composition (the imagination plan's question). It then becomes a draft.
    - **The securing, tested** (`trialAgainst` batch 2, 2026-11-14): option (b), left out of what the case against sees. With it gone, the size is argued 3 of 3 and h7's slide is argued rightly; the cost is the pours' teapot tilt (TR-P3), for intended consequences or option (a). The user: this is more defensible now that a special-purpose prompt, the rule cell, judges the scene with the securing and is told to focus on it. **Held until then: the securing (batch 4's main failure).** The glue or chain read as holding a thing still decides OC-1, OC-6, OC-20 and every OC-30 pour. Option (a) is the rules' consequence in the scene (below); option (b) is the securing left out of what this piece sees. Mine: (a), since the pours need the teapot to move with the table. It is held until draft 5 shows whether "effect unclear" catches the glue by itself, and intended consequences cover the pours.
    - **A candidate, not booked: the rules' consequence in the scene** (mine, from batch 2; it revisits NR-6, the user's call). OC-1's replies read glue as stopping the pair from moving, not as moving them together, and h10's as a teapot that "would fall off or break". The piece has the fact ("glued to") and not its consequence ("moves with what it is secured to"), which the imagination's `rules: 'consequence'` wording gives. To be weighed after draft 3, whose `establishes` slot may show the misreading in its own words.
    - **Booked, next after draft 5 (above): a skill-or-chance outcome** (user, 2026-11-13). Sometimes "I don't know whether that's possible" isn't answered by more detail of the situation: the attempt may or may not work out, depending on the character's skill and on chance. That is a separate exit from the loop, not a request to the imagination. It may take tuning to get it answered without contradicting the instructions that look for a plain physical impossibility as written. This is the parent's JF-2 (`challenging`, "possible, and hard") in this piece's per-step form, and OC-9's trestle is its cell. It is a later iteration, not a gate on this plan's exits; it may land in either round. OC-9 is excepted from the bar for (b), since it has no expected answer.
-4. [ ] **The composition probe, first form: what exists** (the parent's Slice 4.5, mine, revised 2026-11-13). `playByPlay` feeding the settled rule cell through an adapter (its lines for the named things; the silence contract for a rule's other end), with code asking `playByPlay` first, on OC-1, OC-6 and OC-20. Each hop's inputs and answer are logged. **Rests on** IM-5's provisional split. **Consumer:** a batch read per hop. It tests the reading direction, and gives the harness the next step plugs into. It doesn't touch the non-rule cell, so it can run beside step 3.
+4. [ ] **The composition probe, first form: what exists** (the parent's Slice 4.5, mine, revised 2026-11-13). `playByPlay` feeding the settled rule cell through an adapter (its lines for the named things; the silence contract for a rule's other end), with code asking `playByPlay` first, on OC-1, OC-6 and OC-20. Each hop's inputs and answer are logged. **Rests on** IM-5's provisional split. **Consumer:** a batch read per hop. It tests the reading direction, and gives the harness the next step plugs into. It doesn't touch the non-rule cell, so it can run beside step 3. **A step toward it is in step 3:** the trial family (Slice A) records the stage order and each lifted value's provenance, where chaining the trial's three pieces in code will go.
 5. [ ] **The cell in composition.** **Gated on** step 3's exit (a) or (b). Its requests dispatched to the imagination, the fresh call with and without the question asked (NR-5), and a round cap (IM-3). Graded per hop: each request warranted or not, each verdict against the corpus. **Consumer:** a batch on the cells where asking is right, and step 6.
 6. [ ] **Drafts in composition (round 2),** one change per draft, from step 3's last kept draft, in composition and in the piece probe as each problem calls for.
    - **Exits:** (a) the library has nothing left worth a draft; (b) every cell right, in the probe and per hop, for two batches running; (c) a batch shows the piece needs a new approach (a seam-ledger entry); (d) a checkpoint with the user every three batches.
@@ -598,7 +778,7 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
   - **`golden`:** hand-written in the earlier stage's contract form, and no better than that contract asks for. It isolates the later piece's failures, and it is the earlier stage's target made concrete.
   - **`lifted`:** a real output of the earlier stage, with its source batch and repeat. It tests robustness to the earlier stage's realistic failures.
 
-  A payload names its source with `upstream: 'golden' | 'lifted'`; there is no default. A source a cell lacks throws at render, and the probe refuses the payload as a cell-data error. A lifted value recorded under an older contract counts as missing. One lifted value per cell, replaced when a newer batch is adopted. Composition (steps 4 and 5) stays where the gap between the two is measured.
+  A payload names its source with `upstream: 'golden' | 'lifted'`; there is no default. The trial's stages are one harness kind (Slice A), so a payload names `"piece": "trial"` and its stage too: `"options": {"stage": "rebuttal", "upstream": "golden"}`. A source a cell lacks throws at render, and the probe refuses the payload as a cell-data error. A lifted value recorded under an older contract counts as missing. One lifted value per cell, replaced when a newer batch is adopted. Composition (steps 4 and 5) stays where the gap between the two is measured.
 - **Every iteration is marked in this plan** (the user, 2026-11-15). Each draft's design is written here, minimally, before it's built, for review; a draft that changes a piece's contract or check gets a design section. Its batch's results are marked on its step 3 item as they land. The notes file holds the detail; the plan holds the record.
 - One change per draft, a rubric written before each batch, and every reply read, not only tallied: requests carry parameters code doesn't grade.
 - Each change is attributed. Anything not from the user is labelled "mine" until accepted. A cell's expected answer is mine unless the corpus or the user gives it.
@@ -615,7 +795,7 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
 | --- | --- |
 | The design pass | Done: the step layout agreed, NR-1 to NR-4 settled, the cells reviewed, NR-6 settled for the baseline, NR-7 settled (2026-11-13); the design pass is complete, step 2 next |
 | The piece and its baseline | Done (2026-11-13): the probe's change, the piece, draft 1; batch 1, 11 right of 30 graded, the size cells 9 of 9 |
-| Drafts in isolation (round 1) | Under way: draft 2 not kept (batch 2); draft 3 moved the guards (batch 3) and is the base; draft 4 not kept (batch 4); draft 5 (tagged factors, `cause` optional) ran (batch 5): the factor list not kept, `cause` optional kept, pending the user. The bar for passable is provisional |
+| Drafts in isolation (round 1) | Under way. The single piece: draft 3 is the base (drafts 2, 4 and 5 not kept; `cause` optional kept). `stepConsiderations` paused at draft 2. The trial: the case against kept on draft 1 (securing omitted); the rebuttal's base is draft 5 (batch 8, confirmed at x3); the trial family built (Slice A, 2026-11-16); next, the verdict (Slice B). The bar for passable is provisional |
 | The composition probe, first form | Not started |
 | The cell in composition | Not started; gated on round 1's exit |
 | Drafts in composition (round 2) | Not started |

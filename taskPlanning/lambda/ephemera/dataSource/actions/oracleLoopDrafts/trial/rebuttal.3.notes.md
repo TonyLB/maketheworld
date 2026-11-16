@@ -33,6 +33,32 @@ h5 and h10 are read apart, as before.
 - **The kinds:** the spread, against batch 4's `invented` 8.
 - **Quote checks** (with TR-P5's fix), **length** against batch 4's 757 to 1175 chars, **form**.
 
-## Results
+## Results (2026-11-15, batch 5)
 
-Not yet run.
+11 calls, `repeats: 1`, `upstream: golden`, Micro, instructions `a2b2cbad` (1815 chars). **Form:** 11 of 11 pass. **Kinds:** `invented` 8, `wrong` 3 (OC-2, OC-6, h7), the same spread as batch 4. Lengths are 594 to 1209 chars.
+
+**The question was never used: 0 of 11 replies mention it.** The prose is draft 2's four parts as headings, and none of them is about the question. The claim is the whole argument in 11 of 11.
+
+| Cell | Evidence | Kind | Rebuttal | Level |
+| --- | --- | --- | --- | --- |
+| OC-11 | none | invented | "does not provide any details about the sizes … but logically, a small round tea table cannot fit inside a cup" | **World, and concedes** |
+| OC-18 | none | invented | "no information … indicating the size or structural suitability" | Support |
+| OC-3 | none | invented | "The size of the table relative to the cup is not established" | Support |
+| OC-1 | none | invented | "does not provide any information about the size or weight of the table" | Support |
+| OC-2 | "You are holding nothing." | wrong | "lift the cup indirectly by first picking up the saucer" | World (the workaround, as in batches 3 and 4) |
+| OC-20 | none | invented | as OC-1 | Support |
+| OC-6 | "In [teapot1] there is [tea2] Tea." | wrong | "The teapot already contains a container that can be used to pour" | World, garbled |
+| OC-9 | none | invented | weight "not established" | Support |
+| h7 | "tip [table1]" | wrong | "does not specify that tipping … would cause the saucer and cup to fall off immediately, only that they would slide off" | Support: a quibble over words, "fall" against "slide" |
+| h5, h10 (apart) | none | invented | "does not provide …", "does not specify …" | Support |
+
+**Against the rubric:**
+- **The main measure:** 3 of 11 world claims (OC-11, OC-2, OC-6), the same as batch 4. One of them concedes.
+- **Weak arguments:** none answers the question from the scene. OC-1 and OC-20 still miss "small round tea table".
+- **Sound arguments:** OC-11 concedes in substance, which is the new risk, seen once. h7 reads the slide line and quibbles over its wording.
+- **The claim field:** the whole argument, 11 of 11 (TR-P6).
+
+**What it shows:**
+- **The test didn't test the mechanism** (mine, a design fault). The question was supplied as an input, but no step of the Task uses it. Micro followed the Task's four parts to the letter, and an input the procedure doesn't name was ignored. The same thing happened with the securing sentence in every non-rule cell draft, and with draft 1's "from the scene and the steps". So this batch says nothing about whether the question helps. It says only that **an input with no task step is invisible.**
+- **That is a finding about Micro in its own right:** it carries out the Task's procedure literally. What the Role or Reading sections mention, without a step that acts on it, doesn't enter the reasoning.
+- **h7's quibble is the support audit at its finest grain:** it found the line and audited its wording ("slide", not "fall").
