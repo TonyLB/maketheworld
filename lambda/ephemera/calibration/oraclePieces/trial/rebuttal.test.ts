@@ -1,12 +1,12 @@
-import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
-import { pieces } from '../pieceProbe/pieces'
-import { nonRuleCellCells, renderNonRuleCell } from './nonRuleCell'
-import { checkTrialRebuttal, evidenceLines, parseRebuttal, quotesALine, renderTrialRebuttal, trialRebuttal, trialRebuttalCells } from './trialRebuttal'
+import type { ProbeInvoke } from '../../sceneReasoning/runSceneReasoningProbe'
+import { handlePieceProbe } from '../../pieceProbe/handlePieceProbe'
+import { pieces } from '../../pieceProbe/pieces'
+import { nonRuleCellCells, renderNonRuleCell } from '../nonRuleCell'
+import { checkTrialRebuttal, evidenceLines, parseRebuttal, quotesALine, renderTrialRebuttal, trialRebuttal, trialRebuttalCells } from './rebuttal'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
 
-describe('trialRebuttal', () => {
+describe('the trial\'s rebuttal stage', () => {
     beforeEach(() => {
         jest.spyOn(console, 'log').mockImplementation(() => {})
         jest.spyOn(console, 'info').mockImplementation(() => {})
@@ -75,6 +75,10 @@ describe('trialRebuttal', () => {
         const check = async (json: unknown, cell = oc1) => checkTrialRebuttal(fence(json), cell, await renderTrialRebuttal(cell, GOLDEN))
         const reply = (rebuttal: unknown) => ({ rebuttal })
         const SMALL = "Incoming argues 'the table is too heavy', but the scene says '[table1] Table (a small round tea table), in the Parlour'."
+        // Batch 8's OC-3 r1 and r3: a facts list followed by a claim, refused before TR-P13's fix.
+        const OC3_R1 = "But the only facts the scene and the steps establish about [table1] are: 'In the Parlour there is [table1] Table (a small round tea table)' and 'In [cup1] there is [tea1] Tea', which do not indicate any size constraints."
+        const OC3_R3 = "But the only facts the scene and the steps establish about [table1] are: 'In the Parlour there is [table1] Table (a small round tea table)', and there is no indication that it is too large to fit inside [cup1]."
+        const TABLE_LINE = 'In the Parlour there is [table1] Table (a small round tea table)'
 
         it('draws the evidence lines from the scene and the steps only, without markers or roles', async () => {
             const lines = evidenceLines(await renderTrialRebuttal(h7, GOLDEN))
@@ -99,6 +103,8 @@ describe('trialRebuttal', () => {
                 ["Incoming argues 'the table is glued to the floor', but the only facts the scene and the steps establish about [table1] are: 'a small round tea table', 'On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', and 'tip [table1]'", {
                     summary: 'the table is glued to the floor', source: 'the only facts', handle: '[table1]', facts: ['a small round tea table', 'On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', 'tip [table1]'],
                 }],
+                [OC3_R1, { source: 'the only facts', handle: '[table1]', facts: [TABLE_LINE, 'In [cup1] there is [tea1] Tea'], claim: 'which do not indicate any size constraints.' }],
+                [OC3_R3, { source: 'the only facts', handle: '[table1]', facts: [TABLE_LINE], claim: 'and there is no indication that it is too large to fit inside [cup1].' }],
                 ["Incoming argues 'the table's legs are short' but the scene says 'the table's top', so it is light.", { summary: "the table's legs are short", source: 'the scene says', quotes: [{ source: 'the scene says', quote: "the table's top" }] }],
             ])('%s', (sentence, parsed) => {
                 expect(parseRebuttal(sentence)).toEqual(parsed)
@@ -141,6 +147,7 @@ describe('trialRebuttal', () => {
             ['the pivot alone, the summary left to the render (TR-P12)', reply("But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies it is light."), oc1],
             ['two joined sources', reply("But the scene says 'You are holding nothing.', and the steps say 'pick up [table1]'"), oc1],
             ['a consequence line from the steps', reply("Incoming argues 'the cup is gone', but the steps say '[saucer1] and [cup1] slide off [table1] onto the floor'"), h7],
+            ['a facts list followed by a claim, the claim unchecked (TR-P13; batch 8, OC-3 r3)', reply(OC3_R3), trialRebuttalCells['OC-3']],
             ['the facts about a handle, each quoting a line naming it', reply("Incoming argues 'it is heavy', but the only facts the scene establishes about [table1] are: 'In the Parlour there is [table1] Table (a small round tea table).', 'pick up [table1]'"), oc1],
         ])('passes %s', async (_, json, cell) => {
             expect(await check(json, cell)).toEqual([])
@@ -156,6 +163,7 @@ describe('trialRebuttal', () => {
                 '"You are holding nothing." doesn\'t name [table1]',
                 '"[table1] is oak" quotes no line of the scene or the steps',
             ]],
+            [reply(OC3_R1), ['"In [cup1] there is [tea1] Tea" doesn\'t name [table1]']],
             [reply("But the scene says 'You are holding nothing.', and the steps say 'lift it'"), ['"lift it" quotes no line of the scene or the steps']],
             [reply("Incoming argues 'it is heavy', but it isn't"), ['"rebuttal" continues with none of "the scene says", "the steps say", "common sense indicates", "the only facts"']],
             [reply(''), ['has no non-empty string "rebuttal"']],
@@ -174,23 +182,23 @@ describe('trialRebuttal', () => {
         expect(trialRebuttal.parseOptions(undefined)).toMatch(/^options must be/)
     })
 
-    it('is registered, and runs through the probe: every cell once, at the cap, each reply form-checked', async () => {
+    it('is the trial\'s rebuttal stage, and runs through the probe: every cell once, at the cap, each reply form-checked', async () => {
         // A stub that restates the argument and answers it from common sense.
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => {
             const prompt = messages.map(({ content }) => (content ?? []).map((block) => ('text' in block ? block.text ?? '' : '')).join('')).join('')
             const argument = prompt.slice(prompt.lastIndexOf('": ') + 3)
             return { success: true as const, body: fence({ rebuttal: `Incoming argues '${argument.trim()}', but common sense indicates that 'it is not so' is actually true.` }) }
         })
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trialRebuttal', instructions: 'Rebut it.', options: GOLDEN, repeats: 1 }, { invoke, pieces })
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Rebut it.', options: { stage: 'rebuttal', ...GOLDEN }, repeats: 1 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(11)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 600)).toBe(true)
-        expect(JSON.parse(response.body).summary).toEqual({ calls: 11, formFails: 0, errors: 0 })
+        expect(JSON.parse(response.body)).toMatchObject({ piece: 'trial', stage: 'rebuttal', options: GOLDEN, summary: { calls: 11, formFails: 0, errors: 0 } })
     })
 
     it('has the probe refuse a lifted payload before any call, since no lifted argument has a question yet', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>()
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trialRebuttal', instructions: 'Rebut it.', options: { upstream: 'lifted' } }, { invoke, pieces })
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Rebut it.', options: { stage: 'rebuttal', upstream: 'lifted' } }, { invoke, pieces })
         expect(response.statusCode).toBe(400)
         expect(JSON.parse(response.body).error).toMatch(/the render failed \(the lifted value doesn't fit the current contract: it has no question\)/)
         expect(invoke).not.toHaveBeenCalled()

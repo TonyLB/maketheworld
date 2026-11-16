@@ -21,7 +21,7 @@ One payload, all 11 cells, `repeats: 1`, 11 calls, Micro, instructions `d08a3fa7
 ## Rubric (written before the batch)
 
 - **The hypothesis, focus and length:** reply lengths and tokens against the non-rule cell's batch 5 (1860 to 4178 chars) and `stepConsiderations` batch 2 (1236 to 2337). Does the reply stay brief, with one argument rather than a list? Any reply cut off at 400 tokens?
-- **Per cell, against its `lookFor`** (in [`trialAgainst.ts`](../../../../../../../lambda/ephemera/calibration/oraclePieces/trialAgainst.ts)):
+- **Per cell, against its `lookFor`** (in [`trialCases.ts`](../../../../../../../lambda/ephemera/calibration/oraclePieces/trial/trialCases.ts), once `trialAgainst.ts`):
   - **the size cells (OC-11, OC-18, OC-3):** is the argument the size? This is the case where the bias is right, so it must find it;
   - **h7:** the slide line, the cup on the floor and no longer under the spout, turning on the pour;
   - **h5:** the tip's unstated effect on the loose saucer and cup, or something else;

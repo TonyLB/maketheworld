@@ -1,6 +1,6 @@
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from './handlePieceProbe'
-import { registerPiece, type RegisteredPiece } from './oraclePiece'
+import { registerFamily, registerPiece, type RegistryEntry } from './oraclePiece'
 
 /** A toy piece: a cell's inputs are a word, rendered as a line; an empty word is answered `no` by code. */
 const TOY = registerPiece<{ word: string }, { shout: boolean }>({
@@ -51,7 +51,33 @@ const TOY_READ = registerPiece<{ word: string }, undefined>({
     parseOptions: () => undefined,
     render: async ({ inputs: { word } }) => `Word: ${word}`,
 })
-const pieces: Record<string, RegisteredPiece> = { toy: TOY, toyRead: TOY_READ }
+/** A toy family: a first stage taking `{ loud?: boolean }`, and a second taking `{ from: 'a' | 'b' }`, with no default. */
+const FIRST = registerPiece<{ word: string }, { loud: boolean }>({
+    kind: 'read',
+    name: 'toyFamily first',
+    cells: { A: { inputs: { word: 'apple' }, lookFor: 'the first stage', source: 'hand-written' } },
+    check: (reply) => (reply.startsWith('first') ? [] : ['not the first stage\'s reply']),
+    parseOptions: (value) => {
+        const { loud = false, ...rest } = (value ?? {}) as Record<string, unknown>
+        return Object.keys(rest).length === 0 && typeof loud === 'boolean' ? { loud } : 'options must be { loud?: boolean }'
+    },
+    render: async ({ inputs: { word } }, { loud }) => `First: ${loud ? word.toUpperCase() : word}`,
+})
+const SECOND = registerPiece<{ word: string }, { from: string }>({
+    kind: 'read',
+    name: 'toyFamily second',
+    cells: {
+        A: { inputs: { word: 'apple' }, lookFor: 'the second stage', source: 'hand-written' },
+        B: { inputs: { word: 'brick' }, lookFor: 'the second stage', source: 'hand-written' },
+    },
+    check: (reply) => (reply.startsWith('second') ? [] : ['not the second stage\'s reply']),
+    parseOptions: (value) => {
+        const { from, ...rest } = (value ?? {}) as Record<string, unknown>
+        return Object.keys(rest).length === 0 && (from === 'a' || from === 'b') ? { from } : "options must be { from: 'a' | 'b' }"
+    },
+    render: async ({ inputs: { word } }, { from }) => `Second (${from}): ${word}`,
+})
+const pieces: Record<string, RegistryEntry> = { toy: TOY, toyRead: TOY_READ, toyFamily: registerFamily('toyFamily', { first: FIRST, second: SECOND }) }
 const INSTRUCTIONS = 'Is the word edible?\nAnswer: yes or Answer: no'
 
 const invokeReplying = (reply: (prompt: string) => string) => jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => ({
@@ -244,6 +270,54 @@ describe('handlePieceProbe', () => {
             expect(body(over).error).toMatch(/2 called cells x 13 repeats = 26 calls, over the cap of 24/)
             const unknown = await ask({ cells: ['Z'] }, invoke)
             expect(body(unknown).error).toMatch(/cells must be a non-empty list of toyRead's cell IDs: A, B/)
+            expect(invoke).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('a family', () => {
+        const ask = (event: Record<string, unknown>, invoke: ReturnType<typeof invokeReplying>) => (
+            handlePieceProbe({ type: 'PieceProbe', piece: 'toyFamily', instructions: INSTRUCTIONS, ...event }, { invoke, pieces })
+        )
+
+        it('runs the stage options.stage names, with its render, check and cells, and names the family and stage in the response', async () => {
+            const invoke = invokeReplying(() => 'second, it says')
+            const response = await ask({ options: { stage: 'second', from: 'b' } }, invoke)
+            expect(response.statusCode).toBe(200)
+            const result = body(response)
+            expect(invoke).toHaveBeenCalledTimes(2)
+            expect(promptOf(invoke, 0)).toBe(`${INSTRUCTIONS}\n\nSecond (b): apple`)
+            expect(result).toMatchObject({ piece: 'toyFamily', stage: 'second', options: { from: 'b' } })
+            expect(result.summary).toEqual({ calls: 2, formFails: 0, errors: 0 })
+        })
+
+        it('hands the rest of the options to the stage, whose defaults and refusals are its own', async () => {
+            const invoke = invokeReplying(() => 'first')
+            const first = body(await ask({ options: { stage: 'first' } }, invoke))
+            expect(first).toMatchObject({ stage: 'first', options: { loud: false } })
+            expect(promptOf(invoke, 0)).toBe(`${INSTRUCTIONS}\n\nFirst: apple`)
+            expect(body(await ask({ options: { stage: 'first', from: 'a' } }, invoke)).error).toBe('options must be { loud?: boolean }')
+            expect(body(await ask({ options: { stage: 'second' } }, invoke)).error).toBe("options must be { from: 'a' | 'b' }")
+            expect(invoke).toHaveBeenCalledTimes(1)
+        })
+
+        it.each([
+            [undefined],
+            [{}],
+            [{ stage: 'third' }],
+            [{ stage: 1 }],
+            ['first'],
+        ])('refuses a missing or unknown stage, naming the stages: %j', async (options) => {
+            const invoke = invokeReplying(() => 'first')
+            const response = await ask({ options }, invoke)
+            expect(response.statusCode).toBe(400)
+            expect(body(response).error).toBe('toyFamily is a family: options.stage must be one of: first, second')
+            expect(invoke).not.toHaveBeenCalled()
+        })
+
+        it('shares the refusals and the cap, on the stage\'s cells', async () => {
+            const invoke = invokeReplying(() => 'second')
+            expect(body(await ask({ options: { stage: 'second', from: 'a' }, repeats: 13 }, invoke)).error).toMatch(/2 called cells x 13 repeats = 26 calls, over the cap of 24/)
+            expect(body(await ask({ options: { stage: 'first' }, cells: ['B'] }, invoke)).error).toMatch(/cells must be a non-empty list of toyFamily first's cell IDs: A/)
             expect(invoke).not.toHaveBeenCalled()
         })
     })

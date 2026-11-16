@@ -1,24 +1,21 @@
 //
-// The rebuttal (AGENT.nonRuleCell.planning.md, step 3, the trial proposal, stage 2; the triad is the user's, 2026-11-14): a read piece,
-// the second of three small biased calls. Given the non-rule cell's inputs, one argument that the plan can't happen and the question the
+// The rebuttal (AGENT.nonRuleCell.planning.md, step 3, the trial proposal, stage 2; the triad is the user's, 2026-11-14): the trial
+// family's second stage, `rebuttal`, a read piece, the second of three small biased calls. Given the non-rule cell's inputs, one argument that the plan can't happen and the question the
 // argument answers, it rebuts the argument in one sentence (draft 5, the user's shape): "Incoming argues '<the argument's answer,
 // briefly>', but" a source that something else is so (the scene says, the steps say, common sense indicates), or the only facts the scene
 // and the steps establish about the thing in question. It has no way to concede: a judgment between the two follows in its own call.
 // Each cell's argument has two sources (`stageInput.ts`): `golden`, in the case against's current contract (with its question), and
-// `lifted`, a real `trialAgainst` output. A payload names which. It sees the scene the argument was made in, with the securing omitted,
+// `lifted`, a real output of the against stage, both on the trial's records (`trialCases.ts`). A payload names which. It sees the scene the argument was made in, with the securing omitted,
 // since the rule cell judges the securing. There is no answer set: code checks each reply's form, and a reader reads the replies against
 // each cell's `lookFor`.
 //
-import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
-import { replyJsonObject } from '../pieceProbe/pieceAnswer'
-import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../pieceProbe/stageInput'
-import { matchQuote, nonRuleCellCells, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from './nonRuleCell'
+import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
+import { replyJsonObject } from '../../pieceProbe/pieceAnswer'
+import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
+import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
+import { trialCases, type TrialArgument } from './trialCases'
 
-/**
- * An argument against the plan: the step it turns on, quoted, the argument, and the question it answers. The question is the case
- * against's current contract (draft 3's test); `trialAgainst` doesn't give it yet, so a lifted argument has none and doesn't fit.
- */
-export type TrialArgument = { step: string; argument: string; question?: string }
+export type { TrialArgument } from './trialCases'
 
 export type TrialRebuttalInputs = NonRuleCellInputs & { against: StageInput<TrialArgument> }
 
@@ -89,7 +86,7 @@ export const quotesALine = (quote: string, lines: readonly string[]): boolean =>
 export type ParsedRebuttal = { summary?: string } & (
     | { source: 'the scene says' | 'the steps say'; quotes: { source: 'the scene says' | 'the steps say'; quote: string }[] }
     | { source: 'common sense indicates'; claim: string }
-    | { source: 'the only facts'; handle: string; facts: string[] }
+    | { source: 'the only facts'; handle: string; facts: string[]; claim?: string }
 )
 
 const QUOTE_CHARS = /[‘’“”]/g
@@ -128,9 +125,35 @@ const saidSources = (text: string): { source: 'the scene says' | 'the steps say'
 }
 
 /**
+ * A facts list: quoted items from the start of the text, joined by a comma, a semicolon or "and", each closing as `saidSources`' quotes
+ * close. Whatever follows the last item ("…, which do not indicate any size constraints") is the claim, read, not checked (TR-P13).
+ * Undefined when the text opens with no quoted item.
+ */
+const quotedList = (text: string): { facts: string[]; claim?: string } | undefined => {
+    const facts: string[] = []
+    let rest = text
+    for (;;) {
+        const match = /^(['"])([\s\S]*?)\1(?=[\s.,;:!]|$)/.exec(rest)
+        if (!match || match[2].trim() === '') {
+            break
+        }
+        facts.push(match[2].trim())
+        rest = rest.slice(match[0].length)
+        const joined = /^\s*(?:[,;]\s*)?(?:and\s+)?(?=['"])/i.exec(rest)
+        if (!joined) {
+            break
+        }
+        rest = rest.slice(joined[0].length)
+    }
+    const claim = rest.replace(/^[\s.,;:!]+/, '').trim()
+    return facts.length === 0 ? undefined : { facts, ...(claim !== '' ? { claim } : {}) }
+}
+
+/**
  * Parses `[Incoming argues '<summary>',] but <rest>`, the quote characters read leniently (single or double, straight or curly). The rest
  * is one of: one or more of `the scene says '<line>'` and `the steps say '<step>'`, `common sense indicates that '<claim>' is actually
- * true`, or `the only facts the scene and the steps establish about <[handle]> are: '<line>', '<line>', …`. A malformed reason otherwise.
+ * true`, or `the only facts the scene and the steps establish about <[handle]> are: '<line>', '<line>', …`, either of the quoting
+ * branches perhaps followed by a claim. A malformed reason otherwise.
  */
 export const parseRebuttal = (sentence: string): ParsedRebuttal | { malformed: string } => {
     const text = straightQuotes(sentence).trim()
@@ -152,10 +175,10 @@ export const parseRebuttal = (sentence: string): ParsedRebuttal | { malformed: s
     }
     const facts = /^the only facts\b[\s\S]*?\babout\s+(\[[^\]]+\])[^:]*?\bare\b\s*:?\s*([\s\S]*)$/i.exec(rest)
     if (facts) {
-        const list = unquoted(facts[2])
+        const list = quotedList(facts[2].trim())
         return list === undefined
             ? { malformed: '"the only facts" has no quoted list' }
-            : withSummary({ source: 'the only facts' as const, handle: facts[1], facts: list.split(/['"]\s*[,;]\s*(?:and\s+)?['"]|['"]\s+and\s+['"]/).map((fact) => fact.trim()) })
+            : withSummary({ source: 'the only facts' as const, handle: facts[1], ...list })
     }
     return { malformed: `"rebuttal" continues with none of ${TRIAL_REBUTTAL_SOURCES.map((source) => `"${source}"`).join(', ')}` }
 }
@@ -228,57 +251,22 @@ export const renderTrialRebuttal = async (cell: ReadPieceCell<TrialRebuttalInput
     ].join('\n\n')
 }
 
-const AGAINST_OMITTED = 'trialAgainst batch 2 (draft 1, the securing omitted), repeat 1'
-const ADOPTED = 'an interim golden (the user, 2026-11-15): the lifted argument adopted verbatim, with a hand-written question'
-
 /**
- * A non-rule cell's inputs with the argument from both sources, and what a good rebuttal does, written before the batch (the rubric).
- * The golden is the lifted argument adopted verbatim with its question, so draft 3's test changes only the question against batch 4.
- * The lifted value has no question, the older contract, so a `lifted` payload refuses it.
+ * The trial's cells, each with the argument from both sources and what a good rebuttal does, written before the batch (the rubric). The
+ * source names both of the argument's; the note is the rebuttal's own, where it has one (the consequences-dependent hops).
  */
-const cell = (
-    id: keyof typeof nonRuleCellCells, step: string, argument: string, question: string, lookFor: string, source = AGAINST_OMITTED,
-): ReadPieceCell<TrialRebuttalInputs> => ({
-    inputs: {
-        ...nonRuleCellCells[id].inputs,
-        against: { golden: { value: { step, argument, question }, note: ADOPTED }, lifted: { value: { step, argument }, source: `${source}, cell ${id}` } },
-    },
-    source: `golden: ${ADOPTED}; lifted: ${source}, cell ${id}`,
-    lookFor,
-})
-
-const TABLE_IN_CUP = 'put [table1] in [cup1]'
-const TOO_LARGE = 'The table is too large to fit inside the cup.'
-const TOO_LARGE_Q = 'Is [table1] too large to fit inside [cup1]?'
-const TOO_HEAVY = 'The table is too large and heavy to be picked up by a single person.'
-const TOO_HEAVY_Q = 'Is [table1] too large and heavy to be picked up by a single person?'
-const AT_THE_POUR = 'By the time of "[teapot1] pours [tea2] into [cup1]",'
-const CUP_REACHABLE_Q = `${AT_THE_POUR} is [cup1] still where [teapot1] can pour into it?`
-const SOUND = 'the argument is sound: nothing true refutes it, so read what the rebuttal claims (over-refuting)'
-
-export const trialRebuttalCells: Record<string, ReadPieceCell<TrialRebuttalInputs>> = {
-    'OC-11': cell('OC-11', TABLE_IN_CUP, TOO_LARGE, TOO_LARGE_Q, `${SOUND}; an invented smallness or a "not established" size`),
-    'OC-18': cell('OC-18', 'hammer [table1] into [cup1]', 'The table is too large and structurally unsuited to fit into the cup.', 'Is [table1] too large and structurally unsuited to fit into [cup1]?', `${SOUND}; hammering offered as changing the size`),
-    'OC-3': cell('OC-3', TABLE_IN_CUP, TOO_LARGE, TOO_LARGE_Q, `${SOUND}; an invented smallness or a "not established" size`),
-    'OC-1': cell('OC-1', 'pick up [table1]', TOO_HEAVY, TOO_HEAVY_Q, '"wrong": the scene says [table1] is a small round tea table, so the premise is false (premise, not weight)'),
-    'OC-2': cell('OC-2', 'pick up [cup1]', 'The cup is on a saucer, which is on the table, and the player is not holding anything to lift the cup directly.', 'Does holding nothing keep the player from lifting [cup1] directly?', '"wrong": empty hands are what picking up needs, and a cup on a saucer is within reach'),
-    'OC-20': cell('OC-20', 'pick up [table1]', TOO_HEAVY, TOO_HEAVY_Q, '"wrong": the scene says [table1] is a small round tea table'),
-    'OC-6': cell('OC-6', 'pour [tea2] from [teapot1] into [cup1]', 'The tea in the teapot cannot be directly poured into the cup without first being transferred to a container that can be poured, such as a cup.', 'Must [tea2] be transferred to another container before it can be poured into [cup1]?', '"wrong": a teapot is the container tea is poured from'),
-    'OC-9': cell('OC-9', 'pick up [table1]', 'A table is too large and heavy to be picked up by a single person, especially considering the physical constraints of the scene.', TOO_HEAVY_Q, 'open (JF-2): a long oak trestle is heavy for one person; read the kind, and whether "not established" (strength, how heavy) is given', 'trialAgainst batch 1 (draft 1), repeat 1'),
-    'OC-30/h5': {
-        ...cell('OC-30/h5', 'tip [table1]', 'Tipping the table would cause the teapot to fall off and spill its contents.', `${AT_THE_POUR} is [teapot1] still where it can pour into [cup1]?`, `consequences-dependent (TR-P3): ${SOUND} in the scene shown, where [teapot1] is loose`),
-        note: 'Read apart from the tallies: the argument is sound only because the scene omits the glue that tilts the teapot with the table.',
-    },
-    'OC-30/h7': cell('OC-30/h7', 'tip [table1]', 'The first step would cause the cup to fall off the table, making it impossible to pour tea into it.', CUP_REACHABLE_Q, `${SOUND}: the consequence line puts [cup1] on the floor`),
-    'OC-30/h10': {
-        ...cell('OC-30/h10', 'tip [table1]', 'Tipping the table would cause the saucer, cup, and tea to fall off, making it impossible to pour tea from the teapot into the cup.', CUP_REACHABLE_Q, 'consequences-dependent (TR-P3, NR-P5): "wrong": step 1 has taken [saucer1], with [cup1] on it, off the table; the loose teapot is not raised'),
-        note: 'Read apart from the tallies: the argument errs on state, and the sound one (the loose teapot) exists only because the scene omits the glue.',
-    },
-}
+export const trialRebuttalCells: Record<string, ReadPieceCell<TrialRebuttalInputs>> = Object.fromEntries(
+    Object.entries(trialCases).map(([id, { inputs, against, lookFor, notes }]) => [id, {
+        inputs: { ...inputs, against },
+        source: `golden: ${against.golden?.note}; lifted: ${against.lifted?.source}`,
+        lookFor: lookFor.rebuttal,
+        ...(notes?.rebuttal !== undefined ? { note: notes.rebuttal } : {}),
+    }]),
+)
 
 export const trialRebuttal: ReadPiece<TrialRebuttalInputs, UpstreamOptions> = {
     kind: 'read',
-    name: 'trialRebuttal',
+    name: 'trial rebuttal',
     cells: trialRebuttalCells,
     check: checkTrialRebuttal,
     parseOptions: parseUpstreamOptions,
@@ -286,4 +274,4 @@ export const trialRebuttal: ReadPiece<TrialRebuttalInputs, UpstreamOptions> = {
     maxTokens: 600,
 }
 
-export const registeredTrialRebuttal = registerPiece(trialRebuttal)
+export const registeredRebuttal = registerPiece(trialRebuttal)
