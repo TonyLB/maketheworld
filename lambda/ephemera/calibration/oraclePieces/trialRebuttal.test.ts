@@ -88,20 +88,26 @@ describe('trialRebuttal', () => {
 
         describe('parses the sentence into its summary and branch', () => {
             it.each([
-                [SMALL, { summary: 'the table is too heavy', source: 'the scene says', quote: '[table1] Table (a small round tea table), in the Parlour' }],
-                ['Incoming argues "the cup falls", but the steps say "tip [table1]"', { summary: 'the cup falls', source: 'the steps say', quote: 'tip [table1]' }],
+                [SMALL, { summary: 'the table is too heavy', source: 'the scene says', quotes: [{ source: 'the scene says', quote: '[table1] Table (a small round tea table), in the Parlour' }] }],
+                ['Incoming argues "the cup falls", but the steps say "tip [table1]"', { summary: 'the cup falls', source: 'the steps say', quotes: [{ source: 'the steps say', quote: 'tip [table1]' }] }],
+                ["But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies it is light.", { source: 'the scene says', quotes: [{ source: 'the scene says', quote: 'In the Parlour there is [table1] Table (a small round tea table)' }] }],
+                ["But the scene says 'In [teapot1] there is [tea2] Tea', and the steps say '(intended) pour [tea2] from [teapot1] into [cup1]', indicating it pours.", { source: 'the scene says', quotes: [
+                    { source: 'the scene says', quote: 'In [teapot1] there is [tea2] Tea' },
+                    { source: 'the steps say', quote: '(intended) pour [tea2] from [teapot1] into [cup1]' },
+                ] }],
                 ['incoming argues ‘the tea must move first’, but common sense indicates that ‘a teapot is what tea is poured from’ is actually true.', { summary: 'the tea must move first', source: 'common sense indicates', claim: 'a teapot is what tea is poured from' }],
                 ["Incoming argues 'the table is glued to the floor', but the only facts the scene and the steps establish about [table1] are: 'a small round tea table', 'On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', and 'tip [table1]'", {
                     summary: 'the table is glued to the floor', source: 'the only facts', handle: '[table1]', facts: ['a small round tea table', 'On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', 'tip [table1]'],
                 }],
-                ["Incoming argues 'the table's legs are short' but the scene says 'a small round tea table', so it is light.", { summary: "the table's legs are short", source: 'the scene says', quote: 'a small round tea table' }],
+                ["Incoming argues 'the table's legs are short' but the scene says 'the table's top', so it is light.", { summary: "the table's legs are short", source: 'the scene says', quotes: [{ source: 'the scene says', quote: "the table's top" }] }],
             ])('%s', (sentence, parsed) => {
                 expect(parseRebuttal(sentence)).toEqual(parsed)
             })
 
             it.each([
-                ['The table is light.', '"rebuttal" doesn\'t open "Incoming argues \'…\', but"'],
-                ["Incoming argues '', but the scene says 'x'", '"rebuttal" doesn\'t open "Incoming argues \'…\', but"'],
+                ['The table is light.', '"rebuttal" doesn\'t open "But" or "Incoming argues \'…\', but"'],
+                ["Incoming argues '', but the scene says 'x'", '"rebuttal" doesn\'t open "But" or "Incoming argues \'…\', but"'],
+                ["But the scene says 'x', and the steps say nothing", '"the scene says" is not followed by a quoted line'],
                 ["Incoming argues 'it is heavy', but it is not.", '"rebuttal" continues with none of "the scene says", "the steps say", "common sense indicates", "the only facts"'],
                 ["Incoming argues 'it is heavy', but the scene says it is small.", '"the scene says" is not followed by a quoted line'],
                 ["Incoming argues 'it is heavy', but the only facts about [table1] are: none", '"the only facts" has no quoted list'],
@@ -118,6 +124,7 @@ describe('trialRebuttal', () => {
                 '(consequence) [saucer1] and [cup1] slide off [table1] onto the floor',
                 'Graph: Contents of the Parlour: - [table1] Table (a small round tea table), in the Parlour  - [teapot1] Teapot, on [table1]',
                 'Contents of the Parlour:\n- [table1] Table (a small round tea table), in the Parlour\n- [teapot1] Teapot, on [table1]',
+                'In the Parlour there is [table1] Table (a small round tea table). [saucer1] and [cup1] slide off [table1] onto the floor.',
             ])('passes %j', (quote) => {
                 expect(quotesALine(quote, lines)).toBe(true)
             })
@@ -131,6 +138,8 @@ describe('trialRebuttal', () => {
         it.each([
             ['a quoted scene line', reply(SMALL), oc1],
             ['a common-sense claim, unchecked', reply("Incoming argues 'it is too heavy', but common sense indicates that 'a tea table is light' is actually true"), oc1],
+            ['the pivot alone, the summary left to the render (TR-P12)', reply("But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies it is light."), oc1],
+            ['two joined sources', reply("But the scene says 'You are holding nothing.', and the steps say 'pick up [table1]'"), oc1],
             ['a consequence line from the steps', reply("Incoming argues 'the cup is gone', but the steps say '[saucer1] and [cup1] slide off [table1] onto the floor'"), h7],
             ['the facts about a handle, each quoting a line naming it', reply("Incoming argues 'it is heavy', but the only facts the scene establishes about [table1] are: 'In the Parlour there is [table1] Table (a small round tea table).', 'pick up [table1]'"), oc1],
         ])('passes %s', async (_, json, cell) => {
@@ -147,6 +156,7 @@ describe('trialRebuttal', () => {
                 '"You are holding nothing." doesn\'t name [table1]',
                 '"[table1] is oak" quotes no line of the scene or the steps',
             ]],
+            [reply("But the scene says 'You are holding nothing.', and the steps say 'lift it'"), ['"lift it" quotes no line of the scene or the steps']],
             [reply("Incoming argues 'it is heavy', but it isn't"), ['"rebuttal" continues with none of "the scene says", "the steps say", "common sense indicates", "the only facts"']],
             [reply(''), ['has no non-empty string "rebuttal"']],
             [{ answerWrong: 'x' }, ['has no non-empty string "rebuttal"']],
