@@ -1,10 +1,11 @@
 //
-// The trial's renders pinned to the inputs hashes its batches reported (AGENT.nonRuleCell.planning.md, Slice A): a refactor that keeps
+// The trial's renders pinned to the inputs hashes its batches reported (AGENT.nonRuleCell.planning.md, Slices A and B): a refactor that keeps
 // these green keeps every prompt byte for byte, so the batches already run stay comparable with the next.
 //
 import { textHash } from '../../textHash'
 import { trialAgainst } from './against'
 import { trialRebuttal } from './rebuttal'
+import { trialVerdict } from './verdict'
 
 /** Against, the securing shown: batch 1 (draft 1). */
 const AGAINST_SHOWN: Record<string, string> = {
@@ -22,6 +23,18 @@ const AGAINST_OMITTED: Record<string, string> = {
 const REBUTTAL_GOLDEN: Record<string, string> = {
     'OC-11': '396071e5', 'OC-18': 'ec4fb9aa', 'OC-3': '2927c178', 'OC-1': '15e55631', 'OC-2': 'cb734fad', 'OC-20': 'e8f2edc8',
     'OC-6': '31e993df', 'OC-9': 'a2b65689', 'OC-30/h5': '1cad64ef', 'OC-30/h7': 'f3e97830', 'OC-30/h10': 'f3ead215',
+}
+
+/** The verdict, on the lifted pairs, drafts 1 to 4: batches 9 to 12. Kept as the record; the render moved with draft 5. */
+const VERDICT_LIFTED_UNTAGGED: Record<string, string> = {
+    'OC-11': 'ce147644', 'OC-18': 'bb1b4b08', 'OC-3': 'a302860d', 'OC-1': 'c0162179', 'OC-2': '691b7312', 'OC-20': 'e9010364',
+    'OC-6': 'bccf923d', 'OC-9': '6c5fa084', 'OC-30/h5': '60cf614a', 'OC-30/h7': 'bf36e159', 'OC-30/h10': '40387274',
+}
+
+/** The verdict, on the lifted pairs, the two sides tagged (draft 5): to be confirmed by batch 13's reported hashes. */
+const VERDICT_LIFTED: Record<string, string> = {
+    'OC-11': '8ebd4108', 'OC-18': '51b7dab0', 'OC-3': 'c8bf6c6a', 'OC-1': '4537a28b', 'OC-2': 'cadf70e7', 'OC-20': '059ef63b',
+    'OC-6': '1deb2603', 'OC-9': '4006128c', 'OC-30/h5': 'fb128d59', 'OC-30/h7': 'aff63480', 'OC-30/h10': '2056f2ca',
 }
 
 const hashes = async <C, O>(cells: Record<string, C>, render: (cell: C, options: O) => Promise<string>, options: O): Promise<Record<string, string>> => (
@@ -45,5 +58,11 @@ describe('the trial\'s renders, pinned to its batches', () => {
 
     it('the rebuttal, on the golden arguments, renders as batch 8', async () => {
         expect(await hashes(trialRebuttal.cells, trialRebuttal.render, { upstream: 'golden' })).toEqual(REBUTTAL_GOLDEN)
+    })
+
+    it('the verdict, on the lifted pairs, renders with the two sides tagged (draft 5), every hash moved from batches 9 to 12', async () => {
+        const tagged = await hashes(trialVerdict.cells, trialVerdict.render, { upstream: 'lifted' })
+        expect(tagged).toEqual(VERDICT_LIFTED)
+        expect(Object.keys(tagged).filter((id) => tagged[id] === VERDICT_LIFTED_UNTAGGED[id])).toEqual([])
     })
 })

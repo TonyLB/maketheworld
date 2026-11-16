@@ -5,5 +5,6 @@
 import { registerFamily } from '../../pieceProbe/oraclePiece'
 import { registeredAgainst } from './against'
 import { registeredRebuttal } from './rebuttal'
+import { registeredVerdict } from './verdict'
 
-export const registeredTrial = registerFamily('trial', { against: registeredAgainst, rebuttal: registeredRebuttal })
+export const registeredTrial = registerFamily('trial', { against: registeredAgainst, rebuttal: registeredRebuttal, verdict: registeredVerdict })

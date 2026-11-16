@@ -1,4 +1,4 @@
-import { pieceAnswer, replyJsonObject } from './pieceAnswer'
+import { pieceAnswer } from './pieceAnswer'
 
 const ANSWERS = ['blocks', 'allows']
 
@@ -28,14 +28,6 @@ describe('pieceAnswer', () => {
         [`${fence('{"answer": "allows"}')}\nAnswer: blocks`, { answer: 'allows' }],
     ])('reads a JSON answer, over any Answer line: %j', (reply, grade) => {
         expect(pieceAnswer(reply, ANSWERS)).toEqual(grade)
-    })
-
-    it.each([
-        [fence('{"answer": "blocks", "step": "tip"}'), { object: { answer: 'blocks', step: 'tip' } }],
-        [fence('{"answer": blocks}'), { malformed: 'the JSON block does not parse' }],
-        ['No block at all.', { malformed: 'no JSON block' }],
-    ])('reads a reply\'s JSON object for a piece\'s own grade: %j', (reply, result) => {
-        expect(replyJsonObject(reply)).toEqual(result)
     })
 
     it('grades draft 1\'s inline verdict as before, since it has no JSON', () => {

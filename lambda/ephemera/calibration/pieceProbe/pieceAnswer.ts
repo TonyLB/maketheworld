@@ -5,6 +5,7 @@
 // free text. The `Answer:` route stays so earlier drafts grade as they did.
 //
 import { splitMarkdownReasoningAndJson } from '../../llm/splitMarkdownReasoningAndJson'
+import { isNotAnObject, jsonObject } from '../../llm/stageContract'
 
 export type PieceGrade = { answer: string } | { malformed: string }
 
@@ -12,30 +13,9 @@ const inSet = (word: string, answers: readonly string[]): PieceGrade => (
     answers.includes(word) ? { answer: word } : { malformed: `"${word}" is not one of ${answers.join(', ')}` }
 )
 
-const NOT_AN_OBJECT = 'the JSON block is not an object'
-
-/** The object a JSON text holds, or why it holds none: for a piece's own grade as well as this one. */
-export const jsonObject = (jsonText: string): { object: Record<string, unknown> } | { malformed: string } => {
-    let value: unknown
-    try {
-        value = JSON.parse(jsonText)
-    } catch {
-        return { malformed: 'the JSON block does not parse' }
-    }
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-        ? { object: value as Record<string, unknown> }
-        : { malformed: NOT_AN_OBJECT }
-}
-
-/** The object a reply's trailing JSON holds (`splitMarkdownReasoningAndJson`), or why there is none. */
-export const replyJsonObject = (reply: string): { object: Record<string, unknown> } | { malformed: string } => {
-    const split = splitMarkdownReasoningAndJson(reply)
-    return split.ok ? jsonObject(split.jsonText) : { malformed: 'no JSON block' }
-}
-
 const jsonAnswer = (jsonText: string, answers: readonly string[]): PieceGrade => {
     const parsed = jsonObject(jsonText)
-    if ('malformed' in parsed && parsed.malformed !== NOT_AN_OBJECT) {
+    if ('malformed' in parsed && !isNotAnObject(parsed.malformed)) {
         return parsed
     }
     const answer = 'object' in parsed ? parsed.object.answer : undefined

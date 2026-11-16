@@ -41,21 +41,25 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
     render: (cell: PieceCell<Inputs>, options: Options) => Promise<string>
     /** An answer code gives without a call, such as for an empty window; `undefined` when the cell needs a call. */
     byCode?: (cell: PieceCell<Inputs>) => string | undefined
-    /** The piece's own grade of one reply, given its cell, in place of `pieceAnswer` against `answers`: for answers with parameters. */
-    grade?: (reply: string, cell: PieceCell<Inputs>) => PieceGrade
+    /**
+     * The piece's own grade of one reply, given its cell, the cell's rendered text and the payload's options (as a read piece's `check`
+     * has them), in place of `pieceAnswer` against `answers`: for answers with parameters, or a stage's contract parse.
+     */
+    grade?: (reply: string, cell: PieceCell<Inputs>, rendered: string, options: Options) => PieceGrade
     /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
     maxTokens?: number
 }
 
 /**
- * A read piece: no answer set. `check` gives the form problems of one reply, given its cell and the cell's rendered text (for a check
- * that matches quotes against what the prompt showed), and none when the reply passes.
+ * A read piece: no answer set. `check` gives the form problems of one reply, given its cell, the cell's rendered text (for a check
+ * that matches quotes against what the prompt showed) and the payload's options (for a stage resolving its upstream input), and none
+ * when the reply passes.
  */
 export type ReadPiece<Inputs = unknown, Options = unknown> = {
     kind: 'read'
     name: string
     cells: Record<string, ReadPieceCell<Inputs>>
-    check: (reply: string, cell: ReadPieceCell<Inputs>, rendered: string) => string[]
+    check: (reply: string, cell: ReadPieceCell<Inputs>, rendered: string, options: Options) => string[]
     parseOptions: (value: unknown) => Options | string
     render: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<string>
     /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */

@@ -12,7 +12,8 @@ import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { caseActions, fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
-import { replyJsonObject, type PieceGrade } from '../pieceProbe/pieceAnswer'
+import { replyJsonObject } from '../../llm/stageContract'
+import type { PieceGrade } from '../pieceProbe/pieceAnswer'
 
 /**
  * A step's role (the step layout): `intended`, what the player's request states; `method`, a step the system supplies to carry it out.
