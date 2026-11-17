@@ -1,6 +1,6 @@
 # The trial's question: the judge answers the case against's question
 
-**Status (2026-11-16): opened. Step 0, the explicit scene render, comes first (the user's, added the same day): its design is written below, pending review. Step 1's design waits on step 0's choice of render. Nothing built.** Opened from the [non-rule cell plan](AGENT.nonRuleCell.planning.md)'s trial, after verdict batch 16 and the checkpoint at which the user chose to keep drafting the judge. This plan is a prototype and its measurement. It folds back into the non-rule cell plan when it finishes ([When it finishes](#when-it-finishes)).
+**Status (2026-11-17): opened. Step 0, the explicit scene render, comes first (the user's, added 2026-11-16): its design was reviewed by the user (2026-11-17): QS-4, the securing as a pre-processing step; QS-5, the questions, with R-2 dropped; the stance kept as a frame in the Role. Built the same day: the explicit render, the `sceneReading` piece, the two drafts and the rubric. Next are batches 17 and 18, after a deploy. Step 1's design waits on step 0's choice of render.** Opened from the [non-rule cell plan](AGENT.nonRuleCell.planning.md)'s trial, after verdict batch 16 and the checkpoint at which the user chose to keep drafting the judge. This plan is a prototype and its measurement. It folds back into the non-rule cell plan when it finishes ([When it finishes](#when-it-finishes)).
 
 **Why** (the record so far, in the parent's [Recommended order](AGENT.nonRuleCell.planning.md#recommended-order)):
 - **Eight verdict drafts scored 4 to 6 of 10** (batches 9 to 16).
@@ -57,13 +57,23 @@ The parent's [inherited table](AGENT.nonRuleCell.planning.md#what-is-inherited-a
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
 0. [ ] **The explicit scene render, probed on reading questions** (the user's idea, 2026-11-16). Each prompt today carries a guide for translating the render into English ("Reading the scene"), beside a render that is not very explicit English. The idea is to drop the guide and build the explicit render. Its first example, the user's: "When [table1] moves, unsecured objects on it ([saucer1]) move with it unless the physics would indicate they come off". The per-object default is also the user's: "Other properties of this object are not established, and assumed to be normal in context". Writing the thing's gloss into that default, and dropping "not established", are mine and agreed. **Rests on** the lessons that reading sections are read past, and that the settling slot is filled from the most authoritative nearby text. **Consumer:** step 1, which is built on the render this step picks. What it finds about rendering goes to sceneProjection's SP-10, which is open.
-   - [ ] **The design, reviewed before it's built** (written here for review; mine unless marked):
+   - [X] **The design, reviewed before it's built** (mine unless marked; reviewed by the user, 2026-11-17, with QS-4, QS-5 and the stance in the Role settled):
      - **The guide's three kinds,** each rendered:
        1. **Decoding the format:** handles, and a row indented under a row being on or in it. The Graph's indented list is replaced by a line per thing that says where it is in words. The Fiction stays as it is.
        2. **What moves with what:** each thing that holds something gets a conditional line, with the physics left to the reader: "When [table1] moves, what is on it moves with it, unless the motion slides or tips it off." For contents: "… unless the motion spills it out."
        3. **What is unstated** (the user's default, with the gloss): "In everything the scene doesn't say, [table1] is as an ordinary small round tea table is." A thing with no gloss takes its name: "as an ordinary cup is".
-     - **Not stated: fastening.** The trial omits the securing (against batch 2), so the explicit render says nothing about it either way. A line calling [saucer1] "loose" or "not fastened" would assert what the omission leaves silent, and on h5 it would be false, since [teapot1] is glued and that is omitted. Whether the explicit render states the securing is QS-4.
-     - **Held constant:** the Fiction, the request, the steps and Reading the steps. The steps' own guide (roles, consequence lines, "the state left by the steps before") is a later candidate for the same treatment, not this one.
+     - **The securing: rendered when the scene has it, removed before the render** (the user, 2026-11-17). The explicit render renders whatever scene model it is handed, securing included. Whether a prompt shows the securing is a pre-processing step on the scene model, applied or not, and not a property of the render. That step exists already: `withoutSecuring` (`sceneProse/sceneRules.ts`), which the trial applies through `renderNonRuleCell(cell, { securing: 'omitted' })`. It drops each secured `Custom` relation and each bare `SecuredTo`. The justifying links go with them, since the scene model folds `Justifies` into the `secured` flag (QS-4).
+       - **With the securing present,** a secured thing's carry line takes the place of the conditional one, for example: "[teapot1] is glued to [table1], so it goes wherever [table1] goes, even when [table1] is tipped" (the wording mine, provisional). Its direction (a host end against a non-host end) comes from the rule `actionRule` in `sceneRules.ts` already applies, reused rather than restated. A golden test on a scene with securing pins it, though no step 0 batch shows it.
+       - **With the securing removed,** nothing is said about fastening either way. A line calling [saucer1] "loose" or "not fastened" would assert what the omission leaves silent, and on h5 it would be false, since [teapot1] is glued and that is omitted.
+       - **Step 0's batches run with it removed,** matching the trial today. No question in R-1..R-9 reads the secured wording (on h7, R-8 is no either way). Trying it shown takes a question of its own, such as "If [table1] is tipped steeply, does [teapot1] stay?", expected yes when shown.
+     - **The stance, kept as a frame in the Role** (the user, 2026-11-17; the placement and wording mine, agreed). The old scene guide had two parts: what the render means, and how to read the scene as a whole (the rule cell's judge, for example [`oracleLoopDrafts/12.txt`](oracleLoopDrafts/12.txt): "This place is fiction, not a simulation"). The three kinds above render the first part. The second is about no one thing, so it can't become per-thing lines:
+       - **absence:** a thing the scene doesn't mention is neither present nor absent, and the per-object default covers only the things listed;
+       - **precision:** the scene gives relations, not exact positions;
+       - **persistence:** an established fact holds without being shown to survive;
+       - **who answers what:** the scene says what is here and how it is placed, and what things are like and can do comes from what you know of the world.
+
+       It goes in the Role, not in a Reading section, since reading sections are read past (verdict drafts 4 and 7). The draft wording, provisional: "The scene is the fiction established so far, not a full simulation: what it states is true, what it leaves out is open, and what things are like comes from what you know of the world." Both arms carry it word for word. So the `sections` arm differs from the trial's draft 7, which had no stance, and the probe measures only the translation.
+     - **Held constant between the two arms:** the Fiction, the Role with its stance, the Task and the questions. The probe's prompt has no request and no steps: each question is asked of the scene alone, its "if" questions being hypotheticals about the scene, not part of a plan. That framing is quieter than the trial's, where the misses came with a confident text beside the scene (TR-P21), so the arms may both reach the ceiling. In that case the decision below goes to "both, as a pair". The steps' own guide (roles, consequence lines, "the state left by the steps before") is a later candidate for the same treatment as the scene's, in step 1 or after.
      - **The render, `sceneProse/renderSceneExplicit.ts`** (beside `renderSceneJudge.ts`, which is unchanged, so every pinned render stays as it was), on h7's scene:
 
        ```text
@@ -91,15 +101,14 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
        The wording is pinned by a golden test. Things are listed in the Graph's order, each saying only its own place, not its chain to the room.
      - **The probe: a new answered piece, `sceneReading`,** in `oraclePieces/`. Its answer set is closed (yes or no), so it is an answered piece by the families test, though it judges no plan. Its option is `render: 'sections' | 'explicit'`, required, with no default, since the two arms are two payloads with different instructions:
        - **`sections`:** today's render (`renderSceneJudge`, the securing omitted), with verdict draft 7's Reading the scene, the ordinary-default sentence included;
-       - **`explicit`:** the render above, with no Reading the scene.
+       - **`explicit`:** the render above, of the scene after `withoutSecuring`, with no Reading the scene.
 
-       Both drafts (`reading.1s.txt` and `reading.1e.txt`) are otherwise word for word the same: a Role (answer one question about a scene in a game world), and a Task (one or two sentences on what the scene establishes about the question, then `{"answer": "yes" | "no"}`). The cap is 400.
-     - **The questions** (QS-5; the expected answers mine, for review). They are drawn from the trial's misses, since SP-10's reading questions were right on every render (24 of 24) and could not tell renders apart. Their polarity is mixed. Each is asked of a corpus case's scene, as the trial's cells render it:
+       Both drafts (`reading.1s.txt` and `reading.1e.txt`) are otherwise word for word the same: a Role (answer one question about a scene in a game world, with the stance above), and a Task (one or two sentences on what the scene establishes about the question, then `{"answer": "yes" | "no"}`). The cap is 400.
+     - **The questions** (QS-5; the questions and expected answers mine, accepted by the user, 2026-11-17, with R-2 dropped). They are drawn from the trial's misses, since SP-10's reading questions were right on every render (24 of 24) and could not tell renders apart. Their polarity is mixed. Each is asked of a corpus case's scene, as the trial's cells render it:
 
        | ID | Scene | Question | Expected | The miss it aims at |
        | --- | --- | --- | --- | --- |
        | R-1 | OC-11 | Could [table1] fit inside [cup1]? | no | the size (TR-P16: "small round, so it fits") |
-       | R-2 | OC-11 | Does the scene show [table1] to be unusually small for a table? | no | "small round" read as small enough |
        | R-3 | OC-1 | Could one person pick up [table1]? | yes | the guard's size, the other way |
        | R-4 | OC-6 | Is [tea2] in something tea can be poured from? | yes | the guard's container |
        | R-5 | h7 | If [table1] is tipped steeply, does [cup1] stay where it is? | no | the slide (TR-P14) |
@@ -108,21 +117,29 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
        | R-8 | h7 | If [saucer1] is picked up, does [teapot1] come with it? | no | the carry spread too far (`affordance`'s failure in SP-10) |
        | R-9 | h7 | If [cup1] is held under [teapot1]'s spout and [teapot1] is tilted, does tea go into [cup1]? | yes | an unstated capacity, the default |
 
-     - **The measure:** each arm a payload, 9 cells x1 (batches 17 and 18), then x3 on any question the two arms split on.
+     - **The measure:** each arm a payload, 8 cells x1 (batches 17 and 18), then x3 on any question the two arms split on.
      - **The decision it serves:** which render step 1 is built on.
        - **The explicit render** if it is right wherever `sections` is, and right on at least one of the misses that `sections` gets wrong.
        - **Today's render** if `explicit` loses a question `sections` gets right, unless the loss is in wording the next draft can fix. That's the user's call at the checkpoint.
        - **Both, as a pair in step 1,** if neither arm misses anything: the questions were too easy again, and the ruling's own cells tell the renders apart.
      - **What to read beyond the tally:**
+       - whether the stance's "what it leaves out is open" is read as "unknown, so no": TR-P20's failure, and in the explicit arm it pulls against the per-object default. R-9, an unstated capacity, is where it shows;
        - whether the default line is quoted as the settling source ("ordinary, so it works") where it shouldn't decide;
        - whether the conditional "when it moves" lines are read as events that happened;
        - whether the repeated lines are skimmed.
-   - [ ] **Build:**
-     - `renderSceneExplicit.ts` with a golden test on `teaTable` and `teaTableCupOnFloor`;
-     - the `sceneReading` piece with its cells and tests (each render, the refusal of a missing `render`, the grade, a run through the probe with a stub), registered in `pieces.ts`;
-     - the trial's render pins stay green, unchanged.
-   - [ ] **The drafts and rubric:** `oracleLoopDrafts/trial/reading.1s.txt`, `reading.1e.txt` and `reading.1.notes.md`, the rubric written before the batch, and the two payloads at full scratchpad paths.
-   - [ ] **Batches 17 and 18:** the two arms, 9 cells x1 each. Deploy first.
+   - [X] **Build** (2026-11-17):
+     - [X] `renderSceneExplicit.ts` with a golden test on `teaTable` and `teaTableCupOnFloor` with the securing removed, and on `teaTable` and `teaTableChained` with it shown;
+     - [X] the `sceneReading` piece with its cells and tests (each render, the refusal of a missing `render`, the grade, a run through the probe with a stub), registered in `pieces.ts`;
+     - [X] the trial's render pins stay green, unchanged.
+     - **As built** (mine, for the user's review; each departs from or adds to the reviewed design):
+       - **"as an ordinary tea is"**, where the design's golden has "as ordinary tea is". The scene model can't tell a mass noun from a count noun, and a list of mass nouns would be a closed lexicon for an open vocabulary. The article is always "an", since "ordinary" follows it. If this is contested, it becomes an Open decisions row.
+       - **With the securing shown, the host's carry line names only its loose children:** "When [table1] moves, [saucer1] moves with it, unless …". The design said the secured thing's line "takes the place of the conditional one" but not what the host's line becomes. A secured line sits after the thing's place. When neither end hosts the other (the chain to the wall), the line is the fact followed by `actionRule`'s sentences, reused.
+       - **Shapes step 0 doesn't probe throw:** a join, a spread thing, Concepts. A part or section is listed and gets no carry line.
+       - **The question line** is `The question: …`, last in the render.
+       - **The grade** is the probe's default (`pieceAnswer`), with no stage contract, since the piece isn't a trial stage.
+       - **Helpers exported, not restated:** `listWords` (`renderSceneRegisters.ts`), `securingWords`, `actionRule` and `hostsOf` (`sceneRules.ts`), and `targetWords` (`sceneWording.ts`).
+   - [X] **The drafts and rubric** (2026-11-17): [`reading.1s.txt`](oracleLoopDrafts/trial/reading.1s.txt) (1032 chars), [`reading.1e.txt`](oracleLoopDrafts/trial/reading.1e.txt) (515), the rubric in [`reading.1.notes.md`](oracleLoopDrafts/trial/reading.1.notes.md), and the two payloads in the session's scratchpad, `batch17-sections.json` and `batch18-explicit.json`.
+   - [ ] **Batches 17 and 18:** the two arms, 8 cells x1 each. Deploy first.
    - [ ] **The confirm,** if the arms split: x3 on the questions they split on.
    - [ ] **Checkpoint, with the user:** the render for step 1, by the decision above.
 1. [ ] **The ruling: the judge answers the golden question alone** (the probe mine; the framing the user's). It is a new answered stage of the `trial` family, `ruling` (mine; the name is the user's to change). It sees the scene with the securing omitted, the request, the steps and the question: the rebuttal's render without the argument. It answers `{"answer": "yes" | "no"}` to the question. **Rests on** the golden questions as written. **Consumer:** the decision at step 1's checkpoint.
@@ -175,8 +192,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | QS-1 | The expected answers in step 1's table, h10's especially | Step 1's cells | The user's review | Open (mine) |
 | QS-2 | Whether a question names which of its answers blocks the plan, or code keeps each question's polarity. The golden questions are mixed, and the rebuttal's renders are pinned to them as written | Step 2's contract | Step 2's design | Open |
 | QS-3 | Whether the ruling ever sees the argument: a control for anchoring, the argument tagged beside the question | A step 1 follow-on | Step 1's checkpoint | Open; not in step 1 |
-| QS-4 | Whether the explicit render states the securing ("[teapot1] is glued to [table1], so it stays with [table1] however [table1] moves"). The trial omits it, since the case against argued it in 10 of 11 (against batch 2), and an explicit line makes it louder. The non-rule cell shows it in a Rules section | Step 0's render, and every trial stage after | The user's call | Open; omitted in step 0, as in the trial |
-| QS-5 | Step 0's reading questions and their expected answers | Step 0's cells | The user's review | Open (mine) |
+| QS-4 | Whether the explicit render states the securing ("[teapot1] is glued to [table1], so it goes wherever [table1] goes, even when [table1] is tipped"). The trial omits it, since the case against argued it in 10 of 11 (against batch 2), and an explicit line makes it louder. The non-rule cell shows it in a Rules section | Step 0's render, and every trial stage after | The user, 2026-11-17 | **Settled as a split:** the render states whatever securing its scene model holds, and whether a prompt shows it is the pre-processing step `withoutSecuring`, applied or not. Step 0 applies it, as the trial does. Whether any trial stage shows it stays open, a per-payload choice |
+| QS-5 | Step 0's reading questions and their expected answers | Step 0's cells | The user's review | **Settled** (the user, 2026-11-17): mine as written, with R-2 dropped. It asked whether the scene shows [table1] to be unusually small, a judgment of what is unusual, not an observable property or consequence like the others; R-1 tests the same misreading through its consequence. The IDs are kept, so there is no R-2 |
 
 ## How we work
 
@@ -200,7 +217,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | Step | State |
 | --- | --- |
-| The explicit scene render | Designed, pending review |
+| The explicit scene render | Built, drafts and rubric written (2026-11-17); batches 17 and 18 next, after a deploy |
 | The ruling, alone | Designed, pending review; its render waits on step 0 |
 | The case against gives its question | Not started; after step 1's checkpoint |
 | The rebuttal as the relevance attack | Not started; only if step 2 holds |

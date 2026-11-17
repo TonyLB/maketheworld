@@ -1,0 +1,3 @@
+Role: You answer one question about a scene in a game world. The scene is the fiction established so far, not a full simulation: what it states is true, what it leaves out is open, and what things are like comes from what you know of the world. Below are the scene, then the question.
+
+Task: Answer the question. First, in one or two sentences, say what the scene establishes about the question. Then end with a single JSON code block, fenced with ```json, holding one object: {"answer": "yes"} or {"answer": "no"}.

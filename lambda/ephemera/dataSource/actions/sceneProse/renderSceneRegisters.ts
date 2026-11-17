@@ -25,7 +25,7 @@ export type RegistersOptions = { foreground: boolean; examples: boolean; relatio
 
 type Parent = { kind: 'room' } | { kind: 'held' } | { kind: 'thing'; handle: SceneHandle }
 
-const listWords = (words: readonly string[]): string => (
+export const listWords = (words: readonly string[]): string => (
     words.length <= 2 ? words.join(' and ') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`
 )
 

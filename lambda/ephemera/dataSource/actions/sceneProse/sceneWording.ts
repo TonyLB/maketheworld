@@ -96,7 +96,7 @@ export const lineNotes = (scene: SceneModel, entry: SceneEntry): string[] => [
     ...(entry.kind === 'join' ? [acrossNote(scene, entry)] : joinReferences(entry)),
 ]
 
-const targetWords = (target: SceneRelationTarget): string => {
+export const targetWords = (target: SceneRelationTarget): string => {
     switch (target.kind) {
         case 'thing': return bracket(target.handle)
         case 'inside': return `something inside ${bracket(target.handle)}`
