@@ -6,9 +6,13 @@ import type { NovaModel } from '../../llm/novaModel'
 import { runProbeCalls } from '../oracleLoop/runOracleProbe'
 import { textHash } from '../textHash'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
+import { promptFor, type RenderedParts } from './oraclePiece'
 
-/** A cell of a read piece ready to run: what a reader looks for, and its rendered inputs. */
-export type PreparedReadCell = { cell: string; lookFor: string; rendered: string }
+/**
+ * A cell of a read piece ready to run: what a reader looks for, and its rendered inputs. Under system delivery it carries the render's two
+ * `parts` too, and `rendered` is their join.
+ */
+export type PreparedReadCell = { cell: string; lookFor: string; rendered: string; parts?: RenderedParts }
 
 export type ReadCall = { cell: string; repeat: number; reply?: string; error?: string; problems?: string[] }
 
@@ -39,7 +43,7 @@ export const runReadPiece = async ({ cells, instructions, check, repeats, model,
     invoke?: ProbeInvoke
 }): Promise<ReadCall[]> => (
     (await runProbeCalls({
-        prompts: cells.map(({ cell, rendered }) => ({ id: cell, prompt: `${instructions}\n\n${rendered}` })),
+        prompts: cells.map((cell) => ({ id: cell.cell, ...promptFor(instructions, cell) })),
         repeats,
         model,
         ...(maxTokens !== undefined ? { maxTokens } : {}),

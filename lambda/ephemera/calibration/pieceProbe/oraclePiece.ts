@@ -6,6 +6,29 @@
 //
 import type { PieceGrade } from './pieceAnswer'
 
+/**
+ * How a payload's prompt reaches the model (AGENT.trialQuestion.planning.md, step 0.5): `user`, the instructions and the render in one
+ * user message; `system`, the instructions and the render's system part as system instructions, and its user part as the user message.
+ */
+export type Delivery = 'user' | 'system'
+
+/** A render built in code as two strings: what goes in the system instructions, and what goes in the user message. */
+export type RenderedParts = { system: string; user: string }
+
+/** The one join of a render's parts: the system part, a blank line, then the user part. A piece's `render` is this join. */
+export const joinParts = ({ system, user }: RenderedParts): string => `${system}\n\n${user}`
+
+/**
+ * One cell's prompt after the draft's instructions. Without parts (user delivery), the instructions, a blank line, then the render, in one
+ * user message. With parts (system delivery), the instructions, a blank line, then the system part as system instructions, and the user
+ * part as the user message: the same text in the same order, in two messages.
+ */
+export const promptFor = (instructions: string, { rendered, parts }: { rendered: string; parts?: RenderedParts }): { prompt: string; system?: string } => (
+    parts === undefined
+        ? { prompt: `${instructions}\n\n${rendered}` }
+        : { system: `${instructions}\n\n${parts.system}`, prompt: parts.user }
+)
+
 /** The shared part of a cell: its inputs, where it was lifted from, and a note for the reader. */
 type PieceCellBase<Inputs> = {
     inputs: Inputs
@@ -39,6 +62,8 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
     parseOptions: (value: unknown) => Options | string
     /** The prompt text after the instructions. Async, so it can build a fixture's scene. */
     render: (cell: PieceCell<Inputs>, options: Options) => Promise<string>
+    /** The render as its two parts, built in code, for `delivery: 'system'`. Where present, `render` is `joinParts` of these, byte for byte. */
+    renderParts?: (cell: PieceCell<Inputs>, options: Options) => Promise<RenderedParts>
     /** An answer code gives without a call, such as for an empty window; `undefined` when the cell needs a call. */
     byCode?: (cell: PieceCell<Inputs>) => string | undefined
     /**
@@ -62,6 +87,8 @@ export type ReadPiece<Inputs = unknown, Options = unknown> = {
     check: (reply: string, cell: ReadPieceCell<Inputs>, rendered: string, options: Options) => string[]
     parseOptions: (value: unknown) => Options | string
     render: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<string>
+    /** The render as its two parts, built in code, for `delivery: 'system'`. Where present, `render` is `joinParts` of these, byte for byte. */
+    renderParts?: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<RenderedParts>
     /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
     maxTokens?: number
 }

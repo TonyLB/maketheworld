@@ -39,6 +39,8 @@ export type InvokeBedrockConverseTextParams = {
     extendedThinking?: boolean;
     /** Used with `extendedThinking` for Nova only; defaults to `medium`. */
     reasoningEffort?: NovaReasoningEffort;
+    /** System instructions, sent as Converse's `system: [{ text }]`. Absent, the request carries no `system` key. */
+    system?: string;
 }
 
 let defaultClient: BedrockRuntimeClient | undefined
@@ -125,6 +127,7 @@ export async function invokeBedrockConverseText(
         client: clientOpt,
         extendedThinking = false,
         reasoningEffort = 'medium',
+        system,
     } = params
 
     const client = clientOpt ?? getDefaultClient()
@@ -147,6 +150,10 @@ export async function invokeBedrockConverseText(
             maxTokens,
             temperature,
         },
+    }
+
+    if (system !== undefined) {
+        input.system = [{ text: system }]
     }
 
     if (extendedThinking && isAmazonNovaConverseModelId(modelId)) {

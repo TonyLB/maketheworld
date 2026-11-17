@@ -1,6 +1,6 @@
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from './handlePieceProbe'
-import { registerFamily, registerPiece, type RegistryEntry } from './oraclePiece'
+import { joinParts, registerFamily, registerPiece, type RegistryEntry } from './oraclePiece'
 
 /** A toy piece: a cell's inputs are a word, rendered as a line; an empty word is answered `no` by code. */
 const TOY = registerPiece<{ word: string }, { shout: boolean }>({
@@ -352,6 +352,79 @@ describe('handlePieceProbe', () => {
             const invoke = invokeReplying(() => 'second')
             expect(body(await ask({ options: { stage: 'second', from: 'a' }, repeats: 13 }, invoke)).error).toMatch(/2 called cells x 13 repeats = 26 calls, over the cap of 24/)
             expect(body(await ask({ options: { stage: 'first' }, cells: ['B'] }, invoke)).error).toMatch(/cells must be a non-empty list of toyFamily first's cell IDs: A/)
+            expect(invoke).not.toHaveBeenCalled()
+        })
+    })
+
+    describe('delivery', () => {
+        /** A toy whose render is built as two parts in code: the scene for the system part, the question for the user part. */
+        const PARTS = ({ inputs: { word } }: { inputs: { word: string } }) => ({ system: `Scene: ${word}`, user: `Question: ${word}?` })
+        const SPLIT = registerPiece<{ word: string }, undefined>({
+            name: 'split',
+            answers: ['yes', 'no'],
+            cells: {
+                A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
+                B: { inputs: { word: 'brick' }, expected: 'no', source: 'hand-written' },
+            },
+            parseOptions: () => undefined,
+            render: async (cell) => joinParts(PARTS(cell)),
+            renderParts: async (cell) => PARTS(cell),
+        })
+        const SPLIT_READ = registerPiece<{ word: string }, undefined>({
+            kind: 'read',
+            name: 'splitRead',
+            cells: { A: { inputs: { word: 'apple' }, lookFor: 'mentions fruit', source: 'hand-written' } },
+            check: () => [],
+            parseOptions: () => undefined,
+            render: async (cell) => joinParts(PARTS(cell)),
+            renderParts: async (cell) => PARTS(cell),
+        })
+        const withSplit: Record<string, RegistryEntry> = { ...pieces, split: SPLIT, splitRead: SPLIT_READ }
+        const paramsOf = (invoke: ReturnType<typeof invokeReplying>, call: number) => invoke.mock.calls[call][0]
+
+        it('sends the instructions and the system part as system instructions, and the user part as the user message, under system delivery', async () => {
+            const invoke = invokeReplying(() => 'Answer: yes')
+            const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'split', cells: ['A'], instructions: INSTRUCTIONS, delivery: 'system' }, { invoke, pieces: withSplit }))
+            expect(paramsOf(invoke, 0).system).toBe(`${INSTRUCTIONS}\n\nScene: apple`)
+            expect(promptOf(invoke, 0)).toBe('Question: apple?')
+            expect(result.delivery).toBe('system')
+            expect(result.summary).toMatchObject({ calls: 1, right: 1 })
+        })
+
+        it('sends one user message with no system instructions by default, the instructions then the parts joined', async () => {
+            const invoke = invokeReplying(() => 'Answer: yes')
+            const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'split', cells: ['A'], instructions: INSTRUCTIONS }, { invoke, pieces: withSplit }))
+            expect('system' in paramsOf(invoke, 0)).toBe(false)
+            expect(promptOf(invoke, 0)).toBe(`${INSTRUCTIONS}\n\nScene: apple\n\nQuestion: apple?`)
+            expect(result.delivery).toBe('user')
+        })
+
+        it('gives the same inputs hashes under both deliveries, since the text is the same', async () => {
+            const run = async (delivery: string) => body(await handlePieceProbe(
+                { type: 'PieceProbe', piece: 'split', cells: ['A', 'B'], instructions: INSTRUCTIONS, delivery }, { invoke: invokeReplying(() => 'Answer: yes'), pieces: withSplit },
+            ))
+            const hashes = (result: { cells: { inputs: { hash: string } }[] }) => result.cells.map(({ inputs }) => inputs.hash)
+            expect(hashes(await run('system'))).toEqual(hashes(await run('user')))
+        })
+
+        it('delivers a read piece\'s parts the same way, and reports the delivery', async () => {
+            const invoke = invokeReplying(() => 'fine')
+            const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'splitRead', instructions: INSTRUCTIONS, delivery: 'system' }, { invoke, pieces: withSplit }))
+            expect(paramsOf(invoke, 0).system).toBe(`${INSTRUCTIONS}\n\nScene: apple`)
+            expect(promptOf(invoke, 0)).toBe('Question: apple?')
+            expect(result.delivery).toBe('system')
+        })
+
+        it.each([
+            [{ piece: 'toy', cells: ['A'], delivery: 'system' }, /delivery system needs a piece that renders its two parts: toy has no renderParts/],
+            [{ piece: 'toyRead', delivery: 'system' }, /toyRead has no renderParts/],
+            [{ piece: 'toyFamily', options: { stage: 'first' }, delivery: 'system' }, /toyFamily's first stage has no renderParts/],
+            [{ piece: 'split', delivery: 'assistant' }, /delivery must be user or system/],
+        ])('refuses %j before any call', async (event, error) => {
+            const invoke = invokeReplying(() => 'Answer: yes')
+            const response = await handlePieceProbe({ type: 'PieceProbe', instructions: INSTRUCTIONS, ...event }, { invoke, pieces: withSplit })
+            expect(response.statusCode).toBe(400)
+            expect(body(response).error).toMatch(error)
             expect(invoke).not.toHaveBeenCalled()
         })
     })

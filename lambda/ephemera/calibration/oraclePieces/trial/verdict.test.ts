@@ -3,9 +3,10 @@ import { handlePieceProbe } from '../../pieceProbe/handlePieceProbe'
 import { pieces } from '../../pieceProbe/pieces'
 import { stageValueHash } from '../../pieceProbe/stageInput'
 import { nonRuleCellCells } from '../nonRuleCell'
-import { rebuttalContract, renderTrialRebuttal, trialRebuttalCells } from './rebuttal'
+import { joinParts } from '../../pieceProbe/oraclePiece'
+import { rebuttalContract, renderArguedParts, renderTrialRebuttal, trialRebuttalCells } from './rebuttal'
 import { trialCases } from './trialCases'
-import { gradeTrialVerdict, renderTrialVerdict, trialVerdict, trialVerdictCells, verdictContract } from './verdict'
+import { gradeTrialVerdict, judgedPair, renderTrialVerdict, renderTrialVerdictParts, trialVerdict, trialVerdictCells, verdictContract } from './verdict'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
 
@@ -51,6 +52,17 @@ describe('the trial\'s verdict stage', () => {
             ].join(''))
             expect(text).toContain('The question the argument answers: Is [table1] too large and heavy to be picked up by a single person?\n\n<argues-plan-cannot-happen>')
             expect(text).not.toContain('glued')
+        })
+
+        it('is its two parts joined, for every cell: the scene, request and steps as the system part, and the question onward as the user part', async () => {
+            for (const [id, cell] of Object.entries(trialVerdictCells)) {
+                const parts = await renderTrialVerdictParts(cell, LIFTED)
+                const argued = await renderArguedParts(cell, judgedPair(cell, LIFTED).argument)
+                expect([id, await renderTrialVerdict(cell, LIFTED)]).toEqual([id, joinParts(parts)])
+                expect([id, parts.system]).toEqual([id, argued.scene])
+                expect([id, parts.user.startsWith(`${argued.question}\n\n<argues-plan-cannot-happen>\n`)]).toEqual([id, true])
+            }
+            expect((await renderTrialVerdictParts(oc1, LIFTED)).user.startsWith('The question the argument answers: ')).toBe(true)
         })
 
         it('refuses golden, since no golden rebuttal is written yet', async () => {

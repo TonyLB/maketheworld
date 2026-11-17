@@ -8,7 +8,7 @@
 // argued in, with the securing omitted, and the two sides each in a tag naming its stance on the plan (draft 5). Code grades each reply against the cell's expected answer, through the stage's contract.
 //
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
-import { registerPiece, type OraclePiece, type PieceCell } from '../../pieceProbe/oraclePiece'
+import { joinParts, registerPiece, type OraclePiece, type PieceCell, type RenderedParts } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickPaired, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
 import type { NonRuleCellInputs } from '../nonRuleCell'
@@ -64,15 +64,24 @@ export const ARGUES_CAN = 'argues-plan-can-happen'
 const tagged = (tag: string, text: string): string => `<${tag}>\n${text}\n</${tag}>`
 
 /**
- * The scene with the securing omitted and the question, each in its own section as the rebuttal's render has them; then the two sides,
- * each in its own tag (draft 5): the argument naming its step in `<argues-plan-cannot-happen>`, the rebuttal in `<argues-plan-can-happen>`.
- * The question stays outside both, the neutral yardstick.
+ * The render's two parts (AGENT.trialQuestion.planning.md, step 0.5). The system part is the scene with the securing omitted, with the
+ * request and its steps: the system's own record, not argued material. The user part is the question, then the two sides, each in its
+ * own tag (draft 5): the argument naming its step in `<argues-plan-cannot-happen>`, the rebuttal in `<argues-plan-can-happen>`. The
+ * question stays outside both, the neutral yardstick, and goes with the argued text since a later stage writes it.
  */
-export const renderTrialVerdict = async (cell: PieceCell<TrialVerdictInputs>, options: UpstreamOptions): Promise<string> => {
+export const renderTrialVerdictParts = async (cell: PieceCell<TrialVerdictInputs>, options: UpstreamOptions): Promise<RenderedParts> => {
     const { argument, rebuttal } = judgedPair(cell, options)
     const parts = await renderArguedParts(cell, argument)
-    return [parts.scene, parts.question, `${tagged(ARGUES_CANNOT, parts.argument)}\n${tagged(ARGUES_CAN, `${REBUTTAL_LINE}${rebuttal.rebuttal}`)}`].join('\n\n')
+    return {
+        system: parts.scene,
+        user: [parts.question, `${tagged(ARGUES_CANNOT, parts.argument)}\n${tagged(ARGUES_CAN, `${REBUTTAL_LINE}${rebuttal.rebuttal}`)}`].join('\n\n'),
+    }
 }
+
+/** The whole render: its two parts joined, the scene, the question and the two sides, each in its own section. */
+export const renderTrialVerdict = async (cell: PieceCell<TrialVerdictInputs>, options: UpstreamOptions): Promise<string> => (
+    joinParts(await renderTrialVerdictParts(cell, options))
+)
 
 /** The trial's cells, each with both upstream stages, the verdict's expected answer (absent where open) and its look-for. */
 export const trialVerdictCells: Record<string, PieceCell<TrialVerdictInputs>> = Object.fromEntries(
@@ -91,6 +100,7 @@ export const trialVerdict: OraclePiece<TrialVerdictInputs, UpstreamOptions> = {
     cells: trialVerdictCells,
     parseOptions: parseUpstreamOptions,
     render: renderTrialVerdict,
+    renderParts: renderTrialVerdictParts,
     grade: gradeTrialVerdict,
     maxTokens: 400,
 }

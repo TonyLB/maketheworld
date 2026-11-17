@@ -166,6 +166,30 @@ describe('invokeBedrockConverseText', () => {
         expect(commandArg.input?.additionalModelRequestFields).toBeUndefined()
     })
 
+    it('sends system instructions as Converse system text when given', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: { message: { content: [{ text: 'ok' }] } },
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        await invokeBedrockConverseText({ ...baseParams, client, system: 'You are the judge.' })
+
+        const commandArg = send.mock.calls[0][0] as { input?: Record<string, unknown> }
+        expect(commandArg.input?.system).toEqual([{ text: 'You are the judge.' }])
+    })
+
+    it('omits the system key when no system instructions are given', async () => {
+        const send = jest.fn().mockResolvedValue({
+            output: { message: { content: [{ text: 'ok' }] } },
+        })
+        const client = { send } as unknown as BedrockRuntimeClient
+
+        await invokeBedrockConverseText({ ...baseParams, client })
+
+        const commandArg = send.mock.calls[0][0] as { input?: Record<string, unknown> }
+        expect(commandArg.input !== undefined && 'system' in commandArg.input).toBe(false)
+    })
+
     it('fails before calling Bedrock when extendedThinking is true for a non-Nova model', async () => {
         const send = jest.fn()
         const client = { send } as unknown as BedrockRuntimeClient
