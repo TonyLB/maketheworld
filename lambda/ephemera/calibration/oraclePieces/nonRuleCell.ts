@@ -6,6 +6,7 @@
 // blame) or `needs detail` of the action or of its consequences, each with what it establishes. Code matches each quote, so the piece
 // never gives a number, applies the first-non-works rule, and grades by a canonical answer string.
 //
+import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
@@ -189,13 +190,17 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
 /** How a piece on these inputs shows the securing: as the scene has it (the default), or left out (`withoutSecuring`). */
 export type SecuringShown = 'shown' | 'omitted'
 
+/** Which render the scene takes: the judge render, Fiction and Graph (the default), or the explicit render (AGENT.trialQuestion.planning.md, step 0). */
+export type SceneRender = 'judge' | 'explicit'
+
 /**
  * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
  * consequence lines indented under it. With `securing: 'omitted'`, the scene's securing is left out as well (the trial's case against).
+ * With `scene: 'explicit'`, the scene is the explicit render (`renderSceneExplicit`) in place of the Fiction and the Graph (the ruling).
  */
 export const renderNonRuleCell = async (
     { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
-    { securing = 'shown' }: { securing?: SecuringShown } = {},
+    { securing = 'shown', scene: sceneRender = 'judge' }: { securing?: SecuringShown; scene?: SceneRender } = {},
 ): Promise<string> => {
     if (steps.length === 0) {
         throw new Error('No steps')
@@ -215,12 +220,13 @@ export const renderNonRuleCell = async (
     if (twice.length > 0) {
         throw new Error(`Lines a quote can't tell apart: ${twice.map(({ says }) => says).join('; ')}`)
     }
-    const { fiction, graph } = judgeSceneSections(full)
+    const judged = (): string => {
+        const { fiction, graph } = judgeSceneSections(full)
+        return [`Scene: ${heading(full)}`, fiction, graph, 'End of scene.'].join('\n\n')
+    }
+    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full) : judged()
     return [
-        `Scene: ${heading(full)}`,
-        fiction,
-        graph,
-        'End of scene.',
+        sceneBlock,
         `The player's request: ${request}`,
         [
             'The steps, in order:',

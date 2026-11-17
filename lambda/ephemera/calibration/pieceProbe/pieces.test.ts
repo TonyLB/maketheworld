@@ -1,7 +1,7 @@
 import { pieces } from './pieces'
 
 describe('pieces', () => {
-    it('lists the oracle\'s pieces: the rule and non-rule cells and scene reading, answered, the step considerations, read, and the trial, a family of two read stages and an answered one; and the imagination\'s play-by-play and consequences, read', () => {
+    it('lists the oracle\'s pieces: the rule and non-rule cells and scene reading, answered, the step considerations, read, and the trial, a family of two read stages and two answered ones; and the imagination\'s play-by-play and consequences, read', () => {
         expect(Object.keys(pieces).sort()).toEqual(['consequences', 'nonRuleCell', 'playByPlay', 'ruleCell', 'sceneReading', 'stepConsiderations', 'trial'])
         expect(pieces.ruleCell.kind ?? 'answered').toBe('answered')
         expect(pieces.nonRuleCell.kind ?? 'answered').toBe('answered')
@@ -11,6 +11,6 @@ describe('pieces', () => {
         expect(pieces.stepConsiderations.kind).toBe('read')
         const { trial } = pieces
         expect(trial.kind).toBe('family')
-        expect(trial.kind === 'family' && Object.entries(trial.stages).map(([stage, { kind }]) => [stage, kind ?? 'answered'])).toEqual([['against', 'read'], ['rebuttal', 'read'], ['verdict', 'answered']])
+        expect(trial.kind === 'family' && Object.entries(trial.stages).map(([stage, { kind }]) => [stage, kind ?? 'answered'])).toEqual([['against', 'read'], ['rebuttal', 'read'], ['verdict', 'answered'], ['ruling', 'answered']])
     })
 })
