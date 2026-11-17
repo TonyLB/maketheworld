@@ -104,6 +104,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - the knock-on hedged as conditional (CQ-P1), and the method questioned once (CQ-P3);
      - the block: one entry per thing on OC-30/2 3 of 3 (PB-P1), and the markdown headings and length.
    - Exits as step 2's.
+   - **The judging pieces' reaction** (2026-11-17, from the [trial question plan](AGENT.trialQuestion.planning.md)'s step 2, stopped there by the user). Every hop failure was about state across steps, not knowledge of the world. On the golden question, h10's judge left step 1's state unused. The case against's questions about h5 and h10 asked whether a thing *is* so before the plan, which the scene leaves open, instead of whether it is *still* so at the step that needs it. Where the plan stated the consequence as a line (h7's slide), the right question came once the case against was pointed at state (batch 28). **The user's direction:** the next attempt is a more capable representation of actions (actions, their intent, their consequences with the intended ones marked, and room for contested and supported claims), with this ask and `playByPlay` revised to produce it. Its design and home are next, with the user.
 4. [ ] **Booked, not designed:** the alternate method, the mitigation and the slot filler. Each starts from a corpus case: OC-30's alternate method (tip the table, after the glue is flagged), OC-30/3's mitigation (the saucer off first) and OC-7's slot filler (a cloth for wipe [table1]).
 5. [ ] **Hand back to the parent:**
    - seam-ledger entries for each ask built, and for step 1's revision trigger;
@@ -149,7 +150,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | The folder split and an ask per piece | Done 2026-11-11 |
 | The sort, before either ask is tuned | Done 2026-11-11, exit (d): both asks tune forward from the split |
 | `playByPlay`, the more-detail ask | Done 2026-11-12 at exit (d) with draft 14; flags and form held for the judging pieces. Draft 12 (PB-L23) not kept; draft 13 (PB-L24, "each fact established") kept, batch 14: OC-1 3 of 3, form 5 of 12, OC-20 still 1 of 3; draft 14 (PB-L25, help or hinder; user, 2026-11-11) run as batch 15 (2026-11-12): every method at step 1.5's bar, no attempts; mishaps up, the form 3 of 12. Exit (d)'s revision trigger not fired (OC-1 recovered within the checkpoint). Draft 14 kept (user, 2026-11-12) |
-| `consequences`, the other-things ask | Held for the judging pieces (IM-4); resumes from step 1.5's draft 1, the cup gap first |
+| `consequences`, the other-things ask | Held for the judging pieces (IM-4); resumes from step 1.5's draft 1, the cup gap first. **The judging pieces' reaction arrived (2026-11-17):** the trial question plan's hops fail on state across steps (see step 3) |
 | The booked asks | Booked |
 | Hand back | Not started |
 

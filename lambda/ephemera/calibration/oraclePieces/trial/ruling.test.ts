@@ -7,6 +7,7 @@ import { pieces } from '../../pieceProbe/pieces'
 import { nonRuleCellCells } from '../nonRuleCell'
 import { gradeTrialRuling, renderTrialRuling, rulingContract, trialRuling, trialRulingCells } from './ruling'
 import { ARGUES_CAN, ARGUES_CANNOT } from './verdict'
+import { TRIAL_RULINGS, trialCases } from './trialCases'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
 
@@ -34,6 +35,7 @@ describe('the trial\'s ruling stage', () => {
             expect(text).not.toContain(ARGUES_CAN)
             expect(text).not.toContain('The argument')
             expect(text).not.toContain(h7.inputs.against.golden!.value.argument)
+            expect(text).not.toMatch(/blocking|blocks/)
         })
 
         it('renders every cell, its scene the explicit render of the fixture after `withoutSecuring`', async () => {
@@ -45,8 +47,18 @@ describe('the trial\'s ruling stage', () => {
             }
         })
 
-        it('refuses lifted, whose arguments have no question (the older contract)', async () => {
-            await expect(renderTrialRuling(h7, { upstream: 'lifted' })).rejects.toThrow('the lifted value doesn\'t fit the current contract: it has no question')
+        it('refuses a lifted argument recorded under an older contract: no question, or no blocking answer', async () => {
+            const { against } = h7.inputs
+            const lifted = (value: object) => ({ ...h7, inputs: { ...h7.inputs, against: { ...against, lifted: { value: { step: 'tip [table1]', argument: 'It falls.', ...value }, source: 'older' } } } })
+            await expect(renderTrialRuling(lifted({}), { upstream: 'lifted' })).rejects.toThrow('the lifted value doesn\'t fit the current contract: it has no question')
+            await expect(renderTrialRuling(lifted({ question: 'q?' }), { upstream: 'lifted' })).rejects.toThrow('the lifted value doesn\'t fit the current contract: it names no blocking answer')
+        })
+
+        it('asks the lifted question, batch 26\'s, on every cell', async () => {
+            for (const [id, cell] of Object.entries(trialRulingCells)) {
+                const text = await renderTrialRuling(cell, { upstream: 'lifted' })
+                expect([id, text.endsWith(`\n\nThe question: ${cell.inputs.against.lifted!.value.question}`)]).toEqual([id, true])
+            }
         })
 
         it('refuses an argument whose step isn\'t one of the plan\'s', async () => {
@@ -58,13 +70,21 @@ describe('the trial\'s ruling stage', () => {
 
     describe('the grade', () => {
         it.each([
-            [fence({ answer: 'yes' }), { answer: 'yes' }],
-            [fence({ answer: ' No ' }), { answer: 'no' }],
+            [fence({ answer: 'yes' }), { answer: 'allows' }],
+            [fence({ answer: ' No ' }), { answer: 'blocks' }],
             [fence({ answer: 'maybe' }), { malformed: '"maybe" is not one of yes, no' }],
             [fence({ ruling: 'yes' }), { malformed: 'has no string "answer"' }],
             ['The cup is on the floor.\nAnswer: no', { malformed: 'no JSON block' }],
-        ])('reads the block\'s answer through the contract: %j', async (reply, grade) => {
+        ])('reads the block\'s answer through the contract, then through h7\'s blocking answer (no) into the outcome: %j', async (reply, grade) => {
             expect(gradeTrialRuling(reply, h7, await renderTrialRuling(h7, GOLDEN), GOLDEN)).toEqual(grade)
+        })
+
+        it('grades a question of either polarity by the plan\'s outcome: the same answer blocks under one argument and allows under the other', async () => {
+            const golden = h7.inputs.against.golden!.value
+            const flipped = { ...h7, inputs: { ...h7.inputs, against: { golden: { value: { ...golden, question: 'Is [cup1] now out of [teapot1]\'s reach?', blocking: 'yes' as const } } } } }
+            const yes = fence({ answer: 'yes' })
+            expect(gradeTrialRuling(yes, h7, '', GOLDEN)).toEqual({ answer: 'allows' })
+            expect(gradeTrialRuling(yes, flipped, '', GOLDEN)).toEqual({ answer: 'blocks' })
         })
 
         it('is the contract\'s parse', () => {
@@ -73,9 +93,15 @@ describe('the trial\'s ruling stage', () => {
     })
 
     describe('its cells', () => {
-        it('are the non-rule cell\'s eleven, each with a look-for, and the expected answers of QS-1, h10 yes', () => {
+        it('are the non-rule cell\'s eleven, each with a look-for, and the expected outcomes: QS-1\'s answers (h10 yes) read through the golden blocking answers', () => {
             expect(Object.keys(trialRulingCells).sort()).toEqual(Object.keys(nonRuleCellCells).sort())
             expect(Object.fromEntries(Object.entries(trialRulingCells).map(([id, { expected }]) => [id, expected]))).toEqual({
+                'OC-11': 'blocks', 'OC-18': 'blocks', 'OC-3': 'blocks',
+                'OC-1': 'allows', 'OC-20': 'allows', 'OC-2': 'allows', 'OC-6': 'allows',
+                'OC-30/h5': 'blocks', 'OC-30/h7': 'blocks', 'OC-30/h10': 'allows',
+                'OC-9': undefined,
+            })
+            expect(Object.fromEntries(Object.entries(trialCases).map(([id, { expected }]) => [id, expected.ruling]))).toEqual({
                 'OC-11': 'yes', 'OC-18': 'yes', 'OC-3': 'yes',
                 'OC-1': 'no', 'OC-20': 'no', 'OC-2': 'no', 'OC-6': 'no',
                 'OC-30/h5': 'no', 'OC-30/h7': 'no', 'OC-30/h10': 'yes',
@@ -86,6 +112,23 @@ describe('the trial\'s ruling stage', () => {
             }
             expect(trialRulingCells['OC-30/h5'].note).toMatch(/^Read apart/)
             expect(trialRulingCells['OC-30/h10'].note).toMatch(/^Read apart/)
+        })
+
+        it('expect the non-rule cell\'s outcome wherever it expects allows or blocks; h5 alone differs, needs detail there, blocks in the scene shown (the glue omitted)', () => {
+            const differ = Object.entries(trialRulingCells)
+                .filter(([id, { expected }]) => expected !== undefined && !nonRuleCellCells[id].expected?.startsWith(expected))
+                .map(([id]) => [id, nonRuleCellCells[id].expected])
+            expect(differ).toEqual([['OC-30/h5', 'needs detail of consequences 1']])
+        })
+
+        it('grade the golden questions exactly as batches 22 and 23a did: the outcome is right when, and only when, the answer is QS-1\'s', () => {
+            for (const [id, cell] of Object.entries(trialRulingCells)) {
+                const expected = trialCases[id].expected.ruling
+                for (const answer of TRIAL_RULINGS) {
+                    const { answer: outcome } = gradeTrialRuling(fence({ answer }), cell, '', GOLDEN) as { answer: string }
+                    expect([id, answer, cell.expected === undefined ? undefined : outcome === cell.expected]).toEqual([id, answer, expected === undefined ? undefined : answer === expected])
+                }
+            }
         })
     })
 
@@ -105,11 +148,16 @@ describe('the trial\'s ruling stage', () => {
         expect(result.summary).toMatchObject({ calls: 11, malformed: 0, ungraded: 1, right: 9, wrong: 1 })
     })
 
-    it('has the probe refuse a lifted payload before any call, and system delivery, since it has no parts', async () => {
+    it('runs a lifted payload, graded by outcome through each lifted blocking answer', async () => {
+        // Every lifted question blocks on no, so a stub answering no blocks everywhere: right on the five that block, wrong on the five that allow.
+        const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: true as const, body: fence({ answer: 'no' }) }))
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Answer it.', options: { stage: 'ruling', upstream: 'lifted' }, repeats: 1 }, { invoke, pieces })
+        expect(response.statusCode).toBe(200)
+        expect(JSON.parse(response.body).summary).toMatchObject({ calls: 11, malformed: 0, ungraded: 1, right: 5, wrong: 5 })
+    })
+
+    it('has the probe refuse system delivery before any call, since it has no parts', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>()
-        const lifted = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Answer it.', options: { stage: 'ruling', upstream: 'lifted' } }, { invoke, pieces })
-        expect(lifted.statusCode).toBe(400)
-        expect(JSON.parse(lifted.body).error).toMatch(/the render failed \(the lifted value doesn't fit the current contract: it has no question\)/)
         const system = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Answer it.', options: { stage: 'ruling', ...GOLDEN }, delivery: 'system' }, { invoke, pieces })
         expect(system.statusCode).toBe(400)
         expect(invoke).not.toHaveBeenCalled()

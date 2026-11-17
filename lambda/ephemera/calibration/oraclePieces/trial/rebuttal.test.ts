@@ -2,7 +2,7 @@ import type { ProbeInvoke } from '../../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from '../../pieceProbe/handlePieceProbe'
 import { pieces } from '../../pieceProbe/pieces'
 import { nonRuleCellCells, renderNonRuleCell } from '../nonRuleCell'
-import { checkTrialRebuttal, evidenceLines, parseRebuttal, quotesALine, renderTrialRebuttal, trialRebuttal, trialRebuttalCells } from './rebuttal'
+import { checkTrialRebuttal, fitsCurrentContract, evidenceLines, parseRebuttal, quotesALine, renderTrialRebuttal, trialRebuttal, trialRebuttalCells } from './rebuttal'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
 
@@ -26,8 +26,16 @@ describe('the trial\'s rebuttal stage', () => {
             expect(text).not.toContain('glued')
         })
 
-        it('refuses a lifted argument, recorded under the older contract with no question', async () => {
-            await expect(renderTrialRebuttal(trialRebuttalCells['OC-1'], { upstream: 'lifted' })).rejects.toThrow('the lifted value doesn\'t fit the current contract: it has no question')
+        it('refuses a lifted argument recorded under the older contract, with no question', async () => {
+            const cell = trialRebuttalCells['OC-1']
+            const older = { ...cell.inputs.against, lifted: { value: { step: 'pick up [table1]', argument: 'The table is too large and heavy to be picked up by a single person.' }, source: 'trialAgainst batch 2' } }
+            await expect(renderTrialRebuttal({ ...cell, inputs: { ...cell.inputs, against: older } }, { upstream: 'lifted' })).rejects.toThrow('the lifted value doesn\'t fit the current contract: it has no question')
+        })
+
+        it('renders a lifted argument, batch 26\'s, with its question and without its blocking answer', async () => {
+            const text = await renderTrialRebuttal(trialRebuttalCells['OC-1'], { upstream: 'lifted' })
+            expect(text).toContain('The question the argument answers: Is [table1] Table stable and balanced on the floor?')
+            expect(text).not.toMatch(/blocking|blocks/)
         })
 
         it('refuses a cell with no value from the named source', async () => {
@@ -37,8 +45,9 @@ describe('the trial\'s rebuttal stage', () => {
         })
 
         it.each([
-            [{ step: 'the glue', argument: 'x', question: 'q?' }, 'The argument\'s step: "the glue" quotes nothing given'],
-            [{ step: 'pick up [table1]', argument: ' ', question: 'q?' }, 'No argument'],
+            [{ step: 'the glue', argument: 'x', question: 'q?', blocking: 'yes' as const }, 'The argument\'s step: "the glue" quotes nothing given'],
+            [{ step: 'pick up [table1]', argument: ' ', question: 'q?', blocking: 'yes' as const }, 'No argument'],
+            [{ step: 'pick up [table1]', argument: 'x', question: 'q?' }, 'the golden value doesn\'t fit the current contract: it names no blocking answer'],
         ])('refuses an argument that isn\'t fit to use: %j', async (value, message) => {
             const cell = trialRebuttalCells['OC-1']
             await expect(renderTrialRebuttal({ ...cell, inputs: { ...cell.inputs, against: { golden: { value } } } }, GOLDEN)).rejects.toThrow(message)
@@ -46,15 +55,19 @@ describe('the trial\'s rebuttal stage', () => {
     })
 
     describe('its cells', () => {
-        it('are the non-rule cell\'s eleven, each golden argument the lifted one adopted verbatim with a question, and render', async () => {
+        it('are the non-rule cell\'s eleven, each golden argument one lifted from draft 1 adopted verbatim with a question and its blocking answer, each lifted one from batch 26, and render without the blocking answer', async () => {
             expect(Object.keys(trialRebuttalCells).sort()).toEqual(Object.keys(nonRuleCellCells).sort())
             for (const [id, cell] of Object.entries(trialRebuttalCells)) {
                 const { golden, lifted } = cell.inputs.against
                 expect(cell.inputs.steps).toBe(nonRuleCellCells[id].inputs.steps)
-                expect(lifted?.source).toMatch(/^trialAgainst batch [12] /)
-                expect(golden?.value).toEqual({ ...lifted?.value, question: expect.stringMatching(/\?$/) })
+                expect(golden?.note).toMatch(/adopted from trialAgainst batch [12] /)
+                expect(golden?.value).toEqual({ step: expect.any(String), argument: expect.any(String), question: expect.stringMatching(/\?$/), blocking: expect.stringMatching(/^(yes|no)$/) })
+                expect(lifted?.source).toBe(`trialAgainst batch 26 (draft 2, the explicit scene, the securing omitted), repeat 1, cell ${id}`)
+                expect([id, fitsCurrentContract(lifted!.value)]).toEqual([id, undefined])
                 expect(cell.lookFor.trim()).not.toBe('')
-                await expect(trialRebuttal.render(cell, GOLDEN)).resolves.toContain(golden?.value.question)
+                const rendered = await trialRebuttal.render(cell, GOLDEN)
+                expect(rendered).toContain(golden?.value.question)
+                expect(rendered).not.toMatch(/blocking|blocks/)
             }
         })
 
@@ -196,11 +209,10 @@ describe('the trial\'s rebuttal stage', () => {
         expect(JSON.parse(response.body)).toMatchObject({ piece: 'trial', stage: 'rebuttal', options: GOLDEN, summary: { calls: 11, formFails: 0, errors: 0 } })
     })
 
-    it('has the probe refuse a lifted payload before any call, since no lifted argument has a question yet', async () => {
-        const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>()
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Rebut it.', options: { stage: 'rebuttal', upstream: 'lifted' } }, { invoke, pieces })
-        expect(response.statusCode).toBe(400)
-        expect(JSON.parse(response.body).error).toMatch(/the render failed \(the lifted value doesn't fit the current contract: it has no question\)/)
-        expect(invoke).not.toHaveBeenCalled()
+    it('has the probe render a lifted payload, every cell\'s argument now batch 26\'s, in the current contract', async () => {
+        const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: true as const, body: 'But.' }))
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'trial', instructions: 'Rebut it.', options: { stage: 'rebuttal', upstream: 'lifted' }, repeats: 1 }, { invoke, pieces })
+        expect(response.statusCode).toBe(200)
+        expect(invoke).toHaveBeenCalledTimes(11)
     })
 })

@@ -4,15 +4,33 @@
 // the rebuttal the verdict weighs), what a reader looks for in each stage's replies, each written before that stage's first batch, and
 // the verdict's expected answer. A stage's cells are derived from these.
 //
-import { stageValueHash, type StageInput } from '../../pieceProbe/stageInput'
+import type { StageInput } from '../../pieceProbe/stageInput'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
 import { nonRuleCellCells, type NonRuleCellInputs } from '../nonRuleCell'
 
+/** The ruling's answers (AGENT.trialQuestion.planning.md, step 1): the judge's answer to the question itself. */
+export const TRIAL_RULINGS = ['yes', 'no'] as const
+export type TrialRuling = typeof TRIAL_RULINGS[number]
+
 /**
- * An argument against the plan: the step it turns on, quoted, the argument, and the question it answers. The question is the case
- * against's current contract (rebuttal draft 3's test); the against stage doesn't give it yet, so a lifted argument has none and doesn't fit.
+ * An argument against the plan: the question it turns on, the answer to it that would make the plan impossible (`blocking`), the step
+ * it turns on, quoted, and the argument, why that answer does. The question and its blocking answer are the case against's current
+ * contract (AGENT.trialQuestion.planning.md, step 2; QS-2, the user's: the blocking answer is given, so a rebuttal can attack the
+ * inference). An argument recorded under an older contract lacks them, so it doesn't fit.
  */
-export type TrialArgument = { step: string; argument: string; question?: string }
+export type TrialArgument = { step: string; argument: string; question?: string; blocking?: TrialRuling }
+
+/** What the rebuttal is shown of an argument: its step, argument and question, not `blocking`. A lifted rebuttal's consumed hash is over this. */
+export const arguedAsRebutted = ({ step, argument, question }: TrialArgument): Pick<TrialArgument, 'step' | 'argument' | 'question'> => ({ step, argument, question })
+
+/**
+ * The plan's outcome as the ruling decides it (AGENT.trialQuestion.planning.md, step 2): `blocks` when the judge's answer is the one the
+ * argument says blocks, otherwise `allows`.
+ */
+export const TRIAL_OUTCOMES = ['blocks', 'allows'] as const
+export type TrialOutcome = typeof TRIAL_OUTCOMES[number]
+
+export const rulingOutcome = (answer: TrialRuling, blocking: TrialRuling): TrialOutcome => (answer === blocking ? 'blocks' : 'allows')
 
 /** A rebuttal of an argument: its one sentence, and that sentence parsed by branch (draft 5). */
 export type TrialRebuttalReply = { rebuttal: string; parsed: ParsedRebuttal }
@@ -20,10 +38,6 @@ export type TrialRebuttalReply = { rebuttal: string; parsed: ParsedRebuttal }
 /** The verdict's answers: which of the two is right about the argument's question. */
 export const TRIAL_VERDICTS = ['argument', 'rebuttal'] as const
 export type TrialVerdict = typeof TRIAL_VERDICTS[number]
-
-/** The ruling's answers (AGENT.trialQuestion.planning.md, step 1): the judge's answer to the question itself. */
-export const TRIAL_RULINGS = ['yes', 'no'] as const
-export type TrialRuling = typeof TRIAL_RULINGS[number]
 
 /** One cell of the trial: the non-rule cell's part, each later stage's input, and a look-for (and, where needed, a note) per stage. */
 export type TrialCase = {
@@ -50,15 +64,36 @@ export type TrialCase = {
 type CellId = keyof typeof nonRuleCellCells
 
 const AGAINST_OMITTED = 'trialAgainst batch 2 (draft 1, the securing omitted), repeat 1'
-const ADOPTED = 'an interim golden (the user, 2026-11-15): the lifted argument adopted verbatim, with a hand-written question'
+const ADOPTED = 'an interim golden (the user, 2026-11-15): the lifted argument adopted verbatim, with a hand-written question and, from step 2, the answer to it that blocks'
+
+const AGAINST_BATCH_26 = 'trialAgainst batch 26 (draft 2, the explicit scene, the securing omitted), repeat 1'
 
 /**
- * The argument from both sources. The golden is the lifted argument adopted verbatim with its question, so rebuttal draft 3's test
- * changed only the question against batch 4. The lifted value has no question, the older contract, so a `lifted` payload refuses it.
+ * The arguments lifted from batch 26 (AGENT.trialQuestion.planning.md, step 2), per cell: repeat 1, the step as the reply quoted it,
+ * with no choosing by quality (h5's step carries its own quotation marks). Every reply passed the parse.
  */
-const argued = (id: CellId, step: string, argument: string, question: string, source = AGAINST_OMITTED): StageInput<TrialArgument> => ({
-    golden: { value: { step, argument, question }, note: ADOPTED },
-    lifted: { value: { step, argument }, source: `${source}, cell ${id}` },
+const LIFTED_ARGUMENTS: Record<CellId, Required<TrialArgument>> = {
+    'OC-11': { question: 'Is [table1] small enough to fit inside [cup1]?', blocking: 'no', step: 'put [table1] in [cup1]', argument: 'The table is too large to fit inside the cup.' },
+    'OC-18': { question: 'Can [table1] physically fit into [cup1]?', blocking: 'no', step: 'hammer [table1] into [cup1]', argument: 'The table is too large to fit into the cup.' },
+    'OC-3': { question: 'Is [table1] small enough to fit inside [cup1]?', blocking: 'no', step: 'put [table1] in [cup1]', argument: 'The table is too large to fit inside the cup.' },
+    'OC-1': { question: 'Is [table1] Table stable and balanced on the floor?', blocking: 'no', step: 'pick up [table1]', argument: 'If [table1] is not stable and balanced, it cannot be picked up without tipping over.' },
+    'OC-2': { question: 'Is [cup1] on a stable surface that allows it to be picked up without any obstruction?', blocking: 'no', step: 'pick up [cup1]', argument: 'If [cup1] is not on a stable surface, it cannot be picked up without risk of spilling or knocking over other objects.' },
+    'OC-20': { question: 'Is the table [table1] lightweight enough to be easily lifted by a single person?', blocking: 'no', step: 'pick up [table1]', argument: 'If the table is not lightweight, it cannot be easily lifted by a single person.' },
+    'OC-6': { question: 'Is [teapot1] currently in a stable position on [table1]?', blocking: 'no', step: 'pour [tea2] from [teapot1] into [cup1]', argument: 'If [teapot1] is not stable, it cannot be used to pour tea without spilling.' },
+    'OC-30/h5': { question: 'Is [teapot1] securely positioned on [table1]?', blocking: 'no', step: '"tip [table1]"', argument: 'If [teapot1] is not securely positioned, tipping [table1] will likely spill [tea2] out of [teapot1], preventing it from being poured into [cup1].' },
+    'OC-30/h7': { question: 'Is [teapot1] securely positioned on [table1]?', blocking: 'no', step: 'tip [table1]', argument: 'If [teapot1] is not securely positioned, tipping [table1] will not allow [teapot1] to pour [tea2] into [cup1] as it will likely spill or not move with [table1].' },
+    'OC-30/h10': { question: 'Is [teapot1] securely positioned on [table1]?', blocking: 'no', step: 'tip [table1]', argument: 'If [teapot1] is not securely positioned, tipping [table1] will cause [teapot1] to spill its contents, preventing the pouring of tea.' },
+    'OC-9': { question: 'Can the table be lifted without any objects on it?', blocking: 'no', step: 'pick up [table1]', argument: 'The table cannot be lifted because it has objects on it that would either slide off or break the table.' },
+}
+
+/**
+ * The argument from both sources. The golden is an argument lifted from draft 1 (`adoptedFrom`, batch 2 or 1) adopted verbatim with its
+ * question, so rebuttal draft 3's test changed only the question against batch 4, and its blocking answer (mine, from QS-1's table, step
+ * 2), so each golden's outcome is its expected ruling read through `blocking`. The lifted value is batch 26's, in the current contract.
+ */
+const argued = (id: CellId, step: string, argument: string, question: string, blocking: TrialRuling, adoptedFrom = AGAINST_OMITTED): StageInput<TrialArgument> => ({
+    golden: { value: { step, argument, question, blocking }, note: `${ADOPTED}; adopted from ${adoptedFrom}, cell ${id}` },
+    lifted: { value: LIFTED_ARGUMENTS[id], source: `${AGAINST_BATCH_26}, cell ${id}` },
 })
 
 const TABLE_IN_CUP = 'put [table1] in [cup1]'
@@ -77,22 +112,22 @@ const SOUND = 'the argument is sound: nothing true refutes it, so read what the 
  */
 const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' | 'notes'>> = {
     'OC-11': {
-        against: argued('OC-11', TABLE_IN_CUP, TOO_LARGE, TOO_LARGE_Q),
+        against: argued('OC-11', TABLE_IN_CUP, TOO_LARGE, TOO_LARGE_Q, 'yes'),
         lookFor: { against: 'the size: [table1] is far too big to go into [cup1]', rebuttal: `${SOUND}; an invented smallness or a "not established" size`, verdict: 'the argument: the rebuttal\'s "small enough to fit inside the cup" is visibly false; does the description state the size, or echo the rebuttal (anchoring)?', ruling: 'yes: a table is far too big to go into a cup; does the description compare the two sizes, or read "small" as small enough (TR-P16)?' },
         expected: { verdict: 'argument', ruling: 'yes' },
     },
     'OC-18': {
-        against: argued('OC-18', 'hammer [table1] into [cup1]', 'The table is too large and structurally unsuited to fit into the cup.', 'Is [table1] too large and structurally unsuited to fit into [cup1]?'),
+        against: argued('OC-18', 'hammer [table1] into [cup1]', 'The table is too large and structurally unsuited to fit into the cup.', 'Is [table1] too large and structurally unsuited to fit into [cup1]?', 'yes'),
         lookFor: { against: 'the size, which no hammering changes', rebuttal: `${SOUND}; hammering offered as changing the size`, verdict: 'the argument: "the cup is large enough to accommodate the table" is visibly false; hammering changes nothing', ruling: 'yes: a table is far too big to go into a cup, and hammering changes nothing; does the description compare the two sizes?' },
         expected: { verdict: 'argument', ruling: 'yes' },
     },
     'OC-3': {
-        against: argued('OC-3', TABLE_IN_CUP, TOO_LARGE, TOO_LARGE_Q),
+        against: argued('OC-3', TABLE_IN_CUP, TOO_LARGE, TOO_LARGE_Q, 'yes'),
         lookFor: { against: 'the size, not [cup1] being on [table1]', rebuttal: `${SOUND}; an invented smallness or a "not established" size`, verdict: 'the argument: "small enough to fit inside the cup" is visibly false; the cup being on the table is beside the point', ruling: 'yes: a table is far too big to go into a cup; the cup being on the table is beside the point' },
         expected: { verdict: 'argument', ruling: 'yes' },
     },
     'OC-1': {
-        against: argued('OC-1', 'pick up [table1]', TOO_HEAVY, TOO_HEAVY_Q),
+        against: argued('OC-1', 'pick up [table1]', TOO_HEAVY, TOO_HEAVY_Q, 'yes'),
         lookFor: {
             against: 'no true blocker: which argument is picked (the glue expected), and whether it rests on the scene or is invented',
             rebuttal: '"wrong": the scene says [table1] is a small round tea table, so the premise is false (premise, not weight)',
@@ -102,7 +137,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         expected: { verdict: 'rebuttal', ruling: 'no' },
     },
     'OC-2': {
-        against: argued('OC-2', 'pick up [cup1]', 'The cup is on a saucer, which is on the table, and the player is not holding anything to lift the cup directly.', 'Does holding nothing keep the player from lifting [cup1] directly?'),
+        against: argued('OC-2', 'pick up [cup1]', 'The cup is on a saucer, which is on the table, and the player is not holding anything to lift the cup directly.', 'Does holding nothing keep the player from lifting [cup1] directly?', 'yes'),
         lookFor: {
             against: 'no true blocker: which argument is picked, and whether it rests on the scene or is invented',
             rebuttal: '"wrong": empty hands are what picking up needs, and a cup on a saucer is within reach',
@@ -112,7 +147,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         expected: { verdict: 'rebuttal', ruling: 'no' },
     },
     'OC-20': {
-        against: argued('OC-20', 'pick up [table1]', TOO_HEAVY, TOO_HEAVY_Q),
+        against: argued('OC-20', 'pick up [table1]', TOO_HEAVY, TOO_HEAVY_Q, 'yes'),
         lookFor: {
             against: 'no true blocker for this piece (the chain is the rule cell\'s): which argument is picked',
             rebuttal: '"wrong": the scene says [table1] is a small round tea table',
@@ -122,7 +157,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         expected: { verdict: 'rebuttal', ruling: 'no' },
     },
     'OC-6': {
-        against: argued('OC-6', 'pour [tea2] from [teapot1] into [cup1]', 'The tea in the teapot cannot be directly poured into the cup without first being transferred to a container that can be poured, such as a cup.', 'Must [tea2] be transferred to another container before it can be poured into [cup1]?'),
+        against: argued('OC-6', 'pour [tea2] from [teapot1] into [cup1]', 'The tea in the teapot cannot be directly poured into the cup without first being transferred to a container that can be poured, such as a cup.', 'Must [tea2] be transferred to another container before it can be poured into [cup1]?', 'yes'),
         lookFor: {
             against: 'no true blocker for this piece (the glue is the rule cell\'s): which argument is picked',
             rebuttal: '"wrong": a teapot is the container tea is poured from',
@@ -132,7 +167,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         expected: { verdict: 'rebuttal', ruling: 'no' },
     },
     'OC-30/h5': {
-        against: argued('OC-30/h5', 'tip [table1]', 'Tipping the table would cause the teapot to fall off and spill its contents.', `${AT_THE_POUR} is [teapot1] still where it can pour into [cup1]?`),
+        against: argued('OC-30/h5', 'tip [table1]', 'Tipping the table would cause the teapot to fall off and spill its contents.', `${AT_THE_POUR} is [teapot1] still where it can pour into [cup1]?`, 'no'),
         lookFor: {
             against: 'the tip\'s unstated effect on the loose [saucer1] and [cup1]: [cup1] may no longer be under the spout, turning on step 1 or 2',
             rebuttal: `consequences-dependent (TR-P3): ${SOUND} in the scene shown, where [teapot1] is loose`,
@@ -147,7 +182,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         },
     },
     'OC-30/h7': {
-        against: argued('OC-30/h7', 'tip [table1]', 'The first step would cause the cup to fall off the table, making it impossible to pour tea into it.', CUP_REACHABLE_Q),
+        against: argued('OC-30/h7', 'tip [table1]', 'The first step would cause the cup to fall off the table, making it impossible to pour tea into it.', CUP_REACHABLE_Q, 'no'),
         lookFor: {
             against: 'the slide line: [cup1] is on the floor, no longer under the spout, turning on the pour',
             rebuttal: `${SOUND}: the consequence line puts [cup1] on the floor`,
@@ -157,7 +192,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         expected: { verdict: 'argument', ruling: 'no' },
     },
     'OC-30/h10': {
-        against: argued('OC-30/h10', 'tip [table1]', 'Tipping the table would cause the saucer, cup, and tea to fall off, making it impossible to pour tea from the teapot into the cup.', CUP_REACHABLE_Q),
+        against: argued('OC-30/h10', 'tip [table1]', 'Tipping the table would cause the saucer, cup, and tea to fall off, making it impossible to pour tea from the teapot into the cup.', CUP_REACHABLE_Q, 'no'),
         lookFor: {
             against: 'no true blocker: [cup1] is held on [saucer1]; which argument is picked',
             rebuttal: 'consequences-dependent (TR-P3, NR-P5): "wrong": step 1 has taken [saucer1], with [cup1] on it, off the table; the loose teapot is not raised',
@@ -172,7 +207,7 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
         },
     },
     'OC-9': {
-        against: argued('OC-9', 'pick up [table1]', 'A table is too large and heavy to be picked up by a single person, especially considering the physical constraints of the scene.', TOO_HEAVY_Q, 'trialAgainst batch 1 (draft 1), repeat 1'),
+        against: argued('OC-9', 'pick up [table1]', 'A table is too large and heavy to be picked up by a single person, especially considering the physical constraints of the scene.', TOO_HEAVY_Q, 'yes', 'trialAgainst batch 1 (draft 1), repeat 1'),
         lookFor: {
             against: 'the trestle\'s weight and size for one person (open, JF-2)',
             rebuttal: 'open (JF-2): a long oak trestle is heavy for one person; read the kind, and whether "not established" (strength, how heavy) is given',
@@ -186,21 +221,23 @@ const STAGES: Record<CellId, Pick<TrialCase, 'against' | 'lookFor' | 'expected' 
 const REBUTTAL_BATCH_8 = 'trialRebuttal batch 8 (draft 5, confirmed), on the golden argument'
 
 /**
- * The rebuttals lifted from batch 8, per cell: the repeat and its sentence. The repeat is the first whose reply passes the current parse
- * (Slice B): repeat 1 everywhere but OC-3, whose repeat 1 lists a fact that doesn't name its handle. No choosing by quality.
+ * The rebuttals lifted from batch 8, per cell: the repeat, its sentence, and the hash of the golden argument it read
+ * (`arguedAsRebutted`). The repeat is the first whose reply passes the current parse (Slice B): repeat 1 everywhere but OC-3, whose
+ * repeat 1 lists a fact that doesn't name its handle. No choosing by quality. The hashes are literals, recorded before step 2 added
+ * `blocking` to the goldens, so an edit to what batch 8 read breaks the pair.
  */
-const LIFTED_REBUTTALS: Record<CellId, [number, string]> = {
-    'OC-11': [1, "But the scene says 'In the Parlour there are [cup1] Cup and [table1] Table (a small round tea table)', indicating that the table is small enough to fit inside the cup."],
-    'OC-18': [1, "But the scene says 'In the Parlour there are [cup1] Cup and [table1] Table (a small round tea table)', which implies that the cup is large enough to accommodate the table."],
-    'OC-3': [2, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table). On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', which implies that the table is small enough to fit inside the cup."],
-    'OC-1': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies that [table1] is small enough to be picked up by a single person."],
-    'OC-2': [1, "But the steps say 'You are holding nothing,' which does not prevent the player from picking up the cup indirectly by first picking up the saucer and then the cup, as the cup is on the saucer."],
-    'OC-20': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies it is manageable to pick up by a single person."],
-    'OC-6': [1, "But the scene says 'In [teapot1] there is [tea2] Tea', and the steps say '(intended) pour [tea2] from [teapot1] into [cup1]', indicating that the tea can be directly poured from the teapot into the cup."],
-    'OC-9': [1, "But the scene says 'In the Tavern there is [table1] Table (a long oak trestle, ring-stained)' which implies that the table is not necessarily too large and heavy to be picked up by a single person, as it does not specify any weight restrictions."],
-    'OC-30/h5': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table). On [table1] there are [saucer1] Saucer and [teapot1] Teapot. On [saucer1] there is [cup1] Cup.' which indicates that the teapot is already on the table, not requiring tipping to pour."],
-    'OC-30/h7': [1, "But the scene says 'In [cup1] there is [tea1] Tea', meaning [cup1] remains intact and on [saucer1], which is still on [table1], allowing [teapot1] to pour [tea2] into it."],
-    'OC-30/h10': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table). On [table1] there are [saucer1] Saucer and [teapot1] Teapot. On [saucer1] there is [cup1] Cup. In [cup1] there is [tea1] Tea. In [teapot1] there is [tea2] Tea.' which establishes that the cup is on the saucer on the table, and tipping the table is not necessary to pour tea."],
+const LIFTED_REBUTTALS: Record<CellId, [number, string, string]> = {
+    'OC-11': [1, "But the scene says 'In the Parlour there are [cup1] Cup and [table1] Table (a small round tea table)', indicating that the table is small enough to fit inside the cup.", 'c72b96d0'],
+    'OC-18': [1, "But the scene says 'In the Parlour there are [cup1] Cup and [table1] Table (a small round tea table)', which implies that the cup is large enough to accommodate the table.", '3e590eb9'],
+    'OC-3': [2, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table). On [table1] there are [saucer1] Saucer and [teapot1] Teapot.', which implies that the table is small enough to fit inside the cup.", 'c72b96d0'],
+    'OC-1': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies that [table1] is small enough to be picked up by a single person.", '058bd59d'],
+    'OC-2': [1, "But the steps say 'You are holding nothing,' which does not prevent the player from picking up the cup indirectly by first picking up the saucer and then the cup, as the cup is on the saucer.", '058fbef8'],
+    'OC-20': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table)', which implies it is manageable to pick up by a single person.", '058bd59d'],
+    'OC-6': [1, "But the scene says 'In [teapot1] there is [tea2] Tea', and the steps say '(intended) pour [tea2] from [teapot1] into [cup1]', indicating that the tea can be directly poured from the teapot into the cup.", '1c67721e'],
+    'OC-9': [1, "But the scene says 'In the Tavern there is [table1] Table (a long oak trestle, ring-stained)' which implies that the table is not necessarily too large and heavy to be picked up by a single person, as it does not specify any weight restrictions.", '4540160f'],
+    'OC-30/h5': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table). On [table1] there are [saucer1] Saucer and [teapot1] Teapot. On [saucer1] there is [cup1] Cup.' which indicates that the teapot is already on the table, not requiring tipping to pour.", '55f84467'],
+    'OC-30/h7': [1, "But the scene says 'In [cup1] there is [tea1] Tea', meaning [cup1] remains intact and on [saucer1], which is still on [table1], allowing [teapot1] to pour [tea2] into it.", '55dbe683'],
+    'OC-30/h10': [1, "But the scene says 'In the Parlour there is [table1] Table (a small round tea table). On [table1] there are [saucer1] Saucer and [teapot1] Teapot. On [saucer1] there is [cup1] Cup. In [cup1] there is [tea1] Tea. In [teapot1] there is [tea2] Tea.' which establishes that the cup is on the saucer on the table, and tipping the table is not necessary to pour tea.", '50bdafb9'],
 }
 
 /**
@@ -208,13 +245,13 @@ const LIFTED_REBUTTALS: Record<CellId, [number, string]> = {
  * No golden rebuttals are written yet (Slice B). A sentence that no longer parses counts as missing.
  */
 const rebutted = (id: CellId, against: StageInput<TrialArgument>): StageInput<TrialRebuttalReply> => {
-    const [repeat, rebuttal] = LIFTED_REBUTTALS[id]
+    const [repeat, rebuttal, hash] = LIFTED_REBUTTALS[id]
     const parsed = parseRebuttal(rebuttal)
     return 'malformed' in parsed || against.golden === undefined ? {} : {
         lifted: {
             value: { rebuttal, parsed },
             source: `${REBUTTAL_BATCH_8}, repeat ${repeat}, cell ${id}`,
-            consumed: { upstream: 'golden', hash: stageValueHash(against.golden.value) },
+            consumed: { upstream: 'golden', hash },
         },
     }
 }

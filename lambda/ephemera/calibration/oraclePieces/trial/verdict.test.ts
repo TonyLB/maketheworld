@@ -8,7 +8,7 @@ import { renderSceneExplicit } from '../../../dataSource/actions/sceneProse/rend
 import { withoutSecuring } from '../../../dataSource/actions/sceneProse/sceneRules'
 import { fixtureScene } from '../../imaginationPieces/imaginationScene'
 import { evidenceLines, quotesALine, rebuttalContract, renderArguedParts, renderTrialRebuttal, trialRebuttalCells } from './rebuttal'
-import { trialCases } from './trialCases'
+import { arguedAsRebutted, trialCases } from './trialCases'
 import { gradeTrialVerdict, judgedPair, parseVerdictOptions, renderTrialVerdict, renderTrialVerdictParts, trialVerdict, trialVerdictCells, verdictContract } from './verdict'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
@@ -24,11 +24,12 @@ describe('the trial\'s verdict stage', () => {
     const oc1 = trialVerdictCells['OC-1']
 
     describe('the records\' lifted rebuttals', () => {
-        it('are batch 8\'s, one per cell, each recording the golden argument it answered', () => {
+        it('are batch 8\'s, one per cell, each recording, as a literal, the hash of what it read of the golden argument: not `blocking`, added since', () => {
             for (const [id, { against, rebuttal }] of Object.entries(trialCases)) {
                 expect(rebuttal.golden).toBeUndefined()
                 expect(rebuttal.lifted?.source).toMatch(new RegExp(`^trialRebuttal batch 8 .*, repeat [12], cell ${id.replace('/', '\\/')}$`))
-                expect(rebuttal.lifted?.consumed).toEqual({ upstream: 'golden', hash: stageValueHash(against.golden?.value) })
+                expect(rebuttal.lifted?.consumed).toEqual({ upstream: 'golden', hash: stageValueHash(arguedAsRebutted(against.golden!.value)) })
+                expect(rebuttal.lifted?.consumed?.hash).not.toBe(stageValueHash(against.golden?.value))
             }
         })
 

@@ -60,30 +60,38 @@ export const pickStageInput = <T>(input: StageInput<T>, upstream: UpstreamSource
     return chosen.value
 }
 
-/** Each value's check against the current contract, as `pickStageInput` takes it. */
-export type PairFits<Earlier, Later> = { earlier?: (value: Earlier) => string | undefined; later?: (value: Later) => string | undefined }
+/**
+ * How a pair is checked: each value against the current contract, as `pickStageInput` takes it, and `read`, the part of the earlier value
+ * the later stage was shown. The consumed hash is over that part (the whole value by default), so a field added to the earlier stage's
+ * contract since, which the later stage never saw, doesn't break the pair, and an edit to what it saw still does.
+ */
+export type PairChecks<Earlier, Later> = {
+    earlier?: (value: Earlier) => string | undefined
+    later?: (value: Later) => string | undefined
+    read?: (value: Earlier) => unknown
+}
 
 /**
  * A later stage's value with the earlier value it answered, for a stage reading both (the pairing rule, Slice B). `golden` takes both
  * golden values, hand-written all the way up. `lifted` takes the later stage's lifted value, then the earlier value from the source it
- * `consumed`, and checks that value's hash: an earlier value edited since the later one was recorded throws, so the pair breaks loudly.
+ * `consumed`, and checks the hash of what the later stage read of it (`read`): an earlier value edited since the later one was recorded throws, so the pair breaks loudly.
  */
 export const pickPaired = <Earlier, Later>(
     earlier: StageInput<Earlier>,
     later: StageInput<Later>,
     upstream: UpstreamSource,
-    fits: PairFits<Earlier, Later> = {},
+    checks: PairChecks<Earlier, Later> = {},
 ): { earlier: Earlier; later: Later } => {
     if (upstream === 'golden') {
-        return { earlier: pickStageInput(earlier, 'golden', fits.earlier), later: pickStageInput(later, 'golden', fits.later) }
+        return { earlier: pickStageInput(earlier, 'golden', checks.earlier), later: pickStageInput(later, 'golden', checks.later) }
     }
-    const value = pickStageInput(later, 'lifted', fits.later)
+    const value = pickStageInput(later, 'lifted', checks.later)
     const consumed = later.lifted?.consumed
     if (consumed === undefined) {
         throw new Error('the lifted value records nothing it consumed, so what it answered is unknown')
     }
-    const answered = pickStageInput(earlier, consumed.upstream, fits.earlier)
-    const hash = stageValueHash(answered)
+    const answered = pickStageInput(earlier, consumed.upstream, checks.earlier)
+    const hash = stageValueHash(checks.read === undefined ? answered : checks.read(answered))
     if (hash !== consumed.hash) {
         throw new Error(`the lifted value answered a different ${consumed.upstream} value (consumed ${consumed.hash}, now ${hash})`)
     }

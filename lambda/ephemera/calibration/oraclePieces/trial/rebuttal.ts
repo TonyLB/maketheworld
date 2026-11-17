@@ -14,7 +14,7 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../../llm
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
 import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs, type SceneRender } from '../nonRuleCell'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
-import { trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
+import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
 
 export type { TrialArgument, TrialRebuttalReply } from './trialCases'
 export { parseRebuttal, TRIAL_REBUTTAL_SOURCES, type ParsedRebuttal, type TrialRebuttalSource } from './rebuttalSentence'
@@ -134,8 +134,15 @@ const branchProblems = (sentence: ParsedRebuttal, rendered: string): string[] =>
     }
 }
 
-/** The current contract: an argument with its question (draft 3). A value without one was recorded under the older contract. */
-export const fitsCurrentContract = ({ question }: TrialArgument): string | undefined => (isNonEmptyString(question) ? undefined : 'it has no question')
+/**
+ * The current contract: an argument with its question (draft 3) and the answer to it that blocks (AGENT.trialQuestion.planning.md,
+ * step 2). A value without them was recorded under an older contract.
+ */
+export const fitsCurrentContract = ({ question, blocking }: TrialArgument): string | undefined => (
+    !isNonEmptyString(question) ? 'it has no question'
+        : blocking === undefined || !(TRIAL_RULINGS as readonly string[]).includes(blocking) ? 'it names no blocking answer'
+            : undefined
+)
 
 /** The argument a cell's rebuttal answers, from the payload's source. Throws as the render does. */
 export const rebuttedArgument = (cell: ReadPieceCell<TrialRebuttalInputs>, { upstream }: UpstreamOptions): TrialArgument => (
