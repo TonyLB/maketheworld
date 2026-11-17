@@ -307,7 +307,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - [X] **Checkpoint, with the user** (2026-11-17): **step 2 stops on batches 26 and 27** (the user, agreeing on h5).
      - **Batch 28** was informative but isn't a new prompt to beat. Draft 2 stays the case against's base, and batch 26's arguments stay lifted.
      - **The questions are kept as a tuning tool.** The hops go up as needing clearer state from upstream ([the imagination plan's `consequences`](AGENT.imagination.planning.md#recommended-order), and the [oracle loop](AGENT.oracleLoop.planning.md#recommended-order)).
-     - **This plan pauses,** probably briefly, while the action representation is worked on upstream. It doesn't fold back yet.
+     - **This plan pauses,** probably briefly, while the action representation is worked on upstream, in [`AGENT.actionPlan.planning.md`](AGENT.actionPlan.planning.md). It doesn't fold back yet.
 3. [ ] **The rebuttal as the relevance attack** (mine, from the user's glued-teapot example). Designed here after step 2, and only if step 2 holds. Its question is whether the rebuttal can say "true, but it doesn't bear on the plan", and whether the judge can weigh that against the question's answer. It may need a verdict stage of a new shape. That is the parent's "the relevance attack as its own sentence" item.
 4. [ ] **Fold back into the parent** ([When it finishes](#when-it-finishes)).
 
