@@ -7,10 +7,14 @@ import type { NovaModel } from '../../llm/novaModel'
 import { runProbeCalls } from '../oracleLoop/runOracleProbe'
 import { textHash } from '../textHash'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
+import { promptFor, type RenderedParts } from './oraclePiece'
 import type { PieceGrade } from './pieceAnswer'
 
-/** A cell ready to run: its rendered inputs, or the answer code gave in place of a call. */
-export type PreparedCell = { cell: string; expected?: string; lookFor?: string; rendered: string; byCode?: string }
+/**
+ * A cell ready to run: its rendered inputs, or the answer code gave in place of a call. Under system delivery it carries the render's two
+ * `parts` too, and `rendered` is their join.
+ */
+export type PreparedCell = { cell: string; expected?: string; lookFor?: string; rendered: string; parts?: RenderedParts; byCode?: string }
 
 export type PieceCall = { cell: string; repeat: number; answer?: string; error?: string; grade?: PieceGrade }
 
@@ -45,7 +49,7 @@ export const runPieceProbe = async ({ cells, instructions, grade, repeats, model
     invoke?: ProbeInvoke
 }): Promise<PieceCall[]> => (
     (await runProbeCalls({
-        prompts: cells.filter(({ byCode }) => byCode === undefined).map(({ cell, rendered }) => ({ id: cell, prompt: `${instructions}\n\n${rendered}` })),
+        prompts: cells.filter(({ byCode }) => byCode === undefined).map((cell) => ({ id: cell.cell, ...promptFor(instructions, cell) })),
         repeats,
         model,
         ...(maxTokens !== undefined ? { maxTokens } : {}),

@@ -3,7 +3,7 @@ import { isNovaModel, type NovaModel } from '../../llm/novaModel'
 import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudgeProbe'
 import { textHash } from '../textHash'
 import { PROBE_TEMPERATURE, type ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import type { RegisteredPiece, RegistryEntry } from './oraclePiece'
+import { joinParts, type Delivery, type RegisteredPiece, type RegistryEntry, type RenderedParts } from './oraclePiece'
 import { pieceAnswer } from './pieceAnswer'
 import { pieces as registeredPieces } from './pieces'
 import { groupRead, runReadPiece, summarizeRead, tallyRead, type PreparedReadCell } from './readPiece'
@@ -19,6 +19,11 @@ export type PieceProbeEvent = {
     instructions?: unknown
     repeats?: unknown
     model?: unknown
+    /**
+     * `user` (the default) or `system`: under `system`, the instructions and the render's system part go as system instructions and its
+     * user part as the user message. Refused for a piece without `renderParts`.
+     */
+    delivery?: unknown
     /** Piece-specific, checked by the piece. A family's options name the stage in `stage`, and the rest are that stage's. */
     options?: unknown
 }
@@ -83,6 +88,14 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     if (!isNovaModel(model)) {
         return refuse('model must be a NovaModel (NovaMicro or Nova2Lite)')
     }
+    const deliveryValue = event.delivery === undefined ? 'user' : event.delivery
+    if (deliveryValue !== 'user' && deliveryValue !== 'system') {
+        return refuse('delivery must be user or system')
+    }
+    const delivery: Delivery = deliveryValue
+    if (delivery === 'system' && piece.renderParts === undefined) {
+        return refuse(`delivery system needs a piece that renders its two parts: ${stage === undefined ? piece.name : `${entry.name}'s ${stage} stage`} has no renderParts`)
+    }
     const options = piece.parseOptions(resolved.options)
     if (typeof options === 'string') {
         return refuse(options)
@@ -92,9 +105,20 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     if (called * repeats > PIECE_PROBE_CALL_CAP) {
         return refuse(`${called} called cells x ${repeats} repeats = ${called * repeats} calls, over the cap of ${PIECE_PROBE_CALL_CAP}; trim cells or repeats`)
     }
-    const rendered = await Promise.all(asked.map(async (id) => {
+    /**
+     * One cell's render: under system delivery, its two parts, built once, and their join as its text; otherwise its render. A piece
+     * without `renderParts` was refused system delivery above.
+     */
+    const renderCell = async (id: string): Promise<{ text: string; parts?: RenderedParts }> => {
+        if (delivery === 'system') {
+            const parts = await (piece.kind === 'read' ? piece.renderParts!(piece.cells[id], options) : piece.renderParts!(piece.cells[id], options))
+            return { text: joinParts(parts), parts }
+        }
+        return { text: await (piece.kind === 'read' ? piece.render(piece.cells[id], options) : piece.render(piece.cells[id], options)) }
+    }
+    const rendered = await Promise.all(asked.map(async (id): Promise<{ id: string; text?: string; parts?: RenderedParts; error?: string }> => {
         try {
-            return { id, text: await (piece.kind === 'read' ? piece.render(piece.cells[id], options) : piece.render(piece.cells[id], options)) }
+            return { id, ...await renderCell(id) }
         } catch (error) {
             return { id, error: error instanceof Error ? error.message : String(error) }
         }
@@ -104,7 +128,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
         return refuse(`cell ${failed.id}: the render failed (${failed.error}), a cell-data error`)
     }
     if (piece.kind === 'read') {
-        const readCells = rendered.map(({ id, text = '' }): PreparedReadCell => ({ cell: id, lookFor: piece.cells[id].lookFor, rendered: text }))
+        const readCells = rendered.map(({ id, text = '', parts }): PreparedReadCell => ({ cell: id, lookFor: piece.cells[id].lookFor, rendered: text, ...(parts === undefined ? {} : { parts }) }))
         const readCalls = await runReadPiece({
             cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id], readCells.find(({ cell }) => cell === id)?.rendered ?? '', options),
             ...(piece.maxTokens !== undefined ? { maxTokens: piece.maxTokens } : {}),
@@ -116,6 +140,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
             model,
             temperature: PROBE_TEMPERATURE,
             repeats,
+            delivery,
             options,
             instructions: { hash: textHash(instructions), chars: instructions.length },
             cells: readTallies,
@@ -123,7 +148,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
             read: groupRead(readCells, readCalls),
         })
     }
-    const prepared = rendered.map(({ id, text = '' }): PreparedCell => {
+    const prepared = rendered.map(({ id, text = '', parts }): PreparedCell => {
         const answer = byCode.get(id)
         const { expected, lookFor } = piece.cells[id]
         return {
@@ -131,6 +156,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
             ...(expected === undefined ? {} : { expected }),
             ...(lookFor === undefined ? {} : { lookFor }),
             rendered: text,
+            ...(parts === undefined ? {} : { parts }),
             ...(answer === undefined ? {} : { byCode: answer }),
         }
     })
@@ -147,6 +173,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
         model,
         temperature: PROBE_TEMPERATURE,
         repeats,
+        delivery,
         options,
         instructions: { hash: textHash(instructions), chars: instructions.length },
         cells: tallies,
