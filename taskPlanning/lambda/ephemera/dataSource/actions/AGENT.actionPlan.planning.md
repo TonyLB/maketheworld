@@ -1,6 +1,6 @@
 # The action plan: referenced steps, and changes merged in
 
-**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Nothing is built. Next: steps 1 and 2, the type and the merge, code and tests with no batch.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
+**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Step 1, the plan type with references, is built. Next: step 2, the change language and the merge, code and tests with no batch.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
 
 **Why:**
 - **The judging pieces need more from the plan.** In the trial, the hops failed whenever the state at a step had to be worked out rather than read:
@@ -150,10 +150,25 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - each refusal;
      - the three worked examples as golden merges;
      - the pins, unedited.
-1. [ ] **The plan type, with references.** Every existing cell can be built into a plan: the corpus, the non-rule cell and the trial, and the imagination's asks. The existing renders are untouched, since each piece reads its own inputs, so the pins stay green and unedited. Tests:
+1. [X] **The plan type, with references.** Every existing cell can be built into a plan: the corpus, the non-rule cell and the trial, and the imagination's asks. The existing renders are untouched, since each piece reads its own inputs, so the pins stay green and unedited. Tests:
    - references are unique and stable;
    - each existing cell converts as step 0's rules say;
    - the generator's render of a plan.
+
+   **As built** (2026-11-17), in [`oracleLoop/actionPlan.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/actionPlan.ts) and its test, with no existing file edited:
+   - **The builders:**
+     - `planFromCandidateSteps`, for the corpus;
+     - `planFromNonRuleSteps`, for the non-rule cell and the trial;
+     - `planFromActions`, for the imagination's asks;
+     - `renderPlanForGenerator`.
+   - **`orderItems`,** the order rule as a stable sort by kind. Step 2's merge reuses it.
+   - **Mine, edge rules step 0 doesn't cover, for review:**
+     - a text that slugs to nothing takes its scope's word (`step`, or the item's kind);
+     - an intended step after a method step that already has an intent throws ("one intent per step"). No cell has that shape;
+     - `NonRuleStep`s are `suppliedBy: 'system'`, as the action strings are.
+   - **Conversion order:** the intent and the intended consequence go before the step's own `consequences` lines, so h7's slide follows the intended pour, as step 0's example says.
+   - **The render** leaves out `thing`, since the text already names it in brackets (mine).
+   - **The slug rule as written** gives `put-table1-in` for `put [table1] in [cup1]`, because `in` isn't a stopword. It is kept as reviewed and pinned.
 2. [ ] **The change language and the merge,** in pure code, tested with no LLM:
    - a change block parses through a stage contract;
    - a merge applies the additions in place;
@@ -200,8 +215,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | Step | State |
 | --- | --- |
 | The design | **Done** (2026-11-17): reviewed by the user, as written |
-| The plan type, with references | Next |
-| The change language and the merge | Not started |
+| The plan type, with references | **Done** (2026-11-17): `oracleLoop/actionPlan.ts`, every existing cell converts |
+| The change language and the merge | Next |
 | `playByPlay` creates references | Not started |
 | `consequences` adds into the plan | Not started |
 | Hand back | Not started |
