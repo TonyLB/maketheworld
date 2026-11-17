@@ -4,7 +4,7 @@
 // happen with the question it answers, and the rebuttal of it, it says which of the two is right about that question: `argument` or
 // `rebuttal`. It is the trial's one unbiased call, choosing between two short concrete arguments rather than weighing openly.
 // The argument and the rebuttal come as a pair (`pickPaired`): `lifted` is a real rebuttal shown with the very argument it answered,
-// checked by hash; `golden` is hand-written all the way up, and no golden rebuttals are written yet. It sees the scene the two were
+// checked by the hash of what the rebuttal read of the argument (`arguedAsRebutted`); `golden` is hand-written all the way up, and no golden rebuttals are written yet. It sees the scene the two were
 // argued in, with the securing omitted, and the two sides each in a tag naming its stance on the plan (draft 5). Code grades each reply against the cell's expected answer, through the stage's contract.
 //
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
@@ -13,7 +13,7 @@ import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickPaired, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
 import { isSceneRender, SCENE_RENDERS, type NonRuleCellInputs, type SceneRender } from '../nonRuleCell'
 import { fitsCurrentContract, renderArguedParts } from './rebuttal'
-import { TRIAL_VERDICTS, trialCases, type TrialArgument, type TrialRebuttalReply, type TrialVerdict } from './trialCases'
+import { arguedAsRebutted, TRIAL_VERDICTS, trialCases, type TrialArgument, type TrialRebuttalReply, type TrialVerdict } from './trialCases'
 
 /** What the verdict stage reads: the non-rule cell's inputs, the argument, and the rebuttal of it. */
 export type TrialVerdictInput = NonRuleCellInputs & { argument: TrialArgument; rebuttal: TrialRebuttalReply }
@@ -63,7 +63,7 @@ export const parseVerdictOptions = (value: unknown): TrialVerdictOptions | strin
 
 /** The argument and the rebuttal a cell shows, from the payload's source. Throws on a missing source, a misfit, or a broken pair. */
 export const judgedPair = (cell: PieceCell<TrialVerdictInputs>, { upstream }: UpstreamOptions): { argument: TrialArgument; rebuttal: TrialRebuttalReply } => {
-    const { earlier, later } = pickPaired(cell.inputs.against, cell.inputs.rebuttal, upstream, { earlier: fitsCurrentContract })
+    const { earlier, later } = pickPaired(cell.inputs.against, cell.inputs.rebuttal, upstream, { earlier: fitsCurrentContract, read: arguedAsRebutted })
     return { argument: earlier, rebuttal: later }
 }
 

@@ -19,6 +19,12 @@ const AGAINST_OMITTED: Record<string, string> = {
     'OC-6': 'e0b2344a', 'OC-9': '177d4442', 'OC-30/h5': '0ce4c4e3', 'OC-30/h7': '75731acb', 'OC-30/h10': 'a3e913ac',
 }
 
+/** Against, the explicit scene with the securing omitted: batch 26 (draft 2, AGENT.trialQuestion.planning.md, step 2). */
+const AGAINST_EXPLICIT: Record<string, string> = {
+    'OC-11': 'e09f70d4', 'OC-18': 'c636ab09', 'OC-3': '52b0692f', 'OC-1': 'f5976d26', 'OC-2': '1c433b1b', 'OC-20': '9b4cc6ab',
+    'OC-6': 'd802e915', 'OC-9': 'f973c3f5', 'OC-30/h5': '6657312a', 'OC-30/h7': '6efc1b96', 'OC-30/h10': '89154328',
+}
+
 /** The rebuttal, the golden arguments: batch 8 (draft 5, confirmed). */
 const REBUTTAL_GOLDEN: Record<string, string> = {
     'OC-11': '396071e5', 'OC-18': 'ec4fb9aa', 'OC-3': '2927c178', 'OC-1': '15e55631', 'OC-2': 'cb734fad', 'OC-20': 'e8f2edc8',
@@ -54,6 +60,10 @@ describe('the trial\'s renders, pinned to its batches', () => {
 
     it('against, the securing omitted, renders as batch 2', async () => {
         expect(await hashes(trialAgainst.cells, trialAgainst.render, { securing: 'omitted' })).toEqual(AGAINST_OMITTED)
+    })
+
+    it('against, the explicit scene with the securing omitted, renders as batch 26', async () => {
+        expect(await hashes(trialAgainst.cells, trialAgainst.render, { securing: 'omitted', scene: 'explicit' })).toEqual(AGAINST_EXPLICIT)
     })
 
     it('the rebuttal, on the golden arguments, renders as batch 8', async () => {

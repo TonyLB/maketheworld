@@ -70,6 +70,16 @@ describe('stageInput', () => {
             expect(() => pickPaired({ lifted: arguments_.lifted }, rebuttals, 'lifted')).toThrow('no golden value for this cell')
         })
 
+        it('hashes only what the later stage read, so a field added since doesn\'t break the pair, and an edit to what it read still does', () => {
+            type Grown = Argument & { blocking?: string }
+            const read = ({ step, argument }: Grown) => ({ step, argument })
+            const grown: StageInput<Grown> = { golden: { value: { ...golden, blocking: 'yes' } } }
+            expect(() => pickPaired(grown, rebuttals, 'lifted')).toThrow(/answered a different golden value/)
+            expect(pickPaired(grown, rebuttals, 'lifted', { read })).toEqual({ earlier: { ...golden, blocking: 'yes' }, later: 'But the scene says so.' })
+            const edited: StageInput<Grown> = { golden: { value: { step: 'tip', argument: 'It falls over.', blocking: 'yes' } } }
+            expect(() => pickPaired(edited, rebuttals, 'lifted', { read })).toThrow(/answered a different golden value/)
+        })
+
         it('applies each side\'s fit to the current contract', () => {
             expect(() => pickPaired(arguments_, rebuttals, 'lifted', { later: () => 'too old' })).toThrow('the lifted value doesn\'t fit the current contract: too old')
         })
