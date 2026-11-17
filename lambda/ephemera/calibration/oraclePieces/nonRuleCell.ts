@@ -191,7 +191,13 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
 export type SecuringShown = 'shown' | 'omitted'
 
 /** Which render the scene takes: the judge render, Fiction and Graph (the default), or the explicit render (AGENT.trialQuestion.planning.md, step 0). */
-export type SceneRender = 'judge' | 'explicit'
+export const SCENE_RENDERS = ['judge', 'explicit'] as const
+export type SceneRender = typeof SCENE_RENDERS[number]
+
+export const isSceneRender = (value: unknown): value is SceneRender => (SCENE_RENDERS as readonly unknown[]).includes(value)
+
+/** The non-rule cell's options: which render the scene takes (AGENT.trialQuestion.planning.md, step 1.5), the judge render when absent. */
+export type NonRuleCellOptions = { scene?: SceneRender }
 
 /**
  * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
@@ -235,7 +241,18 @@ export const renderNonRuleCell = async (
     ].join('\n\n')
 }
 
-const parseNonRuleCellOptions = (value: unknown): undefined | string => (value === undefined ? undefined : 'nonRuleCell takes no options')
+/** No options, or `{ scene: 'judge' | 'explicit' }`. */
+export const parseNonRuleCellOptions = (value: unknown): NonRuleCellOptions | string => {
+    if (value === undefined) {
+        return {}
+    }
+    const shape = `nonRuleCell's options must be { scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return shape
+    }
+    const { scene, ...rest } = value as Record<string, unknown>
+    return Object.keys(rest).length === 0 && (scene === undefined || isSceneRender(scene)) ? (scene === undefined ? {} : { scene }) : shape
+}
 
 const intended = (says: string): NonRuleStep => ({ says, role: 'intended' })
 const method = (says: string): NonRuleStep => ({ says, role: 'method' })
@@ -329,12 +346,12 @@ export const nonRuleCellCells: Record<string, PieceCell<NonRuleCellInputs>> = {
     },
 }
 
-export const nonRuleCell: OraclePiece<NonRuleCellInputs, undefined> = {
+export const nonRuleCell: OraclePiece<NonRuleCellInputs, NonRuleCellOptions> = {
     name: 'nonRuleCell',
     answers: NON_RULE_ANSWERS,
     cells: nonRuleCellCells,
     parseOptions: parseNonRuleCellOptions,
-    render: (cell) => renderNonRuleCell(cell),
+    render: (cell, { scene }) => renderNonRuleCell(cell, scene === undefined ? {} : { scene }),
     grade: gradeNonRuleCell,
     maxTokens: 1536,
 }

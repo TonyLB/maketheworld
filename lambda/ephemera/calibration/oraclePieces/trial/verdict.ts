@@ -11,7 +11,7 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../../llm
 import { joinParts, registerPiece, type OraclePiece, type PieceCell, type RenderedParts } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickPaired, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import type { NonRuleCellInputs } from '../nonRuleCell'
+import { isSceneRender, SCENE_RENDERS, type NonRuleCellInputs, type SceneRender } from '../nonRuleCell'
 import { fitsCurrentContract, renderArguedParts } from './rebuttal'
 import { TRIAL_VERDICTS, trialCases, type TrialArgument, type TrialRebuttalReply, type TrialVerdict } from './trialCases'
 
@@ -45,6 +45,22 @@ export const verdictContract: StageContract<TrialVerdictInput, TrialVerdict> = {
     },
 }
 
+/** The verdict's options: the upstream source, and which render the scene takes, the judge render when absent (step 1.5's retest). */
+export type TrialVerdictOptions = UpstreamOptions & { scene?: SceneRender }
+
+/** `{ upstream: 'golden' | 'lifted', scene?: 'judge' | 'explicit' }`. */
+export const parseVerdictOptions = (value: unknown): TrialVerdictOptions | string => {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return parseUpstreamOptions(value)
+    }
+    const { scene, ...rest } = value as Record<string, unknown>
+    if (scene !== undefined && !isSceneRender(scene)) {
+        return `the verdict's scene must be one of ${SCENE_RENDERS.join(', ')}`
+    }
+    const upstream = parseUpstreamOptions(rest)
+    return typeof upstream === 'string' || scene === undefined ? upstream : { ...upstream, scene }
+}
+
 /** The argument and the rebuttal a cell shows, from the payload's source. Throws on a missing source, a misfit, or a broken pair. */
 export const judgedPair = (cell: PieceCell<TrialVerdictInputs>, { upstream }: UpstreamOptions): { argument: TrialArgument; rebuttal: TrialRebuttalReply } => {
     const { earlier, later } = pickPaired(cell.inputs.against, cell.inputs.rebuttal, upstream, { earlier: fitsCurrentContract })
@@ -69,9 +85,9 @@ const tagged = (tag: string, text: string): string => `<${tag}>\n${text}\n</${ta
  * own tag (draft 5): the argument naming its step in `<argues-plan-cannot-happen>`, the rebuttal in `<argues-plan-can-happen>`. The
  * question stays outside both, the neutral yardstick, and goes with the argued text since a later stage writes it.
  */
-export const renderTrialVerdictParts = async (cell: PieceCell<TrialVerdictInputs>, options: UpstreamOptions): Promise<RenderedParts> => {
+export const renderTrialVerdictParts = async (cell: PieceCell<TrialVerdictInputs>, options: TrialVerdictOptions): Promise<RenderedParts> => {
     const { argument, rebuttal } = judgedPair(cell, options)
-    const parts = await renderArguedParts(cell, argument)
+    const parts = await renderArguedParts(cell, argument, options.scene === undefined ? {} : { scene: options.scene })
     return {
         system: parts.scene,
         user: [parts.question, `${tagged(ARGUES_CANNOT, parts.argument)}\n${tagged(ARGUES_CAN, `${REBUTTAL_LINE}${rebuttal.rebuttal}`)}`].join('\n\n'),
@@ -79,7 +95,7 @@ export const renderTrialVerdictParts = async (cell: PieceCell<TrialVerdictInputs
 }
 
 /** The whole render: its two parts joined, the scene, the question and the two sides, each in its own section. */
-export const renderTrialVerdict = async (cell: PieceCell<TrialVerdictInputs>, options: UpstreamOptions): Promise<string> => (
+export const renderTrialVerdict = async (cell: PieceCell<TrialVerdictInputs>, options: TrialVerdictOptions): Promise<string> => (
     joinParts(await renderTrialVerdictParts(cell, options))
 )
 
@@ -94,11 +110,11 @@ export const trialVerdictCells: Record<string, PieceCell<TrialVerdictInputs>> = 
     }]),
 )
 
-export const trialVerdict: OraclePiece<TrialVerdictInputs, UpstreamOptions> = {
+export const trialVerdict: OraclePiece<TrialVerdictInputs, TrialVerdictOptions> = {
     name: 'trial verdict',
     answers: TRIAL_VERDICTS,
     cells: trialVerdictCells,
-    parseOptions: parseUpstreamOptions,
+    parseOptions: parseVerdictOptions,
     render: renderTrialVerdict,
     renderParts: renderTrialVerdictParts,
     grade: gradeTrialVerdict,
