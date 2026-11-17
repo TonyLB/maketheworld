@@ -1,6 +1,6 @@
 # The action plan: referenced steps, and changes merged in
 
-**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Step 1, the plan type with references, is built. Next: step 2, the change language and the merge, code and tests with no batch.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
+**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Next: step 3, `playByPlay` creating references, with its rubric written before its batch.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
 
 **Why:**
 - **The judging pieces need more from the plan.** In the trial, the hops failed whenever the state at a step had to be worked out rather than read:
@@ -169,13 +169,28 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - **Conversion order:** the intent and the intended consequence go before the step's own `consequences` lines, so h7's slide follows the intended pour, as step 0's example says.
    - **The render** leaves out `thing`, since the text already names it in brackets (mine).
    - **The slug rule as written** gives `put-table1-in` for `put [table1] in [cup1]`, because `in` isn't a stopword. It is kept as reviewed and pinned.
-2. [ ] **The change language and the merge,** in pure code, tested with no LLM:
+2. [X] **The change language and the merge,** in pure code, tested with no LLM:
    - a change block parses through a stage contract;
    - a merge applies the additions in place;
    - a change naming a reference that isn't in the plan is refused, and the refusal says why;
    - the merged plan renders.
 
    Golden changes for the hops pin the worked examples from step 0.
+
+   **As built** (2026-11-17), in [`oracleLoop/actionPlan.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/actionPlan.ts) and its test, with no other file edited:
+   - **The functions:**
+     - `mergeChanges(plan, block, handles)` returns `{ plan }` or `{ problems }`;
+     - `planChangesContract` reads a reply's trailing JSON block (`replyJsonObject`) and then merges it;
+     - `PlanChange` is a change once checked.
+
+     The hops' golden merges pin step 0's worked examples, h5's exactly. h10's refusal is `change 2: to "pick-up-cup1" names no step`.
+   - **Mine, a departure from step 0, for review:** the contract is `StageContract<PlanChangesInput, ActionPlan>`, where `PlanChangesInput` is `{ plan, handles }`. A plan doesn't hold the scene, so "a thing not in the scene" needs the scene's handles from the caller. The handles the plan names would be too few: OC-30/2's `[saucer1]` and `[cup1]` aren't named by `tip [table1]`.
+   - **Mine, edge rules step 0 doesn't cover, for review:**
+     - a key other than `add`, `to`, `thing` and `says` is refused, and `intended` is named as not writable;
+     - a `thing` on a concern is refused, since a concern has none;
+     - an empty `changes` array is valid and leaves the plan unchanged;
+     - every problem is prefixed `change N:`.
+   - **Minting checks the paths already taken,** rather than counting slugs. A new item takes its slug if it's free, and otherwise the first free `-n`. The merge relies on this: a repeat of the intent's text becomes `-3`. It also closes a hole in step 1 (mine): a text that slugs to `tip-table1-2` could collide with a repeat. Step 1's paths are unchanged on every cell, and its tests pass unedited.
 3. [ ] **`playByPlay` refactored to create references.** Its output becomes a plan, or the additions to one (AP-5). **The bar is parity:** its existing cells at draft 14's level (every method at the bar, no attempts), read by hand against a rubric written before the batch.
 4. [ ] **`consequences` refactored to add into the plan:** a run on a plan yields changes, and the merge gives the new plan. **The bar is parity** with its batch 1, read by hand. The cup gap is carried to the imagination plan, not tuned here.
 5. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
@@ -216,8 +231,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | --- | --- |
 | The design | **Done** (2026-11-17): reviewed by the user, as written |
 | The plan type, with references | **Done** (2026-11-17): `oracleLoop/actionPlan.ts`, every existing cell converts |
-| The change language and the merge | Next |
-| `playByPlay` creates references | Not started |
+| The change language and the merge | **Done** (2026-11-17): `mergeChanges` and `planChangesContract`, the hops' golden merges pinned |
+| `playByPlay` creates references | Next |
 | `consequences` adds into the plan | Not started |
 | Hand back | Not started |
 

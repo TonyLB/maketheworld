@@ -1,7 +1,8 @@
 import { consequencesCells } from '../imaginationPieces/consequences'
+import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { playByPlayCells } from '../imaginationPieces/playByPlay'
 import { nonRuleCellCells } from '../oraclePieces/nonRuleCell'
-import { mintPaths, orderItems, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
+import { mergeChanges, mintPaths, orderItems, planChangesContract, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
 import { oracleCases } from './oracleCases'
 
 const allPaths = ({ steps }: ActionPlan): string[] => steps.flatMap(({ path, items }) => [path, ...items.map((item) => item.path)])
@@ -34,6 +35,16 @@ describe('the action plan', () => {
         it('falls back to the scope\'s word when nothing remains', () => {
             expect(slug('the and of', 'step')).toBe('step')
             expect(slug('...', 'concern')).toBe('concern')
+        })
+
+        it('mints against the scope\'s paths already taken: the slug if free, else the first free -n', () => {
+            const texts = ['tip [table1]', 'tip [table1]', 'pick up [cup1]'].map((says) => ({ says, fallback: 'step' }))
+            expect(mintPaths(texts, ['tip-table1', 'tip-table1-3'])).toEqual(['tip-table1-2', 'tip-table1-4', 'pick-up-cup1'])
+        })
+
+        it('keeps a text that slugs to a numbered path apart from a repeat', () => {
+            expect(mintPaths(['tip [table1]', 'tip [table1] 2', 'tip [table1]'].map((says) => ({ says, fallback: 'step' }))))
+                .toEqual(['tip-table1', 'tip-table1-2', 'tip-table1-3'])
         })
 
         it('tells repeats in one scope apart with -2, -3, in order', () => {
@@ -128,5 +139,124 @@ describe('the action plan', () => {
         ].join('\n'))
         expect(renderPlanForGenerator(planFromNonRuleSteps(nonRuleCellCells['OC-30/h7'].inputs.steps)).split('\n').slice(-1)[0])
             .toBe('  - consequence tip-table1.saucer1-cup1-slide: [saucer1] and [cup1] slide off [table1] onto the floor')
+    })
+
+    describe('changes merged in (step 2)', () => {
+        let handles: string[] = []
+        beforeAll(async () => {
+            handles = Object.keys((await fixtureScene('teaTable')).things)
+        })
+        const h5 = () => planFromNonRuleSteps(nonRuleCellCells['OC-30/h5'].inputs.steps)
+        const h7 = () => planFromNonRuleSteps(nonRuleCellCells['OC-30/h7'].inputs.steps)
+        const h10 = () => planFromNonRuleSteps(nonRuleCellCells['OC-30/h10'].inputs.steps)
+        const slide = { add: 'consequence', to: 'tip-table1', thing: 'cup1', says: '[cup1] slides off with [saucer1] onto the floor' }
+        const spout = { add: 'concern', to: 'tip-table1', says: '[cup1] is no longer under [teapot1]\'s spout' }
+        const merged = (plan: ActionPlan, changes: unknown[]): ActionPlan => {
+            const result = mergeChanges(plan, { changes }, handles)
+            if ('problems' in result) {
+                throw new Error(result.problems.join('; '))
+            }
+            return result.plan
+        }
+        const refused = (plan: ActionPlan, block: unknown): string[] => {
+            const result = mergeChanges(plan, block, handles)
+            return 'problems' in result ? result.problems : []
+        }
+
+        it('h5: step 0\'s block adds the slide after the intended pour, and the concern last', () => {
+            const plan = merged(h5(), [slide, spout])
+            expectWellFormed('h5', plan)
+            expect(plan.steps[0].items).toEqual([
+                { kind: 'intent', path: 'tip-table1.teapot1-pours-tea2', says: '[teapot1] pours [tea2] into [cup1]' },
+                { kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2-2', says: '[teapot1] pours [tea2] into [cup1]', intended: true },
+                { kind: 'consequence', path: 'tip-table1.cup1-slides-saucer1', says: '[cup1] slides off with [saucer1] onto the floor', thing: 'cup1' },
+                { kind: 'concern', path: 'tip-table1.cup1-no-longer', says: '[cup1] is no longer under [teapot1]\'s spout' },
+            ])
+        })
+
+        it('h7: an added consequence follows the slide line, and a concern goes last, in any block order', () => {
+            const plan = merged(h7(), [spout, { add: 'consequence', to: 'tip-table1', says: '[teapot1] slides toward the tipped edge' }])
+            expectWellFormed('h7', plan)
+            expect(plan.steps[0].items.map(({ path }) => path)).toEqual([
+                'tip-table1.teapot1-pours-tea2', 'tip-table1.teapot1-pours-tea2-2', 'tip-table1.saucer1-cup1-slide',
+                'tip-table1.teapot1-slides-toward', 'tip-table1.cup1-no-longer',
+            ])
+        })
+
+        it('h10: an addition on the tip lands after the intended pour, and the saucer\'s step is kept as it is', () => {
+            const before = h10()
+            const plan = merged(before, [{ add: 'consequence', to: 'tip-table1', thing: '[teapot1]', says: '[teapot1] slides toward the tipped edge' }])
+            expectWellFormed('h10', plan)
+            expect(plan.steps[0]).toBe(before.steps[0])
+            expect(plan.steps[1].items.slice(-1)).toEqual([
+                { kind: 'consequence', path: 'tip-table1.teapot1-slides-toward', says: '[teapot1] slides toward the tipped edge', thing: 'teapot1' },
+            ])
+        })
+
+        it('h10: a block that addresses a step not in the plan is refused whole', () => {
+            expect(mergeChanges(h10(), { changes: [slide, { ...spout, to: 'pick-up-cup1' }] }, handles)).toEqual({ problems: ['change 2: to "pick-up-cup1" names no step'] })
+        })
+
+        it('gives a repeat of an existing item\'s text the next free -n', () => {
+            const plan = merged(h5(), [{ add: 'consequence', to: 'tip-table1', says: '[teapot1] pours [tea2] into [cup1]' }])
+            expect(plan.steps[0].items.map(({ path }) => path).slice(-1)).toEqual(['tip-table1.teapot1-pours-tea2-3'])
+        })
+
+        it('leaves the plan it is given unchanged, and an empty block gives an equal plan', () => {
+            const plan = h5()
+            const copy = JSON.parse(JSON.stringify(plan))
+            merged(plan, [slide, spout])
+            expect(plan).toEqual(copy)
+            expect(merged(plan, [])).toEqual(plan)
+        })
+
+        describe('refuses the whole block, saying why', () => {
+            it.each([
+                ['no object', 'tip', ['the change block is not an object']],
+                ['no changes array', { changes: 'none' }, ['the JSON block has no "changes" array']],
+                ['a change that is not an object', { changes: ['add it'] }, ['change 1: is not an object']],
+                ['no says', { changes: [{ add: 'concern', to: 'tip-table1', says: ' ' }] }, ['change 1: has no non-empty string "says"']],
+                ['an unknown key', { changes: [{ ...spout, why: 'it tips' }] }, ['change 1: has "why", not one of add, to, thing, says']],
+                ['intended', { changes: [{ ...slide, intended: true }] }, ['change 1: "intended" isn\'t writable: a change adds only unintended consequences']],
+                ['an unknown kind', { changes: [{ ...spout, add: 'intent' }] }, ['change 1: "add" must be one of consequence, concern']],
+                ['no such step', { changes: [{ ...spout, to: 'tip-teapot1' }] }, ['change 1: to "tip-teapot1" names no step']],
+                ['a sub-item named', { changes: [{ ...spout, to: 'tip-table1.teapot1-pours-tea2' }] }, ['change 1: to "tip-table1.teapot1-pours-tea2" names a sub-item, not a step']],
+                ['a thing not in the scene', { changes: [{ ...slide, thing: '[mug1]' }] }, ['change 1: thing "mug1" is not in the scene']],
+                ['a thing on a concern', { changes: [{ ...spout, thing: 'cup1' }] }, ['change 1: a concern takes no "thing"']],
+            ])('%s', (_, block, problems) => {
+                expect(refused(h5(), block)).toEqual(problems)
+            })
+
+            it('lists every problem in the block', () => {
+                expect(refused(h5(), { changes: [slide, { add: 'note', to: 'tip', says: '' }, { ...spout, thing: 'mug1' }] })).toEqual([
+                    'change 2: "add" must be one of consequence, concern',
+                    'change 2: to "tip" names no step',
+                    'change 2: has no non-empty string "says"',
+                    'change 3: thing "mug1" is not in the scene',
+                    'change 3: a concern takes no "thing"',
+                ])
+            })
+        })
+
+        describe('the contract', () => {
+            it('parses a reply\'s fenced block into the merged plan', () => {
+                const reply = ['Tipping the table moves the cup.', '', '```json', JSON.stringify({ changes: [slide, spout] }), '```'].join('\n')
+                expect(planChangesContract.parse(reply, { input: { plan: h5(), handles }, rendered: '' })).toEqual({ value: merged(h5(), [slide, spout]) })
+            })
+
+            it('gives the form problem of a reply with no block', () => {
+                expect(planChangesContract.parse('Nothing changes.', { input: { plan: h5(), handles }, rendered: '' })).toEqual({ problems: ['no JSON block'] })
+            })
+        })
+
+        it('renders the merged plan', () => {
+            expect(renderPlanForGenerator(merged(h5(), [slide, spout]))).toBe([
+                'Step tip-table1: tip [table1]',
+                '  - intent tip-table1.teapot1-pours-tea2: [teapot1] pours [tea2] into [cup1]',
+                '  - consequence (intended) tip-table1.teapot1-pours-tea2-2: [teapot1] pours [tea2] into [cup1]',
+                '  - consequence tip-table1.cup1-slides-saucer1: [cup1] slides off with [saucer1] onto the floor',
+                '  - concern tip-table1.cup1-no-longer: [cup1] is no longer under [teapot1]\'s spout',
+            ].join('\n'))
+        })
     })
 })
