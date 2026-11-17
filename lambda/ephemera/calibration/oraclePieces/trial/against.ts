@@ -7,25 +7,38 @@
 // replies against each cell's `lookFor`.
 //
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
-import { replyJsonObject } from '../../pieceProbe/pieceAnswer'
+import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs, type SecuringShown } from '../nonRuleCell'
-import { trialCases } from './trialCases'
+import { trialCases, type TrialArgument } from './trialCases'
 
 const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
 
-/** The form: the block parses, `step` quotes one of the plan's steps (any of them), and `argument` is a non-empty string. Every problem is listed. */
-export const checkTrialAgainst = (reply: string, { inputs: { steps } }: ReadPieceCell<NonRuleCellInputs>): string[] => {
-    const parsed = replyJsonObject(reply)
-    if ('malformed' in parsed) {
-        return [parsed.malformed]
-    }
-    const { step, argument } = parsed.object
-    const quote = isNonEmptyString(step) ? matchQuote(step, quotables(steps, false)) : { malformed: 'has no string "step"' }
-    return [
-        ...('malformed' in quote ? [`step: ${quote.malformed}`] : []),
-        ...(isNonEmptyString(argument) ? [] : ['has no non-empty string "argument"']),
-    ]
+/**
+ * The stage's contract: it reads the non-rule cell's inputs and gives a `TrialArgument`, the step quoted as the reply quoted it. The parse
+ * is the form: the block parses, `step` quotes one of the plan's steps (any of them), and `argument` is a non-empty string. Every
+ * problem is listed. The case against doesn't give its question yet, so the value has none.
+ */
+export const againstContract: StageContract<NonRuleCellInputs, TrialArgument> = {
+    name: 'trial against',
+    parse: (reply, { input: { steps } }) => {
+        const parsed = replyJsonObject(reply)
+        if ('malformed' in parsed) {
+            return { problems: [parsed.malformed] }
+        }
+        const { step, argument } = parsed.object
+        const quote = isNonEmptyString(step) ? matchQuote(step, quotables(steps, false)) : { malformed: 'has no string "step"' }
+        const problems = [
+            ...('malformed' in quote ? [`step: ${quote.malformed}`] : []),
+            ...(isNonEmptyString(argument) ? [] : ['has no non-empty string "argument"']),
+        ]
+        return problems.length > 0 || !isNonEmptyString(step) || !isNonEmptyString(argument) ? { problems } : { value: { step, argument } }
+    },
 }
+
+/** The probe's form check: the contract's parse problems. */
+export const checkTrialAgainst = (reply: string, cell: ReadPieceCell<NonRuleCellInputs>, rendered = ''): string[] => (
+    parseProblems(againstContract.parse(reply, { input: cell.inputs, rendered }))
+)
 
 export type TrialAgainstOptions = { securing: SecuringShown }
 

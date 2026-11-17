@@ -1,6 +1,6 @@
 # The non-rule cell: an oracle piece that answers with a verdict or a request
 
-**Status (2026-11-16): steps 1 and 2 done; the baseline is batch 1, 11 of 30 graded calls right, the size cells 9 of 9. Step 3, drafts in isolation (round 1), begun, with a provisional bar for passable: draft 2, the outcomes framed by what they indicate, for the reluctance to allow (NR-P6), changed nothing (batch 2) and isn't kept; draft 3, the non-branching walk with consequences on their step (the contract amended, NR-4), moved the guards in substance (batch 3). At the batch 3 checkpoint it was kept as the base; draft 4, for and against before the finding, wasn't kept (batch 4): the weighing took, and the securing decides it. Draft 5, a tagged factor list before the finding with `cause` made optional, ran (batch 5): the tags became four headings to fill and the guards fell to 0 of 4, while `cause` optional fixed its form fault; the factor list not kept, pending the user. Since then, step 3 has gone to separate pieces: `stepConsiderations` (paused at draft 2), then the trial. The case against is kept on draft 1 with the securing omitted. The rebuttal's base is draft 5, confirmed at x3 (batch 8): weak arguments rebutted truly, sound ones visibly falsely. The trial family (Slice A) is built: one harness kind, `trial`, with the stage by `options.stage`, renders pinned to the batches. Next is the verdict (Slice B), its prompt designed here first. Step 4 can run alongside; step 5, the cell in composition, waits on step 3's exit.** The step layout is agreed ([The step layout and the two shapes](#the-step-layout-and-the-two-shapes)), and NR-1 to NR-4, NR-6 (for the baseline) and NR-7 are settled. The probe's change for NR-7 and the piece are built. Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, where the non-rule blocker was made next (user, 2026-11-13; [trail](AGENT.oracleLoop.discussion.planning.md#the-non-rule-blocker-first-the-rule-cell-later-2026-11-13)). It is renamed `nonRuleCell` here (user, 2026-11-13): under the verdict-or-request contract, `blocks` is one answer among several, and the name parallels `ruleCell`, its nearest analogue. The piece judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first oracle piece designed from the start to answer with a verdict **or** with requests typed by the imagination's asks ([trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)), so the request contract is drafted here, on a new piece, and the rule cell adopts it later. **The composition probe's first two steps are built in this plan** (mine, 2026-11-13): a request's worth shows only in what comes back, so the cell's requests can't be graded without it. Its growth toward OC-30's chain may outgrow this plan; if so it gets its own.
+**Status (2026-11-16): steps 1 and 2 done; the baseline is batch 1, 11 of 30 graded calls right, the size cells 9 of 9. Step 3, drafts in isolation (round 1), begun, with a provisional bar for passable: draft 2, the outcomes framed by what they indicate, for the reluctance to allow (NR-P6), changed nothing (batch 2) and isn't kept; draft 3, the non-branching walk with consequences on their step (the contract amended, NR-4), moved the guards in substance (batch 3). At the batch 3 checkpoint it was kept as the base; draft 4, for and against before the finding, wasn't kept (batch 4): the weighing took, and the securing decides it. Draft 5, a tagged factor list before the finding with `cause` made optional, ran (batch 5): the tags became four headings to fill and the guards fell to 0 of 4, while `cause` optional fixed its form fault; the factor list not kept, pending the user. Since then, step 3 has gone to separate pieces: `stepConsiderations` (paused at draft 2), then the trial. The case against is kept on draft 1 with the securing omitted. The rebuttal's base is draft 5, confirmed at x3 (batch 8): weak arguments rebutted truly, sound ones visibly falsely. The trial family (Slice A) is built: one harness kind, `trial`, with the stage by `options.stage`, renders pinned to the batches. The verdict (Slice B) is built: a third stage, answered, on lifted pairs, over a typed stage contract. Batch 9, its draft 1: 6 of 10, the guards 4 of 4 and the size cells 1 of 3. Draft 2, the exchange as the object of judgment, ran in batch 10 at 5 of 10: the verdict now follows its stated tests, but the tests are filled by echo of the rebuttal (TR-P17). Draft 3, the point of disagreement as the synthesis, ran in batch 11 at 5 of 10: the synthesis takes in form, but its deciding clause is filled from the rebuttal's half just before it (TR-P18). The user's diagnosis: form over validity. Draft 4, skepticism stated in a reading section, ran in batch 12 at 5 of 10 with every answer unchanged: read past. Draft 5, the two voices tagged, ran in batch 13 at 6 of 10: one answer moved (OC-18), otherwise as batch 12. Draft 6, the skepticism moved into the decision, fell through in batch 14 (4 of 10, `rebuttal` 11 of 11): it was read as absence against the argument (TR-P20). In the discussion of per-side labels, the user traced the fault to how a scene is read: unstated details default to the ordinary. Draft 7, that rule in the verdict's Reading the scene, was read past in batch 15 (5 of 10). Across batches 11 to 15 the settling clause's named source decides the answer (TR-P21). No step asked the judge to evaluate soundness. Draft 8 added that at the task site, as a pair with and without "skeptically": both 4 of 10 in batch 16, identical; the stance had no effect, and the evaluation was read as consistency with the rebuttal's quoted line. At the checkpoint after batch 16, the user chose to keep drafting the judge. Next, by another route: [the trial's question](AGENT.trialQuestion.planning.md), a prototype in its own plan, in which the judge answers the case against's question. Step 4 can run alongside; step 5, the cell in composition, waits on step 3's exit.** The step layout is agreed ([The step layout and the two shapes](#the-step-layout-and-the-two-shapes)), and NR-1 to NR-4, NR-6 (for the baseline) and NR-7 are settled. The probe's change for NR-7 and the piece are built. Opened from the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, where the non-rule blocker was made next (user, 2026-11-13; [trail](AGENT.oracleLoop.discussion.planning.md#the-non-rule-blocker-first-the-rule-cell-later-2026-11-13)). It is renamed `nonRuleCell` here (user, 2026-11-13): under the verdict-or-request contract, `blocks` is one answer among several, and the name parallels `ruleCell`, its nearest analogue. The piece judges whether a plan can go ahead for reasons no rule names, such as stuffing a table into a teacup. It is the first oracle piece designed from the start to answer with a verdict **or** with requests typed by the imagination's asks ([trail](AGENT.oracleLoop.discussion.planning.md#an-oracle-piece-answers-with-a-verdict-or-a-request-2026-11-12)), so the request contract is drafted here, on a new piece, and the rule cell adopts it later. **The composition probe's first two steps are built in this plan** (mine, 2026-11-13): a request's worth shows only in what comes back, so the cell's requests can't be graded without it. Its growth toward OC-30's chain may outgrow this plan; if so it gets its own.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), as an implementation plan under the parent's pilot of the [proposed design variant](../../../../AGENT.designVariant.proposed.md). The parent holds the subsystem map, the stages (a guess), the seam ledger and the corpus. This plan holds one episode. What it shows about a guess goes **up** to the parent's seam ledger.
 
@@ -519,7 +519,7 @@ A deploy, since the check changes. **The relevance attack** comes back as its ow
 
 ### The trial family: one harness kind, the stage by specifier
 
-**Designed 2026-11-16; Slice A built the same day, Slice B not yet.** The idea is the user's: collect the trial's pieces under one harness kind, with a specifier for the stage under test and the `golden`/`lifted` choice already settled. This is a step toward a pipeline-aware harness, short of a full pipeline that feeds against into rebuttal into verdict. The layout below, the pairing rule and the slicing are mine unless marked.
+**Designed 2026-11-16; Slices A and B built the same day** (Slice B to [its own design](#slice-bs-design-the-verdict-and-the-stage-contract)). The idea is the user's: collect the trial's pieces under one harness kind, with a specifier for the stage under test and the `golden`/`lifted` choice already settled. This is a step toward a pipeline-aware harness, short of a full pipeline that feeds against into rebuttal into verdict. The layout below, the pairing rule and the slicing are mine unless marked.
 
 **Why now:** the verdict is the first piece with two upstream inputs. As separate pieces, each stage copies the cells again: `trialRebuttal`'s cells already spread the non-rule cell's inputs and add `against`, and the verdict would spread them once more and add `rebuttal`. A lifted rebuttal is also a reply to one particular argument (batch 8 answered the golden arguments), so the verdict can't pair stages freely.
 
@@ -573,6 +573,321 @@ A deploy, since the check changes. **The relevance attack** comes back as its ow
 - the trial `iterations.md` header (the files named by stage).
 
 **The step it takes:** toward [step 4](#recommended-order), the composition probe, where pieces feed each other in code. The trial proposal already places "chaining the three in code" there, once each works alone (the user pointed to it, 2026-11-16). The family gives step 4's chaining a home: the stage order and each lifted value's provenance, which it can later fill by running the stage before instead of reading a recorded batch.
+
+### Slice B's design: the verdict and the stage contract
+
+**Accepted by the user, 2026-11-16, as a first iteration: something that can reasonably decide between the two. Built the same day.** The user's framing: the whole pipeline will be tuned and refactored later, toward what improvement to suggest from the combinations of arguments, rebuttals and judgments; this slice only has to judge. Where the contracts live is the user's call (2026-11-16): the generic part in `llm/`, the trial's three concrete contracts in `oraclePieces/trial/`, moving to a production feature folder when production takes the oracle over. Everything else here is mine.
+
+**The stage contract:**
+- **`llm/stageContract.ts`** (new): `StageParse<Output> = { value: Output } | { problems: string[] }`, and `StageContract<Input, Output> = { name, parse(reply, shown: { input, rendered }) → StageParse<Output> }`. `jsonObject` and `replyJsonObject` move there from `pieceAnswer.ts`. `llm/` has the reasoning and JSON split but no "an object, or why not" step, and its `AGENT.md` puts reusable parsing in `llm/` and domain validation in feature code.
+- **Each trial stage exports its `contract`,** and the probe's check or grade is the problems from its `parse`:
+  - `against`: `Input` the non-rule cell's inputs; `Output` a `TrialArgument` (`{step, argument}`);
+  - `rebuttal`: `Input` adds `argument`; `Output` `{ rebuttal, parsed }`, the sentence and its `ParsedRebuttal`;
+  - `verdict`: `Input` adds `rebuttal`; `Output` `'argument' | 'rebuttal'`.
+- **The harness passes the payload's parsed options to `check` and `grade`,** so a stage resolves its upstream input for the parse as its render does.
+- **Not in this slice:** classes, a coordinator, merging the quote matchers, and render in the contract (it builds fixture scenes, which is the probe's).
+- **Where production would take it** (read, not wired): `llm/pipeline`'s `defineLlmInvokeStep`, in `applyOutputs`. The actions pipeline's LLM slot today is the `adjudicateDeferred` stub.
+
+**The pairing rule** (`stageInput.ts`): `lifted` gains an optional `consumed: { upstream, hash }`, the hash a `textHash` of the value's sorted-key JSON.
+- `upstream: 'lifted'`: the lifted rebuttal, then the argument it consumed, from that source, with the hash checked. A mismatch throws, so the probe refuses the payload as a cell-data error.
+- `upstream: 'golden'`: golden all the way up.
+
+**The batch 8 rebuttals as lifted values:**
+- a `rebuttal` slot on each trial record, each lifted value the reply's sentence run through `parseRebuttal`, with `consumed` naming the golden argument batch 8 answered;
+- **the repeat:** the first whose reply passes the current parse. That is r1 everywhere but OC-3, which takes r2, since r1 lists a fact that doesn't name its handle. No choosing by quality;
+- **no golden rebuttals yet.** Writing the strongest rebuttal per cell is its own design, so `upstream: 'golden'` is refused at the verdict until they exist.
+
+**The verdict** (an answered stage of the family):
+- **The render:** the rebuttal's, then `The rebuttal: <sentence>` on the next line, so "But …" reads as the argument's reply.
+- **The answers:** `argument` or `rebuttal`, graded by the contract's parse: the trailing block parses and `answer` is one of the two. No `Answer:` line. The cap is 400 tokens.
+- **The expected answers,** from the trial proposal:
+
+  | Expected | Cells |
+  | --- | --- |
+  | `argument` | the size cells (OC-11, OC-18, OC-3), h7; h5, since the loose-teapot argument is sound in the scene shown and its rebuttal dodges |
+  | `rebuttal` | the guards (OC-1, OC-2, OC-20, OC-6), h10 |
+  | ungraded | OC-9 |
+
+  h5 and h10 are read apart. Each cell gets a verdict look-for; h7's asks whether the judge reads the rebuttal's evasion of the slide line as weak (TR-P14).
+- **Draft 1:**
+  - **Role,** new: judging between an argument against a player's plan and its rebuttal, with what follows listed;
+  - **Reading the scene and Reading the steps,** word for word from rebuttal draft 5;
+  - **Task,** new: a description before the verdict (RC-L5), with each input used by a step (TR-P7):
+    > Task: Decide whether the argument or the rebuttal is right about the question the argument answers. First, in one or two sentences, say what the scene and the steps say about that question, quoting the lines that bear on it. Then end with a single JSON code block, fenced with ```json, holding one object: {"answer": "argument"} when the argument is right, or {"answer": "rebuttal"} when the rebuttal is right.
+- **What to watch:** anchoring on the rebuttal, the nearest text (the size cells show it); the description becoming the verdict; "right" read loosely on h5 and h10.
+
+**Batch 9:** `{ "stage": "verdict", "upstream": "lifted" }`, 11 cells, `repeats: 1`, after a deploy, with a rubric in `verdict.1.notes.md` before it.
+
+**What changes:**
+- `llm/stageContract.ts` and its test; `llm/AGENT.md`;
+- `pieceProbe/`: `pieceAnswer.ts`, `oraclePiece.ts`, `handlePieceProbe.ts`, `stageInput.ts`, and their tests;
+- `oraclePieces/`: `nonRuleCell.ts` and `stepConsiderations.ts` (imports); `trial/`: `against.ts`, `rebuttal.ts` (contracts, renders pinned unchanged), `trialCases.ts`, `verdict.ts`, `index.ts`, and their tests;
+- `verdict.1.txt`, `verdict.1.notes.md`, the trial `iterations.md`;
+- here; calibration `AGENT.md`.
+
+**As built** (mine):
+- **The rebuttal's sentence parser** moved to `trial/rebuttalSentence.ts`, so the records can parse a lifted rebuttal at load without an import cycle.
+- **An answered piece's `grade`** takes the rendered text as well as the options, in the same order as a read piece's `check`.
+- **The rebuttal's render after its argument is resolved** is `renderArgued`, which the verdict's render starts from. The pins are unchanged.
+- **Batch 8 replayed** through the contract-derived check: 31 of 33, as before.
+
+### Verdict draft 2: the exchange as the object
+
+**Accepted by the user, 2026-11-16; built the same day** ([`verdict.2.txt`](oracleLoopDrafts/trial/verdict.2.txt), its rubric in [`verdict.2.notes.md`](oracleLoopDrafts/trial/verdict.2.notes.md), h10 re-expected in `trialCases.ts`). The direction is the user's, from the diagnosis after batch 9: the judge should strictly compare which of the argument and the rebuttal succeeded, not judge the scene freely. The scene's reading instructions stay as they are. Whether the judge needs different instructions for reading the scene, in the context of the exchange, is a later question, asked only after this draft (the user). The wording, the expected-answer revision and the rubric are mine.
+
+**Why** (the diagnosis, batch 9; TR-P15, TR-P16). Mine, agreed by the user as a reasonable first step. The prompt treats the argument and the rebuttal as second-class data, in four places:
+1. **The Task makes the question the thing judged.** "Right about the question" asks the judge to answer the question itself and then match a side to its answer. That is a departure of mine from the user's design, a judge of "which argued better" (the trial proposal), and it wasn't flagged when draft 1 was written.
+2. **The only step operates on the scene and the steps.** "Say what the scene and the steps say about that question" has no counterpart for the argument or the rebuttal, so they are reported, not weighed (TR-P7). Every description summarizes them (TR-P15).
+3. **Only the scene and the steps have a reading rule.** The scene is "what has been established". Nothing says how to read an argument or a rebuttal, or when a rebuttal succeeds.
+4. **So authority goes to whichever side quotes the scene,** which is always the rebuttal (draft 5's "the scene says '…', which implies …"). Its inference rides on the quote's authority, unexamined: OC-11 and OC-3's "small round, so it fits", h5's "unnecessary", OC-9's "no weight restriction" (TR-P16).
+
+**One change: the exchange becomes the object of judgment.** The Role, a new reading section and the Task each carry it, and none stands without the others, so they are one change, not three. Each has a slot:
+- **Role** (replaced): "You judge an exchange about a player's plan in a game world: an argument that the plan can't happen as written, and a rebuttal of that argument. Below are the scene, the player's request, the plan's steps in order, each marked with its role, then the question the argument answers, the argument, and the rebuttal."
+- **Reading the argument and the rebuttal** (new, after Reading the steps): "The argument answers its question and claims that the plan can't happen. The rebuttal replies to the argument: it quotes a line of the scene or the steps, or appeals to common sense, and says what follows from that. The rebuttal succeeds when what it says follows from what it quotes or appeals to, and answers the argument's claim. The argument stands when the rebuttal's reply doesn't follow from its source, or answers something other than the argument's claim."
+- **Task** (replaced): "Task: Decide which argued better, the argument or the rebuttal. First, in one or two sentences, take the rebuttal's reply: say what it quotes or appeals to, then whether what it says follows from that, and whether it answers the argument's claim. Then end with a single JSON code block, fenced with ```json, holding one object: {"answer": "argument"} when the argument argued better, or {"answer": "rebuttal"} when the rebuttal argued better."
+
+Every input gets a step that uses it (TR-P7): the question and the argument's claim through what the rebuttal must answer, and the rebuttal's source and inference through the two tests. The description now judges the rebuttal's move, not the scene. The risk is RC-P2's: deciding first and fitting the tests to it.
+
+**Unchanged:** Reading the scene and Reading the steps (the user), the render (so batch 9's inputs hashes hold), the cells and the lifted pairs, the grade and the answers, and the cap of 400.
+
+**The expected answers, revised for the framing** (mine). They follow each pair's contents, as the trial proposal already had it for h5. Under "which argued better", h10's lifted pair changes:
+- **h10: `rebuttal` → `argument`.** The rebuttal ("tipping the table is not necessary to pour tea") answers something other than the argument's claim that the cup falls, and never uses the step that matters, step 1's saucer taken off the table. The argument is wrong on the state, but the rebuttal doesn't show it. The cell stays read apart.
+- **The rest stand:**
+  - the size cells: the rebuttal's "small, so it fits" doesn't follow from "a small round tea table";
+  - h7: the rebuttal answers the argument's claim without the slide line that decides it, and its "still on [table1]" doesn't follow from "In [cup1] there is [tea1] Tea";
+  - h5: the rebuttal's dodge answers something other than the claim;
+  - the guards: each rebuttal's claim follows from its line and answers the argument;
+  - OC-9 stays ungraded. Under this framing, the rebuttal's "doesn't specify any weight restrictions, implying it can be lifted" doesn't follow, so `argument` is the likely reading.
+
+**The rubric outline** (in full in `verdict.2.notes.md` before the batch):
+- **The tally,** against batch 9's 6 of 10, with h10 re-expected, so batch 9 rescores at 7 of 10 like for like (its h10 answer was `argument`, now right; the rest unchanged). The answers' spread, against batch 9's `rebuttal` 8 of 11.
+- **The size cells:** does the description say that "a small round tea table" doesn't make it small enough to fit inside a cup?
+- **The guards:** does the follow test pass them, or does a strict reading of "follows" turn true rebuttals down, the mirror fault?
+- **Restatement** (TR-P15): does the description still summarize all the inputs, or take up the rebuttal's reply as told?
+- **Decide then fit:** does the description name the verdict first and fit the two tests to it?
+- **h7, h5, h10, OC-9:** whether "answers the argument's claim" catches the evasion and the dodges.
+- **Form, length, cut-offs.**
+
+**What changes, if accepted:**
+- `verdict.2.txt` (draft 1 with the Role and Task replaced and the reading section added) and `verdict.2.notes.md`;
+- `trialCases.ts`: h10's expected verdict, with its look-for, and the test that lists the expected answers;
+- the trial `iterations.md` (TR-L10); here, the trial item;
+- calibration `AGENT.md`'s verdict paragraph ("which argued better").
+
+No deploy is needed for the prompt, but the expected-answer change is in the cells, so it needs one before batch 10. Batch 10 is 11 cells x1 on the lifted pairs.
+
+### Verdict draft 3: the point of disagreement
+
+**Accepted by the user, 2026-11-16 ("let's give it a try"); built the same day** ([`verdict.3.txt`](oracleLoopDrafts/trial/verdict.3.txt), its rubric in [`verdict.3.notes.md`](oracleLoopDrafts/trial/verdict.3.notes.md)). The aim is the user's, from batch 10: Micro attends so narrowly to one input that it can't synthesize a view of the argument and the rebuttal in context with each other, so ask for that synthesis as an intermediate result. The sentence form, its branches and the wording are mine.
+
+**Why** (batch 10; TR-P17). Draft 2's tests were each answered from the rebuttal's own text: "follows" from its "which implies", "answers" as "same subject". Nothing outside the rebuttal was measured against.
+
+**One change: the description becomes the point of disagreement.** The Task's description step is replaced by one sentence in one of two forms:
+1. "On the question, the argument says '…'; the rebuttal says '…'; so they disagree about …, which the scene says / the steps say / common sense says is …".
+2. "On the question, the argument says '…'; the rebuttal answers a different question: '…'".
+
+The verdict is tied to the sentence. It is `argument` when what is so agrees with the argument, or when the rebuttal answers a different question. It is `rebuttal` when what is so agrees with the rebuttal.
+
+The shape draws on three things that worked:
+- **the rule cell's relational description,** where the description states how two things relate rather than assessing one;
+- **rebuttal draft 5's fixed sentence with a turn,** in place of slots that get filled literally;
+- **the question as the anchor,** since it is the one input outside both texts.
+
+The scene is read again, but only at the point in dispute, so the comparison stays strict.
+
+**The risks:**
+- the rebuttal's half is copied in its own framing;
+- the settling clause repeats the rebuttal's source;
+- the second form goes unused, or is overused.
+
+If one call can't hold the synthesis and the verdict, the disagreement can become its own stage feeding the judge.
+
+**Unchanged:**
+- the Role and the three reading sections;
+- the render, the lifted pairs and the expected answers;
+- the grade and the cap of 400.
+
+The rubric outline is in `verdict.3.notes.md`. In short: the form per cell, each half against the question, the crux, whether the settling clause ever disagrees with the rebuttal, the size cells' common sense, h7's slide line, the second form on h5 and h10, and whether the verdict follows the sentence.
+
+**A tangent for later** (the user, 2026-11-16): the framing will likely differ by the shape of the argument and the rebuttal once those prompts gain nuance. For example: "the argument says the teapot is glued to the table; the rebuttal says that is true but irrelevant to the larger question of whether tilting the table causes the tea to pour". That is the relevance attack's shape, and it is booked under the trial's later items.
+
+### Verdict draft 4: skepticism stated
+
+**Accepted by the user, 2026-11-16; built the same day on draft 3** ([`verdict.4.txt`](oracleLoopDrafts/trial/verdict.4.txt), its rubric in [`verdict.4.notes.md`](oracleLoopDrafts/trial/verdict.4.notes.md)).
+
+**The diagnosis is the user's, after batch 11: form over validity.** The rebuttal always has the confident form of a valid counter-argument ("my opponent says 2 + 2 is 4, but the facts indicate it is 5"). The judge reads that form, decides its inputs contain a valid counter-argument, and looks no further. It explains TR-P16 to P18 as one mechanism:
+- the guards are right every batch, since there form and validity agree;
+- the argument wins only where the judge brings a counter-fact of its own (OC-3 in batch 11, OC-18 in batches 9 and 10);
+- draft 2's "follows" was answered by the rebuttal's own "which implies".
+
+**A correction to batch 8's reading** (mine): its sound arguments' rebuttals were "visibly false" only to a reader of validity. To a reader of form, the false rebuttals look exactly like the true ones.
+
+**The idea is the user's:** prompt Micro to be skeptical, saying plainly that an input may not be true, rather than tweaking format, which is always a little fragile.
+
+**One change** (wording mine). Two sentences are added at the end of Reading the argument and the rebuttal:
+
+> Both were written by sides told to argue their position as strongly as they can, whatever is actually so, so each states its claims with the same confidence whether they are true or not. A quoted line shows only what that line says; what a side draws from it may or may not follow.
+
+The sentences have three properties:
+- **a fact about the inputs,** the triad's own design;
+- **symmetric** between the two sides;
+- **positive,** with no "do not".
+
+The evidence that Micro takes epistemic status from wording comes from the play-by-play: "might get in the way" kept problems hypothetical, and "runs into" made them actual.
+
+**The risks:**
+- over-applied skepticism turning down the guards' true rebuttals;
+- prose that Micro reads past, as prose definitions were in the judge drafts.
+
+**Unchanged:**
+- draft 3's disagreement sentence;
+- the render, the cells and the cap.
+
+### Verdict draft 5: the two voices tagged
+
+**Accepted by the user, 2026-11-16; built the same day** ([`verdict.5.txt`](oracleLoopDrafts/trial/verdict.5.txt), its rubric in [`verdict.5.notes.md`](oracleLoopDrafts/trial/verdict.5.notes.md); the render split as `renderArguedParts`, the verdict's pins moved, the rebuttal's unchanged). The idea and the tag names are the user's: mark the argument and the rebuttal with XML-style tags, to make it as clear as possible that they are two different and opposing voices. The user chose `<argues-plan-cannot-happen>` (and so `<argues-plan-can-happen>`). The user's understanding from research is that Nova Micro is trained on internal XML-style tags and may respond to them strongly. The placement, the wording and the rubric are mine.
+
+**Why** (batch 12; TR-P19). Draft 4's skepticism, stated in a reading section, was read past. The render sets up the two as voices only weakly:
+- **Labels name roles, not voices:** `The argument against the plan, turning on the step "…": …` and `The rebuttal: …`. Until draft 4, nothing said who wrote either, or that either had a stake.
+- **They read as one conversation,** by Slice B's design (mine): the rebuttal on the line straight after the argument, "so 'But …' reads as its reply".
+- **No boundary separates the rebuttal's voice from the scene's.** The scene is fenced (`Scene:` … `End of scene.`), but the two sides are bare lines after it, and the rebuttal quotes scene lines word for word. Batches 10 to 12 gave the rebuttal's claims as the scene's: OC-18's "which the scene says is true about the cup being large enough", and h7's "which the scene says is true that the cup remains intact".
+
+**What tags may do that draft 4 didn't:**
+- **They put each side's stance on its text, at the literal place,** where draft 4 put it in a background section. Tight steps at a literal place worked in the judge drafts where prose definitions didn't, and a label has moved Micro before (`Picture` renamed `Play-by-play`: 0 of 3 to 2 of 3).
+- **They give the boundary a mark:** a scene line quoted inside `<argues-plan-can-happen>` is visibly that side speaking.
+
+**One change: the two sides tagged, and the Role naming the tags.** The two parts go together, since the tags only tie to the answer keys if the prompt says which is which.
+- **The render** (the verdict's only; the rebuttal stage's render is untouched). The scene, the request and the steps come first, then the question line, outside both tags, since it is the neutral yardstick. Then:
+  ```
+  <argues-plan-cannot-happen>
+  The argument against the plan, turning on the step "…": …
+  </argues-plan-cannot-happen>
+  <argues-plan-can-happen>
+  The rebuttal: …
+  </argues-plan-can-happen>
+  ```
+  The lines inside are as now, so the answer keys `argument` and `rebuttal` keep their labels.
+- **Role, its list of inputs:** "… then the question the argument answers, the argument, in `<argues-plan-cannot-happen>`, and the rebuttal, in `<argues-plan-can-happen>`."
+- **Unchanged:**
+  - draft 4's two skepticism sentences, which the tags may give a concrete referent ("both were written by sides told to argue …");
+  - draft 3's disagreement sentence and the verdict's rule;
+  - the cells and the expected answers;
+  - the grade, the answers and the cap of 400.
+
+**The risks:**
+- **Tag names about the plan may pull the judge back to judging the plan freely,** where the strict comparison settles only the disputed point. Read whether the settling clause speaks of the plan or the crux.
+- **The tags echoed into the reply.** That is harmless unless it displaces the sentence form.
+- **The guards:** true rebuttals turned down once the rebuttal is marked as a voice with a stake (the mirror fault).
+- **Micro may read past the tags** as it read past draft 4's sentences.
+
+**The rubric outline** (in full in `verdict.5.notes.md` before the batch), against batch 12's 5 of 10, every answer as batch 11's:
+- **The settling clause,** the main measure: how many disagree with the rebuttal (batches 11 and 12: 1 of 11)?
+- **The scene-attribution:** does any clause still give the rebuttal's claim as what the scene says (OC-18, OC-11, h7)?
+- **The size cells:** whether common sense settles against the rebuttal.
+- **The guards:** still right.
+- **h7:** the slide line.
+- **h5 and h10:** the crux, and whether the second form is ever used.
+- **The tags in the reply,** and whether either side is named as a voice ("the side arguing …").
+- **The verdict follows the sentence.**
+- **Form, length, cut-offs.**
+
+**What changes, if accepted:**
+- `trial/verdict.ts`: the render, with the argued part split from `renderArgued` so the tags can wrap each side. The rebuttal stage's renders stay byte-identical, held by their pins.
+- The verdict's tests.
+- `renderPins.test.ts`: the verdict's pins move to batch 13's hashes after the batch.
+- `verdict.5.txt` (draft 4 with the Role's list amended) and `verdict.5.notes.md`.
+- The trial `iterations.md` (TR-L13); here, the trial item; calibration `AGENT.md`'s verdict paragraph (the render).
+
+A deploy is needed, since the render changes. Batch 13 is 11 cells x1 on the lifted pairs.
+
+### Verdict draft 6: skepticism in the decision
+
+**Built 2026-11-16, on draft 5** ([`verdict.6.txt`](oracleLoopDrafts/trial/verdict.6.txt), its rubric in [`verdict.6.notes.md`](oracleLoopDrafts/trial/verdict.6.notes.md)). The direction is the user's, after batch 13: first just move the skepticism into the decision, and see whether Micro can apply judgment with only that instruction. The placement and the lead-in wording are mine. The batch is the review: the change is draft 4's sentences moved.
+
+**Why** (batches 12 and 13). The skepticism stated in a reading section was read past, and the tags didn't change that. Batch 13's one moved answer (OC-18) came with a clause weighing what the quoted line shows on its own, the sentence acted on for the first time. TR-P7's pattern says an instruction no step uses is ignored.
+
+**One change.** Draft 4's two sentences move from Reading the argument and the rebuttal into the Task. They sit straight after the first form's template, led in by "For the last part, what is actually so about that point, take neither side's word for it: …". Everything else is draft 5's.
+
+**If it falls through, next** (the user's, 2026-11-16, booked): the judge labels the argument and the rebuttal **separately**, each as strong or weak, possibly with a third label, **desperate**, for a reply that is really reaching. The user's example is "the fiction doesn't determine what relative size the table and cup are" (batch 13's OC-18 clause, in the rebuttal's favour, or the facts branch on the size cells). It is to be discussed before it is designed.
+
+### Verdict draft 7: the ordinary as the default
+
+**Accepted by the user, 2026-11-16; built the same day** ([`verdict.7.txt`](oracleLoopDrafts/trial/verdict.7.txt), its rubric in [`verdict.7.notes.md`](oracleLoopDrafts/trial/verdict.7.notes.md)). The diagnosis and the rule are the user's, after batch 14, and so is the wording of the rule's first half. The placement, the scope, the second half's wording and the rubric are mine.
+
+**The diagnosis** (the user's). Resting a rebuttal on what the scene doesn't say is not necessarily a failure. The user's example: "Incoming argues that the key cannot be put into the box because it's a huge decorative key and the box is a jeweler's ring box, but neither of those things are established in the scene, the arguer just invented those details". So "not established" can't simply be marked a losing move. The fault is in how a scene is read. "If it's not said in the scene, it's not established" is too strong: most scenes don't establish a breathable atmosphere. What was meant is closer to "a variance from the obvious norm is not established unless the scene says it". What is not established tends to default toward common sense, not toward what would have been mentioned if it were true.
+
+**Where the strict reading lives** (mine). Reading the scene doesn't say "unstated means unestablished". It says "the scene below is what has been established about this place" and is silent on defaults, so "established" reads as exhaustive. The strictness is stated outright elsewhere:
+- in the rebuttal's contract: draft 1's kind "a detail the scene could have given but didn't", and draft 5's branch "the only facts the scene and the steps establish about …";
+- in verdict draft 6's step: "a quoted line shows only what that line says".
+
+So the fix adds a default rule, not removes a sentence.
+
+**The same reading behind more of the record** (mine):
+- the rebuttal's universal "not established" (TR-P4);
+- the judge's absence against the argument (TR-P20);
+- the non-rule cell's over-asking for action detail (batch 1), and its draft 5 "Not given" tag gathering invented preconditions (NR-P9).
+
+Each treats "unstated" as "unknown" rather than "ordinary".
+
+**One change, on draft 5** (6 of 10, the best so far; draft 6's step-skepticism, which backfired, stays out). A sentence is added to the end of the verdict's Reading the scene:
+
+> Things are as such things ordinarily are, except where the scene says otherwise: a detail the scene leaves out is expected to have some ordinary value, and a claim that something departs from the ordinary needs the scene to say so.
+
+"Is expected to have some ordinary value" is the user's wording, in place of my "takes its ordinary value", which implied a single default. The range matters:
+- **The whole ordinary range on one side settles the point:** no ordinary table fits inside an ordinary cup.
+- **A range that spans both outcomes leaves it open,** rightly: some long oak trestles one person can lift, some not. That is OC-9's skill-or-chance (JF-2).
+
+**What the rule decides on the cells.** Neither side needs a quote; the side that relies on a departure from the ordinary carries the burden. That is symmetric, as draft 6 wasn't.
+
+| Cell | The departure | Favours |
+| --- | --- | --- |
+| The size cells | a table small enough to go inside a cup | the argument |
+| OC-1, OC-20 | a small tea table too heavy for one person | the rebuttal |
+| OC-6 | tea that must be moved to another container before pouring | the rebuttal |
+| OC-2 | empty hands keeping a cup from being lifted | the rebuttal |
+| OC-9 | open, the range spanning | ungraded |
+
+**Where it won't help:** h7 contradicts a stated line (the slide), which is not a matter of defaults, and h5 and h10 are dodges. Those stay open.
+
+**Scope: the verdict first** (mine). Reading the scene is shared word for word by the non-rule cell, the case against, the rebuttal and the verdict, and the rebuttal's facts branch is the strict reading in contract form. If the verdict shows the rule works, the shared section, and the rebuttal's branch with it, is the larger change after this. It is kept apart so this test stays one change.
+
+**The rubric outline** (in full in `verdict.7.notes.md` before the batch), against batch 13's 6 of 10:
+- **The settling clause:** does it appeal to the ordinary ("a table doesn't ordinarily fit in a cup"), and on which side?
+- **The size cells,** above all OC-11, wrong in every batch.
+- **The guards:** still right, now possibly on the ordinary as well as the line.
+- **OC-9:** whether the range is read as open.
+- **The absence move** (TR-P20): any clause still settling by "the scene doesn't specify".
+- **h7, h5 and h10:** read, not expected to move.
+- **The verdict follows the sentence; form, length, cut-offs.**
+
+**What changes, if accepted:**
+- `verdict.7.txt` (draft 5 with the sentence added) and `verdict.7.notes.md`;
+- the trial `iterations.md` (TR-L16);
+- here, the trial item.
+
+No code changes and no deploy (the prompt is in the payload). Batch 15 is 11 cells x1 on the lifted pairs.
+
+### Verdict draft 8: evaluation at the task site, as a pair
+
+**Accepted by the user, 2026-11-16; built the same day on draft 7** ([`verdict.8a.txt`](oracleLoopDrafts/trial/verdict.8a.txt), [`verdict.8b.txt`](oracleLoopDrafts/trial/verdict.8b.txt), the rubric in [`verdict.8.notes.md`](oracleLoopDrafts/trial/verdict.8.notes.md)).
+
+**Why** (the user's questions after batch 15):
+- **Does anything in the judge prompt ask it to judge whether the two sides reason soundly,** or does it leave the door open to "which looks more like what we describe"? Mine, on reading draft 7: nothing does. The Task is a template, "whichever of these two forms fits", with slots for copying, naming and choosing a source, and a verdict by agreement. The reading section describes the rebuttal by the very form every rebuttal has. Micro did what was asked, which is now an entry in [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro).
+- **Has anything disproven that an attitude applied directly at the task site would have influence?** No.
+  - Drafts 4, 5 and 7 put a stance in a reading section, with no evaluating step for it to modify.
+  - Draft 6's sentence at the task site had an effect, in the wrong direction.
+  - "Evaluate … skeptically" has never been tried: no draft since 2 has had an evaluating verb.
+
+**One change, in a pair.** The user's wording ("Evaluate the validity of the claim by using the 'Read the scene' instructions to skeptically consider this claim in the context of the larger scene") is fitted to the template's settling part, where draft 6's sentence sat:
+- **8a:** "For the last part, what is actually so about that point, evaluate the validity of each side's claim by using the Reading the scene instructions above to skeptically consider that claim in the context of the larger scene."
+- **8b:** the same without "skeptically".
+
+**Mine:**
+- "each side's claim", for evenness, against TR-P20;
+- the section named by its label;
+- running the two as a pair. 8b against batch 15 tests the evaluating operation, tied to Reading the scene and its ordinary-default rule. 8a against 8b tests the manner word at the task site.
+
+The rubric is in the notes. **Batch 16** is two payloads, 16a and 16b, 11 cells x1 each, with no deploy.
 
 ### Rebuttal draft 3, first design: gather the lines, then the claim (withdrawn)
 
@@ -698,18 +1013,38 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
        - [X] Draft 4, evidence then both attacks ([design](#rebuttal-draft-4-evidence-then-both-attacks); batch 6): evidence quoted but not argued from; the slots misread (TR-P8 to P10) ([results](oracleLoopDrafts/trial/rebuttal.4.notes.md#results-2026-11-15-batch-6)).
        - [X] Draft 5, one sentence, "but the scene says …" ([design](#rebuttal-draft-5-one-sentence-incoming-argues-but); the user's shape). Batch 7: the summary dropped (TR-P12, not a fault: the render ends on the argument), world claims 11 of 11 ([results](oracleLoopDrafts/trial/rebuttal.5.notes.md#results-2026-11-15-batch-7)). Batch 8, confirmed at x3: weak arguments rebutted truly from a quoted line 12 of 12, sound ones visibly falsely 9 of 9; h7 never quotes the slide (TR-P14); h5 and h10 invent stability ([results](oracleLoopDrafts/trial/rebuttal.5.notes.md#results-2026-11-16-batch-8)).
      - [x] **Slice A: the trial family, the two stages built so far** (the user's idea, 2026-11-16; [design](#the-trial-family-one-harness-kind-the-stage-by-specifier)). **Built** (2026-11-16): one harness kind, `trial`, with `options.stage` and the stage's own options, over one trial record per cell (`oraclePieces/trial/`); the names `trialAgainst` and `trialRebuttal` retired. Every stage's renders pinned by test to batches 1, 2 and 8's inputs hashes, green before and after the move, so no batch. TR-P13 fixed: batch 8 replays at 31 of 33. A step toward step 4's chaining. Deploy before the next trial payload.
-     - [ ] **Slice B: the verdict stage (`trialVerdict`).** The typed stage contract (each stage's `Input`, `Output` and `parse`, shared by the probe and production; [design](#the-trial-family-one-harness-kind-the-stage-by-specifier)), the pairing rule (`lifted.consumed`), the batch 8 rebuttals recorded as lifted values, the render (the argument, then the rebuttal as its reply), the check and the cells. **The verdict's prompt and reply get their own design here before it's built.** h7 tests whether the judge reads an evasion as weak (TR-P14).
+     - [x] **Slice B: the verdict stage (`trialVerdict`).** **Accepted and built** (2026-11-16; [Slice B's design](#slice-bs-design-the-verdict-and-the-stage-contract)): the stage `verdict`, answered, graded through its contract; `llm/stageContract.ts` with each trial stage's `contract`; `lifted.consumed` and `pickPaired`; batch 8's rebuttals lifted (repeat 1, OC-3 repeat 2); [`verdict.1.txt`](oracleLoopDrafts/trial/verdict.1.txt) and its rubric in [`verdict.1.notes.md`](oracleLoopDrafts/trial/verdict.1.notes.md). Deploy before batch 9. The typed stage contract (each stage's `Input`, `Output` and `parse`, shared by the probe and production; [design](#the-trial-family-one-harness-kind-the-stage-by-specifier)), the pairing rule (`lifted.consumed`), the batch 8 rebuttals recorded as lifted values, the render (the argument, then the rebuttal as its reply), the check and the cells. **The verdict's prompt and reply get their own design here before it's built.** h7 tests whether the judge reads an evasion as weak (TR-P14).
+       - [x] **Batch 9:** verdict draft 1 on the lifted pairs, 11 cells x1: 6 of 10. The guards 4 of 4, h7 right with the slide line stated; the size cells 1 of 3, the judge accepting "small round, so it fits" (TR-P16); every description restates the inputs (TR-P15) ([results](oracleLoopDrafts/trial/verdict.1.notes.md#results-2026-11-16-batch-9)). The verdict's base. Its next draft is designed here before it's built.
+       - [x] **Verdict draft 2: the exchange as the object** (the user's direction, 2026-11-16, from [the diagnosis](#verdict-draft-2-the-exchange-as-the-object): the argument and the rebuttal were second-class data). **Accepted and built** (2026-11-16; [`verdict.2.txt`](oracleLoopDrafts/trial/verdict.2.txt), [rubric](oracleLoopDrafts/trial/verdict.2.notes.md)). Deploy before batch 10. A reading section for the argument and the rebuttal; the Task judging "which argued better" by whether the rebuttal's reply follows from its source and answers the argument's claim; h10 re-expected as `argument` (mine). The scene's reading instructions unchanged until after this draft (the user).
+       - [x] **Batch 10:** verdict draft 2 on the lifted pairs, 11 cells x1: 5 of 10, against batch 9 rescored (7 of 10). The description takes up the rebuttal's reply and the verdict follows its tests, 11 of 11; but "follows" and "answers" are affirmed by echo of the rebuttal's own "which implies" (TR-P17), `rebuttal` 10 of 11, and h7 loses the slide line ([results](oracleLoopDrafts/trial/verdict.2.notes.md#results-2026-11-16-batch-10)). The deploy graded h10 against its old expected answer; rescored by hand.
+       - [x] **Verdict draft 3: the point of disagreement** (the user's aim, 2026-11-16: synthesis of the two in context with each other; [design](#verdict-draft-3-the-point-of-disagreement)). **Accepted and built** ([`verdict.3.txt`](oracleLoopDrafts/trial/verdict.3.txt), [rubric](oracleLoopDrafts/trial/verdict.3.notes.md)): the description is one sentence naming what the two disagree about and what settles it, or that the rebuttal answers a different question.
+       - [x] **Batch 11:** verdict draft 3 on the lifted pairs, 11 cells x1: 5 of 10. The sentence in the first form 11 of 11 and the crux often right (OC-11, h7); but the settling clause continues the rebuttal's half, copied whole just before it, 10 of 11 (TR-P18); the second form unused; `rebuttal` 10 of 11 ([results](oracleLoopDrafts/trial/verdict.3.notes.md#results-2026-11-16-batch-11)).
+       - [x] **Verdict draft 4: skepticism stated** (the user's diagnosis, form over validity, and the user's idea, 2026-11-16; [design](#verdict-draft-4-skepticism-stated)). **Accepted and built** on draft 3 ([`verdict.4.txt`](oracleLoopDrafts/trial/verdict.4.txt), [rubric](oracleLoopDrafts/trial/verdict.4.notes.md)): two sentences saying both sides were written to argue whatever is so, and that a quoted line shows only what it says.
+       - [x] **Batch 12:** verdict draft 4 on the lifted pairs, 11 cells x1: 5 of 10, every answer as batch 11's. No reply shows skepticism; the settling clause still gives the rebuttal's claim as the scene's. Read past, since no step uses the sentences (TR-P7's pattern) ([results](oracleLoopDrafts/trial/verdict.4.notes.md#results-2026-11-16-batch-12)).
+       - [x] **Verdict draft 5: the two voices tagged** (the user's idea and tag names, 2026-11-16; [design](#verdict-draft-5-the-two-voices-tagged)). **Accepted and built** ([`verdict.5.txt`](oracleLoopDrafts/trial/verdict.5.txt), [rubric](oracleLoopDrafts/trial/verdict.5.notes.md)). Deploy before batch 13. The argument in `<argues-plan-cannot-happen>` and the rebuttal in `<argues-plan-can-happen>`, the question outside both, the Role naming the tags; on draft 4. Before moving the skepticism into the step (the user's order).
+       - [x] **Batch 13:** verdict draft 5 on the lifted pairs, 11 cells x1: 6 of 10. Only OC-18 moved, to right, its settling clause the first to weigh whether the quoted line supports the rebuttal's claim; otherwise as batch 12. No tag echoed; the scene-attribution persists (OC-11, h7) ([results](oracleLoopDrafts/trial/verdict.5.notes.md#results-2026-11-16-batch-13)).
+       - [x] **Verdict draft 6: skepticism in the decision** (the user's direction, 2026-11-16; [design](#verdict-draft-6-skepticism-in-the-decision)). **Built** on draft 5 ([`verdict.6.txt`](oracleLoopDrafts/trial/verdict.6.txt), [rubric](oracleLoopDrafts/trial/verdict.6.notes.md)): draft 4's sentences moved from the reading section into the Task, on the settling clause.
+       - [x] **Batch 14:** verdict draft 6 on the lifted pairs, 11 cells x1: 4 of 10, `rebuttal` 11 of 11. The skepticism in the step was read as "the scene doesn't establish it", against the argument's unquoted claims (TR-P20). Falls through ([results](oracleLoopDrafts/trial/verdict.6.notes.md#results-2026-11-16-batch-14)).
+       - [x] **Verdict draft 7: the ordinary as the default** (the user's diagnosis and rule, 2026-11-16; [design](#verdict-draft-7-the-ordinary-as-the-default)). **Accepted and built** ([`verdict.7.txt`](oracleLoopDrafts/trial/verdict.7.txt), [rubric](oracleLoopDrafts/trial/verdict.7.notes.md)). A sentence in the verdict's Reading the scene: a detail the scene leaves out is expected to have some ordinary value, and a departure from the ordinary needs the scene to say so. On draft 5; the shared section after.
+       - [x] **Batch 15:** verdict draft 7 on the lifted pairs, 11 cells x1: 5 of 10, every answer as batches 11 and 12; the rule never appears in a reply, read past in a reading section. Across batches 11 to 15, the settling clause's source decides: "the scene says" gives `rebuttal` 42 of 43 (TR-P21) ([results](oracleLoopDrafts/trial/verdict.7.notes.md#results-2026-11-16-batch-15)).
+       - [x] **Verdict draft 8: evaluation at the task site, as a pair** (the user's questions and wording, 2026-11-16; [design](#verdict-draft-8-evaluation-at-the-task-site-as-a-pair)). **Accepted and built** on draft 7 ([`verdict.8a.txt`](oracleLoopDrafts/trial/verdict.8a.txt), [`verdict.8b.txt`](oracleLoopDrafts/trial/verdict.8b.txt), [rubric](oracleLoopDrafts/trial/verdict.8.notes.md)): "evaluate the validity of each side's claim by using the Reading the scene instructions above to [skeptically] consider that claim in the context of the larger scene", with and without "skeptically".
+       - [x] **Batch 16:** verdict drafts 8a and 8b, two payloads, 11 cells x1 each: both 4 of 10, `rebuttal` 11 of 11, identical cell by cell. "Skeptically" at the task site shows no effect; the evaluation was read as consistency with the scene, whose only text on the point is the rebuttal's line; "the scene says" 22 of 22, OC-3 lost ([results](oracleLoopDrafts/trial/verdict.8.notes.md#results-2026-11-16-batch-16)).
+       - [x] **Checkpoint (d), the verdict, after batch 16** (2026-11-16; the first since the verdict began, eight batches in). **The user: keep drafting the judge.** The mechanism, as it stands: the judge does what its step asks; stances outside the step are read past; it reads from whatever source the step names; and the rebuttal's quote is the only scene text on the point, so any check against the scene finds the rebuttal agreeing with it. The bar for passable is unchanged.
+      - [ ] **The trial's question, a prototype in its own plan** ([`AGENT.trialQuestion.planning.md`](AGENT.trialQuestion.planning.md), opened 2026-11-16). The user's hypothesis: an adversarial question framing the judgment may let free judgment work where the single cell didn't, with the case against's job becoming "find a question you think the judge will, upon consideration, agree proves the plan impossible". Its first probe is the judge answering the golden questions alone. It folds back here when it finishes.
+       - [ ] **Each side labelled separately** (the user's, 2026-11-16): the judge labels each side strong or weak, perhaps a third label, desperate, for a reply that is reaching. A call per side is my question, not the user's. Discussed after batch 14: "not established" isn't necessarily desperate (the user's key-and-ring-box example), which led to draft 7. Held.
      - [ ] **Later in the trial:**
-       - the relevance attack as its own sentence, once the answer side works (left out of draft 5);
+       - the relevance attack as its own sentence, once the answer side works (left out of draft 5); with it, the verdict's framing per shape of argument and rebuttal (the user, 2026-11-16: "the argument says the teapot is glued; the rebuttal says that is true but irrelevant to whether tilting the table causes the tea to pour");
        - golden cells for salient-but-irrelevant arguments and the guards (the glue), where the facts branch and the relevance attack should be strong;
+       - golden rebuttals, the strongest a rebuttal could make, so the verdict runs on `upstream: 'golden'` too (none written in Slice B);
        - the case against giving its question, so a lifted argument fits the rebuttal's current contract;
-       - chaining the three in code, in step 4.
+       - chaining the three in code, in step 4;
+       - **system instructions and user input, delivered apart** (the user, 2026-11-16, to check later). Nova Micro is trained on a distinction between system instructions and user input, and the probe doesn't use it: `runProbeCalls` sends the draft and the cell's render together as one `user` message (`oracleLoop/runOracleProbe.ts`), and `llm/invokeBedrockConverseText` takes no `system` parameter (checked 2026-11-16). To check what is done behind the scenes, and whether the Bedrock utilities need more delivery options, such as the draft as the `system` prompt and the render as the user turn. A delivery change moves every piece's batches, so it is probed as a change of its own.
    - [ ] **Then: the skill-or-chance finding** (the booked item below), as a contract change of its own: a fourth finding that code can tell apart. Draft 5's "difficult" factors show how much it's needed. Batches 3 and 4 had "difficult" under "blocked" in at least six replies, and OC-9 asking for "the player's capability".
    - [ ] **Then: intended consequences** (the user's, 2026-11-13; [NR-L10](oracleLoopDrafts/nonRuleCell/iterations.md#library)). A line under a step can be something the method relies on (intended: "[teapot1] tilts with [table1]"), not only a side effect. A failure of an intended line routes toward an alternate method, as a method step's does; a side effect routes toward a mitigation. It is designed here first as a step-layout amendment, since it changes the OC-30 cells' inputs and who writes such lines in composition (the imagination plan's question). It then becomes a draft.
    - **The securing, tested** (`trialAgainst` batch 2, 2026-11-14): option (b), left out of what the case against sees. With it gone, the size is argued 3 of 3 and h7's slide is argued rightly; the cost is the pours' teapot tilt (TR-P3), for intended consequences or option (a). The user: this is more defensible now that a special-purpose prompt, the rule cell, judges the scene with the securing and is told to focus on it. **Held until then: the securing (batch 4's main failure).** The glue or chain read as holding a thing still decides OC-1, OC-6, OC-20 and every OC-30 pour. Option (a) is the rules' consequence in the scene (below); option (b) is the securing left out of what this piece sees. Mine: (a), since the pours need the teapot to move with the table. It is held until draft 5 shows whether "effect unclear" catches the glue by itself, and intended consequences cover the pours.
    - **A candidate, not booked: the rules' consequence in the scene** (mine, from batch 2; it revisits NR-6, the user's call). OC-1's replies read glue as stopping the pair from moving, not as moving them together, and h10's as a teapot that "would fall off or break". The piece has the fact ("glued to") and not its consequence ("moves with what it is secured to"), which the imagination's `rules: 'consequence'` wording gives. To be weighed after draft 3, whose `establishes` slot may show the misreading in its own words.
    - **Booked, next after draft 5 (above): a skill-or-chance outcome** (user, 2026-11-13). Sometimes "I don't know whether that's possible" isn't answered by more detail of the situation: the attempt may or may not work out, depending on the character's skill and on chance. That is a separate exit from the loop, not a request to the imagination. It may take tuning to get it answered without contradicting the instructions that look for a plain physical impossibility as written. This is the parent's JF-2 (`challenging`, "possible, and hard") in this piece's per-step form, and OC-9's trestle is its cell. It is a later iteration, not a gate on this plan's exits; it may land in either round. OC-9 is excepted from the bar for (b), since it has no expected answer.
-4. [ ] **The composition probe, first form: what exists** (the parent's Slice 4.5, mine, revised 2026-11-13). `playByPlay` feeding the settled rule cell through an adapter (its lines for the named things; the silence contract for a rule's other end), with code asking `playByPlay` first, on OC-1, OC-6 and OC-20. Each hop's inputs and answer are logged. **Rests on** IM-5's provisional split. **Consumer:** a batch read per hop. It tests the reading direction, and gives the harness the next step plugs into. It doesn't touch the non-rule cell, so it can run beside step 3. **A step toward it is in step 3:** the trial family (Slice A) records the stage order and each lifted value's provenance, where chaining the trial's three pieces in code will go.
+4. [ ] **The composition probe, first form: what exists** (the parent's Slice 4.5, mine, revised 2026-11-13). `playByPlay` feeding the settled rule cell through an adapter (its lines for the named things; the silence contract for a rule's other end), with code asking `playByPlay` first, on OC-1, OC-6 and OC-20. Each hop's inputs and answer are logged. **Rests on** IM-5's provisional split. **Consumer:** a batch read per hop. It tests the reading direction, and gives the harness the next step plugs into. It doesn't touch the non-rule cell, so it can run beside step 3. **A step toward it is in step 3:** the trial family (Slice A) records the stage order and each lifted value's provenance, where chaining the trial's three pieces in code will go. Slice B's stage contracts give each stage a typed output to pass on. Read for their future place, not wired: production would take a contract's `parse` in `llm/pipeline`'s `defineLlmInvokeStep`, in `applyOutputs`; the actions pipeline's LLM slot is the `adjudicateDeferred` stub today.
 5. [ ] **The cell in composition.** **Gated on** step 3's exit (a) or (b). Its requests dispatched to the imagination, the fresh call with and without the question asked (NR-5), and a round cap (IM-3). Graded per hop: each request warranted or not, each verdict against the corpus. **Consumer:** a batch on the cells where asking is right, and step 6.
 6. [ ] **Drafts in composition (round 2),** one change per draft, from step 3's last kept draft, in composition and in the piece probe as each problem calls for.
    - **Exits:** (a) the library has nothing left worth a draft; (b) every cell right, in the probe and per hop, for two batches running; (c) a batch shows the piece needs a new approach (a seam-ledger entry); (d) a checkpoint with the user every three batches.
@@ -778,7 +1113,7 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
   - **`golden`:** hand-written in the earlier stage's contract form, and no better than that contract asks for. It isolates the later piece's failures, and it is the earlier stage's target made concrete.
   - **`lifted`:** a real output of the earlier stage, with its source batch and repeat. It tests robustness to the earlier stage's realistic failures.
 
-  A payload names its source with `upstream: 'golden' | 'lifted'`; there is no default. The trial's stages are one harness kind (Slice A), so a payload names `"piece": "trial"` and its stage too: `"options": {"stage": "rebuttal", "upstream": "golden"}`. A source a cell lacks throws at render, and the probe refuses the payload as a cell-data error. A lifted value recorded under an older contract counts as missing. One lifted value per cell, replaced when a newer batch is adopted. Composition (steps 4 and 5) stays where the gap between the two is measured.
+  A payload names its source with `upstream: 'golden' | 'lifted'`; there is no default. The trial's stages are one harness kind (Slice A), so a payload names `"piece": "trial"` and its stage too: `"options": {"stage": "rebuttal", "upstream": "golden"}`. A source a cell lacks throws at render, and the probe refuses the payload as a cell-data error. A lifted value recorded under an older contract counts as missing. One lifted value per cell, replaced when a newer batch is adopted. A lifted value that answered an earlier stage records what it `consumed` (that stage's source and the hash of the value it read), so a stage reading two upstream values (the verdict) shows the lifted one with the very value it answered, and an edit to that value since breaks the pair loudly (Slice B). Composition (steps 4 and 5) stays where the gap between the two is measured.
 - **Every iteration is marked in this plan** (the user, 2026-11-15). Each draft's design is written here, minimally, before it's built, for review; a draft that changes a piece's contract or check gets a design section. Its batch's results are marked on its step 3 item as they land. The notes file holds the detail; the plan holds the record.
 - One change per draft, a rubric written before each batch, and every reply read, not only tallied: requests carry parameters code doesn't grade.
 - Each change is attributed. Anything not from the user is labelled "mine" until accepted. A cell's expected answer is mine unless the corpus or the user gives it.
@@ -795,7 +1130,7 @@ The three OC-30 cells are this piece's hops in the corpus's [OC-30 chain](AGENT.
 | --- | --- |
 | The design pass | Done: the step layout agreed, NR-1 to NR-4 settled, the cells reviewed, NR-6 settled for the baseline, NR-7 settled (2026-11-13); the design pass is complete, step 2 next |
 | The piece and its baseline | Done (2026-11-13): the probe's change, the piece, draft 1; batch 1, 11 right of 30 graded, the size cells 9 of 9 |
-| Drafts in isolation (round 1) | Under way. The single piece: draft 3 is the base (drafts 2, 4 and 5 not kept; `cause` optional kept). `stepConsiderations` paused at draft 2. The trial: the case against kept on draft 1 (securing omitted); the rebuttal's base is draft 5 (batch 8, confirmed at x3); the trial family built (Slice A, 2026-11-16); next, the verdict (Slice B). The bar for passable is provisional |
+| Drafts in isolation (round 1) | Under way. The single piece: draft 3 is the base (drafts 2, 4 and 5 not kept; `cause` optional kept). `stepConsiderations` paused at draft 2. The trial: the case against kept on draft 1 (securing omitted); the rebuttal's base is draft 5 (batch 8, confirmed at x3); the trial family built (Slice A, 2026-11-16); the verdict built (Slice B, 2026-11-16), draft 1 at 6 of 10 (batch 9); draft 2 at 5 of 10 (batch 10), its tests filled by echo; draft 3 at 5 of 10 (batch 11); draft 4 (skepticism) at 5 of 10 (batch 12), read past; draft 5 (the voices tagged) at 6 of 10 (batch 13), one cell moved; draft 6 (skepticism in the decision) fell through at 4 of 10 (batch 14); draft 7 (the ordinary as the default) read past at 5 of 10 (batch 15); draft 8 (evaluation at the task site, a pair) at 4 of 10 both (batch 16). The bar for passable is provisional |
 | The composition probe, first form | Not started |
 | The cell in composition | Not started; gated on round 1's exit |
 | Drafts in composition (round 2) | Not started |

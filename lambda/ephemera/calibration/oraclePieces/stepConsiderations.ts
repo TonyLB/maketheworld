@@ -6,7 +6,7 @@
 // code checks each reply's form, and a reader reads the replies against each cell's `lookFor`.
 //
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
-import { replyJsonObject } from '../pieceProbe/pieceAnswer'
+import { replyJsonObject } from '../../llm/stageContract'
 import { matchQuote, nonRuleCellCells, quotables, renderNonRuleCell, type NonRuleCellInputs } from './nonRuleCell'
 
 const isNonEmptyString = (value: unknown): boolean => typeof value === 'string' && value.trim() !== ''

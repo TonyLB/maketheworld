@@ -106,7 +106,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     if (piece.kind === 'read') {
         const readCells = rendered.map(({ id, text = '' }): PreparedReadCell => ({ cell: id, lookFor: piece.cells[id].lookFor, rendered: text }))
         const readCalls = await runReadPiece({
-            cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id], readCells.find(({ cell }) => cell === id)?.rendered ?? ''),
+            cells: readCells, instructions, repeats, model, check: (reply, id) => piece.check(reply, piece.cells[id], readCells.find(({ cell }) => cell === id)?.rendered ?? '', options),
             ...(piece.maxTokens !== undefined ? { maxTokens: piece.maxTokens } : {}),
             ...(deps.invoke !== undefined ? { invoke: deps.invoke } : {}),
         })
@@ -134,7 +134,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
             ...(answer === undefined ? {} : { byCode: answer }),
         }
     })
-    const grade = (reply: string, id: string) => (piece.grade !== undefined ? piece.grade(reply, piece.cells[id]) : pieceAnswer(reply, piece.answers))
+    const grade = (reply: string, id: string) => (piece.grade !== undefined ? piece.grade(reply, piece.cells[id], prepared.find(({ cell }) => cell === id)?.rendered ?? '', options) : pieceAnswer(reply, piece.answers))
 
     const calls = await runPieceProbe({
         cells: prepared, instructions, grade, repeats, model,

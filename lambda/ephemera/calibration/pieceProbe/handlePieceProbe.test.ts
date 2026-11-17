@@ -70,14 +70,29 @@ const SECOND = registerPiece<{ word: string }, { from: string }>({
         A: { inputs: { word: 'apple' }, lookFor: 'the second stage', source: 'hand-written' },
         B: { inputs: { word: 'brick' }, lookFor: 'the second stage', source: 'hand-written' },
     },
-    check: (reply) => (reply.startsWith('second') ? [] : ['not the second stage\'s reply']),
+    check: (reply, _cell, _rendered, { from }) => (reply.startsWith('second') ? (reply.endsWith(from) ? [] : [`not from ${from}`]) : ['not the second stage\'s reply']),
     parseOptions: (value) => {
         const { from, ...rest } = (value ?? {}) as Record<string, unknown>
         return Object.keys(rest).length === 0 && (from === 'a' || from === 'b') ? { from } : "options must be { from: 'a' | 'b' }"
     },
     render: async ({ inputs: { word } }, { from }) => `Second (${from}): ${word}`,
 })
-const pieces: Record<string, RegistryEntry> = { toy: TOY, toyRead: TOY_READ, toyFamily: registerFamily('toyFamily', { first: FIRST, second: SECOND }) }
+/** An answered third stage, graded by its own `grade`, which reads the rendered text and the payload's options: `{ word }`, the answer that counts as yes. */
+const THIRD = registerPiece<{ word: string }, { word: string }>({
+    name: 'toyFamily third',
+    answers: ['yes', 'no'],
+    cells: {
+        A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
+        B: { inputs: { word: 'brick' }, expected: 'no', source: 'hand-written' },
+    },
+    grade: (reply, { inputs }, rendered, { word }) => (reply.trim() === '' ? { malformed: 'empty' } : { answer: reply.includes(word) && inputs.word === 'apple' && rendered === 'Third: apple' ? 'yes' : 'no' }),
+    parseOptions: (value) => {
+        const { word, ...rest } = (value ?? {}) as Record<string, unknown>
+        return Object.keys(rest).length === 0 && typeof word === 'string' ? { word } : 'options must be { word: string }'
+    },
+    render: async ({ inputs: { word } }) => `Third: ${word}`,
+})
+const pieces: Record<string, RegistryEntry> = { toy: TOY, toyRead: TOY_READ, toyFamily: registerFamily('toyFamily', { first: FIRST, second: SECOND, third: THIRD }) }
 const INSTRUCTIONS = 'Is the word edible?\nAnswer: yes or Answer: no'
 
 const invokeReplying = (reply: (prompt: string) => string) => jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => ({
@@ -241,10 +256,10 @@ describe('handlePieceProbe', () => {
             expect(result.read[1].replies[0]).toEqual({ repeat: 1, reply: GOOD, problems: [] })
         })
 
-        it('hands the check each cell\'s rendered text, so it can match quotes against what the prompt showed', async () => {
+        it('hands the check each cell\'s rendered text and the options, so it can match quotes against what the prompt showed', async () => {
             const check = jest.spyOn(TOY_READ, 'check')
             await ask({ cells: ['B'] }, invokeReplying(() => GOOD))
-            expect(check).toHaveBeenCalledWith(GOOD, TOY_READ.cells.B, 'Word: brick')
+            expect(check).toHaveBeenCalledWith(GOOD, TOY_READ.cells.B, 'Word: brick', undefined)
         })
 
         it('counts a failed call as an error, not a form fail', async () => {
@@ -280,7 +295,7 @@ describe('handlePieceProbe', () => {
         )
 
         it('runs the stage options.stage names, with its render, check and cells, and names the family and stage in the response', async () => {
-            const invoke = invokeReplying(() => 'second, it says')
+            const invoke = invokeReplying(() => 'second, it says b')
             const response = await ask({ options: { stage: 'second', from: 'b' } }, invoke)
             expect(response.statusCode).toBe(200)
             const result = body(response)
@@ -303,15 +318,34 @@ describe('handlePieceProbe', () => {
         it.each([
             [undefined],
             [{}],
-            [{ stage: 'third' }],
+            [{ stage: 'fourth' }],
             [{ stage: 1 }],
             ['first'],
         ])('refuses a missing or unknown stage, naming the stages: %j', async (options) => {
             const invoke = invokeReplying(() => 'first')
             const response = await ask({ options }, invoke)
             expect(response.statusCode).toBe(400)
-            expect(body(response).error).toBe('toyFamily is a family: options.stage must be one of: first, second')
+            expect(body(response).error).toBe('toyFamily is a family: options.stage must be one of: first, second, third')
             expect(invoke).not.toHaveBeenCalled()
+        })
+
+        it('hands the payload\'s options to a read stage\'s check', async () => {
+            const invoke = invokeReplying(() => 'second, from a')
+            const result = body(await ask({ options: { stage: 'second', from: 'b' } }, invoke))
+            expect(result.summary).toEqual({ calls: 2, formFails: 2, errors: 0 })
+            expect(result.cells[0].failures).toEqual([{ repeat: 1, problems: ['not from b'] }])
+        })
+
+        it('runs an answered stage, graded by its own grade with the rendered text and the payload\'s options, and tallied against each cell\'s expected answer', async () => {
+            const invoke = invokeReplying(() => 'it says pear')
+            const response = await ask({ options: { stage: 'third', word: 'pear' } }, invoke)
+            expect(response.statusCode).toBe(200)
+            const result = body(response)
+            expect(promptOf(invoke, 0)).toMatch(/Third: (apple|brick)$/)
+            expect(result).toMatchObject({ piece: 'toyFamily', stage: 'third', options: { word: 'pear' } })
+            expect(result.summary).toMatchObject({ calls: 2, right: 2, wrong: 0, malformed: 0 })
+            const elsewhere = body(await ask({ options: { stage: 'third', word: 'plum' } }, invokeReplying(() => 'it says pear')))
+            expect(elsewhere.summary).toMatchObject({ right: 1, wrong: 1 })
         })
 
         it('shares the refusals and the cap, on the stage\'s cells', async () => {

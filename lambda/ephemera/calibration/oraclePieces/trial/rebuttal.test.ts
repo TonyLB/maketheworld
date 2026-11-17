@@ -72,7 +72,7 @@ describe('the trial\'s rebuttal stage', () => {
     describe('the check', () => {
         const oc1 = trialRebuttalCells['OC-1']
         const h7 = trialRebuttalCells['OC-30/h7']
-        const check = async (json: unknown, cell = oc1) => checkTrialRebuttal(fence(json), cell, await renderTrialRebuttal(cell, GOLDEN))
+        const check = async (json: unknown, cell = oc1) => checkTrialRebuttal(fence(json), cell, await renderTrialRebuttal(cell, GOLDEN), GOLDEN)
         const reply = (rebuttal: unknown) => ({ rebuttal })
         const SMALL = "Incoming argues 'the table is too heavy', but the scene says '[table1] Table (a small round tea table), in the Parlour'."
         // Batch 8's OC-3 r1 and r3: a facts list followed by a claim, refused before TR-P13's fix.
@@ -173,7 +173,7 @@ describe('the trial\'s rebuttal stage', () => {
         })
 
         it('flags a reply with no block', async () => {
-            expect(checkTrialRebuttal('It is wrong.', oc1, await renderTrialRebuttal(oc1, GOLDEN))).toEqual(['no JSON block'])
+            expect(checkTrialRebuttal('It is wrong.', oc1, await renderTrialRebuttal(oc1, GOLDEN), GOLDEN)).toEqual(['no JSON block'])
         })
     })
 

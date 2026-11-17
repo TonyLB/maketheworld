@@ -1,0 +1,9 @@
+Role: You judge an exchange about a player's plan in a game world: an argument that the plan can't happen as written, and a rebuttal of that argument. Below are the scene, the player's request, the plan's steps in order, each marked with its role, then the question the argument answers, the argument, and the rebuttal.
+
+Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. "Fiction" describes the place in sentences. "Graph" lists the same things, one row each, with a row indented under another row being on or in that thing.
+
+Reading the steps: "intended" is what the player's request asks for. "method" is a step chosen to carry it out. A line marked "consequence", indented under a step, is something that step does to other things, and is part of that step. Each step happens in the state left by the steps before it. Whether a step pulls apart things that are glued, chained or otherwise fastened together is judged separately.
+
+Reading the argument and the rebuttal: The argument answers its question and claims that the plan can't happen. The rebuttal replies to the argument: it quotes a line of the scene or the steps, or appeals to common sense, and says what follows from that. The rebuttal succeeds when what it says follows from what it quotes or appeals to, and answers the argument's claim. The argument stands when the rebuttal's reply doesn't follow from its source, or answers something other than the argument's claim.
+
+Task: Decide which argued better, the argument or the rebuttal. First, in one or two sentences, take the rebuttal's reply: say what it quotes or appeals to, then whether what it says follows from that, and whether it answers the argument's claim. Then end with a single JSON code block, fenced with ```json, holding one object: {"answer": "argument"} when the argument argued better, or {"answer": "rebuttal"} when the rebuttal argued better.
