@@ -1,6 +1,6 @@
 # The trial's question: the judge answers the case against's question
 
-**Status (2026-11-17): opened. Step 0, the explicit scene render, comes first (the user's, added 2026-11-16): its design was reviewed by the user (2026-11-17): QS-4, the securing as a pre-processing step; QS-5, the questions, with R-2 dropped; the stance kept as a frame in the Role. Built the same day: the explicit render, the `sceneReading` piece, the two drafts and the rubric. Next are batches 17 and 18, after a deploy. Step 1's design waits on step 0's choice of render.** Opened from the [non-rule cell plan](AGENT.nonRuleCell.planning.md)'s trial, after verdict batch 16 and the checkpoint at which the user chose to keep drafting the judge. This plan is a prototype and its measurement. It folds back into the non-rule cell plan when it finishes ([When it finishes](#when-it-finishes)).
+**Status (2026-11-17): opened. Step 0, the explicit scene render, comes first (the user's, added 2026-11-16): its design was reviewed by the user (2026-11-17): QS-4, the securing as a pre-processing step; QS-5, the questions, with R-2 dropped; the stance kept as a frame in the Role. Built the same day: the explicit render, the `sceneReading` piece, the two drafts and the rubric. Batches 17 and 18 ran: `sections` 6 of 8, `explicit` 8 of 8. The `sections` misses (R-3 and R-9) settle from absence, "not established" read as no. The confirm at x3 (batches 19 and 20) held: R-3 `sections` 2 of 4 against `explicit` 4 of 4, R-9 0 of 4 against 4 of 4. At the checkpoint (2026-11-17) the user chose the explicit render for step 1. Their reading: taking away the "you are interpreting a data structure" framing unlocked Micro's common sense. Step 0 is done, and step 1's design, now on the explicit render, is next for review.** Opened from the [non-rule cell plan](AGENT.nonRuleCell.planning.md)'s trial, after verdict batch 16 and the checkpoint at which the user chose to keep drafting the judge. This plan is a prototype and its measurement. It folds back into the non-rule cell plan when it finishes ([When it finishes](#when-it-finishes)).
 
 **Why** (the record so far, in the parent's [Recommended order](AGENT.nonRuleCell.planning.md#recommended-order)):
 - **Eight verdict drafts scored 4 to 6 of 10** (batches 9 to 16).
@@ -139,19 +139,19 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
        - **The grade** is the probe's default (`pieceAnswer`), with no stage contract, since the piece isn't a trial stage.
        - **Helpers exported, not restated:** `listWords` (`renderSceneRegisters.ts`), `securingWords`, `actionRule` and `hostsOf` (`sceneRules.ts`), and `targetWords` (`sceneWording.ts`).
    - [X] **The drafts and rubric** (2026-11-17): [`reading.1s.txt`](oracleLoopDrafts/trial/reading.1s.txt) (1032 chars), [`reading.1e.txt`](oracleLoopDrafts/trial/reading.1e.txt) (515), the rubric in [`reading.1.notes.md`](oracleLoopDrafts/trial/reading.1.notes.md), and the two payloads in the session's scratchpad, `batch17-sections.json` and `batch18-explicit.json`.
-   - [ ] **Batches 17 and 18:** the two arms, 8 cells x1 each. Deploy first.
-   - [ ] **The confirm,** if the arms split: x3 on the questions they split on.
-   - [ ] **Checkpoint, with the user:** the render for step 1, by the decision above.
+   - [X] **Batches 17 and 18** (2026-11-17): `sections` 6 of 8, `explicit` 8 of 8, none malformed ([results](oracleLoopDrafts/trial/reading.1.notes.md#batches-17-and-18-2026-11-17-8-cells-x1-each)). Every `sections` answer settled from absence was a no: R-3 and R-9 wrong, and R-5 right by the same move. Verdict draft 7's ordinary-default sentence was read past a fourth time. `explicit` overrode the absence from the default line (R-3), and quoted the carry lines as rules, never as events.
+   - [X] **The confirm** (2026-11-17), x3 on the questions the arms split on, R-3 and R-9: batches 19 (`sections`) and 20 (`explicit`). Over the two batches, `sections` got R-3 2 of 4 and R-9 0 of 4, and `explicit` got both 4 of 4 ([results](oracleLoopDrafts/trial/reading.1.notes.md#the-confirm-batches-19-and-20-2026-11-17-r-3-and-r-9-x3-each)). `explicit`'s descriptions are weaker than its answers: none of R-9's four supports its yes.
+   - [X] **Checkpoint, with the user** (2026-11-17): **the explicit render, for step 1,** by the decision above. The user called the results strong, and encouraging for strength downstream. **The user's reading:** taking away the "you are interpreting a data structure" framing (a guide decoding a format, beside a render that needs decoding) unlocked Micro's ability to apply common sense. The guide's ordinary-default sentence had been read past four times. The same rule, written into each thing's own line, settled R-3 and R-9 every time (TR-L18). **Carried into step 1:** the descriptions can be weaker than the answers (R-9, none of four supporting its yes), so the ruling's rubric reads whether each description supports its answer. What this shows about rendering was recorded on sceneProjection's SP-10 on 2026-11-17 (the user's timing; [the note](AGENT.sceneProjection.planning.md#the-explicit-render-evidence-from-the-trial-2026-11-17)): the evidence, a direction pending step 1, and the scene-render consumers as the refactor's scope. **The ruling is the first prototype of that refactor:** the first consumer with a request and steps beside the scene. It covers the scene half only, since Reading the steps stays.
 1. [ ] **The ruling: the judge answers the golden question alone** (the probe mine; the framing the user's). It is a new answered stage of the `trial` family, `ruling` (mine; the name is the user's to change). It sees the scene with the securing omitted, the request, the steps and the question: the rebuttal's render without the argument. It answers `{"answer": "yes" | "no"}` to the question. **Rests on** the golden questions as written. **Consumer:** the decision at step 1's checkpoint.
    - [ ] **The design, reviewed before it's built** (written here for review):
-     - **Render:** `renderArguedParts`' scene and question, joined as in the rebuttal's render, with no argument and no tags. The scene is in the render step 0 picks; if step 0 picks the explicit render, Reading the scene is dropped from the prompt below, and if it picks both, the ruling runs as a pair. `upstream: 'golden'` only: the lifted arguments have no question (`fitsCurrentContract`), so `lifted` is refused as missing.
+     - **Render:** `renderArguedParts`' scene and question, joined as in the rebuttal's render, with no argument and no tags. The scene is in **the explicit render** (step 0's checkpoint, 2026-11-17), of the scene after `withoutSecuring`, so Reading the scene is dropped from the prompt below. The rebuttal's and verdict's renders and pins stay unchanged, so the ruling needs its own scene part. `upstream: 'golden'` only: the lifted arguments have no question (`fitsCurrentContract`), so `lifted` is refused as missing.
      - **Prompt, `ruling.1.txt`:**
-       - Role: answer one question about a player's plan in a game world;
-       - Reading the scene: verdict draft 7's, the ordinary-default sentence included;
+       - Role: answer one question about a player's plan in a game world, **with step 0's stance as its frame**, word for word: "The scene is the fiction established so far, not a full simulation: what it states is true, what it leaves out is open, and what things are like comes from what you know of the world." The user, 2026-11-17: a necessary part of every Role that reads the explicit render. **Its standing is a carried default, not a measured finding:** both of step 0's arms had the stance, so its contribution was never isolated. It didn't stop `sections` reading absence as no, and whether the explicit render needs it is untested;
+       - Reading the scene: dropped, since step 0 chose the explicit render;
        - Reading the steps: unchanged;
        - Task: one or two sentences on what the scene and the steps establish about the question, then the block.
 
-       There is no stance and no mention of sides, since nothing argued is shown. The cap is 400.
+       There is no mention of sides, since nothing argued is shown. The cap is 400.
      - **Grade** through the stage's contract: the block parses, and `answer` is `yes` or `no`, graded against each cell's `expected.ruling`.
      - **Expected answers** (mine, for review before the batch). The questions' polarity is mixed, which checks for a bias toward yes:
 
@@ -217,8 +217,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | Step | State |
 | --- | --- |
-| The explicit scene render | Built, drafts and rubric written (2026-11-17); batches 17 and 18 next, after a deploy |
-| The ruling, alone | Designed, pending review; its render waits on step 0 |
+| The explicit scene render | **Done** (2026-11-17): the explicit render chosen for step 1 (batches 17 to 20) |
+| The ruling, alone | Designed, on the explicit render; pending review |
 | The case against gives its question | Not started; after step 1's checkpoint |
 | The rebuttal as the relevance attack | Not started; only if step 2 holds |
 | Fold back | Not started |
@@ -230,7 +230,7 @@ It finishes at any step's checkpoint that ends the prototype, or after step 3. T
   - **if the question holds,** a design section in the non-rule cell plan records the three roles, each stage's contract, and the batches' results in brief. Its later items and the held labels item are revised to fit.
   - **if not,** the finding goes on the trial's step 3 item, and verdict drafting resumes from draft 8.
 - **The trial's `iterations.md` keeps the entries.** The `ruling.N` drafts and notes stay in the trial's folder.
-- **What step 0 showed about rendering** goes to sceneProjection's SP-10 row, and `renderSceneExplicit.ts`, if kept, to the `sceneProse` docs.
+- **What step 0 showed about rendering** is already on sceneProjection's SP-10 (2026-11-17). At the fold-back, add what step 1 showed about the explicit render beside a request and steps, and move `renderSceneExplicit.ts`, if kept, into the `sceneProse` docs.
 - **What the batches showed about Micro** goes to [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro). The ruling stage, if kept, goes in calibration's trial paragraphs.
 - **Open rows** move to the parent or are settled.
 - **A sweep for inbound links,** then this plan is deleted.
