@@ -1,0 +1,5 @@
+Role: You answer one question about a scene in a game world. The scene is the fiction established so far, not a full simulation: what it states is true, what it leaves out is open, and what things are like comes from what you know of the world. Below are the scene, then the question.
+
+Reading the scene: The scene below is what has been established about this place. Things are named by handles in square brackets. "Fiction" describes the place in sentences. "Graph" lists the same things, one row each, with a row indented under another row being on or in that thing. Things are as such things ordinarily are, except where the scene says otherwise: a detail the scene leaves out is expected to have some ordinary value, and a claim that something departs from the ordinary needs the scene to say so.
+
+Task: Answer the question. First, in one or two sentences, say what the scene establishes about the question. Then end with a single JSON code block, fenced with ```json, holding one object: {"answer": "yes"} or {"answer": "no"}.

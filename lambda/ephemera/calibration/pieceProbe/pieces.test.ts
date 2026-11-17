@@ -1,10 +1,11 @@
 import { pieces } from './pieces'
 
 describe('pieces', () => {
-    it('lists the oracle\'s pieces: the rule and non-rule cells, answered, the step considerations, read, and the trial, a family of two read stages and an answered one; and the imagination\'s play-by-play and consequences, read', () => {
-        expect(Object.keys(pieces).sort()).toEqual(['consequences', 'nonRuleCell', 'playByPlay', 'ruleCell', 'stepConsiderations', 'trial'])
+    it('lists the oracle\'s pieces: the rule and non-rule cells and scene reading, answered, the step considerations, read, and the trial, a family of two read stages and an answered one; and the imagination\'s play-by-play and consequences, read', () => {
+        expect(Object.keys(pieces).sort()).toEqual(['consequences', 'nonRuleCell', 'playByPlay', 'ruleCell', 'sceneReading', 'stepConsiderations', 'trial'])
         expect(pieces.ruleCell.kind ?? 'answered').toBe('answered')
         expect(pieces.nonRuleCell.kind ?? 'answered').toBe('answered')
+        expect(pieces.sceneReading.kind ?? 'answered').toBe('answered')
         expect(pieces.playByPlay.kind).toBe('read')
         expect(pieces.consequences.kind).toBe('read')
         expect(pieces.stepConsiderations.kind).toBe('read')

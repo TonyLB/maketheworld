@@ -16,7 +16,7 @@ import { sceneEntries } from './renderSceneRegisters'
 import { bracket } from './sceneWording'
 
 /** A relation's own words, if it secures its subject. */
-const securingWords = (relation: SceneRelation): string | undefined => {
+export const securingWords = (relation: SceneRelation): string | undefined => {
     if (relation.kind === 'Custom') {
         return relation.secured ? relation.label : undefined
     }
@@ -50,7 +50,7 @@ export const withoutSecuring = (scene: SceneModel): SceneModel => ({
  * Y" is symmetric as a phrase, and the replies swapped its ends ("the table is glued to the teapot") and read a host's move as relative
  * movement, 10 of 10 on picking up the table. Handles in place of pronouns, since those are where direction slips.
  */
-const actionRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>): string => {
+export const actionRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Map<SceneHandle, Set<SceneHandle>>): string => {
     if (target.kind !== 'thing') {
         return `${bracket(subject)} cannot leave what it is secured to until ${bracket(subject)} is freed.`
     }
@@ -68,7 +68,7 @@ const actionRule = (subject: SceneHandle, target: SceneRelationTarget, hosts: Ma
 }
 
 /** What directly hosts each thing: a thing in several places has several. */
-const hostsOf = (scene: SceneModel): Map<SceneHandle, Set<SceneHandle>> => sceneEntries(scene).reduce((hosts, entry) => {
+export const hostsOf = (scene: SceneModel): Map<SceneHandle, Set<SceneHandle>> => sceneEntries(scene).reduce((hosts, entry) => {
     const pairs: [SceneHandle, SceneHandle][] = [
         ...entry.children.map((child): [SceneHandle, SceneHandle] => [child.handle, entry.handle]),
         ...(entry.kind === 'join' ? [[entry.handle, entry.host] as [SceneHandle, SceneHandle]] : []),
