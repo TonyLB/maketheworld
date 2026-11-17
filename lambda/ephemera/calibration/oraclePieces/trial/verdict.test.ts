@@ -4,9 +4,12 @@ import { pieces } from '../../pieceProbe/pieces'
 import { stageValueHash } from '../../pieceProbe/stageInput'
 import { nonRuleCellCells } from '../nonRuleCell'
 import { joinParts } from '../../pieceProbe/oraclePiece'
-import { rebuttalContract, renderArguedParts, renderTrialRebuttal, trialRebuttalCells } from './rebuttal'
+import { renderSceneExplicit } from '../../../dataSource/actions/sceneProse/renderSceneExplicit'
+import { withoutSecuring } from '../../../dataSource/actions/sceneProse/sceneRules'
+import { fixtureScene } from '../../imaginationPieces/imaginationScene'
+import { evidenceLines, quotesALine, rebuttalContract, renderArguedParts, renderTrialRebuttal, trialRebuttalCells } from './rebuttal'
 import { trialCases } from './trialCases'
-import { gradeTrialVerdict, judgedPair, renderTrialVerdict, renderTrialVerdictParts, trialVerdict, trialVerdictCells, verdictContract } from './verdict'
+import { gradeTrialVerdict, judgedPair, parseVerdictOptions, renderTrialVerdict, renderTrialVerdictParts, trialVerdict, trialVerdictCells, verdictContract } from './verdict'
 
 const fence = (json: unknown): string => ['The scene says the table is small.', '', '```json', JSON.stringify(json), '```'].join('\n')
 
@@ -63,6 +66,39 @@ describe('the trial\'s verdict stage', () => {
                 expect([id, parts.user.startsWith(`${argued.question}\n\n<argues-plan-cannot-happen>\n`)]).toEqual([id, true])
             }
             expect((await renderTrialVerdictParts(oc1, LIFTED)).user.startsWith('The question the argument answers: ')).toBe(true)
+        })
+
+        describe('on the explicit scene (step 1.5\'s retest)', () => {
+            const EXPLICIT = { upstream: 'lifted', scene: 'explicit' } as const
+
+            it('parses the scene option beside upstream, and refuses an unknown render', () => {
+                expect(parseVerdictOptions({ upstream: 'lifted' })).toEqual({ upstream: 'lifted' })
+                expect(parseVerdictOptions(EXPLICIT)).toEqual(EXPLICIT)
+                expect(parseVerdictOptions({ upstream: 'lifted', scene: 'judge' })).toEqual({ upstream: 'lifted', scene: 'judge' })
+                expect(parseVerdictOptions({ upstream: 'lifted', scene: 'sections' })).toBe('the verdict\'s scene must be one of judge, explicit')
+                expect(parseVerdictOptions({ upstream: 'lifted', securing: 'shown' })).toMatch(/^options must be/)
+                expect(parseVerdictOptions(undefined)).toMatch(/^options must be/)
+            })
+
+            it('renders as before with the judge scene named, and swaps only the scene block for the explicit one', async () => {
+                for (const [id, cell] of Object.entries(trialVerdictCells)) {
+                    const judged = await renderTrialVerdict(cell, LIFTED)
+                    expect([id, await renderTrialVerdict(cell, { ...LIFTED, scene: 'judge' })]).toEqual([id, judged])
+                    const explicit = await renderTrialVerdict(cell, EXPLICIT)
+                    const scene = renderSceneExplicit(withoutSecuring(await fixtureScene(cell.inputs.fixture)))
+                    expect([id, explicit]).toEqual([id, `${scene}\n\n${judged.split('End of scene.\n\n')[1]}`])
+                    expect([id, (await renderTrialVerdictParts(cell, EXPLICIT)).system.startsWith(scene)]).toEqual([id, true])
+                }
+            })
+
+            it('still shows every line each lifted rebuttal quotes, argued on the judge render, since the Fiction is kept word for word', async () => {
+                for (const [id, cell] of Object.entries(trialVerdictCells)) {
+                    const { parsed } = judgedPair(cell, LIFTED).rebuttal
+                    const quoted = 'quotes' in parsed ? parsed.quotes.map(({ quote }) => quote) : 'facts' in parsed ? parsed.facts : []
+                    const lines = evidenceLines(await renderTrialVerdict(cell, EXPLICIT))
+                    expect([id, quoted.filter((quote) => !quotesALine(quote, lines))]).toEqual([id, []])
+                }
+            })
         })
 
         it('refuses golden, since no golden rebuttal is written yet', async () => {

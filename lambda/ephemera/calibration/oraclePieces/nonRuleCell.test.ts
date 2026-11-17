@@ -1,3 +1,6 @@
+import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
+import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
+import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { PieceCell } from '../pieceProbe/oraclePiece'
@@ -43,6 +46,15 @@ describe('nonRuleCell', () => {
         it('renders a step with no consequence lines as one line', async () => {
             const text = await renderNonRuleCell(nonRuleCellCells['OC-30/h10'])
             expect(text.split('The steps, in order:\n')[1]).toBe(['- (method) pick up [saucer1]', '- (method) tip [table1]', '- (intended) [teapot1] pours [tea2] into [cup1]'].join('\n'))
+        })
+
+        it('with the explicit scene, swaps only the scene block: the explicit render of the same scene, then the same request and steps', async () => {
+            const judged = await renderNonRuleCell(h7, { securing: 'omitted' })
+            const explicit = await renderNonRuleCell(h7, { securing: 'omitted', scene: 'explicit' })
+            const scene = renderSceneExplicit(withoutSecuring(await fixtureScene(h7.inputs.fixture)))
+            expect(explicit).toBe(`${scene}\n\n${judged.split('End of scene.\n\n')[1]}`)
+            expect(explicit).toContain('The things:')
+            expect(explicit).not.toContain('Graph:')
         })
 
         it('shows things the steps don\'t name: the whole scene, not a sub-scene', async () => {
@@ -173,9 +185,22 @@ describe('nonRuleCell', () => {
         })
     })
 
-    it('takes no options', () => {
-        expect(nonRuleCell.parseOptions(undefined)).toBeUndefined()
-        expect(nonRuleCell.parseOptions({ rules: 'none' })).toBe('nonRuleCell takes no options')
+    it('takes no options, or the scene\'s render', () => {
+        expect(nonRuleCell.parseOptions(undefined)).toEqual({})
+        expect(nonRuleCell.parseOptions({})).toEqual({})
+        expect(nonRuleCell.parseOptions({ scene: 'explicit' })).toEqual({ scene: 'explicit' })
+        expect(nonRuleCell.parseOptions({ scene: 'judge' })).toEqual({ scene: 'judge' })
+        expect(nonRuleCell.parseOptions({ rules: 'none' })).toBe("nonRuleCell's options must be { scene?: 'judge' | 'explicit' }")
+        expect(nonRuleCell.parseOptions({ scene: 'sections' })).toBe("nonRuleCell's options must be { scene?: 'judge' | 'explicit' }")
+    })
+
+    it('renders through the piece as before with no options, and with the explicit scene when named, the securing shown', async () => {
+        for (const cell of Object.values(nonRuleCellCells)) {
+            expect(await nonRuleCell.render(cell, {})).toBe(await renderNonRuleCell(cell))
+            const explicit = await nonRuleCell.render(cell, { scene: 'explicit' })
+            expect(explicit.startsWith(`${renderSceneExplicit(await fixtureScene(cell.inputs.fixture))}\n\nThe player's request: `)).toBe(true)
+        }
+        expect(await nonRuleCell.render(nonRuleCellCells['OC-1'], { scene: 'explicit' })).toContain('[teapot1] is glued to [table1], so it goes wherever [table1] goes, even when [table1] is tipped.')
     })
 
     it('is registered, and runs through the probe on its single-step cells, at the cap, graded by its own grade', async () => {

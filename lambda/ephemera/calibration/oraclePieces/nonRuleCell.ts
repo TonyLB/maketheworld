@@ -6,6 +6,7 @@
 // blame) or `needs detail` of the action or of its consequences, each with what it establishes. Code matches each quote, so the piece
 // never gives a number, applies the first-non-works rule, and grades by a canonical answer string.
 //
+import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
@@ -189,13 +190,23 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
 /** How a piece on these inputs shows the securing: as the scene has it (the default), or left out (`withoutSecuring`). */
 export type SecuringShown = 'shown' | 'omitted'
 
+/** Which render the scene takes: the judge render, Fiction and Graph (the default), or the explicit render (AGENT.trialQuestion.planning.md, step 0). */
+export const SCENE_RENDERS = ['judge', 'explicit'] as const
+export type SceneRender = typeof SCENE_RENDERS[number]
+
+export const isSceneRender = (value: unknown): value is SceneRender => (SCENE_RENDERS as readonly unknown[]).includes(value)
+
+/** The non-rule cell's options: which render the scene takes (AGENT.trialQuestion.planning.md, step 1.5), the judge render when absent. */
+export type NonRuleCellOptions = { scene?: SceneRender }
+
 /**
  * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
  * consequence lines indented under it. With `securing: 'omitted'`, the scene's securing is left out as well (the trial's case against).
+ * With `scene: 'explicit'`, the scene is the explicit render (`renderSceneExplicit`) in place of the Fiction and the Graph (the ruling).
  */
 export const renderNonRuleCell = async (
     { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
-    { securing = 'shown' }: { securing?: SecuringShown } = {},
+    { securing = 'shown', scene: sceneRender = 'judge' }: { securing?: SecuringShown; scene?: SceneRender } = {},
 ): Promise<string> => {
     if (steps.length === 0) {
         throw new Error('No steps')
@@ -215,12 +226,13 @@ export const renderNonRuleCell = async (
     if (twice.length > 0) {
         throw new Error(`Lines a quote can't tell apart: ${twice.map(({ says }) => says).join('; ')}`)
     }
-    const { fiction, graph } = judgeSceneSections(full)
+    const judged = (): string => {
+        const { fiction, graph } = judgeSceneSections(full)
+        return [`Scene: ${heading(full)}`, fiction, graph, 'End of scene.'].join('\n\n')
+    }
+    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full) : judged()
     return [
-        `Scene: ${heading(full)}`,
-        fiction,
-        graph,
-        'End of scene.',
+        sceneBlock,
         `The player's request: ${request}`,
         [
             'The steps, in order:',
@@ -229,7 +241,18 @@ export const renderNonRuleCell = async (
     ].join('\n\n')
 }
 
-const parseNonRuleCellOptions = (value: unknown): undefined | string => (value === undefined ? undefined : 'nonRuleCell takes no options')
+/** No options, or `{ scene: 'judge' | 'explicit' }`. */
+export const parseNonRuleCellOptions = (value: unknown): NonRuleCellOptions | string => {
+    if (value === undefined) {
+        return {}
+    }
+    const shape = `nonRuleCell's options must be { scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return shape
+    }
+    const { scene, ...rest } = value as Record<string, unknown>
+    return Object.keys(rest).length === 0 && (scene === undefined || isSceneRender(scene)) ? (scene === undefined ? {} : { scene }) : shape
+}
 
 const intended = (says: string): NonRuleStep => ({ says, role: 'intended' })
 const method = (says: string): NonRuleStep => ({ says, role: 'method' })
@@ -323,12 +346,12 @@ export const nonRuleCellCells: Record<string, PieceCell<NonRuleCellInputs>> = {
     },
 }
 
-export const nonRuleCell: OraclePiece<NonRuleCellInputs, undefined> = {
+export const nonRuleCell: OraclePiece<NonRuleCellInputs, NonRuleCellOptions> = {
     name: 'nonRuleCell',
     answers: NON_RULE_ANSWERS,
     cells: nonRuleCellCells,
     parseOptions: parseNonRuleCellOptions,
-    render: (cell) => renderNonRuleCell(cell),
+    render: (cell, { scene }) => renderNonRuleCell(cell, scene === undefined ? {} : { scene }),
     grade: gradeNonRuleCell,
     maxTokens: 1536,
 }

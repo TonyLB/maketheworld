@@ -12,7 +12,7 @@
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
+import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs, type SceneRender } from '../nonRuleCell'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
 import { trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
 
@@ -150,11 +150,13 @@ export const checkTrialRebuttal = (reply: string, cell: ReadPieceCell<TrialRebut
 /**
  * The non-rule cell's render with the securing omitted, the question, and the argument naming its step, as three sections. Throws when
  * there is no argument, or its step quotes none of the plan's steps, so a cell can't carry a step the plan doesn't have. The rebuttal's
- * render joins them; the verdict's tags the argument as one side's voice.
+ * render joins them; the verdict's tags the argument as one side's voice. The scene takes the judge render unless `scene` names the
+ * explicit one (the verdict's retest, AGENT.trialQuestion.planning.md, step 1.5).
  */
 export const renderArguedParts = async (
     cell: { inputs: NonRuleCellInputs; source: string },
     against: TrialArgument,
+    { scene = 'judge' }: { scene?: SceneRender } = {},
 ): Promise<{ scene: string; question: string; argument: string }> => {
     const { inputs: { steps } } = cell
     if (!isNonEmptyString(against.argument)) {
@@ -165,7 +167,7 @@ export const renderArguedParts = async (
         throw new Error(`The argument's step: ${quote.malformed}`)
     }
     return {
-        scene: await renderNonRuleCell(cell, { securing: 'omitted' }),
+        scene: await renderNonRuleCell(cell, { securing: 'omitted', scene }),
         question: `${QUESTION_LINE}${against.question}`,
         argument: `${ARGUMENT_LINE}"${against.step}": ${against.argument}`,
     }
