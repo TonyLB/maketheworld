@@ -58,6 +58,43 @@ Batch 15 (draft 7) is the baseline: 5 of 10, `rebuttal` 10 of 11. h5 and h10 are
   - cut-offs at 400;
   - prose after the block.
 
+## Batch 21: 8b by system delivery (trialQuestion step 0.5)
+
+**The change:** one, the delivery. Draft 8b (`951f57f4`, unchanged) goes as system instructions with the verdict's system part (the scene, the request and the steps). The user message is the user part: the question, then the two tags. The text and its order are batch 16b's; only the messages differ.
+
+**How it is probed:**
+- **Payload:** one, all 11 cells, `repeats: 1`, `options: {"stage": "verdict", "upstream": "lifted"}`, `delivery: "system"`, so 11 calls on Micro.
+- **Results:** saved to one file.
+- **Deploy:** done (the user, 2026-11-17).
+
+**Rubric (written before the batch).** Batch 16b is the baseline: 4 of 10, `rebuttal` 11 of 11, only the guards right. The inputs hashes should equal 16b's, and the response's `delivery` should be `system`.
+- **The tally against 16b, cell by cell.** At x1, a difference of one or two cells is within the wobble.
+- **The settling clause's source** (TR-P21): is "the scene says" still followed by the rebuttal's line? Does any reply settle from the system text's scene over the rebuttal's quote, or from common sense?
+- **The size cells,** above all OC-11 (`argument` expected), and OC-3, right in batches 11 to 15 and lost in 16.
+- **The guards:** still right?
+- **The system text as material:** does any reply treat it as something to report on (the Role, the steps, "the instructions say") rather than reason from?
+- **Form:** malformed replies, length, cut-offs at 400, prose after the block.
+- **The keep rule** (the user, 2026-11-17): the option is kept unless it moves the verdict strongly in the wrong direction.
+
+**Results (2026-11-17, batch 21).** The response is at `scratchpad/trial-verdict-8b-system-results.json`: `delivery: "system"`, instructions `951f57f4`, 11 calls, 0 errors. Every inputs hash equals 16b's.
+
+**The tally: 4 right, 6 wrong, 0 malformed, OC-9 ungraded, as 16b.** Ten cells answer as in 16b. The one change is OC-9, from `rebuttal` to `argument`. Only the guards are right; OC-11, OC-3 and OC-18 stay wrong.
+
+**The settling clause's source:** "the scene says" in 10 of 11. On the size cells, the scene text cited is the scene's own "a small round tea table", the same words the rebuttal quotes. So these cells can't tell trust in the scene from trust in the rebuttal: the source-trust question step 0.5 asked isn't separable on them.
+
+**What fails is the reasoning, not the source:**
+- **Size (OC-11, OC-3, OC-18):** "small" is read as absolute, not small for a table. Common sense returns as a source in OC-3 and OC-18, but misapplied: "small objects can fit inside smaller containers" (OC-3), "a small round tea table can fit into a cup of ordinary size" (OC-18). No reply compares the two sizes.
+- **h5, h7, h10:** the verdict accepts rebuttals that answer another question. In h5 and h10 the rebuttal says tipping isn't needed to pour, but tipping is the plan's step and the question is what it causes. In h7 it answers with the cup's place before the steps, read as "the state left by the steps". Nothing checks whether the rebuttal answers the question.
+- **OC-9:** the first reply to bring in the ordinary on its own: "an oak trestle is typically too heavy for one person to lift". It reverses 16b's backwards use of the ordinary-default rule. One ungraded call at x1.
+
+**The system text as material:** no reply reports on it (no Role, no "the instructions say").
+
+**Form:** 0 malformed; 376 to 854 chars; no cut-offs; nothing after the block. OC-9 adds one paragraph of evaluation before it.
+
+**The keep rule, the user's call (2026-11-17): kept.** Nothing moved strongly in the wrong direction, and the one change went the sensible way. In the user's words, the main thing is that the tool is now available, even if later tuning shows it isn't the right tool for some particular case. The verdict keeps its divide as it stands: the scene, the request and the steps in the system part, the question and the two sides in the user part.
+
+**For step 1's review** (mine): the size failure is a missing comparison (small for what?), and the h-cells fail because nothing checks that the rebuttal answers the question asked. Both point the same way as the ruling's design: a question with no persuasive text beside it.
+
 ## Results (2026-11-16, batch 16)
 
 The responses are at `scratchpad/trial-verdict-8a-results.json` (`7bd80012`) and `-8b-results.json` (`951f57f4`), 11 calls each, 0 errors. The inputs hashes are as draft 5's pins.
