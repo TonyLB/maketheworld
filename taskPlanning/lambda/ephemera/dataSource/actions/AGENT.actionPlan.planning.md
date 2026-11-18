@@ -1,6 +1,6 @@
 # The action plan: referenced steps, and changes merged in
 
-**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Step 1, the plan type with references, is built. Next: step 2, the change language and the merge, code and tests with no batch.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
+**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Next: step 4, `consequences` replying in the change language.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
 
 **Why:**
 - **The judging pieces need more from the plan.** In the trial, the hops failed whenever the state at a step had to be worked out rather than read:
@@ -33,6 +33,7 @@ Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is an
 - **The judging pieces reading the new plan,** and whether their prompts cite references instead of quoting. This is how the paused trial question plan resumes, with the hops on hand-written plans. It's this plan's consumer, not its work.
 - **Capability tuning** of `playByPlay` and `consequences`, the cup gap first. That stays in the [imagination plan](AGENT.imagination.planning.md).
 - **Removing or editing** through the change language. That waits for a consumer that needs it.
+- **References stronger under reasoning** (the user, 2026-11-17, at step 3's checkpoint): slugs from hedged or second-person text are vague (`table-might-be`, `you-grasp-edge`, `there-no-clear`). They're fine for now. How references should be formed for a model reasoning over them is later work.
 
 ## Getting Started
 
@@ -169,14 +170,49 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - **Conversion order:** the intent and the intended consequence go before the step's own `consequences` lines, so h7's slide follows the intended pour, as step 0's example says.
    - **The render** leaves out `thing`, since the text already names it in brackets (mine).
    - **The slug rule as written** gives `put-table1-in` for `put [table1] in [cup1]`, because `in` isn't a stopword. It is kept as reviewed and pinned.
-2. [ ] **The change language and the merge,** in pure code, tested with no LLM:
+2. [X] **The change language and the merge,** in pure code, tested with no LLM:
    - a change block parses through a stage contract;
    - a merge applies the additions in place;
    - a change naming a reference that isn't in the plan is refused, and the refusal says why;
    - the merged plan renders.
 
    Golden changes for the hops pin the worked examples from step 0.
-3. [ ] **`playByPlay` refactored to create references.** Its output becomes a plan, or the additions to one (AP-5). **The bar is parity:** its existing cells at draft 14's level (every method at the bar, no attempts), read by hand against a rubric written before the batch.
+
+   **As built** (2026-11-17), in [`oracleLoop/actionPlan.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/actionPlan.ts) and its test, with no other file edited:
+   - **The functions:**
+     - `mergeChanges(plan, block, handles)` returns `{ plan }` or `{ problems }`;
+     - `planChangesContract` reads a reply's trailing JSON block (`replyJsonObject`) and then merges it;
+     - `PlanChange` is a change once checked.
+
+     The hops' golden merges pin step 0's worked examples, h5's exactly. h10's refusal is `change 2: to "pick-up-cup1" names no step`.
+   - **Mine, a departure from step 0, for review:** the contract is `StageContract<PlanChangesInput, ActionPlan>`, where `PlanChangesInput` is `{ plan, handles }`. A plan doesn't hold the scene, so "a thing not in the scene" needs the scene's handles from the caller. The handles the plan names would be too few: OC-30/2's `[saucer1]` and `[cup1]` aren't named by `tip [table1]`.
+   - **Mine, edge rules step 0 doesn't cover, for review:**
+     - a key other than `add`, `to`, `thing` and `says` is refused, and `intended` is named as not writable;
+     - a `thing` on a concern is refused, since a concern has none;
+     - an empty `changes` array is valid and leaves the plan unchanged;
+     - every problem is prefixed `change N:`.
+   - **Minting checks the paths already taken,** rather than counting slugs. A new item takes its slug if it's free, and otherwise the first free `-n`. The merge relies on this: a repeat of the intent's text becomes `-3`. It also closes a hole in step 1 (mine): a text that slugs to `tip-table1-2` could collide with a repeat. Step 1's paths are unchanged on every cell, and its tests pass unedited.
+3. [X] **`playByPlay` refactored to create references** (done 2026-11-17). Its output becomes a plan, or the additions to one (AP-5). **The bar is parity:** its existing cells at draft 14's level (every method at the bar, no attempts), read by hand against a rubric written before the batch.
+   - [X] **The build** (2026-11-17), in [`imaginationPieces/playByPlay.ts`](../../../../../lambda/ephemera/calibration/imaginationPieces/playByPlay.ts) and its test. The prompt, the render and the cells are unchanged, so the inputs hashes hold:
+     - **`planFromPlayByPlay` and `playByPlayContract`,** step 0's design. The contract is now the probe's form check. Step 1's `planOf` is exported so the builder can use it.
+     - **`npm run read-plans -- <results.json>`** prints a batch's plans for reading, from `playByPlayPlansText`.
+     - **Mine, for review:**
+       - a problem "names" a step when it says `Action N`, the render's own label; otherwise it goes on the last step;
+       - consequences follow the described things' order;
+       - a `"problems"` that is present must be a list of non-empty strings: the one form rule beyond `checkActionsBlock`'s, whose problems are otherwise unchanged (tested).
+     - **Known before the batch (mine):** batch 15's form was 3 of 12, and only a reply that passes gives a plan. Raising the form is the imagination plan's tuning; it is raised at this step's checkpoint.
+   - [X] **Batch 29, the parity batch** ([notes and results](oracleLoopDrafts/playByPlay/15.notes.md#results-2026-11-17-batch-29), 2026-11-17): draft 14's prompt unchanged (`5ca3aec6`), 4 cells x3 on Micro.
+     - **Form 4 of 12** (batch 15: 3), none refused by the new `problems` rule.
+     - **Every method at the bar but one reply:** OC-20 repeat 3's block narrates an attempt, in a reply that fails the form anyway.
+     - **The 4 plans read cleanly.** The hedged concerns slug vaguely (`table-might-be`); a stopword addition is proposed in the notes (mine).
+   - [X] **Batch 30, the confirm** ([results](oracleLoopDrafts/playByPlay/15.notes.md#batch-30-the-confirm-2026-11-17), 2026-11-17):
+     - **Form 2 of 12.**
+     - **Every method at the bar, and no attempts.** Across both batches, 23 of 24 are at the bar, with 1 attempt. **Parity holds (mine).**
+     - **6 of 24 replies gave a plan.**
+   - [X] **Step 3's checkpoint** (the user, 2026-11-17):
+     - **parity:** 23 of 24 is parity, and step 3 is closed;
+     - **the form:** booked in the imagination plan, with `playByPlay` refactored onto the explicit scene render. The user's main interest is how `playByPlay` responds to that render;
+     - **the vague paths** (`table-might-be`, `there-no-clear`): fine for now. Making references that hold up better under reasoning is later work, booked below.
 4. [ ] **`consequences` refactored to add into the plan:** a run on a plan yields changes, and the merge gives the new plan. **The bar is parity** with its batch 1, read by hand. The cup gap is carried to the imagination plan, not tuned here.
 5. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
 
@@ -216,9 +252,9 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | --- | --- |
 | The design | **Done** (2026-11-17): reviewed by the user, as written |
 | The plan type, with references | **Done** (2026-11-17): `oracleLoop/actionPlan.ts`, every existing cell converts |
-| The change language and the merge | Next |
-| `playByPlay` creates references | Not started |
-| `consequences` adds into the plan | Not started |
+| The change language and the merge | **Done** (2026-11-17): `mergeChanges` and `planChangesContract`, the hops' golden merges pinned |
+| `playByPlay` creates references | **Done** (2026-11-17): `playByPlayContract`; batches 29 and 30 at parity (the user) |
+| `consequences` adds into the plan | Next |
 | Hand back | Not started |
 
 ## When it finishes
