@@ -3,7 +3,7 @@ import { planOf, type ActionPlan } from '../oracleLoop/actionPlan'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
-import { CONSEQUENCES_OPTIONS, checkConsequences, consequences, consequencesCells, consequencesContract, consequencesPlansText, renderConsequences, type ConsequencesInputs } from './consequences'
+import { CONSEQUENCES_OPTIONS, checkConsequences, consequences, consequencesCells, consequencesContract, consequencesPlansText, renderConsequences, replyHandles, type ConsequencesInputs } from './consequences'
 import { fixtureScene, namedHandles } from './imaginationScene'
 import { textHash } from '../textHash'
 
@@ -33,7 +33,7 @@ describe('consequences', () => {
             expect(text).not.toContain('Rules:')
             expect(text.split('\n\n').slice(-4)).toEqual([
                 'End of scene.',
-                'The plan:\nStep pick-up-table1: pick up [table1]\n  - intent pick-up-table1.pick-up-table1: pick up [table1]',
+                'The plan:\nStep pick-up-table1: pick up [table1]\n  - intent pick-up-table1.intent: pick up [table1]',
                 'The step to expand: pick-up-table1',
                 'The things to describe: [saucer1], [cup1]',
             ])
@@ -108,6 +108,33 @@ describe('consequences', () => {
             expect('value' in parsed && parsed.value.steps[0].items[1].says).toBe('[teapot1] tips')
         })
 
+        describe('the handles a reply may name (step 5): the listed things, plus the target step\'s own', () => {
+            const tipCell = consequencesCells['OC-30/2']
+            const success = [{ thing: '[teapot1]', says: '[teapot1] pours [tea2] into [cup1]' }]
+            const failure = [{ thing: '[saucer1]', says: '[saucer1] and [cup1] slide off' }]
+
+            it('lists them: the things, then the handles the step and its intent name', () => {
+                expect(replyHandles(tipCell.inputs)).toEqual(['saucer1', 'cup1', 'table1', 'teapot1', 'tea2'])
+                expect(replyHandles(cell.inputs)).toEqual(['saucer1', 'cup1', 'table1'])
+            })
+
+            it('passes a possibility whose success branch names what the intent names, unlisted', () => {
+                const reply = fenced({ changes: [{ add: 'possibility', kind: 'execution', says: 'tipping [table1] gently', branches: [success, failure] }] })
+                expect(checkConsequences(reply, tipCell)).toEqual([])
+            })
+
+            it('passes a line for the step\'s own thing (batch 2\'s [table1], CQ-P4: redundant, not wrong)', () => {
+                expect(checkConsequences(fenced({ changes: [{ add: 'consequence', thing: 'table1', says: '[table1] rises' }] }), cell)).toEqual([])
+            })
+
+            it('brackets bare handles inside branches, as in flat changes (CQ-P5)', () => {
+                const reply = fenced({ changes: [{ add: 'possibility', kind: 'execution', says: 'tipping table1 gently', branches: [[{ thing: 'teapot1', says: 'teapot1 pours' }], []] }] })
+                const parsed = consequencesContract.parse(reply, { input: tipCell.inputs, rendered: '' })
+                const possibility = 'value' in parsed ? parsed.value.steps[0].items[1] : undefined
+                expect(possibility?.kind === 'possibility' && [possibility.says, possibility.branches[0].items[0].says]).toEqual(['tipping [table1] gently', '[teapot1] pours'])
+            })
+        })
+
         it('passes an empty list: nothing to add', () => {
             expect(checkConsequences(fenced({ changes: [] }), cell)).toEqual([])
         })
@@ -120,7 +147,7 @@ describe('consequences', () => {
                 'the JSON block has "problems"; everything it adds goes in "changes"',
             ]],
             ['a `to` naming another step', fenced({ changes: [{ add: 'consequence', to: 'tip-table1', says: 'x' }] }), ['change 1: to "tip-table1" is not the step being expanded, pick-up-table1']],
-            ['a thing not listed (CQ-P4)', fenced({ changes: [{ add: 'consequence', thing: 'table1', says: '[table1] rises' }] }), ['change 1: thing "table1" is not a listed thing']],
+            ['a thing neither listed nor named by the step (CQ-P4)', fenced({ changes: [{ add: 'consequence', thing: 'teapot1', says: '[teapot1] rises' }] }), ['change 1: thing "teapot1" is not a listed thing or named by the step']],
             ['a key beside "changes" (batch 4)', fenced({ changes: [], concerns: [{ add: 'concern', says: 'x' }] }), ['the JSON block has "concerns"; everything it adds goes in "changes"']],
             ['an intended consequence', fenced({ changes: [{ add: 'consequence', intended: true, says: 'x' }] }), ['change 1: "intended" isn\'t writable: a change adds only unintended consequences']],
         ])('refuses %s', (_, reply, problems) => {
@@ -133,11 +160,19 @@ describe('consequences', () => {
             expect(Object.fromEntries(Object.entries(consequencesCells).map(([id, { inputs: { plan, target } }]) => [id, { target, plan }]))).toEqual({
                 'OC-30/2': { target: 'tip-table1', plan: { steps: [{
                     says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1',
-                    items: [{ kind: 'intent', path: 'tip-table1.teapot1-pours-tea2', says: '[teapot1] pours [tea2] into [cup1]' }],
+                    items: [{ kind: 'intent', path: 'tip-table1.intent', says: '[teapot1] pours [tea2] into [cup1]' }],
                 }] } },
                 'OC-1': { target: 'pick-up-table1', plan: { steps: [{
                     says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1',
-                    items: [{ kind: 'intent', path: 'pick-up-table1.pick-up-table1', says: 'pick up [table1]' }],
+                    items: [{ kind: 'intent', path: 'pick-up-table1.intent', says: 'pick up [table1]' }],
+                }] } },
+                cup: { target: 'pick-up-cup1', plan: { steps: [{
+                    says: 'pick up [cup1]', suppliedBy: 'system', path: 'pick-up-cup1',
+                    items: [{ kind: 'intent', path: 'pick-up-cup1.intent', says: 'pick up [cup1]' }],
+                }] } },
+                'OC-1/teapot1': { target: 'pick-up-table1', plan: { steps: [{
+                    says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1',
+                    items: [{ kind: 'intent', path: 'pick-up-table1.intent', says: 'pick up [table1]' }],
                 }] } },
             })
         })
@@ -151,9 +186,20 @@ describe('consequences', () => {
             expect(named.filter((handle) => scene.things[handle] === undefined)).toEqual([])
         })
 
-        it('pins the inputs hashes, new at step 4b (batches 1 and 2 had the actions and the request)', async () => {
-            expect(textHash(await renderConsequences(consequencesCells['OC-30/2'], CONSEQUENCES_OPTIONS))).toBe('869da3e1')
-            expect(textHash(await renderConsequences(consequencesCells['OC-1'], CONSEQUENCES_OPTIONS))).toBe('bfa18eab')
+        it('pins the inputs hashes, re-pinned at step 5\'s build: intents renamed to `.intent` (step 4b\'s were 869da3e1 and bfa18eab)', async () => {
+            expect(textHash(await renderConsequences(consequencesCells['OC-30/2'], CONSEQUENCES_OPTIONS))).toBe('c639e8eb')
+            expect(textHash(await renderConsequences(consequencesCells['OC-1'], CONSEQUENCES_OPTIONS))).toBe('030c1940')
+        })
+
+        it('pins the over-flagging cells\' inputs hashes, re-pinned at step 5\'s build (batch 5 ran 5db10e38 and ef0c4cda)', async () => {
+            expect(textHash(await renderConsequences(consequencesCells.cup, CONSEQUENCES_OPTIONS))).toBe('8bb8636c')
+            expect(textHash(await renderConsequences(consequencesCells['OC-1/teapot1'], CONSEQUENCES_OPTIONS))).toBe('ad08de90')
+        })
+
+        it('the over-flagging cells: the cup lists its tea beside the saucer, and OC-1 narrowed lists the glued teapot alone (step 5)', () => {
+            expect(consequencesCells.cup.inputs.things).toEqual(['saucer1', 'tea1'])
+            expect(consequencesCells['OC-1/teapot1'].inputs.things).toEqual(['teapot1'])
+            expect(consequencesCells['OC-1/teapot1'].inputs.plan).toBe(consequencesCells['OC-1'].inputs.plan)
         })
 
         it('OC-30/2 lists the cup, which its intent names, beside the saucer, which it doesn\'t (user, 2026-11-11)', () => {
@@ -167,13 +213,13 @@ describe('consequences', () => {
             { cell: 'OC-30/2', lookFor: '', replies: [{ repeat: 1, reply: slide }, { repeat: 2, reply: fenced({ changes: [{ add: 'concern', to: 'tip', says: 'x' }] }) }] },
             { cell: 'OC-99', lookFor: '', replies: [{ repeat: 1, reply: slide }] },
         ])).toBe([
-            '## OC-30/2, repeat 1\nStep tip-table1: tip [table1]\n  - intent tip-table1.teapot1-pours-tea2: [teapot1] pours [tea2] into [cup1]\n  - consequence tip-table1.cup1-slides-saucer1: [cup1] slides off with [saucer1]',
+            '## OC-30/2, repeat 1\nStep tip-table1: tip [table1]\n  - intent tip-table1.intent: [teapot1] pours [tea2] into [cup1]\n  - consequence tip-table1.cup1-slides-saucer1: [cup1] slides off with [saucer1]',
             '## OC-30/2, repeat 2\nform: change 1: to "tip" is not the step being expanded, tip-table1',
             '## OC-99, repeat 1\nnot a consequences cell',
         ].join('\n\n'))
     })
 
-    it('is registered, and runs through the probe: two cells x 3, each reply form-checked and grouped by cell', async () => {
+    it('is registered, and runs through the probe: four cells x 3, each reply form-checked and grouped by cell', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => {
             const prompt = messages[0].content?.[0]?.text ?? ''
             const things = namedHandles(prompt.slice(prompt.lastIndexOf('The things to describe: ')))
@@ -181,10 +227,10 @@ describe('consequences', () => {
         })
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'consequences', instructions: 'Say what happens.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(6)
+        expect(invoke).toHaveBeenCalledTimes(12)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 6, formFails: 0, errors: 0 })
+        expect(result.summary).toEqual({ calls: 12, formFails: 0, errors: 0 })
         expect(result.read.map(({ cell, replies }: { cell: string; replies: unknown[] }) => [cell, replies.length])).toEqual(
             Object.keys(consequencesCells).map((id) => [id, 3]),
         )

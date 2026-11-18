@@ -286,13 +286,29 @@ A piece with no closed answer set, such as a generator, is registered with `kind
 
   It throws when there are no things, a thing is listed twice, the target names no step, or a handle isn't in the fixture. A target that already holds consequences is fine: in production `playByPlay`'s lines arrive first.
 - **The form check:** `consequencesContract`, a stage contract whose value is the merged plan.
-  - **The reply's block** is a `changes` list, merged by `mergeStepChanges`.
-  - **Bare handles are bracketed first:** `bracketHandles` rewrites `teapot1` as `[teapot1]` in each change's `says`. It does this against every handle the prompt names (the listed things, the plan's, and the rendered text's), matching whole words in any case. A letter-and-number word that matches a handle is always that thing (the user, 2026-11-18).
+  - **The reply's block** is a `changes` list, merged by `mergeStepChanges`. An entry adds a `consequence`, a `concern`, or a `possibility` (the action plan's step 5).
+    - **A possibility is one change for the whole group:** `{"add": "possibility", "kind": "execution", "says": <the condition>, "branches": [[…], […]]}`. Each branch is a list of consequences, written as flat ones are, and `add` is optional.
+    - **Where a consequence sits says when it happens.** A consequence in a branch happens only in that branch. A flat one beside the possibility happens in every branch.
+    - **Refused:**
+      - fewer than two branches;
+      - a concern in a branch;
+      - a second `execution` possibility on a step;
+      - a kind other than `execution`.
+
+      An empty branch is allowed.
+    - **Paths are flat under the step,** minted in one scope at any depth. Consequences and concerns slug their text, and every other kind slugs its kind: `tip-table1.intent`, `tip-table1.execution`, `tip-table1.maybe-2`.
+    - **`renderPlanForGenerator` nests them,** one indent per level.
+  - **Bare handles are bracketed first:** `bracketHandles` rewrites `teapot1` as `[teapot1]` in each change's `says`, and inside a possibility's branches too. It does this against every handle the prompt names (the listed things, the plan's, and the rendered text's), matching whole words in any case. A letter-and-number word that matches a handle is always that thing (the user, 2026-11-18).
   - **Code supplies each change's `to`,** which is the target. A `to` the reply writes must name the target, or the block is refused.
-  - **Then `mergeChanges`,** against the listed things as the handles. A change naming an unlisted thing is a form failure ("is not a listed thing"). A key beside `changes` refuses the block, so nothing a reply adds is dropped unseen.
+  - **Then `mergeChanges`,** against the handles a reply may name (`replyHandles`): the listed things, plus every handle in the target step's own text and its intent (the user, 2026-11-18, at step 5). A success branch has to name what the intent names. A change naming any other thing is a form failure ("is not a listed thing or named by the step"). A key beside `changes` refuses the block, so nothing a reply adds is dropped unseen.
 - **Cells:** each is a one-step plan built by hand (`consequencesPlans`), holding its intent and no consequences, so the reply establishes the outcome (the user, 2026-11-18).
   - **`OC-30/2`:** `tip [table1]`, with intent `[teapot1] pours [tea2] into [cup1]`, split as the trial's h5 is but without AP-7's intended consequence. Its look-for: the saucer and cup slide off the tipped table, and the cup no longer under the spout is a problem.
   - **`OC-1`, the control:** `pick up [table1]`, whose intent is its own text. Its look-for: everything on the table rises with it, and nothing works against the intent.
+  - **The over-flagging cells** (the action plan's step 5), run with `--cells` apart from the two above:
+    - **`OC-1/teapot1`'s bar is no hedge and no concern.**
+    - **`cup` is recorded, not gated** (the user, 2026-11-18, after batch 5). Whether its spill is worth surfacing is booked in the imagination plan.
+    - **`cup`, a mundane action** (constructed): `pick up [cup1]` on `teaTable`, with [saucer1] and [tea1] to describe. An ordinary actor under no pressure lifts a cup of tea, so there is no spread.
+    - **`OC-1/teapot1`, a hedge against the scene:** OC-1's plan, with [teapot1] alone to describe. The glue line already settles that it goes with [table1].
 
   Both caps are 1024 tokens.
 - **Reading a batch:** `npm run read-plans -- <results.json>` prints each reply's plan, `playByPlay`'s built or `consequences`' merged, by the response's `piece` (`imaginationPieces/plansText.ts`).

@@ -8,7 +8,7 @@
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { bracketHandles, mergeStepChanges, planOf, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
+import { bracketHandles, itemTexts, mergeStepChanges, planOf, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { caseSource, listedTwice, namedHandles, parseImaginationOptions, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
@@ -40,7 +40,17 @@ export const parseConsequencesOptions = (value: unknown): ConsequencesOptions | 
 
 /** The handles a plan's text names, each once, in order. */
 const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
-    [...new Set(steps.flatMap(({ says, items }) => [says, ...items.map((item) => item.says)]).flatMap(namedHandles))]
+    [...new Set(steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)]).flatMap(namedHandles))]
+
+/**
+ * The handles a reply may name (AGENT.actionPlan.planning.md, step 5; the user, 2026-11-18): the listed things, plus every handle in the
+ * target step's own text and its intent. The success branch has to name what the intent names. One rule for every change.
+ */
+export const replyHandles = ({ plan, target, things }: Pick<ConsequencesInputs, 'plan' | 'target' | 'things'>): SceneHandle[] => {
+    const step = plan.steps.find(({ path }) => path === target)
+    const own = step === undefined ? [] : [step.says, ...step.items.flatMap((item) => (item.kind === 'intent' ? [item.says] : []))]
+    return [...new Set([...things, ...own.flatMap(namedHandles)])]
+}
 
 export const renderConsequences = async ({ inputs: { fixture, plan, target, things } }: ReadPieceCell<ConsequencesInputs>, options: ConsequencesOptions): Promise<string> => {
     if (things.length === 0) {
@@ -57,28 +67,32 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
     return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/** One entry with its `says` bracketed, and a possibility's branches' entries with theirs (step 5). Anything else is left as it is. */
+const bracketEntry = (entry: unknown, handles: readonly SceneHandle[]): unknown => {
+    if (!isRecord(entry)) {
+        return entry
+    }
+    const says = typeof entry.says === 'string' ? { says: bracketHandles(entry.says, handles) } : {}
+    const branches = Array.isArray(entry.branches)
+        ? { branches: entry.branches.map((branch) => (Array.isArray(branch) ? branch.map((inner) => bracketEntry(inner, handles)) : branch)) }
+        : {}
+    return { ...entry, ...says, ...branches }
+}
+
 /**
  * A block with each change's `says` repaired: bare handles bracketed (`bracketHandles`, CQ-P5), against every handle the prompt names
  * (the listed things, the plan's, and the rendered text's, when it is given). Anything else is left for the merge to check.
  */
 export const bracketChanges = (block: Record<string, unknown>, handles: readonly SceneHandle[]): Record<string, unknown> => {
     const { changes } = block
-    if (!Array.isArray(changes)) {
-        return block
-    }
-    return {
-        ...block,
-        changes: changes.map((entry) => (
-            typeof entry === 'object' && entry !== null && !Array.isArray(entry) && typeof (entry as Record<string, unknown>).says === 'string'
-                ? { ...entry, says: bracketHandles((entry as Record<string, unknown>).says as string, handles) }
-                : entry
-        )),
-    }
+    return Array.isArray(changes) ? { ...block, changes: changes.map((entry) => bracketEntry(entry, handles)) } : block
 }
 
 /**
  * The stage's contract: the reply's block, its bare handles bracketed, scoped to the target and merged into the plan (`mergeStepChanges`),
- * against the listed things.
+ * against the listed things and the target step's own handles (`replyHandles`).
  */
 export const consequencesContract: StageContract<ConsequencesInputs, ActionPlan> = {
     name: 'consequences',
@@ -88,7 +102,7 @@ export const consequencesContract: StageContract<ConsequencesInputs, ActionPlan>
             return { problems: [parsed.malformed] }
         }
         const shown = [...new Set([...things, ...planHandles(plan), ...namedHandles(rendered)])]
-        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), things, { handlesAre: 'a listed thing' })
+        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), replyHandles({ plan, target, things }), { handlesAre: 'a listed thing or named by the step' })
         return 'problems' in merged ? merged : { value: merged.plan }
     },
 }
@@ -105,6 +119,7 @@ export const checkConsequences = (reply: string, { inputs }: ReadPieceCell<Conse
 export const consequencesPlans = {
     'OC-30/2': planOf([{ step: { says: 'tip [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: '[teapot1] pours [tea2] into [cup1]' }] }]),
     'OC-1': planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [table1]' }] }]),
+    cup: planOf([{ step: { says: 'pick up [cup1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [cup1]' }] }]),
 } satisfies Record<string, ActionPlan>
 
 export const consequencesCells: Record<string, ReadPieceCell<ConsequencesInputs>> = {
@@ -118,6 +133,20 @@ export const consequencesCells: Record<string, ReadPieceCell<ConsequencesInputs>
         lookFor: 'everything on the table rises with it, and nothing works against the intent',
         source: caseSource('OC-1'),
         note: 'The control (step 1.5): a carry with no problem.',
+    },
+    // The over-flagging cells (AGENT.actionPlan.planning.md, step 5): actions where any hedge is a defect, baselined on draft 4 and
+    // graded again at step 5's draft. The bar is 0 of 3 hedges on each.
+    cup: {
+        inputs: { fixture: 'teaTable', plan: consequencesPlans.cup, target: 'pick-up-cup1', things: ['saucer1', 'tea1'] },
+        lookFor: '[tea1] rises with [cup1] and [saucer1] stays, with no hedge and no concern',
+        source: 'constructed (not an oracle corpus case), after teaTable\'s judge request "I want to pick up [cup1]." (expect simple)',
+        note: 'Over-flagging, a mundane action: an ordinary actor under no pressure picks up a cup of tea, so there is no spread (imagined charity).',
+    },
+    'OC-1/teapot1': {
+        inputs: { fixture: oracleCases['OC-1'].scene.fixture, plan: consequencesPlans['OC-1'], target: 'pick-up-table1', things: ['teapot1'] },
+        lookFor: 'the glued [teapot1] rises with [table1], with no hedge and no concern',
+        source: `${caseSource('OC-1')}, its things narrowed to [teapot1] (constructed)`,
+        note: 'Over-flagging, a hedge against the scene: the glue line settles that [teapot1] goes with [table1].',
     },
 }
 

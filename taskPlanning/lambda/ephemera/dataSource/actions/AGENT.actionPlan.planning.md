@@ -1,6 +1,6 @@
 # The action plan: referenced steps, and changes merged in
 
-**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Step 4, `consequences` replying in the change language, brings in the explicit scene render first, as 4a (the user, 2026-11-17). **4a's build is done (2026-11-18): the shared `scene` option, and draft 2 with no core. Batch 2 is read (2026-11-18): parity on OC-30/2, OC-1 better. 4a is closed (the user, 2026-11-18): the render holds. Step 5, possibilities, was added the same day (AP-8 and AP-9, settled), to run after 4b. 4b is planned the same day: `consequences` as a reducer on one step of the plan (the user). 4b's build is done (2026-11-18), and draft 3's batch 3 is read: form 6 of 6, content at parity. Bare handles (CQ-P5) are repaired in code, and draft 4 asks for brackets. 4b is closed (the user, 2026-11-18): parity rests on batch 3. Next: step 5's design.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
+**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Step 4, `consequences` replying in the change language, brings in the explicit scene render first, as 4a (the user, 2026-11-17). **4a's build is done (2026-11-18): the shared `scene` option, and draft 2 with no core. Batch 2 is read (2026-11-18): parity on OC-30/2, OC-1 better. 4a is closed (the user, 2026-11-18): the render holds. Step 5, possibilities, was added the same day (AP-8 and AP-9, settled), to run after 4b. 4b is planned the same day: `consequences` as a reducer on one step of the plan (the user). 4b's build is done (2026-11-18), and draft 3's batch 3 is read: form 6 of 6, content at parity. Bare handles (CQ-P5) are repaired in code, and draft 4 asks for brackets. 4b is closed (the user, 2026-11-18): parity rests on batch 3. Step 5's shape is revised the same day (the user): unlabelled branches (AP-8 amended, AP-9 superseded), the handles widened to the step's own, cells for over-flagging; revise booked as step 6, a correction path. Step 5's design is done the same day, but for the over-flagging cells' baseline batch on draft 4. The cells' baseline, batch 5, is read the same day: `cup` hedged in 2 of 3 (3 with a refused block), `OC-1/teapot1` 0 of 3. Its findings are booked in the imagination plan, and `cup` is recorded, not gated (the user). Step 5's build is done the same day: possibilities, flat paths, the widened handles, the nested render. Next: step 5's drafts.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
 
 **Why:**
 - **The judging pieces need more from the plan.** In the trial, the hops failed whenever the state at a step had to be worked out rather than read:
@@ -252,10 +252,10 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
        - **The default is explicit,** and `consequences` has left `JUDGE_RENDER_HOLDOUTS`. `{ rules: 'consequence' }` alone is now refused, since it meets the explicit default.
        - **`npm run read-plans`** prints either piece's plans, chosen by the response's `piece` (`readPlansCli.ts`, renamed from `readPlayByPlayPlansCli.ts`).
        - **Mine, departures from the row, for review:**
-         - **the listed things are the merge's handles,** not the scene's: a change naming an unlisted thing is a form failure, as CQ-P4's [table1] line was in batch 2;
+         - **the listed things are the merge's handles,** not the scene's: a change naming an unlisted thing is a form failure, as CQ-P4's [table1] line was in batch 2 (*widened at step 5's build*, 2026-11-18, to the step's own handles as well, the user's);
          - **the labels** `The plan:` and `The step to expand:`;
          - **OC-1's intent repeats its step,** so its path is `pick-up-table1.pick-up-table1`. That is the single-step rule as agreed, and it reads oddly.
-     - [ ] **Draft 3 and its batch:** the ask rewritten for the change language, with a rubric written before the batch. Later drafts get a checkbox each, as they land.
+     - [X] **Draft 3 and its batch:** the ask rewritten for the change language, with a rubric written before the batch. Later drafts get a checkbox each, as they land.
        - [X] **Draft 3 written** (2026-11-18; [notes and rubric](oracleLoopDrafts/consequences/3.notes.md)): [`3.ask.txt`](oracleLoopDrafts/consequences/3.ask.txt) (`328e9767`), no core, default options. The examples gain handles and a `Changes:` line, unfenced (mine). CQ-L3 in the [iterations](oracleLoopDrafts/consequences/iterations.md).
        - [X] **Batch 3** ([results](oracleLoopDrafts/consequences/3.notes.md#results-2026-11-18-batch-3), 2026-11-18): both cells x3 on Micro.
          - **Form 6 of 6 merge** (batches 1 and 2: 3 of 6). Every key and kind is right: no written `to`, no `intended`, no unlisted thing.
@@ -296,39 +296,168 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
    **Why:** `consequences`' hedges were read as a defect (CQ-P1: "the slide stated as what happens"). But the OC-30/2 hedges all name one thing the action leaves open, how far [table1] is tipped ([batch 2](oracleLoopDrafts/consequences/2.notes.md#results-2026-11-18-batch-2)). That is the generator reasoning about a spread of possibilities instead of fixing on one outcome and justifying it. The later stages need exactly that, for example a judge arguing "this is possible, but needs a skill check". Today the spread is lost in two ways: a reply hedges in prose and writes the outcome flatly in its JSON, or it turns each conditional into a `concern` with the condition buried in its text.
 
-   **The shape** (the user's, 2026-11-18), worked on the h5 hop:
+   **The shape** (the user's, 2026-11-18; the branches unlabelled, the user's, the same day), worked on the h5 hop:
 
    ```text
-   Action: tip [table1]
-     - Intent: [teapot1] pours [tea2] into [cup1]
-     - Possibility (execution): tipping [table1] only far enough to pour without sliding [saucer1] off
-       - Maybe (managed):
-         - Consequence (intended): [teapot1] pours [tea2] into [cup1]
-       - Maybe (not managed):
-         - Consequence: [saucer1] and [cup1] slide off and fall to the floor
-         - Consequence: [tea2] spills
+   Step tip-table1: tip [table1]
+     - intent tip-table1.intent: [teapot1] pours [tea2] into [cup1]
+     - possibility (execution) tip-table1.execution: tipping [table1] only far enough to pour without sliding [saucer1] off
+       - maybe tip-table1.maybe:
+         - consequence tip-table1.teapot1-pours-tea2: [teapot1] pours [tea2] into [cup1]
+       - maybe tip-table1.maybe-2:
+         - consequence tip-table1.saucer1-cup1-slide: [saucer1] and [cup1] slide off and fall to the floor
+         - consequence tip-table1.tea2-spills: [tea2] spills
    ```
 
-   - **A new `StepItem` kind, `possibility`,** with a kind of openness, a condition (`says`), and branches, each branch holding consequences. One level, no nesting.
-   - **`execution` is the first kind and the common case** (the user, 2026-11-18: "are they able to make that intent happen?" will be ridiculously common, so it is named, not handled as an edge case). The condition says what the actor must manage. **What settles it is the judging pieces' call:** a skill check, the oracle's `challenging` (JF-2), chance, a question to the player, or, in the Coyote Game's preparation, plain success. The generator never writes "skill check" (agreed, 2026-11-18). Its branches are `managed` and `not managed`.
-   - **The intended consequence is stated in the `managed` branch** (the user's, 2026-11-18), so the branch says on its own what success means. **The merge moves it there, not the model** (mine, agreed): adding an `execution` possibility to a step moves that step's intended consequence (AP-7) into the new `managed` branch. The model writes the condition, the `not managed` consequences, and any other consequences under `managed`. `intended` stays unwritable, and the change is still an addition from the model's side.
-   - **At most one `execution` possibility per step,** since there is one intended consequence to move. A second waits for a case that needs it.
-   - **Paths become ids, not positions** (mine, agreed). Step 0 made the path the id because, with additions only, "a path never changes". The move is the first exception. The moved item keeps its path string as its id, and its place comes from the structure. `mergeChanges` already finds a `to` by its path, not by walking positions. Opaque ids wait for a consumer that needs them.
-   - **`concern` is partly absorbed:** a `not managed` branch with no intended consequence is the problem against the intent, readable from the structure.
+   **Every item has a minted path, flat under its step** (the user, 2026-11-18), as every step item already has one (AP-2). This covers the intent, the possibility, each branch, and each consequence.
+   - **The rule:** an item's path is the step's path plus one slug, minted in the step's one scope at any depth. `mintPaths` already uses the bare slug when it's free, then `-2`, `-3`, so a lone item never carries a number.
+   - **Consequences and concerns slug their text;** a step holds several, and a judge citing `tip-table1.tea2-spills` reads without a lookup. **Every other kind slugs its kind:** `intent`, `maybe`. A text slug adds nothing beside the item's own text (the user's: `tip-table1.intent` over `tip-table1.teapot1-pours-tea2`).
+   - **A possibility slugs its kind of openness,** `execution` (mine).
+   - **Why flat, not nested** (mine, agreed):
+     - A nested path names its parent. Revise (step 6) moves items and keeps their paths, so a nested path would go false. A flat id stays true wherever the item sits; its place comes from the structure. Step 0 made the path the id because, with additions only, a path never changes; revise is the first change that moves an item, and flat ids keep that true.
+     - It is less for the model to copy where it names a path (revise's `keeps`). Batch 3 already had one reply copying the intent's path.
+   - **Not forced by naming:** whether a step may hold two intents. `intent-2` mints either way.
+   - **At the build:** intents are renamed from text slugs to `intent`, which changes every rendered plan's paths. Both consequences inputs hashes (`869da3e1`, `bfa18eab`) are re-pinned in step 5's build, not retrofitted now.
+
+   - **A new `StepItem` kind, `possibility`,** with a kind of openness, a condition (`says`), and branches. Each branch holds consequences. One level, no nesting.
+   - **`execution` is the first kind and the common case** (the user, 2026-11-18: "are they able to make that intent happen?" will be ridiculously common, so it is named, not handled as an edge case).
+     - The condition says what the actor must manage.
+     - **What settles it is the judging pieces' call:** a skill check, the oracle's `challenging` (JF-2), chance, a question to the player, or, in the Coyote Game's preparation, plain success. The generator never writes "skill check" (agreed, 2026-11-18).
+     - **The kind is kept for now** (mine, a lean, open to revisit). It says how a possibility is settled: an `execution` question goes to a skill check, and a later `unestablished` one to a detail of the world. With one kind, Micro pays nothing to write it.
+   - **The branches are unlabelled: a `Maybe` with a minted path, and no `managed` or `not managed`** (the user, 2026-11-18). Replaces the labelled branches settled earlier the same day.
+     - **Why (the user's):** the only consumer of "which branch is the intent?" is an adjudicator, for example one judging whether the intent can be achieved. It reads the consequences and the condition closely anyway, so it can see which branch is the one where the intended outcome happens. A label would say that a second time.
+     - **What follows (mine, agreed):**
+       - there are no labels for Micro to get wrong;
+       - a spread can have more than two branches (on h5: pours cleanly; pours but the saucer slides; slides before it pours);
+       - the merge moves nothing, so AP-9 is superseded. Additions stay additions, and a path never changes.
+   - **The expand form states the intended outcome itself** (agreed, 2026-11-18). The target step holds its intent and no intended consequence, as 4b's cells do. The generator writes the pour, as an ordinary consequence in the branch where it happens. `intended` stays unwritable.
+   - **The handles a reply may name: the listed things, plus every handle in the target step's own text and its intent** (the user, 2026-11-18). Replaces 4b's "the listed things" (mine).
+     - **Why:** the success branch has to name what the intent names: on OC-30/2, [teapot1] and [tea2], which aren't listed. The natural limit is the step's own world, what the actor touches and what they mean to affect, not just what the reply was told to focus on.
+     - **One rule for every change** (mine, agreed), possibilities and flat consequences alike.
+     - **The knock-on, accepted:** batch 2's [table1] line (CQ-P4) becomes legal under `tip [table1]`. It is redundant, not wrong. A thing outside both is still refused.
+   - **At most one `execution` possibility per step,** as a first limit (the move that forced it is gone). A second waits for a case that needs it.
+   - **`concern` is partly absorbed:** a branch in which the intended outcome doesn't happen is the problem against the intent, readable by the adjudicator from the structure.
    - **A test for a hedge worth keeping:** a possibility names a condition the plan leaves open. A hedge against the scene ("unless it's securely positioned", where the scene says it isn't) or against the method (CQ-P3) is still a defect.
-   - **To watch in the prompt (mine):** not every action has an execution worth stating. Picking up a cup doesn't. Over-flagging costs the judges oracle calls, as CQ-P2 does.
+   - **Over-flagging is measured, not assumed** (the user, 2026-11-18). No cell yet tests it.
+     - **What the record shows:** the only control is OC-1, `pick up [table1]`, with things on top. That isn't a mundane action, and a slide is a fair doubt there. On the explicit render (batches 2 to 4), it hedged in 2 of 9 replies, and neither reached a merged plan:
+       - batch 3's prose had "damaged if lifted improperly";
+       - batch 4's "may cause … to fall off" was in a refused `concerns` key.
+
+       OC-30/2's hedges are right. No batch has shown hedging where it was clearly wrong.
+     - **Two kinds of charity, not one** (the user, 2026-11-18):
+       - **Imagined charity, the generator's:** is there a spread at all? It turns on the action, the actor and the circumstances the scene sets. Picking up a teacup has no possibility worth stating, unless the actor is incompetent, drugged, or being shot at.
+       - **Adjudication charity, the judges':** given a spread, which branch happens? It turns on the genre or setting. A leap off a high dive into a tiny drum of water has two possibilities. In the Coyote Game, the Coyote gets the intended one automatically when there's no pressure, and meets at least one devastating unintended consequence when the Road Runner is involved.
+       - **What follows** (mine, agreed):
+         - the spread doesn't depend on the adjudication setting. The high dive gets its branches in the Coyote Game's preparation too, and the judge settles it ("plain success", above);
+         - the adjudication setting has one reader, the judges. The generator never sees it, so this design books no generator dial;
+         - a third thing, not to blur with these: the oracle loop's charity budget, which is how far an improvised fact stretches in the player's favour.
+     - **Cells to add (agreed, 2026-11-18).** Both are on `teaTable`, with hand-written plans as 4b's are. Their `source` is marked constructed, since neither is an oracle corpus case (mine). Each target step holds its intent alone.
+
+       | Cell | Step and intent | Things to describe | Why a hedge is a defect |
+       | --- | --- | --- | --- |
+       | **A mundane action** (`cup`) | `pick up [cup1]` | [saucer1], [tea1] | **Imagined charity.** The scene sets an ordinary actor under no pressure ("You are holding nothing"). [cup1] holds [tea1], which rises with it, and [saucer1] stays put. There is no spread. **Not an empty cup** (the user, 2026-11-18, at the build): no fixture has one, so [tea1] is listed and "may spill" is the tempting hedge |
+       | **A hedge against the scene** (`OC-1/teapot1`) | `pick up [table1]` (OC-1's step) | [teapot1] alone | **Established.** The render says the glued teapot "goes wherever [table1] goes, even when [table1] is tipped". Under the reply's handle rule, the step names only [table1], so a reply can't drift to [saucer1] and [cup1], whose slide is a fair doubt. It is OC-1 narrowed: only the list changes |
+
+     - **The baseline:** both cells on draft 4 unchanged, `repeats: 3`, Micro, 6 calls. Draft 4 has no possibilities, so a hedge shows as a conditional `says` ("may", "if", "unless") or a concern, and both count. **The bar is 0 of 3 on each cell,** recorded at baseline and graded at step 5's draft. The rubric is written before the batch, in the next draft's notes.
+     - ~~**Booked, not designed: the cup with the actor changed**~~ (mine, agreed). It was the same `pick up [cup1]` with the actor drugged or under fire. **Superseded** (the user, 2026-11-18, after batch 5) by narrative interest as an input, booked in the [imagination plan](AGENT.imagination.planning.md)'s step 3.
+     - **After batch 5** (the user, 2026-11-18):
+       - **`cup` is recorded, not gated.** Whether a spill is worth surfacing is now an open question, booked in the imagination plan. So step 5's drafts record what `cup` does: a possibility, a concern or neither, and where the firm part sits.
+       - **`OC-1/teapot1` keeps its bar of 0 of 3.** A hedge against the glue line contradicts the scene, whatever the narrative wants.
+       - **Booked beside it, in the imagination plan:**
+         - a cell where firm consequences beside a possibility is clearly right;
+         - CQ-P6.
+
+         Neither is needed to finish this plan.
+       - **"This design books no generator dial" stands.** It concerns the adjudication setting. Narrative interest is a different input, booked as such.
    - **Out of scope here:** other kinds of openness, such as `unestablished` (the outcome hangs on a detail the scene doesn't set: the non-rule cell's "needs detail of", from the generating side), until a case shows one. Also what a later step depends on after a possibility: that is "state carried forward", above, made visible here.
 
-   **Still to design before the build:**
-   - the change language's form for a possibility (one change adding the whole group);
-   - the paths minted for a possibility and its branches;
-   - the generator render (`renderPlanForGenerator`);
-   - the refusals.
+   **When a plan carries an intended consequence** (booked at 4b's build; answered for the expand form, agreed, 2026-11-18):
+   - **Not on a step a generator expands.** The intent item is enough there. A step-level intended consequence beside a branch where the intent fails would contradict it.
+   - **AP-7 stands for the trial,** which judges a stated outcome. **To check before the build** (mine): the trial's reader takes its stated outcome from `planFromNonRuleSteps`' intended consequence. A plan that went through step 5 would have to give it that outcome another way, or reach the trial through revise (step 6). Read the trial's reader for this; don't assume it.
+     - **Checked at the build** (2026-11-18): nothing reads `planFromNonRuleSteps` outside its tests. The trial still renders from its own `NonRuleStep`s, which is the bridge state below. So nothing breaks now. The question returns when the trial moves onto the plan.
 
-   - **When a plan carries an intended consequence** (booked at 4b's build, mine, not decided). AP-7 gives an intended step one at creation. That is right for the trial, which judges a stated outcome. It is premature for a step a generator hasn't expanded: 4b's cells leave it out (the user, 2026-11-18). Moving it into `managed` raises the same question, so it belongs to this design.
+   **The change language's form for a possibility** (settled, 2026-11-18):
+   - **One change adds the whole group** (the field names are mine, matching today's keys):
+
+     ```json
+     {"add": "possibility", "kind": "execution",
+      "says": "tipping [table1] only far enough to pour without sliding [saucer1] off",
+      "branches": [
+        [{"thing": "[teapot1]", "says": "[teapot1] pours [tea2] into [cup1]"}],
+        [{"thing": "[saucer1]", "says": "[saucer1] and [cup1] slide off and fall to the floor"},
+         {"thing": "[tea2]", "says": "[tea2] spills"}]
+      ]}
+     ```
+
+   - **A branch is a list of consequences, written as flat ones are:** `thing` is optional, `says` is required, code supplies `to`, and the merge mints every path.
+   - **Flat means every branch; inside a branch means only that branch** (the user, 2026-11-18). A consequence added flat beside a possibility happens however the possibility falls ("[table1] tips"). A consequence inside a branch happens only in that branch. This gives the certain parts a place, and keeps a line from being repeated across branches. **The prompt says so, and the rubric records it:** does Micro put certain outcomes in the branches?
+
+   **The refusals** (mine, agreed by the user, 2026-11-18):
+   - **At least two branches.** One branch isn't a spread.
+   - **An empty branch is allowed.** "It doesn't tip far enough, and nothing happens" is a real outcome.
+   - **No `concern` inside a branch.** A branch in which the intent fails already is one.
+   - **At most one `execution` possibility per step** (above).
+   - **The handles in a branch follow the reply's rule** (above): the listed things plus the step's own.
+
+   **Booked: whether the plan still needs `concern` at all** (the user, 2026-11-18; AP-10, open). A branch in which the intent fails says what a concern against the intent said, from the structure. What would be left is a concern with no possibility to sit in: collateral (CQ-P2), or a doubt about the method (CQ-P3). Revisit once step 5's batches show what concerns are still written beside possibilities.
+
+   **The generator render** (`renderPlanForGenerator`; settled, 2026-11-18):
+   - **Nested lines, one indent per level,** as in the shape's example. Flat consequences stay at the item level, and the indent is what shows the "every branch" reading. The kind of openness shows in parentheses, as `(intended)` does.
+   - **Who reads it:** `consequences`' prompt (`The plan:`) and `read-plans`. In the expand form the target step holds only its intent, so a possibility reaches a prompt only through another step that holds one (state carried forward, out of scope) or through revise (step 6). Step 5's build needs it for `read-plans`.
+   - **A bridge state** (the user, 2026-11-18): the trial and the judges don't read this render yet. They render from the old shapes, which the render pins hold, until they move onto the plan ([When it finishes](#when-it-finishes): the trial question plan resumes on it). Whether they read the plan through this render or one of their own is that plan's question.
+   - **The knock-on:** the intent's path becomes `tip-table1.intent` (above), re-pinned at the build.
+
+   **Still to design before the build:**
+   - ~~the change language's form for a possibility~~: settled above;
+   - ~~the paths minted for a possibility and its branches~~: settled above (flat under the step; text slugs for consequences and concerns, the kind for the rest);
+   - ~~the generator render~~: settled below;
+   - ~~the refusals~~: settled above;
+   - ~~the new cells~~: settled above. ~~Left: their baseline batch on draft 4~~: batch 5, read 2026-11-18.
+
+   - [X] **The design** (2026-11-18, with the user): the shape, the paths, the change form, the refusals, the render and the cells, as above.
+   - [X] **The cells' baseline batch on draft 4:** the two cells built, a rubric written before the batch, the payload in the scratchpad; the user runs it.
+     - [X] **The cells built** (2026-11-18): `cup` and `OC-1/teapot1` in `consequences.ts`, inputs hashes `5db10e38` and `ef0c4cda` pinned. The other two cells' hashes are unchanged.
+     - [X] **The rubric** in [`5.notes.md`](oracleLoopDrafts/consequences/5.notes.md#rubric-written-before-the-batch-mine-until-reviewed), and the payload written (`--cells cup,OC-1/teapot1`, 6 calls).
+     - [X] **Batch 5 run and read** (2026-11-18; [results](oracleLoopDrafts/consequences/5.notes.md#results-2026-11-18-batch-5)):
+       - **Hedges, against a bar of 0 of 3:**
+         - `cup`: 2 of 3 counted, 3 of 3 with a refused block. They are all concerns about a spill, two of them on an invented intent "without spilling" (CQ-P7).
+         - `OC-1/teapot1`: 0 of 3.
+       - **Found beside the hedges:**
+         - [saucer1] is lifted with the cup in 3 of 3 (CQ-P6), a reading failure that step 5 doesn't address;
+         - the glue is contradicted flat in 1 of 3 (CQ-P8).
+   - [X] **The build** (2026-11-18): the `possibility` kind, the change form and its refusals, flat paths with intents renamed (inputs hashes re-pinned), the widened handle rule, and the nested render. In [`oracleLoop/actionPlan.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/actionPlan.ts), [`imaginationPieces/consequences.ts`](../../../../../lambda/ephemera/calibration/imaginationPieces/consequences.ts) and their tests. `renderPins.test.ts` is unedited.
+     - **The design's example is a golden merge,** with its paths and its render as written above.
+     - **Intents slug their kind,** so every plan's intent is now `<step>.intent`. An AP-7 intended consequence drops its `-2` and slugs its text (`tip-table1.teapot1-pours-tea2`).
+     - **New inputs hashes:**
+       - OC-30/2 `c639e8eb` and OC-1 `030c1940` (step 4b's were `869da3e1` and `bfa18eab`);
+       - `cup` `8bb8636c` and `OC-1/teapot1` `ad08de90` (batch 5 ran `5db10e38` and `ef0c4cda`).
+
+       Draft 4's prompt is unchanged. Only the plan's intent line reads differently.
+     - **The handles are `replyHandles`:** the listed things, plus the target step's text and its intent. The refusal reads "is not a listed thing or named by the step". `bracketHandles` reaches into branches.
+     - **Mine, edge rules the design doesn't cover, for review:**
+       - **The stored field is `openness`.** The change writes `kind`, as designed, but `kind` is already the item's discriminant.
+       - **The order within a step** is intent, flat consequences, the possibility, then concerns. The certain parts come first, since they happen however it falls.
+       - **A branch entry** may carry `add: "consequence"`, since Micro may write a branch's consequences as flat ones. `add: "concern"` gets the design's refusal. Any other key is refused, a `to` included.
+       - **`kind` is required,** and a `thing` on the possibility is refused.
+       - **An empty branch renders** as a bare `- maybe <path>:` line.
+       - **The builders (`planOf`) take no possibilities:** only a change makes one.
+       - **The one-`execution` limit** counts both the plan's possibilities and the block's.
+   - [ ] **The drafts:** the ask taught to write possibilities, graded on OC-30/2, OC-1 and `OC-1/teapot1`, with `cup` recorded (the user, 2026-11-18).
 
    **After 4b,** so that 4b's parity batch has one cause, the format. 4b's design leaves room for a third add kind.
-6. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
+6. [ ] **Revise: a correction path, booked** (the user, 2026-11-18). Not designed. The expand form (step 5) stays the common path.
+   - **What it is:** a form of `consequences` for a step that already has consequences, given one question to look at. It restructures the step around that question.
+   - **When it's used:** as a fallback, when a model wrote consequences too eagerly and they are then called into question. A trial plan's contested intended consequence (AP-7) is the first case.
+   - **Why not first** (the user's question; the trade-offs, agreed):
+     - **For eager-then-revise:** each call does one thing, and possibilities appear only where a judge doubts the outcome.
+     - **Against it:**
+       - it throws away the spread the generator already writes (batches 2 and 3), for a judge to find again;
+       - the flat outcome anchors the revision;
+       - a wrong flat outcome leaks silently if nobody questions it;
+       - it puts the first non-additive change on the common path.
+   - **The mechanism, leaned on (mine):** the model names what a branch absorbs, for example `"keeps": ["tip-table1.teapot1-pours-tea2"]`. The merge moves those items, and they keep their paths. The merge refuses a path that doesn't exist, or one claimed twice. This is AP-9's move, with the model choosing what moves. The alternative is general replace and remove operations, which open every merge rule at once.
+   - **Open:** where the question comes from. It could be free text from a judge, or a kind (`execution`) with code supplying the wording.
+7. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
 
 ## Open decisions (implementation --- plan only)
 
@@ -341,8 +470,9 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | AP-5 | What `playByPlay` returns | Step 3 | Step 0's design | **Settled for now** (the user, 2026-11-17): **a new plan,** minting its steps' ids |
 | AP-6 | How a refused change counts | Step 2 | Step 0's design | **Settled for now** (the user, 2026-11-17): **the whole block is refused,** with every problem reported, as a stage contract's are |
 | AP-7 | How the trial's roles map in | Step 1 | Step 0's design, with the user | **Settled** (the user, 2026-11-17): **the intended step becomes both an intent sub-item and, where relevant, an intended consequence.** The render pins hold the old render either way |
-| AP-8 | How a spread of outcomes is held in the plan | Step 5 | Step 5's design | **Settled** (the user, 2026-11-18): **a `possibility` grouping of `Maybe` branches.** Its first kind is `execution`, with `managed` and `not managed` branches and the intended consequence stated in `managed`. The generator names what must be managed; what settles it is the judging pieces' call |
-| AP-9 | How the intended consequence reaches the `managed` branch | Step 5 | Step 5's design | **Settled** (mine, agreed by the user, 2026-11-18): **the merge moves it,** and the model never writes `intended`. Paths become ids that read well, not positions: a moved item keeps its path |
+| AP-8 | How a spread of outcomes is held in the plan | Step 5 | Step 5's design | **Settled** (the user, 2026-11-18; amended the same day): **a `possibility` grouping of unlabelled `Maybe` branches,** each with a minted path. Its first kind is `execution`. The generator states the intended outcome itself, in the branch where it happens; an adjudicator reads which branch that is. The generator names what must be managed; what settles it is the judging pieces' call. *Amended from* `managed` and `not managed` branches with the intended consequence in `managed` (the user's reason: the adjudicator reads the branches anyway) |
+| AP-9 | How the intended consequence reaches the `managed` branch | Step 5 | Step 5's design | **Superseded** (the user, 2026-11-18): with unlabelled branches there is no `managed` branch to move it into, and the expand form's target step holds no intended consequence. *Was* (mine, agreed): the merge moves it, a moved item keeping its path. The move returns, chosen by the model, as revise's leaned-on mechanism (step 6) |
+| AP-10 | Whether the plan still needs a `concern` kind, once possibilities hold a spread | After step 5 | Step 5's batches | **Open** (booked by the user, 2026-11-18): a branch in which the intent fails already says what a concern against the intent says. To read: what concerns are still written beside possibilities, and whether they are collateral (CQ-P2), method doubts (CQ-P3), or something a possibility should hold |
 
 ## How we work
 
@@ -371,12 +501,13 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | The change language and the merge | **Done** (2026-11-17): `mergeChanges` and `planChangesContract`, the hops' golden merges pinned |
 | `playByPlay` creates references | **Done** (2026-11-17): `playByPlayContract`; batches 29 and 30 at parity (the user) |
 | `consequences` adds into the plan | **Done** (2026-11-18): 4a, the explicit render; 4b, a reducer on one step in the change language. Batch 3 is the parity batch; draft 4 is kept (the user) |
-| Possibilities | Shape agreed (the user, 2026-11-18). Next: the design, before the build |
+| Possibilities | Design done (the user, 2026-11-18): unlabelled branches, flat paths, the step's own handles, the change form, refusals, the render, the over-flagging cells. Baseline batch 5 read (2026-11-18): `cup` hedged 2 of 3 (CQ-P7), `OC-1/teapot1` 0 of 3; CQ-P6 and CQ-P8 found. The findings are booked in the imagination plan, with `cup` recorded, not gated. Build done (2026-11-18). Next: the drafts |
+| Revise | Booked (the user, 2026-11-18): a correction path, after step 5. Not designed |
 | Hand back | Not started |
 
 ## When it finishes
 
-- **The trial question plan resumes** on the new plan: the hops on hand-written plans, then on generated ones. This plan's item in the parent says so.
+- **The trial question plan resumes** on the new plan: the hops on hand-written plans, then on generated ones. Its judges move off the old shapes and the render pins onto the plan, ending the bridge state step 5 records. This plan's item in the parent says so.
 - **The imagination plan's step 3** resumes on the refactored `consequences`, the cup gap first.
 - **The type and the merge are documented** in calibration's `AGENT.md`, beside the stage contract. The rules for reasoning in this plan's Open decisions move to a durable doc there.
 - **What's out of scope** (above) goes to the parent as booked items: state carried forward, and Contested and Supported claims.
