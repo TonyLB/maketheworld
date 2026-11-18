@@ -12,7 +12,8 @@
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs, type SceneRender } from '../nonRuleCell'
+import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
+import type { SceneRender } from '../../pieceProbe/sceneRenders'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
 

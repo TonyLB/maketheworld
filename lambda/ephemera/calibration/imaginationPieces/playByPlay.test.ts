@@ -8,7 +8,7 @@ import { orderItems, type ActionPlan } from '../oracleLoop/actionPlan'
 import { checkActionsBlock } from './imaginationScene'
 import {
     PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, planFromPlayByPlay, playByPlay, playByPlayCells, playByPlayContract, playByPlayPlansText, playByPlayThings,
-    renderPlayByPlay, type PlayByPlayInputs,
+    renderPlayByPlay, type PlayByPlayInputs, type PlayByPlayOptions,
 } from './playByPlay'
 
 const fixtureScene = async (name: string): Promise<SceneModel> => {
@@ -81,7 +81,15 @@ describe('playByPlay', () => {
         })
 
         it.each([['loud'], [{ rules: 'v45' }], [{ sceneRules: true }], [{ show: 'none' }]])('refuses %j', (value) => {
-            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence' }")
+            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
+        })
+
+        it('takes the explicit render, which ends with the things to describe', async () => {
+            const options = playByPlay.parseOptions({ scene: 'explicit' })
+            expect(options).toEqual({ rules: 'none', scene: 'explicit' })
+            const text = await renderPlayByPlay(playByPlayCells['OC-1'], options as PlayByPlayOptions)
+            expect(text).not.toContain('Graph')
+            expect(text.split('\n\n').slice(-1)[0]).toMatch(/^The things to describe: \[/)
         })
     })
 
@@ -163,7 +171,7 @@ describe('playByPlay', () => {
         )
     })
 
-    describe('the plan it builds (AGENT.actionPlan.planning.md, step 3)', () => {
+    describe('the plan it builds', () => {
         const inputs = cellOf({}).inputs
         const parse = (reply: string, input: PlayByPlayInputs = inputs) => playByPlayContract.parse(reply, { input, rendered: '' })
         const planOfReply = (reply: string, input: PlayByPlayInputs = inputs): ActionPlan => {

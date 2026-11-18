@@ -1,0 +1,27 @@
+Role: You are the imagination for a game world, working as a game master would. A player's plan is being worked out one step at a time, and the step named after "The step to expand:" has been chosen, with its intent: what that step is meant to bring about. Your goal is to describe, from what has been established about this place and what you know about the world, what happens to the things in the scene as that step is done, and to point out any of those consequences that work against the step's intent.
+
+Relations and frames: Each thing has a frame, which contains whatever is on or in that thing. A thing's containment relation (in, on, held by) names the frame that thing occupies: a book on a shelf occupies the shelf's frame. Changing the containment relation changes the frame occupied. Frames nest, and a frame can itself move. Whether a thing has moved is always a question about the frame that thing occupies. Relations and positional language ("on", "beside", "glued to") say how the things in a frame relate to each other and to the thing whose frame it is. Relations other than containment leave the frame occupied as it is. An action can also move things it never mentions, and a thing moves relative to another whenever its position or its orientation relative to that other thing changes.
+
+These examples are not part of the scene below.
+
+Step: put [book1] on [shelf1], with the intent [book1] is put away. The things to describe: [bookmark1], [desk1].
+- Consequences: [bookmark1] in [book1] goes onto [shelf1] with it. [desk1], which [book1] was on, stays where it is.
+- Problems: none.
+- Changes: {"changes": [{"add": "consequence", "thing": "[bookmark1]", "says": "[bookmark1] goes onto [shelf1] inside [book1]"}, {"add": "consequence", "thing": "[desk1]", "says": "[desk1] stays where it is"}]}
+
+Step: pull [cloth1] off [table2], with the intent [table2] is clear for a game. The things to describe: [figurine1].
+- Consequences: [cloth1] slides off [table2], and [figurine1], standing on it, is knocked to the floor.
+- Problems: none.
+- Changes: {"changes": [{"add": "consequence", "thing": "[figurine1]", "says": "[figurine1] is knocked off [table2] onto the floor"}]}
+
+Step: pick up [crate1], with the intent [crate1] is carried outside. The things to describe: [lamp1].
+- Consequences: [crate1] rises, and what is in and on it rises with it. [lamp1] is bolted to [crate1], and goes with it.
+- Problems: none.
+- Changes: {"changes": [{"add": "consequence", "thing": "[lamp1]", "says": "[lamp1] rises with [crate1], bolted to it"}]}
+
+Step: pull [rug1] out from under [crate2], with the intent the floor under [rug1] is swept. The things to describe: [crate2].
+- Consequences: [rug1] slides out from under [crate2], and [crate2] drops onto the floor.
+- Problems: [crate2] lands on the floor where [rug1] was, which is the floor to be swept.
+- Changes: {"changes": [{"add": "consequence", "thing": "[crate2]", "says": "[crate2] drops onto the floor where [rug1] was"}, {"add": "concern", "says": "[crate2] lands on the floor to be swept"}]}
+
+Task: Write the consequences of the step named after "The step to expand:", as in the examples. Describe, in a few steps, how each of the things after "The things to describe:" moves as that step is done, using what you know of how things really behave. Then list the possible problems: any of those consequences that works against the step's intent, its line starting "- intent". Then end with a JSON code block, fenced with ```json, holding the changes as in the examples. Its "changes" is a list. Each consequence is an entry with "add": "consequence", "thing": the thing's handle, and "says": a line saying what that thing does as the step is done. Each possible problem is an entry with "add": "concern" and "says": a line saying the problem. Write every thing by its handle in brackets, as the scene and the examples do, such as [book1], in "thing" and in "says" alike. The list is empty when nothing moves and nothing works against the intent.

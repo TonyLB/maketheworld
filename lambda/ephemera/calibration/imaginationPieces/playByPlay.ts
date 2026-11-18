@@ -6,13 +6,13 @@
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { planOf, renderPlanForGenerator, type ActionPlan, type UnmintedItem } from '../oracleLoop/actionPlan'
+import { planOf, type ActionPlan, type UnmintedItem } from '../oracleLoop/actionPlan'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
-import type { ReadGroup } from '../pieceProbe/readPiece'
 import {
     IMAGINATION_OPTIONS, actionsHandles, caseActions, caseSource, checkActionsBlock, linesByHandle, listedTwice, parseImaginationOptions, renderSceneAndActions,
     thingsLine, type ImaginationOptions,
 } from './imaginationScene'
+import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
 
@@ -44,7 +44,7 @@ export const renderPlayByPlay = async ({ inputs }: ReadPieceCell<PlayByPlayInput
     if (things.length === 0) {
         throw new Error('The actions name no things to describe')
     }
-    return [...parts, thingsLine(things)].join('\n\n')
+    return [...parts, thingsLine(things, options)].join('\n\n')
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -56,7 +56,7 @@ const problemStep = (problem: string, actionCount: number): number => {
 }
 
 /**
- * A checked reply's block as a plan (AP-5; step 0 of AGENT.actionPlan.planning.md): each action a step, supplied by the system; each
+ * A checked reply's block as a new plan (calibration AGENT.md, "The action plan"): each action a step, supplied by the system; each
  * described thing's line an unintended consequence with its `thing`, in the things' order (mine); each problem a concern on the step it
  * names, else the last. Code mints every path, so the model names nothing. The block is taken as the contract has checked it.
  */
@@ -153,18 +153,5 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
 
 export const registeredPlayByPlay = registerPiece(playByPlay)
 
-/** A batch's replies for reading (`read-plans`): per cell and repeat, the plan the contract builds as a generator would read it, or why none. */
-export const playByPlayPlansText = (groups: readonly ReadGroup[]): string => groups.flatMap(({ cell, replies }) => {
-    const known = playByPlayCells[cell]
-    return replies.map(({ repeat, reply, error }) => {
-        const heading = `## ${cell}, repeat ${repeat}`
-        if (known === undefined) {
-            return `${heading}\nnot a playByPlay cell`
-        }
-        if (reply === undefined) {
-            return `${heading}\nerror: ${error ?? 'no reply'}`
-        }
-        const parsed = playByPlayContract.parse(reply, { input: known.inputs, rendered: '' })
-        return 'value' in parsed ? `${heading}\n${renderPlanForGenerator(parsed.value)}` : `${heading}\nform: ${parsed.problems.join('; ')}`
-    })
-}).join('\n\n')
+/** A batch's replies for reading (`read-plans`), as plans (`plansText`). */
+export const playByPlayPlansText = plansText('playByPlay', playByPlayCells, playByPlayContract)
