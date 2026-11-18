@@ -48,7 +48,8 @@ export const mintPaths = (texts: readonly { says: string; fallback: string }[], 
 export const orderItems = <Item extends { kind: StepItemKind }>(items: readonly Item[]): Item[] =>
     STEP_ITEM_KINDS.flatMap((kind) => items.filter((item) => item.kind === kind))
 
-type UnmintedItem = StepItem extends infer Item ? (Item extends StepItem ? Omit<Item, 'path'> : never) : never
+/** An item before its path is minted. */
+export type UnmintedItem = StepItem extends infer Item ? (Item extends StepItem ? Omit<Item, 'path'> : never) : never
 
 /** A step's items ordered, then each path minted under the step's, in one scope across kinds. */
 const mintItems = (stepPath: string, items: readonly UnmintedItem[]): StepItem[] => {
@@ -57,7 +58,8 @@ const mintItems = (stepPath: string, items: readonly UnmintedItem[]): StepItem[]
     return ordered.map((item, index) => ({ ...item, path: `${stepPath}.${paths[index]}` }) as StepItem)
 }
 
-const planOf = (steps: readonly { step: CandidateStep; items: readonly UnmintedItem[] }[]): ActionPlan => {
+/** Steps with their items: each step's path minted, then each item's under it, ordered by kind (for a builder outside this file). */
+export const planOf = (steps: readonly { step: CandidateStep; items: readonly UnmintedItem[] }[]): ActionPlan => {
     const paths = mintPaths(steps.map(({ step: { says } }) => ({ says, fallback: 'step' })))
     return { steps: steps.map(({ step, items }, index) => ({ ...step, path: paths[index], items: mintItems(paths[index], items) })) }
 }

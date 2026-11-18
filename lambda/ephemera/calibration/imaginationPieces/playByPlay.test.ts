@@ -4,7 +4,12 @@ import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
-import { PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, playByPlay, playByPlayCells, playByPlayThings, renderPlayByPlay, type PlayByPlayInputs } from './playByPlay'
+import { orderItems, type ActionPlan } from '../oracleLoop/actionPlan'
+import { checkActionsBlock } from './imaginationScene'
+import {
+    PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, planFromPlayByPlay, playByPlay, playByPlayCells, playByPlayContract, playByPlayPlansText, playByPlayThings,
+    renderPlayByPlay, type PlayByPlayInputs,
+} from './playByPlay'
 
 const fixtureScene = async (name: string): Promise<SceneModel> => {
     const fixture = sceneFixture(name)
@@ -156,5 +161,100 @@ describe('playByPlay', () => {
         expect(result.read.map(({ cell, replies }: { cell: string; replies: unknown[] }) => [cell, replies.length])).toEqual(
             Object.keys(playByPlayCells).map((id) => [id, 3]),
         )
+    })
+
+    describe('the plan it builds (AGENT.actionPlan.planning.md, step 3)', () => {
+        const inputs = cellOf({}).inputs
+        const parse = (reply: string, input: PlayByPlayInputs = inputs) => playByPlayContract.parse(reply, { input, rendered: '' })
+        const planOfReply = (reply: string, input: PlayByPlayInputs = inputs): ActionPlan => {
+            const parsed = parse(reply, input)
+            if (!('value' in parsed)) {
+                throw new Error(parsed.problems.join('; '))
+            }
+            return parsed.value
+        }
+
+        it('makes each action a step, and each described thing\'s line a consequence with its thing, in the things\' order', () => {
+            const plan = planOfReply(fenced({ actions: [{ saucer1: 'rises off [table1]' }, { cup1: 'fills with [tea2]', teapot1: 'tilts over [cup1]' }], problems: [] }))
+            expect(plan).toEqual({ steps: [
+                { says: 'pick up [saucer1]', suppliedBy: 'system', path: 'pick-up-saucer1', items: [
+                    { kind: 'consequence', path: 'pick-up-saucer1.rises-table1', thing: 'saucer1', says: 'rises off [table1]' },
+                ] },
+                { says: 'pour [tea2] from [teapot1] into [cup1]', suppliedBy: 'system', path: 'pour-tea2-teapot1', items: [
+                    { kind: 'consequence', path: 'pour-tea2-teapot1.tilts-over-cup1', thing: 'teapot1', says: 'tilts over [cup1]' },
+                    { kind: 'consequence', path: 'pour-tea2-teapot1.fills-tea2', thing: 'cup1', says: 'fills with [tea2]' },
+                ] },
+            ] })
+        })
+
+        it('joins a thing\'s two spellings into one line, as the check reads them', () => {
+            const plan = planOfReply(fenced({ actions: [{}, { teapot1: 'tilts', '[teapot1]': 'to pour' }] }))
+            expect(plan.steps[1].items).toEqual([{ kind: 'consequence', path: 'pour-tea2-teapot1.tilts-pour', thing: 'teapot1', says: 'tilts to pour' }])
+        })
+
+        it('puts a problem on the step it names as Action N, else on the last step, after the consequences', () => {
+            const plan = planOfReply(fenced({ actions: [line, line], problems: ['In Action 1, [saucer1] may be stuck', 'The [teapot1] is glued to [table1]', 'Action 9 is not one'] }))
+            expect(plan.steps.map(({ items }) => items.map(({ kind, says }) => [kind, says]))).toEqual([
+                [['consequence', 'rises off [table1]'], ['consequence', 'stays where it is'], ['concern', 'In Action 1, [saucer1] may be stuck']],
+                [['consequence', 'rises off [table1]'], ['consequence', 'stays where it is'], ['concern', 'The [teapot1] is glued to [table1]'], ['concern', 'Action 9 is not one']],
+            ])
+            expect(plan.steps.every(({ items }) => orderItems(items).every((item, index) => item === items[index]))).toBe(true)
+        })
+
+        it('tells repeated texts in one step apart with -2', () => {
+            const plan = planOfReply(fenced({ actions: [{}, { teapot1: 'stays', cup1: 'stays' }] }))
+            expect(plan.steps[1].items.map(({ path }) => path)).toEqual(['pour-tea2-teapot1.stays', 'pour-tea2-teapot1.stays-2'])
+        })
+
+        it('has the block\'s form problems unchanged, for every reply the check tests with no problems list', () => {
+            const replies = [
+                fenced({ actions: [line, line] }), 'The teapot rises.', 'Prose.\n\n```json\n{ "actions": [ }\n```', fenced({ motions: [line, line] }),
+                fenced({ actions: [line] }), fenced({ actions: [line, 'rises'] }), fenced({ actions: [line, { ...line, table1: 'stays' }] }),
+                fenced({ actions: [{ ...line, teapot1: 3 }, line] }), fenced({ actions: [line, { ...line, cup1: '  ' }] }),
+            ]
+            for (const reply of replies) {
+                expect([reply, checkPlayByPlay(reply, cellOf({}))]).toEqual([reply, checkActionsBlock(reply, 2, playByPlayThings(inputs))])
+            }
+        })
+
+        it.each([
+            ['a problems list that is not a list', { problems: 'none' }, ['"problems" is not a list']],
+            ['a problem that is not a string, or is blank', { problems: ['ok', 3, ' '] }, ['problem 2 is not a non-empty string', 'problem 3 is not a non-empty string']],
+        ])('refuses %s', (_, extra, problems) => {
+            expect(parse(fenced({ actions: [line, line], ...extra }))).toEqual({ problems })
+        })
+
+        it('lists the block\'s problems and the problems list\'s together', () => {
+            expect(parse(fenced({ actions: [line], problems: [4] }))).toEqual({ problems: ['expected 2 actions, got 1', 'problem 1 is not a non-empty string'] })
+        })
+
+        it('gives the builder\'s plan as its value', () => {
+            const block = { actions: [line, { teapot1: 'tilts' }], problems: ['[cup1] may tip'] }
+            expect(parse(fenced(block))).toEqual({ value: planFromPlayByPlay(inputs, block) })
+        })
+
+        it.each(Object.keys(playByPlayCells))('%s: a reply with a line for each thing builds a well-formed plan', (id) => {
+            const { inputs: cellInputs } = playByPlayCells[id]
+            const entry = Object.fromEntries(playByPlayThings(cellInputs).map((handle) => [`[${handle}]`, `[${handle}] moves as the action needs`]))
+            const plan = planOfReply(fenced({ actions: cellInputs.actions.map(() => entry), problems: ['something might get in the way'] }), cellInputs)
+            const paths = plan.steps.flatMap(({ path, items }) => [path, ...items.map((item) => item.path)])
+            expect(new Set(paths).size).toBe(paths.length)
+            expect(plan.steps.map(({ items }) => items.length)).toEqual(cellInputs.actions.map((_, index) => playByPlayThings(cellInputs).length + (index === cellInputs.actions.length - 1 ? 1 : 0)))
+            expect(plan.steps.every(({ path, items }) => items.every((item) => item.path.startsWith(`${path}.`)))).toBe(true)
+        })
+
+        it('prints a batch\'s plans for reading, or why a reply gave none', () => {
+            const groups = [{ cell: 'OC-20', lookFor: '', replies: [
+                { repeat: 1, reply: fenced({ actions: [{ table1: 'rises off the floor' }], problems: ['[table1] is chained to [wall1]'] }), problems: [] },
+                { repeat: 2, reply: 'The table rises.', problems: ['no JSON block'] },
+                { repeat: 3, error: 'throttled' },
+            ] }, { cell: 'OC-99', lookFor: '', replies: [{ repeat: 1, reply: 'x' }] }]
+            expect(playByPlayPlansText(groups)).toBe([
+                '## OC-20, repeat 1\nStep pick-up-table1: pick up [table1]\n  - consequence pick-up-table1.rises-floor: rises off the floor\n  - concern pick-up-table1.table1-chained-wall1: [table1] is chained to [wall1]',
+                '## OC-20, repeat 2\nform: no JSON block',
+                '## OC-20, repeat 3\nerror: throttled',
+                '## OC-99, repeat 1\nnot a playByPlay cell',
+            ].join('\n\n'))
+        })
     })
 })

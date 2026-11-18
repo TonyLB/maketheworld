@@ -91,7 +91,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
  * An entry's lines by bare handle: `[teapot1]` and `teapot1` are the same key, as the prompt writes every handle in brackets (user, 2026-11-10).
  * Where both spellings appear, their values are merged in the entry's order.
  */
-const linesByHandle = (entry: Record<string, unknown>): Map<SceneHandle, unknown[]> => Object.entries(entry).reduce((lines, [key, value]) => {
+export const linesByHandle = (entry: Record<string, unknown>): Map<SceneHandle, unknown[]> => Object.entries(entry).reduce((lines, [key, value]) => {
     const handle = key.trim().replace(/^\[(.*)\]$/, '$1')
     return lines.set(handle, [...(lines.get(handle) ?? []), value])
 }, new Map<SceneHandle, unknown[]>())
