@@ -1,6 +1,6 @@
 # `playByPlay` expands a step: the explicit render, simpler reasoning, then the expand form
 
-**Status (2026-11-18): opened, not started.** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, spun off at the user's request alongside the [non-rule cell plan](AGENT.nonRuleCell.planning.md), its consumer. Next: step 0, the design pass.
+**Status (2026-11-18): opened; step 0's design done the same day, every open row settled by the user.** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, spun off at the user's request alongside the [non-rule cell plan](AGENT.nonRuleCell.planning.md), its consumer. Next: step 1, draft 15 (draft 14 on the explicit render).
 
 **Why:**
 - **The non-rule cell's request needs an answer of this shape.** That plan settled that "can't tell, more detail of the action" is a request to `playByPlay`, with the step quoted (NR-3). Its composition probe (step 4) has `playByPlay` feeding the pieces after it. Expanding one step of a plan answers that request.
@@ -20,6 +20,74 @@
 - **One cause per batch:** the render and the reasoning first, as a draft on the old reply with a parity batch; then the expand form. Ordering is this plan's Recommended order, as `consequences` did 4a before 4b.
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is an implementation plan under the parent's pilot of the [proposed design variant](../../../../AGENT.designVariant.proposed.md): a Prototype whose consumer, the non-rule cell's request, runs later.
+
+## Step 0's design (reviewed by the user, 2026-11-18; mine unless marked)
+
+**1. Sub-steps are items** (the user, 2026-11-18, on my question back: no separate `steps` field). A new `StepItem` kind, `step`, holding a full planned step:
+
+```ts
+| { kind: 'step'; path: string; says: string; suppliedBy: 'system'; items: readonly StepItem[] }
+```
+
+- **Why an item:** a possibility already holds structure inside items; one ordered list, placed by the order rule, means the merge, the render, `itemTexts`, `itemPaths` and the target lookup each walk one thing. A sub-step holds its own items, so its intent, a later possibility and its own sub-steps (PX-4: expandable) need nothing new.
+- **The order within a step:** **intent, sub-steps, consequences, possibility, concern.** A step reads as what it's for, how it's done, then what happens.
+- **The one exception to the path rule:** every other item's path is its step's path, a dot and a slug. A `step` item's path is a **step path**, minted in the plan's one scope of step paths at any depth (the user's flat ids: `lift-teapot1-table1`, not `pour-tea2-teapot1.lift-teapot1-table1`). Minting, and the check that `to` names a step, branch on the kind. The durable doc says so.
+- **A step can be tagged `atomic`** (the user, 2026-11-18: "as expanded as it can be", so a requester doesn't keep asking): `atomic?: true` on a planned step and on a `step` item, as `intended` is a tag on a consequence. A step is expanded, or atomic, or neither, never both. **Unlike `intended`, it is set after creation,** by a reply: the first change that modifies what is in the plan. It is set once and never cleared, nothing is removed and no path moves, so the path stays the id; the rule becomes "changes only add, or set a once-only tag", and the durable doc says so. **No reason text for now** (a tag has none): the fact stops repeat requests; a judge weighing whether the step really is simple may later want the reason.
+- **A flat reading of the method** (the leaves, depth first) is a helper for a reader that wants one sequence; **booked, not built**, since no reader needs it yet.
+- **The slug's possessive wart** ("grasp [teapot1]'s handle" gives `grasp-teapot1-s`) is left to the booked "references stronger under reasoning".
+
+**2. The change form** (PX-2):
+
+```json
+{"changes": [
+  {"add": "steps", "steps": [
+    {"says": "lift [teapot1] off [table1]", "intent": "[teapot1] is held above [cup1]"},
+    {"says": "tilt [teapot1] over [cup1]", "intent": "[tea2] pours into [cup1]"}
+  ]}
+]}
+```
+
+- **`add: "steps"` with an optional `intent`** (agreed by the user, 2026-11-18). Code supplies `to`, the target. Each entry: `says` required; `intent` optional, only where it helps (the user, PX-1).
+- **`{"mark": "atomic"}`** (the user, 2026-11-18, on my proposal): a new verb, since it sets a tag rather than adding; code supplies `to`. The merge mints each sub-step's path and its intent's (`lift-teapot1-table1.intent`).
+- `bracketHandles` repairs `says` and `intent`.
+- **`playByPlay`'s contract takes only `add: "steps"`,** through a new merge option, `adds`; a consequence or concern from it is refused. That is how `concern` comes out (PX-5). `consequences` keeps its three kinds.
+
+**3. The refusals** (the whole block, as now):
+- fewer than two sub-steps (the user, PX-4);
+- an entry that isn't an object, has no `says`, or has a key other than `says` and `intent`;
+- an `add` or `mark` the piece doesn't take;
+- **the atomic tag** (the user, 2026-11-18): expanding a step tagged atomic ("marked as one motion; nothing to expand"); marking a step already expanded; a block that both expands and marks one step; marking a step twice;
+- **for `playByPlay`, an empty `changes`:** every reply expands the step or marks it atomic.
+
+**Not refused: a handle the scene doesn't hold** (the user, 2026-11-18): a breakdown may improvise an object ("slide [cloth1] under [teapot1]"). The merge keeps it as written, `bracketHandles` leaves it, and the rubric records each one. **Knock-on:** the next piece's render throws on a handle not in the fixture, so `consequences` reading `playByPlay`'s output would; that is out of scope here, and improvised handles in the plan are booked on the parent's [action plan item](AGENT.oracleLoop.planning.md#recommended-order), where the oracle's `Improvisation` (an object filling a slot) is the type to meet.
+
+**Settled with it** (the user, 2026-11-18): **a step is expanded at most once; more detail goes into its sub-steps,** any of which may be expanded in turn. The refusal reads "already expanded; expand one of its sub-steps for more detail". A second expansion of the same step would sit beside the first (changes only add) and read as one method when it is two: that is the alternate-method ask's job (the [imagination plan](AGENT.imagination.planning.md)'s step 4). Redoing a too-coarse expansion is a non-additive change, booked with revise.
+
+**4. `playByPlay`'s inputs and render:**
+- **Inputs:** `{ fixture, plan, target, alsoShown }`. No things to describe, since there are no per-thing lines; `alsoShown` stays, as OC-20's wall needs it.
+- **The render:** the scene of `alsoShown` and every handle the plan names; `The plan:` (`renderPlanForGenerator`); `The step to expand: <path>`. As `consequences`', without its things line.
+- **The generator render** (PX-3, the user's: indented): a sub-step is an item line, its own items indented under it. The atomic tag shows as `(intended)` does: `Step pick-up-table1 (atomic): pick up [table1]`, `- step grasp-handle-teapot1 (atomic): …`. OC-6 after a merge:
+
+```text
+Step pour-tea2-teapot1: pour [tea2] from [teapot1] into [cup1]
+  - intent pour-tea2-teapot1.intent: pour [tea2] from [teapot1] into [cup1]
+  - step lift-teapot1-table1: lift [teapot1] off [table1]
+    - intent lift-teapot1-table1.intent: [teapot1] is held above [cup1]
+  - step tilt-teapot1-over: tilt [teapot1] over [cup1]
+    - intent tilt-teapot1-over.intent: [tea2] pours into [cup1]
+```
+
+**5. The cells** (PX-7): one-step plans built by hand, each intent the request's own text.
+
+| Cell | Step (path) | `alsoShown` | Look-for under the expand form |
+| --- | --- | --- | --- |
+| OC-1 | `pick up [table1]` (`pick-up-table1`) | [teapot1], [cup1], [saucer1] | An ordinary lift (grip the edges, lift), **or** the step marked atomic. **Defect:** a sub-step dealing with the glue (PB-P2) |
+| OC-6 | `pour [tea2] from [teapot1] into [cup1]` (`pour-tea2-teapot1`) | [table1] | The teapot lifted or tilted over the cup, as pouring needs, not fitted to the glue. **Defects:** an "unglue" sub-step (PB-P2); switching to tipping the table (an alternate method) |
+| OC-19 | `pry [teapot1] off [table1] with [hammer1]` (`pry-teapot1-table1`) | — | The claw set under the teapot, then the teapot levered up and off |
+| OC-20 | `pick up [table1]` (`pick-up-table1`), `teaTableChained` | [wall1] | The table lifted and pulled from the wall. **Defect:** a sub-step detaching the chain first (PB-P2) |
+
+- **Recorded across cells:** over-steps (PB-P7); outcomes narrated as settled (PB-P5); which sub-steps carry intents, and whether they say what the old lines said; any sub-step that reads like a worry with nowhere else to go ("carefully steady [teapot1]"), the evidence PX-5 waits on.
+- **What PX-1 costs the look-fors:** "the table staying" (OC-19) and "the wall staying" (OC-20) were per-thing lines. Graded as "no sub-step moves it", with whether an intent states it recorded.
 
 ## Out of scope, named so it isn't lost
 
@@ -51,14 +119,13 @@ Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md). This is an
 
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
-0. [ ] **The design, reviewed before it's built** (text only). It settles the open rows below and gives worked examples on the four cells:
-   - [ ] **What an expansion adds** (PX-1): sub-steps with their own lines, the plan type's new shape, and the order rule;
-   - [ ] **The change form** (PX-2) and its refusals (PX-4), with code supplying the parent, as it supplies `to`;
-   - [ ] **The render** (PX-3);
-   - [ ] **Problems and the bucket** (PX-5);
-   - [ ] **What "simpler reasoning" means** for step 1's draft (PX-6, the user's to say);
-   - [ ] **The cells' plans** (PX-7) and their look-fors under the expand form.
-1. [ ] **The explicit render and simpler reasoning, on the old reply.** A draft of its own (draft 15), assembled with no core, on `{ "scene": "explicit" }`. The reply format and the cells are unchanged, so a miss has one cause, the prompt. **The bar is parity** with draft 14 (every method at the bar, no attempts; batches 29 and 30: 23 of 24), read by hand against a rubric written before the batch. Form is recorded, and better form is welcome.
+0. [X] **The design, reviewed before it's built** (text only), with worked examples on the four cells:
+   - [X] **What an expansion adds** (PX-1, the user, 2026-11-18): sub-steps with intents, no per-thing lines.
+   - [X] **The change form's shape** (PX-2): one change holding the ordered list. **The render** (PX-3): indented.
+   - [X] **Problems** (PX-5): `concern` out; the bucket's value read from the batches. **Simpler reasoning** (PX-6): draft 14 measured on the explicit render first.
+   - [X] **The write-up** ([reviewed](#step-0s-design-reviewed-by-the-user-2026-11-18-mine-unless-marked), 2026-11-18): sub-steps as a `step` item (the user's), the order, the path exception, the change form, the refusals, the inputs and render. The user's calls: a step expands at most once; an `atomic` tag set once by `{"mark": "atomic"}`, in place of an empty `changes`; `add: "steps"` with an optional `intent`; no refusal of a handle the scene doesn't hold (improvised objects).
+   - [X] **The cells' plans** (PX-7) and their look-fors, [in the same section](#step-0s-design-reviewed-by-the-user-2026-11-18-mine-unless-marked).
+1. [ ] **The explicit render and simpler reasoning, on the old reply.** Draft 15 is draft 14's ask on `{ "scene": "explicit" }`, assembled with no core (PX-6): the render alone, measured first. Simpler reasoning follows in later drafts, from what it shows. The reply format and the cells are unchanged, so a miss has one cause, the prompt. It needs no step 0 write-up, so it can run beside it. **The bar is parity** with draft 14 (every method at the bar, no attempts; batches 29 and 30: 23 of 24), read by hand against a rubric written before the batch. Form is recorded, and better form is welcome.
    - [ ] Draft 15 and its rubric, the payload in the scratchpad; the user runs it.
    - [ ] The batch read; the default flips to explicit if the draft is kept (`playByPlay` leaves `JUDGE_RENDER_HOLDOUTS`, its inputs hashes re-pinned).
 2. [ ] **The build: the expand form,** in pure code with tests and no LLM: the plan type's sub-steps, the change form and its refusals, minting sub-step paths in the plan's step scope, the render, `playByPlay`'s new inputs (a plan, the step to expand, and the things), its contract, and `read-plans`.
@@ -69,13 +136,13 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | ID | Question | Informs build | Settled by | Status |
 | --- | --- | --- | --- | --- |
-| PX-1 | What an expansion adds. Sub-steps alone (each a `says`), or sub-steps with their own per-thing consequence lines, as today's per-action lines are? The rule cell and the composition probe read those lines (IM-5). **And PB-P7 turns over:** "the action split into sub-steps" was a defect when the actions were fixed; it is now the point. What stays a defect is a sub-step the step's intent doesn't need (the teapot set back down after the pour) | Step 2 | Step 0's design | Open |
-| PX-2 | The change form. One change per sub-step, or one change holding the ordered list (as a possibility holds its branches)? Mine, a lean: one change holding the list, since order is the content | Step 2 | Step 0's design | Open |
-| PX-3 | How the render shows sub-steps: indented under their parent, as branches sit under a possibility. Whether a reader that wants a flat sequence gets one from the render or from code | Step 2 | Step 0's design | Open |
-| PX-4 | The refusals. Can a sub-step itself be expanded (free under flat ids, but it needs a rule or a depth limit)? Can a step be expanded twice? How few sub-steps is still an expansion? | Step 2 | Step 0's design | Open |
-| PX-5 | Problems. `concern` is not a generator output for judging ([where `concern` stands](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)), and taking it out of `playByPlay`'s plan was booked in the imagination plan; it moves here. Whether `playByPlay` keeps a bucket for worries, so they stay out of the method (the user's 2026-11-13 revision, Observed on `playByPlay` in batches 9 to 15), is tested at its draft | Steps 1 to 3 | Step 0's design, then the batches | Open |
-| PX-6 | What "simpler reasoning" means for draft 15 (the user's, 2026-11-18). Draft 14 is the starting point | Step 1 | The user, at step 0 | Open |
-| PX-7 | The cells' plans under the expand form. OC-1, OC-6, OC-19 and OC-20 are single-request cells, so expanding the one step equals writing the whole method, and their look-fors carry over, as `consequences`' did. Each is a one-step plan built by hand, its intent the request's own text (the single-step rule) | Steps 2 and 3 | Step 0's design | Open |
+| PX-1 | What an expansion adds | Step 2 | Step 0's design | **Settled** (the user, 2026-11-18, a first iteration): **sub-steps, with no per-thing consequence lines.** What those lines did well goes into each sub-step's **intent** item where it helps (what the sub-step is for: "[teapot1] is tilted over [cup1]"). **PB-P7 turns over:** "the action split into sub-steps" is now the point; a sub-step the step's intent doesn't need (the teapot set back down after the pour) stays a defect. **Knock-on (mine):** the non-rule cell's composition probe planned an adapter reading `playByPlay`'s lines for the named things (IM-5); with no lines, that adapter reads sub-steps and their intents, or `consequences` supplies the lines. That is the non-rule cell plan's question, noted there |
+| PX-2 | The change form | Step 2 | Step 0's design | **Settled** (the user, 2026-11-18, on my lean): **one change holding the ordered list,** nested, as a possibility holds its branches; order is the content. Code supplies the parent, as it supplies `to`. Field names in step 0's write-up |
+| PX-3 | How the render shows sub-steps | Step 2 | Step 0's design | **Settled** (the user, 2026-11-18): **indented under their parent,** one level per expansion |
+| PX-4 | The refusals | Step 2 | Step 0's design | **Settled** (the user, 2026-11-18): **a sub-step can itself be expanded; a single sub-step is not an expansion** (at least two); **a step already expanded takes no second expansion,** more detail going into its sub-steps |
+| PX-5 | Problems | Steps 1 to 3 | The batches | **Settled** (the user, 2026-11-18): **`concern` comes out** ([where `concern` stands](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)). Then see what, if anything, is needed beyond what exists for the same benefit: the bucket that kept worries out of the method (the user's 2026-11-13 revision, Observed on `playByPlay` in batches 9 to 15). Read from the batches, not decided ahead |
+| PX-6 | What "simpler reasoning" means | Step 1 | The batches | **Settled** (the user, 2026-11-18): **draft 14 is the starting point, measured on the explicit render first.** Draft 15 is draft 14's ask on the explicit render with no core (the reading guide dropped, as `consequences`' draft 2 did); simplification follows from what that batch shows |
+| PX-7 | The cells' plans under the expand form | Steps 2 and 3 | Step 0's design | **Settled** (reviewed by the user, 2026-11-18): one-step plans built by hand, each intent the request's own text; look-fors as in [step 0's design](#step-0s-design-reviewed-by-the-user-2026-11-18-mine-unless-marked) |
 
 ## How we work
 
@@ -99,7 +166,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 
 | Step | State |
 | --- | --- |
-| The design | Not started |
+| The design | **Done** (2026-11-18): reviewed by the user; PX-1 to PX-7 settled, with the `atomic` tag |
 | The explicit render and simpler reasoning | Not started |
 | The build: the expand form | Not started |
 | The expand form's drafts | Not started |
