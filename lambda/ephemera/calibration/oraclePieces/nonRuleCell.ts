@@ -15,6 +15,7 @@ import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
 import { replyJsonObject } from '../../llm/stageContract'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
+import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../pieceProbe/sceneRenders'
 
 /**
  * A step's role (the step layout): `intended`, what the player's request states; `method`, a step the system supplies to carry it out.
@@ -189,12 +190,6 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
 
 /** How a piece on these inputs shows the securing: as the scene has it (the default), or left out (`withoutSecuring`). */
 export type SecuringShown = 'shown' | 'omitted'
-
-/** Which render the scene takes: the judge render, Fiction and Graph (the default), or the explicit render (AGENT.trialQuestion.planning.md, step 0). */
-export const SCENE_RENDERS = ['judge', 'explicit'] as const
-export type SceneRender = typeof SCENE_RENDERS[number]
-
-export const isSceneRender = (value: unknown): value is SceneRender => (SCENE_RENDERS as readonly unknown[]).includes(value)
 
 /** The non-rule cell's options: which render the scene takes (AGENT.trialQuestion.planning.md, step 1.5), the judge render when absent. */
 export type NonRuleCellOptions = { scene?: SceneRender }

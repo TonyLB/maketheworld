@@ -41,7 +41,7 @@ export const renderConsequences = async ({ inputs: { fixture, actions, intent, t
         throw new Error('No intent')
     }
     const parts = await renderSceneAndActions({ fixture, actions, shown: things }, options)
-    return [...parts, `The intent: ${intent}`, thingsLine(things)].join('\n\n')
+    return [...parts, `The intent: ${intent}`, thingsLine(things, options)].join('\n\n')
 }
 
 /** The form problems of one reply, against the listed things (`checkActionsBlock`). */

@@ -1,6 +1,6 @@
 # The action plan: referenced steps, and changes merged in
 
-**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Next: step 4, `consequences` replying in the change language.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
+**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Step 4, `consequences` replying in the change language, brings in the explicit scene render first, as 4a (the user, 2026-11-17). **4a's build is done (2026-11-18): the shared `scene` option, and draft 2 with no core. Batch 2 is read (2026-11-18): parity on OC-30/2, OC-1 better. 4a is closed (the user, 2026-11-18): the render holds. Step 5, possibilities, was added the same day (AP-8 and AP-9, settled), to run after 4b. Next: 4b, the change language.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
 
 **Why:**
 - **The judging pieces need more from the plan.** In the trial, the hops failed whenever the state at a step had to be worked out rather than read:
@@ -214,7 +214,68 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - **the form:** booked in the imagination plan, with `playByPlay` refactored onto the explicit scene render. The user's main interest is how `playByPlay` responds to that render;
      - **the vague paths** (`table-might-be`, `there-no-clear`): fine for now. Making references that hold up better under reasoning is later work, booked below.
 4. [ ] **`consequences` refactored to add into the plan:** a run on a plan yields changes, and the merge gives the new plan. **The bar is parity** with its batch 1, read by hand. The cup gap is carried to the imagination plan, not tuned here.
-5. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
+
+   **The explicit scene render comes in the same refactor** (the user's, 2026-11-17: the explicit render was being worked in piece by piece, each time a piece needed changing). It comes in two parts, so a parity miss has one cause (the sequencing is mine, agreed):
+   - [X] **4a. The explicit render, with the old reply format.** An option in the shared `imaginationScene.ts` swaps the scene section for the explicit render and drops the reading guide, as the trial's `scene: 'explicit'` does. The default is unchanged, so `playByPlay`'s hashes and the render pins hold. One batch on `consequences`' two cells (OC-30/2 and OC-1) is read against batch 1, for the render alone.
+     - [X] **The build** (2026-11-18), in [`imaginationPieces/imaginationScene.ts`](../../../../../lambda/ephemera/calibration/imaginationPieces/imaginationScene.ts), [`pieceProbe/assembleDraft.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/assembleDraft.ts) and their tests:
+       - **`scene?: 'judge' | 'explicit'`** in `ImaginationOptions`. Under `explicit`, `renderSceneAndActions` gives `renderSceneExplicit` of the same sub-scene, securing shown. The default renders byte for byte as before: batch 1's inputs hashes (`d1d07973`, `b96b6792`) are pinned in `consequences.test.ts`. `renderPins.test.ts` is unedited.
+       - **`SCENE_RENDERS` moved to a leaf module,** [`pieceProbe/sceneRenders.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/sceneRenders.ts), since `nonRuleCell.ts` imports from `imaginationScene.ts`. The trial's stages import it from there.
+       - **Mine, departures from the row, for review:**
+         - **the reading guide is dropped in the draft, not by the option:** it's prompt text (core 2 is the guide, all of it), so `npm run assemble-draft` takes `-` for no core. It also gained `--options JSON` for the payload's options;
+         - **the list line is `The things to describe:`** under the explicit render, since the render heads its own per-thing section `The things:`;
+         - **`scene: 'explicit'` with `rules: 'consequence'` is refused:** the render states the securing as a carry line itself.
+     - [X] **Batch 2** ([draft 2 notes and rubric](oracleLoopDrafts/consequences/2.notes.md), written 2026-11-18; [results](oracleLoopDrafts/consequences/2.notes.md#results-2026-11-18-batch-2), 2026-11-18): [`2.ask.txt`](oracleLoopDrafts/consequences/2.ask.txt) (`3c80dbae`), no core, `{ "scene": "explicit" }`, both cells x3 on Micro.
+       - **Form 3 of 6,** as batch 1. OC-30/2's cause is new: a line for [table1] in 2 of 3.
+       - **OC-30/2 at parity:** 0 of 3, 3 partly, as batch 1. The knock-on is 3 of 3, hedged in 2, and the cup out from under the spout is 0 of 3.
+       - **OC-1 better:** 3 of 3, with the carry kept and no problems. The glue flag is gone.
+       - **The securing line cuts both ways (mine):** "even when [table1] is tipped" ends OC-1's glue doubt, and is the likely source of OC-30/2's teapot "tipping over" and spilling (the method questioned, 2 of 3).
+       - **Parity holds for the render alone (mine).**
+     - [X] **4a's checkpoint** (the user, 2026-11-18): **the render holds,** and 4b builds on it. The explicit render as every piece's default is booked (below).
+   - [ ] **4b. The change language, on the render 4a settles.** `consequences` reads `renderPlanForGenerator` in place of the numbered actions, and replies `{"changes": ...}`. `planChangesContract` merges the reply, with the scene's handles. Its parity batch then tests the format only.
+
+   **Why now** (mine, agreed):
+   - step 4 rewrites the prompt anyway, to read the plan and reply in the change language;
+   - `consequences` has one baseline batch and no tuned draft, so no tuned wording is lost;
+   - the judges already read the explicit render, and they will read what `consequences` adds through the merged plan.
+
+   **Also served:** the option is shared, so `playByPlay`'s booked refactor onto the explicit render (in the imagination plan) becomes a payload with the option set, not a second build.
+
+   **Booked after 4a's batch** (the user, 2026-11-18): the explicit render becomes every piece's default. Each piece moves when it is next redrafted, and a holdouts test tracks the rest. The rule is in [calibration's Scene renders](../../../../../lambda/ephemera/calibration/AGENT.md#scene-renders), with a row in the [oracle loop plan](AGENT.oracleLoop.planning.md#seam-ledger)'s Seam ledger. Under that rule, `consequences`' default flips at 4b, once its kept draft runs explicit.
+5. [ ] **Possibilities: a spread of outcomes, kept in the plan** (the user's, 2026-11-18). A step can hold the outcomes it might have, not just the one the generator settles on. This step's design comes before its build, as step 0's did.
+
+   **Why:** `consequences`' hedges were read as a defect (CQ-P1: "the slide stated as what happens"). But the OC-30/2 hedges all name one thing the action leaves open, how far [table1] is tipped ([batch 2](oracleLoopDrafts/consequences/2.notes.md#results-2026-11-18-batch-2)). That is the generator reasoning about a spread of possibilities instead of fixing on one outcome and justifying it. The later stages need exactly that, for example a judge arguing "this is possible, but needs a skill check". Today the spread is lost in two ways: a reply hedges in prose and writes the outcome flatly in its JSON, or it turns each conditional into a `concern` with the condition buried in its text.
+
+   **The shape** (the user's, 2026-11-18), worked on the h5 hop:
+
+   ```text
+   Action: tip [table1]
+     - Intent: [teapot1] pours [tea2] into [cup1]
+     - Possibility (execution): tipping [table1] only far enough to pour without sliding [saucer1] off
+       - Maybe (managed):
+         - Consequence (intended): [teapot1] pours [tea2] into [cup1]
+       - Maybe (not managed):
+         - Consequence: [saucer1] and [cup1] slide off and fall to the floor
+         - Consequence: [tea2] spills
+   ```
+
+   - **A new `StepItem` kind, `possibility`,** with a kind of openness, a condition (`says`), and branches, each branch holding consequences. One level, no nesting.
+   - **`execution` is the first kind and the common case** (the user, 2026-11-18: "are they able to make that intent happen?" will be ridiculously common, so it is named, not handled as an edge case). The condition says what the actor must manage. **What settles it is the judging pieces' call:** a skill check, the oracle's `challenging` (JF-2), chance, a question to the player, or, in the Coyote Game's preparation, plain success. The generator never writes "skill check" (agreed, 2026-11-18). Its branches are `managed` and `not managed`.
+   - **The intended consequence is stated in the `managed` branch** (the user's, 2026-11-18), so the branch says on its own what success means. **The merge moves it there, not the model** (mine, agreed): adding an `execution` possibility to a step moves that step's intended consequence (AP-7) into the new `managed` branch. The model writes the condition, the `not managed` consequences, and any other consequences under `managed`. `intended` stays unwritable, and the change is still an addition from the model's side.
+   - **At most one `execution` possibility per step,** since there is one intended consequence to move. A second waits for a case that needs it.
+   - **Paths become ids, not positions** (mine, agreed). Step 0 made the path the id because, with additions only, "a path never changes". The move is the first exception. The moved item keeps its path string as its id, and its place comes from the structure. `mergeChanges` already finds a `to` by its path, not by walking positions. Opaque ids wait for a consumer that needs them.
+   - **`concern` is partly absorbed:** a `not managed` branch with no intended consequence is the problem against the intent, readable from the structure.
+   - **A test for a hedge worth keeping:** a possibility names a condition the plan leaves open. A hedge against the scene ("unless it's securely positioned", where the scene says it isn't) or against the method (CQ-P3) is still a defect.
+   - **To watch in the prompt (mine):** not every action has an execution worth stating. Picking up a cup doesn't. Over-flagging costs the judges oracle calls, as CQ-P2 does.
+   - **Out of scope here:** other kinds of openness, such as `unestablished` (the outcome hangs on a detail the scene doesn't set: the non-rule cell's "needs detail of", from the generating side), until a case shows one. Also what a later step depends on after a possibility: that is "state carried forward", above, made visible here.
+
+   **Still to design before the build:**
+   - the change language's form for a possibility (one change adding the whole group);
+   - the paths minted for a possibility and its branches;
+   - the generator render (`renderPlanForGenerator`);
+   - the refusals.
+
+   **After 4b,** so that 4b's parity batch has one cause, the format. 4b's design leaves room for a third add kind.
+6. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
 
 ## Open decisions (implementation --- plan only)
 
@@ -227,6 +288,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | AP-5 | What `playByPlay` returns | Step 3 | Step 0's design | **Settled for now** (the user, 2026-11-17): **a new plan,** minting its steps' ids |
 | AP-6 | How a refused change counts | Step 2 | Step 0's design | **Settled for now** (the user, 2026-11-17): **the whole block is refused,** with every problem reported, as a stage contract's are |
 | AP-7 | How the trial's roles map in | Step 1 | Step 0's design, with the user | **Settled** (the user, 2026-11-17): **the intended step becomes both an intent sub-item and, where relevant, an intended consequence.** The render pins hold the old render either way |
+| AP-8 | How a spread of outcomes is held in the plan | Step 5 | Step 5's design | **Settled** (the user, 2026-11-18): **a `possibility` grouping of `Maybe` branches.** Its first kind is `execution`, with `managed` and `not managed` branches and the intended consequence stated in `managed`. The generator names what must be managed; what settles it is the judging pieces' call |
+| AP-9 | How the intended consequence reaches the `managed` branch | Step 5 | Step 5's design | **Settled** (mine, agreed by the user, 2026-11-18): **the merge moves it,** and the model never writes `intended`. Paths become ids that read well, not positions: a moved item keeps its path |
 
 ## How we work
 
@@ -254,7 +317,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | The plan type, with references | **Done** (2026-11-17): `oracleLoop/actionPlan.ts`, every existing cell converts |
 | The change language and the merge | **Done** (2026-11-17): `mergeChanges` and `planChangesContract`, the hops' golden merges pinned |
 | `playByPlay` creates references | **Done** (2026-11-17): `playByPlayContract`; batches 29 and 30 at parity (the user) |
-| `consequences` adds into the plan | Next |
+| `consequences` adds into the plan | 4a done (2026-11-18): the render holds. Next: 4b, the change language |
+| Possibilities | Shape agreed (the user, 2026-11-18); design to finish before the build, after 4b |
 | Hand back | Not started |
 
 ## When it finishes

@@ -44,7 +44,7 @@ export const renderPlayByPlay = async ({ inputs }: ReadPieceCell<PlayByPlayInput
     if (things.length === 0) {
         throw new Error('The actions name no things to describe')
     }
-    return [...parts, thingsLine(things)].join('\n\n')
+    return [...parts, thingsLine(things, options)].join('\n\n')
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)

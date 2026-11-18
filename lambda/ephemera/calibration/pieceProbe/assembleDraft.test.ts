@@ -1,5 +1,5 @@
 import { textHash } from '../textHash'
-import { assembleDraft } from './assembleDraft'
+import { assembleDraft, NO_CORE } from './assembleDraft'
 
 describe('assembleDraft', () => {
     it('puts the core in the ask\'s slot, each read without one trailing newline, and hashes each part and the whole', () => {
@@ -22,5 +22,16 @@ describe('assembleDraft', () => {
         ['two slots', '{{core}}\n\n{{core}}', 2],
     ])('refuses an ask with %s', (_, ask, slots) => {
         expect(assembleDraft(ask, 'core')).toBe(`the ask's part must have exactly one {{core}} line, and has ${slots}`)
+    })
+
+    it('assembles an ask with no slot and no core, whose core hash is none (AGENT.actionPlan.planning.md, step 4a)', () => {
+        expect(assembleDraft('Role: ask.\n\nTask: do it.\n', undefined)).toEqual({
+            instructions: 'Role: ask.\n\nTask: do it.',
+            hashes: { ask: textHash('Role: ask.\n\nTask: do it.'), core: NO_CORE, instructions: textHash('Role: ask.\n\nTask: do it.') },
+        })
+    })
+
+    it('refuses a slot with no core', () => {
+        expect(assembleDraft('{{core}}', undefined)).toBe("with no core, the ask's part must have no {{core}} line, and has 1")
     })
 })

@@ -2,6 +2,7 @@
 // What the imagination's pieces render and check in common (AGENT.imagination.planning.md, step 1.5): the fixture's sub-scene and the
 // actions, the `rules` option, and the block, a line per thing per action and a list of problems, shared while IM-5 is open.
 //
+import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
 import { subScene } from '../../dataSource/actions/sceneProse/subScene'
@@ -10,6 +11,7 @@ import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludi
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { splitMarkdownReasoningAndJson } from '../../llm/splitMarkdownReasoningAndJson'
 import { oracleCases } from '../oracleLoop/oracleCases'
+import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../pieceProbe/sceneRenders'
 
 export type ImaginationOptions = {
     /**
@@ -18,6 +20,11 @@ export type ImaginationOptions = {
      * causes (PB-2, PR-1). Replaces a `sceneRules` boolean that showed v45's sentences.
      */
     rules: 'none' | 'consequence'
+    /**
+     * Which render the sub-scene takes: the judge render's Fiction and Graph when absent, or the explicit render (AGENT.actionPlan.planning.md,
+     * step 4a). The explicit render states each securing as a carry line itself, so it takes no `rules: 'consequence'` (mine).
+     */
+    scene?: SceneRender
 }
 
 export const IMAGINATION_OPTIONS: ImaginationOptions = { rules: 'none' }
@@ -26,12 +33,18 @@ export const parseImaginationOptions = (value: unknown): ImaginationOptions | st
     if (value === undefined) {
         return IMAGINATION_OPTIONS
     }
-    const shape = "options must be { rules?: 'none' | 'consequence' }"
+    const shape = `options must be { rules?: 'none' | 'consequence', scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
-    const { rules = IMAGINATION_OPTIONS.rules, ...rest } = value as Record<string, unknown>
-    return Object.keys(rest).length > 0 || (rules !== 'none' && rules !== 'consequence') ? shape : { rules }
+    const { rules = IMAGINATION_OPTIONS.rules, scene, ...rest } = value as Record<string, unknown>
+    if (Object.keys(rest).length > 0 || (rules !== 'none' && rules !== 'consequence') || (scene !== undefined && !isSceneRender(scene))) {
+        return shape
+    }
+    if (scene === 'explicit' && rules === 'consequence') {
+        return "scene: 'explicit' takes no rules: 'consequence'; the explicit render states the securing itself"
+    }
+    return scene === undefined ? { rules } : { rules, scene }
 }
 
 export const fixtureScene = async (name: string): Promise<SceneModel> => {
@@ -56,11 +69,12 @@ const consequenceRules = (scene: SceneModel): string[] => {
 
 /**
  * The prompt's parts up to the actions: the sub-scene of the shown things and every thing the actions name, so the prompt names nothing
- * the scene doesn't show (mine), then each action in order. The asks add their own parts after.
+ * the scene doesn't show (mine), then each action in order. The asks add their own parts after. With `scene: 'explicit'`, the sub-scene
+ * is the explicit render (`renderSceneExplicit`), heading to `End of scene.`, in place of the Fiction and the Graph.
  */
 export const renderSceneAndActions = async (
     { fixture, actions, shown }: { fixture: string; actions: readonly string[]; shown: readonly SceneHandle[] },
-    { rules }: ImaginationOptions,
+    { rules, scene = 'judge' }: ImaginationOptions,
 ): Promise<string[]> => {
     if (actions.length === 0) {
         throw new Error('No actions')
@@ -72,6 +86,10 @@ export const renderSceneAndActions = async (
         throw new Error(`The actions name ${unknown.join(', ')}, not in ${fixture}'s scene`)
     }
     const sub = subScene(full, [...new Set([...shown, ...named])])
+    const numbered = actions.map((says, index) => `Action ${index + 1}: ${says}`)
+    if (scene === 'explicit') {
+        return [renderSceneExplicit(sub), ...numbered]
+    }
     const sections = judgeSceneSections(sub)
     return [
         `Scene: ${heading(full)}`,
@@ -79,11 +97,16 @@ export const renderSceneAndActions = async (
         sections.graph,
         ...(rules === 'consequence' ? consequenceRules(sub) : []),
         'End of scene.',
-        ...actions.map((says, index) => `Action ${index + 1}: ${says}`),
+        ...numbered,
     ]
 }
 
-export const thingsLine = (things: readonly SceneHandle[]): string => `The things: ${things.map((handle) => `[${handle}]`).join(', ')}`
+/**
+ * The things to describe. Under the explicit render the line is `The things to describe:`, since the render's own per-thing section is
+ * headed `The things:` (mine, AGENT.actionPlan.planning.md, step 4a).
+ */
+export const thingsLine = (things: readonly SceneHandle[], { scene = 'judge' }: Pick<ImaginationOptions, 'scene'> = {}): string =>
+    `${scene === 'explicit' ? 'The things to describe' : 'The things'}: ${things.map((handle) => `[${handle}]`).join(', ')}`
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
 

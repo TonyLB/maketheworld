@@ -4,6 +4,7 @@ import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
 import { CONSEQUENCES_OPTIONS, checkConsequences, consequences, consequencesCells, renderConsequences, type ConsequencesInputs } from './consequences'
 import { fixtureScene, namedHandles } from './imaginationScene'
+import { textHash } from '../textHash'
 
 const cellOf = (inputs: Partial<ConsequencesInputs>): ReadPieceCell<ConsequencesInputs> => ({
     inputs: { fixture: 'teaTable', actions: ['pick up [table1]'], intent: 'I want to pick up [table1].', things: ['saucer1', 'cup1'], ...inputs },
@@ -60,7 +61,43 @@ describe('consequences', () => {
         it('defaults to no rules, and refuses another shape', () => {
             expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none' })
             expect(consequences.parseOptions({ rules: 'consequence' })).toEqual({ rules: 'consequence' })
-            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence' }")
+            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
+        })
+
+        it('takes a scene render, and refuses the explicit render with rules: consequence (AGENT.actionPlan.planning.md, step 4a)', () => {
+            expect(consequences.parseOptions({ scene: 'explicit' })).toEqual({ rules: 'none', scene: 'explicit' })
+            expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
+            expect(consequences.parseOptions({ scene: 'prose' })).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
+            expect(consequences.parseOptions({ scene: 'explicit', rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
+        })
+    })
+
+    describe('the explicit render (AGENT.actionPlan.planning.md, step 4a)', () => {
+        it('leaves the default render as batch 1 had it: the inputs hashes hold', async () => {
+            expect(textHash(await renderConsequences(consequencesCells['OC-30/2'], CONSEQUENCES_OPTIONS))).toBe('d1d07973')
+            expect(textHash(await renderConsequences(consequencesCells['OC-1'], CONSEQUENCES_OPTIONS))).toBe('b96b6792')
+        })
+
+        it.each(Object.keys(consequencesCells))('%s gives the explicit sub-scene in place of the Fiction and Graph, then the actions, the intent and the things to describe', async (id) => {
+            const cell = consequencesCells[id]
+            const text = await renderConsequences(cell, { rules: 'none', scene: 'explicit' })
+            const judged = await renderConsequences(cell, CONSEQUENCES_OPTIONS)
+            expect(text.split('\n\n')[0]).toBe(judged.split('\n\n')[0])
+            expect(text).toContain('\n\nThe things:\n- ')
+            expect(text).not.toContain('Graph')
+            expect(text).not.toContain('Reading the scene')
+            expect(text.split('\n\n').slice(-(cell.inputs.actions.length + 3))).toEqual([
+                'End of scene.',
+                ...cell.inputs.actions.map((says, index) => `Action ${index + 1}: ${says}`),
+                `The intent: ${cell.inputs.intent}`,
+                `The things to describe: ${cell.inputs.things.map((handle) => `[${handle}]`).join(', ')}`,
+            ])
+        })
+
+        it('states the securing as a carry line, with no Rules section', async () => {
+            const text = await renderConsequences(cellOf({ things: ['teapot1'] }), { rules: 'none', scene: 'explicit' })
+            expect(text).not.toContain('Rules:')
+            expect(text).toContain('[teapot1] is glued to [table1]')
         })
     })
 

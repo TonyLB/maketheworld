@@ -281,6 +281,8 @@ With the guide, every answer settled from absence ("the scene does not provide â
 
 **Open within the scope:** how the explicit render's securing lines sit beside a consumer's own Rules section (the rule cell, the oracle probe's wordings, the imagination's `consequence` rules). Also, whether the steps' guide gets the same treatment.
 
+**Calibration's adoption (2026-11-18, the user):** the explicit render is the direction for every calibration piece's default. Pieces move at their next redraft, and a holdouts test tracks the rest ([calibration's Scene renders](../../../../../lambda/ephemera/calibration/AGENT.md#scene-renders)). Further evidence: `consequences`' batch 2 ([notes](oracleLoopDrafts/consequences/2.notes.md#results-2026-11-18-batch-2)) held parity on OC-30/2 and improved the OC-1 control, 3 of 3 against 0. **On the imagination's `consequence` rules** (the open item above): `scene: 'explicit'` refuses `rules: 'consequence'`, since the render states the securing itself. The production formats stay this plan's, under SP-10.
+
 ## Open decisions (implementation --- plan only)
 
 Plan-only: decisions we are making in order to implement the next slice(s). Do not copy into package `AGENT.concepts.md`. When a decision ships, record it in `AGENT.contract.md` / `AGENT.implementation.md` and remove the row here.

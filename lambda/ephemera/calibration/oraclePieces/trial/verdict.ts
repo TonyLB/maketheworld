@@ -11,7 +11,8 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../../llm
 import { joinParts, registerPiece, type OraclePiece, type PieceCell, type RenderedParts } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickPaired, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import { isSceneRender, SCENE_RENDERS, type NonRuleCellInputs, type SceneRender } from '../nonRuleCell'
+import type { NonRuleCellInputs } from '../nonRuleCell'
+import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
 import { fitsCurrentContract, renderArguedParts } from './rebuttal'
 import { arguedAsRebutted, TRIAL_VERDICTS, trialCases, type TrialArgument, type TrialRebuttalReply, type TrialVerdict } from './trialCases'
 

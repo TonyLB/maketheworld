@@ -9,7 +9,8 @@
 //
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
-import { isSceneRender, matchQuote, quotables, renderNonRuleCell, SCENE_RENDERS, type NonRuleCellInputs, type SceneRender, type SecuringShown } from '../nonRuleCell'
+import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs, type SecuringShown } from '../nonRuleCell'
+import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRuling } from './trialCases'
 
 const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
