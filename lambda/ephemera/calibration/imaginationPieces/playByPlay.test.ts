@@ -5,6 +5,7 @@ import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
 import { orderItems, type ActionPlan } from '../oracleLoop/actionPlan'
+import { textHash } from '../textHash'
 import { checkActionsBlock } from './imaginationScene'
 import {
     PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, namedHandles, planFromPlayByPlay, playByPlay, playByPlayCells, playByPlayContract, playByPlayPlansText, playByPlayThings,
@@ -41,7 +42,7 @@ describe('playByPlay', () => {
                 'End of scene.',
                 'Action 1: pick up [saucer1]',
                 'Action 2: pour [tea2] from [teapot1] into [cup1]',
-                'The things: [saucer1], [tea2], [teapot1], [cup1]',
+                'The things to describe: [saucer1], [tea2], [teapot1], [cup1]',
             ])
         })
 
@@ -53,7 +54,7 @@ describe('playByPlay', () => {
 
         it('shows the sub-scene\'s rules as fact and consequence with rules: consequence, and no rules by default', async () => {
             expect(await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)).not.toContain('Rules:')
-            const text = await renderPlayByPlay(cellOf({}), { rules: 'consequence' })
+            const text = await renderPlayByPlay(cellOf({}), { rules: 'consequence', scene: 'judge' })
             expect(text).toContain('\n\nRules:\n- teapot-secured-to-table: [teapot1] is glued to [table1]. When [table1] changes its position or orientation, [teapot1] moves with it.\n\nEnd of scene.')
             expect(text).not.toContain('blocks')
         })
@@ -75,9 +76,16 @@ describe('playByPlay', () => {
     })
 
     describe('its options', () => {
-        it('defaults to no rules', () => {
-            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'none' })
-            expect(playByPlay.parseOptions({ rules: 'consequence' })).toEqual({ rules: 'consequence' })
+        it('defaults to the explicit render with no rules, which refuses rules: consequence unless the judge render is named', () => {
+            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
+            expect(playByPlay.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
+            expect(playByPlay.parseOptions({ rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
+            expect(playByPlay.parseOptions({ rules: 'consequence', scene: 'judge' })).toEqual({ rules: 'consequence', scene: 'judge' })
+        })
+
+        it('pins the inputs hashes on the default, the explicit render (batch 31; the judge render ran 131135a3, e70f35ca, 8ab35bc0, 5ca12185)', async () => {
+            const hashes = await Promise.all((['OC-1', 'OC-6', 'OC-19', 'OC-20'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
+            expect(hashes).toEqual(['8ecdaa39', '567d9769', '45dd4ec7', '0543f612'])
         })
 
         it.each([['loud'], [{ rules: 'v45' }], [{ sceneRules: true }], [{ show: 'none' }]])('refuses %j', (value) => {

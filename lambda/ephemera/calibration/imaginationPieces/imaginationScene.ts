@@ -47,6 +47,15 @@ export const parseImaginationOptions = (value: unknown): ImaginationOptions | st
     return scene === undefined ? { rules } : { rules, scene }
 }
 
+/**
+ * The imagination's options over a piece's defaults: with no options the defaults, and the default scene filled in where the options
+ * name none, before the check, so the default too refuses `rules: 'consequence'` under the explicit render.
+ */
+export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value: unknown): ImaginationOptions | string =>
+    parseImaginationOptions(value === undefined ? defaults
+        : defaults.scene !== undefined && typeof value === 'object' && value !== null && !Array.isArray(value) && !('scene' in value) ? { ...value, scene: defaults.scene }
+        : value)
+
 export const fixtureScene = async (name: string): Promise<SceneModel> => {
     const fixture = sceneFixture(name)
     return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene

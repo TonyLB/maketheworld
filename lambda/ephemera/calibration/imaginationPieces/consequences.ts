@@ -11,7 +11,7 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../llm/st
 import { bracketHandles, itemTexts, mergeStepChanges, planOf, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
-import { caseSource, listedTwice, namedHandles, parseImaginationOptions, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
 export type ConsequencesInputs = {
@@ -32,11 +32,7 @@ export type ConsequencesOptions = ImaginationOptions
 /** The explicit render by default (the kept draft runs explicit, so the default flips; calibration's AGENT.md, "Scene renders"). */
 export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { rules: 'none', scene: 'explicit' }
 
-/** The imagination's options, with the scene filled in before the check, so the default too refuses `rules: 'consequence'`. */
-export const parseConsequencesOptions = (value: unknown): ConsequencesOptions | string =>
-    parseImaginationOptions(value === undefined ? CONSEQUENCES_OPTIONS : typeof value === 'object' && value !== null && !Array.isArray(value) && !('scene' in value)
-        ? { ...value, scene: CONSEQUENCES_OPTIONS.scene }
-        : value)
+export const parseConsequencesOptions = imaginationOptionsParser(CONSEQUENCES_OPTIONS)
 
 /** The handles a plan's text names, each once, in order. */
 const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>

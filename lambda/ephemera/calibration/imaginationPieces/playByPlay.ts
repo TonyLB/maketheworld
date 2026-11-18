@@ -9,7 +9,7 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../llm/st
 import { planOf, type ActionPlan, type UnmintedItem } from '../oracleLoop/actionPlan'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import {
-    IMAGINATION_OPTIONS, actionsHandles, caseActions, caseSource, checkActionsBlock, linesByHandle, listedTwice, parseImaginationOptions, renderSceneAndActions,
+    actionsHandles, caseActions, caseSource, checkActionsBlock, imaginationOptionsParser, linesByHandle, listedTwice, renderSceneAndActions,
     thingsLine, type ImaginationOptions,
 } from './imaginationScene'
 import { plansText } from './plansText'
@@ -29,7 +29,8 @@ export type PlayByPlayInputs = {
 
 export type PlayByPlayOptions = ImaginationOptions
 
-export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = IMAGINATION_OPTIONS
+/** The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene renders"). */
+export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'none', scene: 'explicit' }
 
 /** The things a cell describes: the handles its actions name, each once, in order. */
 export const playByPlayThings = ({ actions }: PlayByPlayInputs): SceneHandle[] => actionsHandles(actions)
@@ -147,7 +148,7 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
     maxTokens: PLAY_BY_PLAY_MAX_TOKENS,
     cells: playByPlayCells,
     check: checkPlayByPlay,
-    parseOptions: parseImaginationOptions,
+    parseOptions: imaginationOptionsParser(PLAY_BY_PLAY_OPTIONS),
     render: renderPlayByPlay,
 }
 

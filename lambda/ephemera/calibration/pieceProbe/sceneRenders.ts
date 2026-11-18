@@ -15,5 +15,5 @@ export const isSceneRender = (value: unknown): value is SceneRender => (SCENE_RE
  * `sceneRenders.test.ts` fails on a judge-render piece missing from it, and on a listed piece that no longer renders the judge's scene.
  */
 export const JUDGE_RENDER_HOLDOUTS: readonly string[] = [
-    'ruleCell', 'nonRuleCell', 'playByPlay', 'stepConsiderations', 'trial/against', 'trial/rebuttal', 'trial/verdict',
+    'ruleCell', 'nonRuleCell', 'stepConsiderations', 'trial/against', 'trial/rebuttal', 'trial/verdict',
 ]
