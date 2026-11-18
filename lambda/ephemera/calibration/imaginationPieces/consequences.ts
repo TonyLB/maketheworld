@@ -8,7 +8,7 @@
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { mergeStepChanges, planOf, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
+import { bracketHandles, mergeStepChanges, planOf, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { caseSource, listedTwice, namedHandles, parseImaginationOptions, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
@@ -57,15 +57,38 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
     return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
 }
 
-/** The stage's contract: the reply's block, scoped to the target, merged into the plan (`mergeStepChanges`), against the listed things. */
+/**
+ * A block with each change's `says` repaired: bare handles bracketed (`bracketHandles`, CQ-P5), against every handle the prompt names
+ * (the listed things, the plan's, and the rendered text's, when it is given). Anything else is left for the merge to check.
+ */
+export const bracketChanges = (block: Record<string, unknown>, handles: readonly SceneHandle[]): Record<string, unknown> => {
+    const { changes } = block
+    if (!Array.isArray(changes)) {
+        return block
+    }
+    return {
+        ...block,
+        changes: changes.map((entry) => (
+            typeof entry === 'object' && entry !== null && !Array.isArray(entry) && typeof (entry as Record<string, unknown>).says === 'string'
+                ? { ...entry, says: bracketHandles((entry as Record<string, unknown>).says as string, handles) }
+                : entry
+        )),
+    }
+}
+
+/**
+ * The stage's contract: the reply's block, its bare handles bracketed, scoped to the target and merged into the plan (`mergeStepChanges`),
+ * against the listed things.
+ */
 export const consequencesContract: StageContract<ConsequencesInputs, ActionPlan> = {
     name: 'consequences',
-    parse: (reply, { input: { plan, target, things } }) => {
+    parse: (reply, { input: { plan, target, things }, rendered }) => {
         const parsed = replyJsonObject(reply)
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const merged = mergeStepChanges(plan, target, parsed.object, things)
+        const shown = [...new Set([...things, ...planHandles(plan), ...namedHandles(rendered)])]
+        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), things, { handlesAre: 'a listed thing' })
         return 'problems' in merged ? merged : { value: merged.plan }
     },
 }

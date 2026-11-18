@@ -1,6 +1,6 @@
 # The action plan: referenced steps, and changes merged in
 
-**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Step 4, `consequences` replying in the change language, brings in the explicit scene render first, as 4a (the user, 2026-11-17). **4a's build is done (2026-11-18): the shared `scene` option, and draft 2 with no core. Batch 2 is read (2026-11-18): parity on OC-30/2, OC-1 better. 4a is closed (the user, 2026-11-18): the render holds. Step 5, possibilities, was added the same day (AP-8 and AP-9, settled), to run after 4b. 4b is planned the same day: `consequences` as a reducer on one step of the plan (the user). 4b's build is done (2026-11-18), and draft 3's batch 3 is read: form 6 of 6, content at parity. Next: 4b's checkpoint (the user).** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
+**Status (2026-11-17): opened; AP-1 to AP-7 settled by the user the same day. Step 0's design was reviewed by the user the same day, as written. Steps 1 and 2 are built: the plan type with references, and the change language with its merge. Step 3 is done: `playByPlay`'s contract builds the plan, and batches 29 and 30 hold parity, 23 of 24 (the user, 2026-11-17). Its form is booked in the imagination plan, with the explicit scene render. Step 4, `consequences` replying in the change language, brings in the explicit scene render first, as 4a (the user, 2026-11-17). **4a's build is done (2026-11-18): the shared `scene` option, and draft 2 with no core. Batch 2 is read (2026-11-18): parity on OC-30/2, OC-1 better. 4a is closed (the user, 2026-11-18): the render holds. Step 5, possibilities, was added the same day (AP-8 and AP-9, settled), to run after 4b. 4b is planned the same day: `consequences` as a reducer on one step of the plan (the user). 4b's build is done (2026-11-18), and draft 3's batch 3 is read: form 6 of 6, content at parity. Bare handles (CQ-P5) are repaired in code, and draft 4 asks for brackets. 4b is closed (the user, 2026-11-18): parity rests on batch 3. Next: step 5's design.** Opened under the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5 (the user, 2026-11-17), after the [trial question plan](AGENT.trialQuestion.planning.md) stopped its step 2 and paused. Every hop failure there was about state across steps, not knowledge of the world.
 
 **Why:**
 - **The judging pieces need more from the plan.** In the trial, the hops failed whenever the state at a step had to be worked out rather than read:
@@ -213,7 +213,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
      - **parity:** 23 of 24 is parity, and step 3 is closed;
      - **the form:** booked in the imagination plan, with `playByPlay` refactored onto the explicit scene render. The user's main interest is how `playByPlay` responds to that render;
      - **the vague paths** (`table-might-be`, `there-no-clear`): fine for now. Making references that hold up better under reasoning is later work, booked below.
-4. [ ] **`consequences` refactored to add into the plan:** a run on a plan yields changes, and the merge gives the new plan. **The bar is parity** with its batch 1, read by hand. The cup gap is carried to the imagination plan, not tuned here.
+4. [X] **`consequences` refactored to add into the plan:** a run on a plan yields changes, and the merge gives the new plan. **The bar is parity** with its batch 1, read by hand. The cup gap is carried to the imagination plan, not tuned here.
 
    **The explicit scene render comes in the same refactor** (the user's, 2026-11-17: the explicit render was being worked in piece by piece, each time a piece needed changing). It comes in two parts, so a parity miss has one cause (the sequencing is mine, agreed):
    - [X] **4a. The explicit render, with the old reply format.** An option in the shared `imaginationScene.ts` swaps the scene section for the explicit render and drops the reading guide, as the trial's `scene: 'explicit'` does. The default is unchanged, so `playByPlay`'s hashes and the render pins hold. One batch on `consequences`' two cells (OC-30/2 and OC-1) is read against batch 1, for the render alone.
@@ -231,7 +231,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
        - **The securing line cuts both ways (mine):** "even when [table1] is tipped" ends OC-1's glue doubt, and is the likely source of OC-30/2's teapot "tipping over" and spilling (the method questioned, 2 of 3).
        - **Parity holds for the render alone (mine).**
      - [X] **4a's checkpoint** (the user, 2026-11-18): **the render holds,** and 4b builds on it. The explicit render as every piece's default is booked (below).
-   - [ ] **4b. The change language, on the render 4a settles.** `consequences` reads `renderPlanForGenerator` in place of the numbered actions, and replies `{"changes": ...}`. `planChangesContract` merges the reply, with the scene's handles. A short build, then a draft loop: the reply format is new to the prompt, so expect several drafts, not one parity batch.
+   - [X] **4b. The change language, on the render 4a settles.** `consequences` reads `renderPlanForGenerator` in place of the numbered actions, and replies `{"changes": ...}`. `planChangesContract` merges the reply, with the scene's handles. A short build, then a draft loop: the reply format is new to the prompt, so expect several drafts, not one parity batch.
 
      **A reducer, not a sweep** (the user's, 2026-11-18). The first `consequences` was a global sweep: one player request, and every action described at once. The plan now holds each step's intent, so `consequences` takes a plan, the path of the step to expand, and the things to describe, and its reply adds to that one step. What follows from that:
      - **The cells' plans are built by hand** (agreed). The corpus has no per-step intents. OC-30/2 splits as h5 does: the step `tip [table1]`, with the intent `[teapot1] pours [tea2] into [cup1]` and its intended consequence. OC-1 stays one step, `pick up [table1]`, with its own text as its intent (the single-step rule). Each is a small `planOf` per cell, tested. In production the plan comes from `playByPlay`.
@@ -263,7 +263,26 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
          - **OC-1 at parity:** the carry 3/3, no concern.
          - **OC-30/2 at parity:** the knock-on 3/3, hedged 3/3. The hedges are now in the block. Against the intent 3/3, no collateral. The cup out from under the spout is 0/3.
          - **Parity, on the first draft (mine).**
-     - [ ] **4b's checkpoint** (the user): parity, and whether to start step 5.
+       - **CQ-P5, fixed with two layers** (the user, 2026-11-18): the prompt asks for brackets, and code repairs what's left.
+         - [X] **The repair** (2026-11-18): `bracketHandles` in [`oracleLoop/actionPlan.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/actionPlan.ts). `consequencesContract` applies it to each `says` before the merge, against every handle the prompt names. Re-read through it, batch 3's plans are all bracketed.
+         - [X] **Draft 4 and batch 4** ([notes and rubric](oracleLoopDrafts/consequences/4.notes.md), written 2026-11-18; [results](oracleLoopDrafts/consequences/4.notes.md#results-2026-11-18-batch-4), 2026-11-18): [`4.ask.txt`](oracleLoopDrafts/consequences/4.ask.txt) (`9b48d605`), draft 3 plus one sentence asking for brackets.
+           - **Brackets 6 of 6.**
+           - **Form 5 of 6:** an unlisted [teapot1] (CQ-P4).
+           - **OC-1 at parity.**
+           - **OC-30/2 below batch 3:** the knock-on 1 of 3, and the concerns turned to the teapot pouring, 3 of 3 (CQ-P3). I can't name the cause from this batch.
+           - **Two gaps in the build (mine):** a stray top-level key (`"concerns"`) is dropped without a problem, and the unlisted-thing refusal says "not in the scene".
+       - [X] **The two gaps fixed** (2026-11-18, agreed by the user). In `mergeChanges`:
+         - **a key beside `changes` refuses the block,** so what it holds is never dropped unseen;
+         - **a refusal names the handles as the caller has them** (`handlesAre`): `consequences` says "is not a listed thing".
+
+         Re-read through them, batch 4's OC-1 repeat 3 is refused, so form is 4 of 6.
+     - [X] **4b's checkpoint** (the user, 2026-11-18): **4b is closed.**
+       - **Parity rests on batch 3.** The format holds the content.
+       - **Batch 4's drop isn't chased.** Exact parity on this intermediate output isn't the aim: the hedges and the teapot doubts are step 5's ground, and step 5 revisits both.
+       - **Draft 4 is kept** (mine, agreed), with the code repair behind it.
+       - **Carried to step 5's first rubric (mine, agreed):**
+         - OC-30/2's hedges (how far [table1] is tipped) and its teapot doubts (whether it pours) are the `execution` possibility, written as text;
+         - the cell varies widely between batches of 3, so one batch's drop isn't a signal.
 
    **Why now** (mine, agreed):
    - step 4 rewrites the prompt anyway, to read the plan and reply in the change language;
@@ -351,8 +370,8 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | The plan type, with references | **Done** (2026-11-17): `oracleLoop/actionPlan.ts`, every existing cell converts |
 | The change language and the merge | **Done** (2026-11-17): `mergeChanges` and `planChangesContract`, the hops' golden merges pinned |
 | `playByPlay` creates references | **Done** (2026-11-17): `playByPlayContract`; batches 29 and 30 at parity (the user) |
-| `consequences` adds into the plan | 4a done (2026-11-18): the render holds. 4b built (2026-11-18): a reducer on one step, its default explicit. Batch 3 (draft 3): form 6 of 6, content at parity. Next: 4b's checkpoint |
-| Possibilities | Shape agreed (the user, 2026-11-18); design to finish before the build, after 4b |
+| `consequences` adds into the plan | **Done** (2026-11-18): 4a, the explicit render; 4b, a reducer on one step in the change language. Batch 3 is the parity batch; draft 4 is kept (the user) |
+| Possibilities | Shape agreed (the user, 2026-11-18). Next: the design, before the build |
 | Hand back | Not started |
 
 ## When it finishes

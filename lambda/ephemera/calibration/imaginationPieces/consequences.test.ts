@@ -96,15 +96,32 @@ describe('consequences', () => {
             }] } })
         })
 
+        it('brackets bare handles in `says`, the plan\'s and the listed things\' (CQ-P5), and reads a bare `thing`', () => {
+            const reply = fenced({ changes: [{ add: 'consequence', thing: 'saucer1', says: 'saucer1 rises with table1' }, { add: 'concern', says: 'Cup1 may rattle' }] })
+            const parsed = consequencesContract.parse(reply, { input: cell.inputs, rendered: '' })
+            expect('value' in parsed && parsed.value.steps[0].items.slice(1).map(({ says }) => says)).toEqual(['[saucer1] rises with [table1]', '[cup1] may rattle'])
+        })
+
+        it('brackets a handle only the rendered prompt names', () => {
+            const reply = fenced({ changes: [{ add: 'concern', says: 'teapot1 tips' }] })
+            const parsed = consequencesContract.parse(reply, { input: cell.inputs, rendered: 'On [table1] is [teapot1].' })
+            expect('value' in parsed && parsed.value.steps[0].items[1].says).toBe('[teapot1] tips')
+        })
+
         it('passes an empty list: nothing to add', () => {
             expect(checkConsequences(fenced({ changes: [] }), cell)).toEqual([])
         })
 
         it.each([
             ['no block', 'The saucer rises.', ['no JSON block']],
-            ['the old block', fenced({ actions: [{ saucer1: 'rises' }], problems: [] }), ['the JSON block has no "changes" array']],
+            ['the old block', fenced({ actions: [{ saucer1: 'rises' }], problems: [] }), [
+                'the JSON block has no "changes" array',
+                'the JSON block has "actions"; everything it adds goes in "changes"',
+                'the JSON block has "problems"; everything it adds goes in "changes"',
+            ]],
             ['a `to` naming another step', fenced({ changes: [{ add: 'consequence', to: 'tip-table1', says: 'x' }] }), ['change 1: to "tip-table1" is not the step being expanded, pick-up-table1']],
-            ['a thing not listed (CQ-P4)', fenced({ changes: [{ add: 'consequence', thing: 'table1', says: '[table1] rises' }] }), ['change 1: thing "table1" is not in the scene']],
+            ['a thing not listed (CQ-P4)', fenced({ changes: [{ add: 'consequence', thing: 'table1', says: '[table1] rises' }] }), ['change 1: thing "table1" is not a listed thing']],
+            ['a key beside "changes" (batch 4)', fenced({ changes: [], concerns: [{ add: 'concern', says: 'x' }] }), ['the JSON block has "concerns"; everything it adds goes in "changes"']],
             ['an intended consequence', fenced({ changes: [{ add: 'consequence', intended: true, says: 'x' }] }), ['change 1: "intended" isn\'t writable: a change adds only unintended consequences']],
         ])('refuses %s', (_, reply, problems) => {
             expect(checkConsequences(reply, cell)).toEqual(problems)

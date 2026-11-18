@@ -97,6 +97,20 @@ export const planFromNonRuleSteps = (steps: readonly NonRuleStep[]): ActionPlan 
     })))
 }
 
+/**
+ * A text with each bare handle bracketed: `teapot1` becomes `[teapot1]`, as every prompt writes it (AGENT.actionPlan.planning.md, step
+ * 4b, CQ-P5). A handle matches whole, in any case, and is written as the handle; one already in brackets is left. A letter-and-number
+ * word that matches a handle is always the thing (the user, 2026-11-18), so the repair is safe.
+ */
+export const bracketHandles = (text: string, handles: readonly SceneHandle[]): string => {
+    const escaped = [...new Set(handles)].sort((a, b) => b.length - a.length).map((handle) => handle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    if (escaped.length === 0) {
+        return text
+    }
+    const canonical = new Map(handles.map((handle) => [handle.toLowerCase(), handle]))
+    return text.replace(new RegExp(`(?<![\\[\\w])(${escaped.join('|')})(?![\\]\\w])`, 'gi'), (match) => `[${canonical.get(match.toLowerCase()) ?? match}]`)
+}
+
 /** A plan for a generator to read: a line per step, its items indented under it, each with its kind and path. */
 export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.flatMap(({ path, says, items }) => [
     `Step ${path}: ${says}`,
@@ -116,10 +130,16 @@ const CHANGE_KINDS = ['consequence', 'concern']
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** One change checked against the plan's paths and the scene's handles: the change, or every problem with it. */
+/**
+ * What a `thing` outside the handles is, in a refusal: `in the scene` when the handles are the scene's (the default), or as the caller
+ * names its handles, such as `a listed thing` for `consequences`, whose handles are the things it lists (step 4b).
+ */
+export type MergeOptions = { handlesAre?: string }
+
+/** One change checked against the plan's paths and the handles: the change, or every problem with it. */
 const checkChange = (
     entry: unknown,
-    { stepPaths, itemPaths, handles }: { stepPaths: ReadonlySet<string>; itemPaths: ReadonlySet<string>; handles: readonly SceneHandle[] },
+    { stepPaths, itemPaths, handles, handlesAre }: { stepPaths: ReadonlySet<string>; itemPaths: ReadonlySet<string>; handles: readonly SceneHandle[]; handlesAre: string },
 ): { change: PlanChange } | { problems: string[] } => {
     if (!isRecord(entry)) {
         return { problems: ['is not an object'] }
@@ -134,7 +154,7 @@ const checkChange = (
         ...(target === undefined
             ? ['has no string "to"']
             : stepPaths.has(target) ? [] : itemPaths.has(target) ? [`to "${target}" names a sub-item, not a step`] : [`to "${target}" names no step`]),
-        ...(thing === undefined ? [] : handle === undefined ? ['"thing" is not a string'] : handles.includes(handle) ? [] : [`thing "${handle}" is not in the scene`]),
+        ...(thing === undefined ? [] : handle === undefined ? ['"thing" is not a string'] : handles.includes(handle) ? [] : [`thing "${handle}" is not ${handlesAre}`]),
         ...(add === 'concern' && thing !== undefined ? ['a concern takes no "thing"'] : []),
         ...(typeof says === 'string' && says.trim() !== '' ? [] : ['has no non-empty string "says"']),
     ]
@@ -146,17 +166,19 @@ const checkChange = (
 
 /**
  * A change block merged into a plan (AP-3, AP-6): each addition minted under its step, against the step's paths already taken, and placed
- * by the order rule; existing items and paths unchanged. The whole block is refused on any problem, with every problem listed.
+ * by the order rule; existing items and paths unchanged. The whole block is refused on any problem, with every problem listed. A key
+ * beside `changes` is a problem, since what it holds would otherwise be dropped unseen (batch 4's `"concerns"`, step 4b).
  */
-export const mergeChanges = (plan: ActionPlan, block: unknown, handles: readonly SceneHandle[]): { plan: ActionPlan } | { problems: string[] } => {
+export const mergeChanges = (plan: ActionPlan, block: unknown, handles: readonly SceneHandle[], { handlesAre = 'in the scene' }: MergeOptions = {}): { plan: ActionPlan } | { problems: string[] } => {
     const changes = isRecord(block) ? block.changes : undefined
+    const besides = isRecord(block) ? Object.keys(block).filter((key) => key !== 'changes').map((key) => `the JSON block has "${key}"; everything it adds goes in "changes"`) : []
     if (!Array.isArray(changes)) {
-        return { problems: [isRecord(block) ? 'the JSON block has no "changes" array' : 'the change block is not an object'] }
+        return { problems: [isRecord(block) ? 'the JSON block has no "changes" array' : 'the change block is not an object', ...besides] }
     }
     const stepPaths = new Set(plan.steps.map(({ path }) => path))
     const itemPaths = new Set(plan.steps.flatMap(({ items }) => items.map(({ path }) => path)))
-    const checked = changes.map((entry) => checkChange(entry, { stepPaths, itemPaths, handles }))
-    const problems = checked.flatMap((result, index) => ('problems' in result ? result.problems.map((problem) => `change ${index + 1}: ${problem}`) : []))
+    const checked = changes.map((entry) => checkChange(entry, { stepPaths, itemPaths, handles, handlesAre }))
+    const problems = [...besides, ...checked.flatMap((result, index) => ('problems' in result ? result.problems.map((problem) => `change ${index + 1}: ${problem}`) : []))]
     if (problems.length > 0) {
         return { problems }
     }
@@ -184,16 +206,16 @@ export const mergeChanges = (plan: ActionPlan, block: unknown, handles: readonly
 /**
  * A change block scoped to one step, the one a generator expands (AGENT.actionPlan.planning.md, step 4b): code supplies each change's
  * `to`, by step 0's rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
- * otherwise the block is refused, as any problem refuses it. Then `mergeChanges`, unchanged. The scope reads only `to`, so a new `add`
+ * otherwise the block is refused, as any problem refuses it. Then `mergeChanges`. The scope reads only `to`, so a new `add`
  * kind passes through it to `checkChange`.
  */
-export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknown, handles: readonly SceneHandle[]): { plan: ActionPlan } | { problems: string[] } => {
+export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknown, handles: readonly SceneHandle[], options: MergeOptions = {}): { plan: ActionPlan } | { problems: string[] } => {
     if (!plan.steps.some(({ path }) => path === target)) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
     const changes = isRecord(block) ? block.changes : undefined
     if (!Array.isArray(changes)) {
-        return mergeChanges(plan, block, handles)
+        return mergeChanges(plan, block, handles, options)
     }
     const problems = changes.flatMap((entry, index) => {
         const to = isRecord(entry) ? entry.to : undefined
@@ -204,7 +226,7 @@ export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknow
     if (problems.length > 0) {
         return { problems }
     }
-    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (isRecord(entry) ? { ...entry, to: target } : entry)) }, handles)
+    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (isRecord(entry) ? { ...entry, to: target } : entry)) }, handles, options)
 }
 
 /** A reply in the change language: its trailing JSON block, merged into the plan shown (`mergeChanges`). */

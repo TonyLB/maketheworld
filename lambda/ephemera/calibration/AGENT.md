@@ -287,8 +287,9 @@ A piece with no closed answer set, such as a generator, is registered with `kind
   It throws when there are no things, a thing is listed twice, the target names no step, or a handle isn't in the fixture. A target that already holds consequences is fine: in production `playByPlay`'s lines arrive first.
 - **The form check:** `consequencesContract`, a stage contract whose value is the merged plan.
   - **The reply's block** is a `changes` list, merged by `mergeStepChanges`.
+  - **Bare handles are bracketed first:** `bracketHandles` rewrites `teapot1` as `[teapot1]` in each change's `says`. It does this against every handle the prompt names (the listed things, the plan's, and the rendered text's), matching whole words in any case. A letter-and-number word that matches a handle is always that thing (the user, 2026-11-18).
   - **Code supplies each change's `to`,** which is the target. A `to` the reply writes must name the target, or the block is refused.
-  - **Then `mergeChanges`, unchanged,** against the listed things as the handles. So a change naming an unlisted thing is a form failure.
+  - **Then `mergeChanges`,** against the listed things as the handles. A change naming an unlisted thing is a form failure ("is not a listed thing"). A key beside `changes` refuses the block, so nothing a reply adds is dropped unseen.
 - **Cells:** each is a one-step plan built by hand (`consequencesPlans`), holding its intent and no consequences, so the reply establishes the outcome (the user, 2026-11-18).
   - **`OC-30/2`:** `tip [table1]`, with intent `[teapot1] pours [tea2] into [cup1]`, split as the trial's h5 is but without AP-7's intended consequence. Its look-for: the saucer and cup slide off the tipped table, and the cup no longer under the spout is a problem.
   - **`OC-1`, the control:** `pick up [table1]`, whose intent is its own text. Its look-for: everything on the table rises with it, and nothing works against the intent.

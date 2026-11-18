@@ -2,7 +2,7 @@ import { consequencesCells } from '../imaginationPieces/consequences'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { playByPlayCells } from '../imaginationPieces/playByPlay'
 import { nonRuleCellCells } from '../oraclePieces/nonRuleCell'
-import { mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
+import { bracketHandles, mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
 import { oracleCases } from './oracleCases'
 
 const allPaths = ({ steps }: ActionPlan): string[] => steps.flatMap(({ path, items }) => [path, ...items.map((item) => item.path)])
@@ -19,6 +19,24 @@ const expectWellFormed = (id: string, plan: ActionPlan): void => {
 }
 
 describe('the action plan', () => {
+    describe('bare handles bracketed (CQ-P5)', () => {
+        const handles = ['table1', 'saucer1', 'cup1', 'cup10']
+        it.each([
+            ['bare handles', 'saucer1 tips with table1', '[saucer1] tips with [table1]'],
+            ['bracketed ones left', '[saucer1] tips with table1', '[saucer1] tips with [table1]'],
+            ['any case, written as the handle', 'Cup1 slides off Saucer1.', '[cup1] slides off [saucer1].'],
+            ['whole words only', 'cup10 and cup1s and mycup1 and cup1', '[cup10] and cup1s and mycup1 and [cup1]'],
+            ['punctuation around', '(cup1), saucer1; table1!', '([cup1]), [saucer1]; [table1]!'],
+            ['nothing to repair', 'the tea spills', 'the tea spills'],
+        ])('%s', (_, text, repaired) => {
+            expect(bracketHandles(text, handles)).toBe(repaired)
+        })
+
+        it('leaves a text unchanged with no handles', () => {
+            expect(bracketHandles('cup1 falls', [])).toBe('cup1 falls')
+        })
+    })
+
     describe('slugs', () => {
         it.each([
             ['tip [table1]', 'tip-table1'],
@@ -270,8 +288,17 @@ describe('the action plan', () => {
                 ] })
             })
 
+            it('refuses a key beside "changes", with the other problems', () => {
+                expect(mergeChanges(h5(), { changes: [slide], concerns: [spout] }, handles)).toEqual({ problems: ['the JSON block has "concerns"; everything it adds goes in "changes"'] })
+                expect(mergeChanges(h5(), { concerns: [spout] }, handles)).toEqual({ problems: ['the JSON block has no "changes" array', 'the JSON block has "concerns"; everything it adds goes in "changes"'] })
+            })
+
+            it('names its handles in a refusal as the caller says', () => {
+                expect(mergeChanges(h5(), { changes: [{ ...slide, thing: 'mug1' }] }, handles, { handlesAre: 'a listed thing' })).toEqual({ problems: ['change 1: thing "mug1" is not a listed thing'] })
+            })
+
             it('leaves the other problems to mergeChanges', () => {
-                expect(scoped(h5(), 'tip-table1', { actions: [] })).toEqual({ problems: ['the JSON block has no "changes" array'] })
+                expect(scoped(h5(), 'tip-table1', { actions: [] })).toEqual({ problems: ['the JSON block has no "changes" array', 'the JSON block has "actions"; everything it adds goes in "changes"'] })
                 expect(scoped(h5(), 'tip-table1', { changes: [{ add: 'possibility', says: 'x' }] })).toEqual({ problems: ['change 1: "add" must be one of consequence, concern'] })
             })
 
