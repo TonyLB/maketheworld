@@ -56,7 +56,7 @@ const problemStep = (problem: string, actionCount: number): number => {
 }
 
 /**
- * A checked reply's block as a plan (AP-5; step 0 of AGENT.actionPlan.planning.md): each action a step, supplied by the system; each
+ * A checked reply's block as a new plan (calibration AGENT.md, "The action plan"): each action a step, supplied by the system; each
  * described thing's line an unintended consequence with its `thing`, in the things' order (mine); each problem a concern on the step it
  * names, else the last. Code mints every path, so the model names nothing. The block is taken as the contract has checked it.
  */

@@ -2,7 +2,7 @@
 // Assembles an imagination ask's draft instructions from two parts: the ask's own part (its Role, examples and Task, with one `{{core}}`
 // line) and a version of the shared core (AGENT.imagination.planning.md, step 1). Each part gets its own hash, by the probe's `textHash`,
 // so a draft's notes can say which part changed and so what it costs to test. Run from the command line through `assembleDraftCli.ts`.
-// A draft with no core (AGENT.actionPlan.planning.md, step 4a: the explicit render needs no reading guide) is an ask with no slot, and its
+// A draft with no core (the explicit render needs no reading guide) is an ask with no slot, and its
 // core hash is `none`.
 //
 import { textHash } from '../textHash'

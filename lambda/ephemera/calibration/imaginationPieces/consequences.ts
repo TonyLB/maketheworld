@@ -1,6 +1,6 @@
 //
 // Consequences, the imagination's other-things ask (AGENT.imagination.planning.md, steps 1.5 and 3): a read piece, and a reducer on the
-// action plan (AGENT.actionPlan.planning.md, step 4b). Given a fixture, a plan, the path of the one step to expand and the things to
+// action plan (calibration AGENT.md, "The action plan"). Given a fixture, a plan, the path of the one step to expand and the things to
 // describe, it says how each of those things moves as that step is done, and flags the consequences that work against the step's intent,
 // in the change language. Code supplies each change's `to`, and the merge gives the new plan. Collateral consequences are listed, not
 // flagged: the oracle family judges them. There is no answer set: code checks each reply's form (does the block merge?), and a reader
@@ -22,14 +22,14 @@ export type ConsequencesInputs = {
     target: string
     /**
      * The things to describe, by handle, listed by hand: those whose motion the plan doesn't state, named or not (user, 2026-11-11:
-     * OC-30/2's cup, which the intent names, ends up no longer under the spout). A change may name only these (mine, step 4b).
+     * OC-30/2's cup, which the intent names, ends up no longer under the spout). A change may name these and the target step's own handles (`replyHandles`).
      */
     things: readonly SceneHandle[]
 }
 
 export type ConsequencesOptions = ImaginationOptions
 
-/** The explicit render by default (step 4b: the kept draft runs explicit, so the default flips; calibration's AGENT.md, "Scene renders"). */
+/** The explicit render by default (the kept draft runs explicit, so the default flips; calibration's AGENT.md, "Scene renders"). */
 export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { rules: 'none', scene: 'explicit' }
 
 /** The imagination's options, with the scene filled in before the check, so the default too refuses `rules: 'consequence'`. */
@@ -43,7 +43,7 @@ const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
     [...new Set(steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)]).flatMap(namedHandles))]
 
 /**
- * The handles a reply may name (AGENT.actionPlan.planning.md, step 5; the user, 2026-11-18): the listed things, plus every handle in the
+ * The handles a reply may name (the user, 2026-11-18): the listed things, plus every handle in the
  * target step's own text and its intent. The success branch has to name what the intent names. One rule for every change.
  */
 export const replyHandles = ({ plan, target, things }: Pick<ConsequencesInputs, 'plan' | 'target' | 'things'>): SceneHandle[] => {
@@ -69,7 +69,7 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
 
-/** One entry with its `says` bracketed, and a possibility's branches' entries with theirs (step 5). Anything else is left as it is. */
+/** One entry with its `says` bracketed, and a possibility's branches' entries with theirs. Anything else is left as it is. */
 const bracketEntry = (entry: unknown, handles: readonly SceneHandle[]): unknown => {
     if (!isRecord(entry)) {
         return entry
@@ -113,8 +113,8 @@ export const checkConsequences = (reply: string, { inputs }: ReadPieceCell<Conse
 
 /**
  * The cells' plans, built by hand: the corpus has no per-step intents. Each is one step holding its intent and no consequences, so the
- * reply establishes the outcome rather than being handed it (the user, 2026-11-18). OC-30/2's step is split as h5 is, without AP-7's
- * intended consequence; OC-1's intent is its own text (the single-step rule).
+ * reply establishes the outcome rather than being handed it (the user, 2026-11-18). OC-30/2's step is split as h5 is, without the
+ * intended consequence the trial's builder adds; OC-1's intent is its own text (the single-step rule).
  */
 export const consequencesPlans = {
     'OC-30/2': planOf([{ step: { says: 'tip [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: '[teapot1] pours [tea2] into [cup1]' }] }]),
@@ -134,8 +134,8 @@ export const consequencesCells: Record<string, ReadPieceCell<ConsequencesInputs>
         source: caseSource('OC-1'),
         note: 'The control (step 1.5): a carry with no problem.',
     },
-    // The over-flagging cells (AGENT.actionPlan.planning.md, step 5): actions where any hedge is a defect, baselined on draft 4 and
-    // graded again at step 5's draft. The bar is 0 of 3 hedges on each.
+    // The over-flagging cells: actions where a hedge is a defect, baselined on draft 4 (batch 5) and read again on draft 5 (batch 6).
+    // `OC-1/teapot1`'s bar is 0 of 3; `cup` is recorded, not gated (the user, 2026-11-18).
     cup: {
         inputs: { fixture: 'teaTable', plan: consequencesPlans.cup, target: 'pick-up-cup1', things: ['saucer1', 'tea1'] },
         lookFor: '[tea1] rises with [cup1] and [saucer1] stays, with no hedge and no concern',

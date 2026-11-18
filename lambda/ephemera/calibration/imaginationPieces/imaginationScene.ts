@@ -21,8 +21,8 @@ export type ImaginationOptions = {
      */
     rules: 'none' | 'consequence'
     /**
-     * Which render the sub-scene takes: the judge render's Fiction and Graph when absent, or the explicit render (AGENT.actionPlan.planning.md,
-     * step 4a). The explicit render states each securing as a carry line itself, so it takes no `rules: 'consequence'` (mine).
+     * Which render the sub-scene takes: the judge render's Fiction and Graph when absent, or the explicit render
+     * (calibration AGENT.md, "Scene renders"). The explicit render states each securing as a carry line itself, so it takes no `rules: 'consequence'` (mine).
      */
     scene?: SceneRender
 }
@@ -113,7 +113,7 @@ export const renderSceneAndActions = async (
 
 /**
  * The things to describe. Under the explicit render the line is `The things to describe:`, since the render's own per-thing section is
- * headed `The things:` (mine, AGENT.actionPlan.planning.md, step 4a).
+ * headed `The things:` (mine).
  */
 export const thingsLine = (things: readonly SceneHandle[], { scene = 'judge' }: Pick<ImaginationOptions, 'scene'> = {}): string =>
     `${scene === 'explicit' ? 'The things to describe' : 'The things'}: ${things.map((handle) => `[${handle}]`).join(', ')}`

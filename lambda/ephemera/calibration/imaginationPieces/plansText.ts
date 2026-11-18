@@ -1,6 +1,6 @@
 //
-// A batch's replies for reading (`read-plans`), shared by the pieces whose contract gives a plan (AGENT.actionPlan.planning.md, steps 3
-// and 4b): a leaf module, so each piece builds its own from its cells and contract.
+// A batch's replies for reading (`read-plans`), shared by the pieces whose contract gives a plan (calibration
+// AGENT.md, "The action plan"): a leaf module, so each piece builds its own from its cells and contract.
 //
 import type { StageContract } from '../../llm/stageContract'
 import { renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'

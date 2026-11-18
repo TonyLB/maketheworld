@@ -1,5 +1,5 @@
 //
-// Which render a piece's scene takes, shared by the oracle's pieces and the imagination's (AGENT.actionPlan.planning.md, step 4a): a leaf
+// Which render a piece's scene takes, shared by the oracle's pieces and the imagination's (calibration AGENT.md, "Scene renders"): a leaf
 // module, since `nonRuleCell.ts` imports from `imaginationScene.ts`.
 //
 /** The judge render, Fiction and Graph (the default), or the explicit render (AGENT.trialQuestion.planning.md, step 0). */

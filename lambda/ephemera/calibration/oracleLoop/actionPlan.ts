@@ -1,24 +1,24 @@
 //
-// The action plan (AGENT.actionPlan.planning.md, step 1, a Prototype): a candidate step with a path and its sub-items, built from each
-// step shape in use, and a render for a generator to read. No piece reads it yet, and every existing render reads its own inputs.
-// Paths are readable slugs minted at creation (AP-2); with additions only, a path never changes, so it is the item's id.
-// Step 2 adds the change language: a block of additions, merged in by code, the whole block refused on any problem.
-// Step 5 adds possibilities: a spread of outcomes, as unlabelled branches of consequences (AP-8). Every path is flat under its step, in
-// one scope at any depth; consequences and concerns slug their text, every other kind its kind (`tip-table1.intent`, `.maybe-2`).
+// The action plan, a Prototype (calibration AGENT.md, "The action plan"): a candidate step with a path and its sub-items, built from each
+// step shape in use, and a render for a generator to read. The judging pieces don't read it yet; they render from their own inputs.
+// Paths are readable slugs minted at creation; with additions only, a path never changes, so it is the item's id.
+// A change language adds to it: a block of additions, merged in by code, the whole block refused on any problem.
+// A possibility holds a spread of outcomes, as unlabelled branches of consequences. Every path is flat under its step, in one scope at
+// any depth; consequences and concerns slug their text, every other kind its kind (`tip-table1.intent`, `.maybe-2`).
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract } from '../../llm/stageContract'
 import type { NonRuleStep } from '../oraclePieces/nonRuleCell'
 import type { CandidateStep } from './oracleInputs'
 
-/** The kinds of openness a possibility can have (step 5): `execution`, whether the actor manages what the condition says. */
+/** The kinds of openness a possibility can have: `execution`, whether the actor manages what the condition says. */
 export const OPENNESS_KINDS = ['execution'] as const
 export type Openness = typeof OPENNESS_KINDS[number]
 
 /** A consequence within a branch: it happens only in that branch (the user, 2026-11-18). Never intended, as no change writes one. */
 export type BranchConsequence = { kind: 'consequence'; path: string; says: string; thing?: SceneHandle }
 
-/** One outcome of a possibility, unlabelled (AP-8): an adjudicator reads from its consequences which branch is the intended one. */
+/** One outcome of a possibility, unlabelled: an adjudicator reads from its consequences which branch is the intended one. */
 export type Branch = { kind: 'maybe'; path: string; items: readonly BranchConsequence[] }
 
 export type StepItem =
@@ -31,7 +31,7 @@ export type StepItem =
 
 export type StepItemKind = StepItem['kind']
 
-/** The order of kinds within a step (AP-3); a possibility after the flat consequences, which happen however it falls (mine). */
+/** The order of kinds within a step; a possibility after the flat consequences, which happen however it falls (mine). */
 export const STEP_ITEM_KINDS: readonly StepItemKind[] = ['intent', 'consequence', 'possibility', 'concern']
 
 /** Every text an item holds, its branches' included, in order. */
@@ -76,7 +76,7 @@ export type UnmintedItem =
     | { kind: 'consequence'; says: string; thing?: SceneHandle; intended?: true }
     | { kind: 'concern'; says: string }
 
-/** What a path is minted from (step 5): a consequence's or a concern's text, or else the kind itself (`intent`, `execution`, `maybe`). */
+/** What a path is minted from: a consequence's or a concern's text, or else the kind itself (`intent`, `execution`, `maybe`). */
 const pathSource = (kind: 'intent' | 'consequence' | 'concern' | 'maybe' | Openness, says: string): { says: string; fallback: string } =>
     kind === 'consequence' || kind === 'concern' ? { says, fallback: kind } : { says: kind, fallback: kind }
 
@@ -101,7 +101,7 @@ export const planFromActions = (actions: readonly string[]): ActionPlan =>
     planFromCandidateSteps(actions.map((says) => ({ says, suppliedBy: 'system' })))
 
 /**
- * The trial's steps (AP-7): an intended step right after a method step becomes, on that step, an intent and an intended consequence of
+ * The trial's steps: an intended step right after a method step becomes, on that step, an intent and an intended consequence of
  * its text, before the step's own lines. An intended step with no method step before it stays a step, with an intent of its own text.
  * Each `consequences` line is an unintended consequence. Who supplied a step isn't said (mine: the system).
  */
@@ -127,8 +127,8 @@ export const planFromNonRuleSteps = (steps: readonly NonRuleStep[]): ActionPlan 
 }
 
 /**
- * A text with each bare handle bracketed: `teapot1` becomes `[teapot1]`, as every prompt writes it (AGENT.actionPlan.planning.md, step
- * 4b, CQ-P5). A handle matches whole, in any case, and is written as the handle; one already in brackets is left. A letter-and-number
+ * A text with each bare handle bracketed: `teapot1` becomes `[teapot1]`, as every prompt writes it (CQ-P5, in
+ * `consequences`' drafts). A handle matches whole, in any case, and is written as the handle; one already in brackets is left. A letter-and-number
  * word that matches a handle is always the thing (the user, 2026-11-18), so the repair is safe.
  */
 export const bracketHandles = (text: string, handles: readonly SceneHandle[]): string => {
@@ -140,7 +140,7 @@ export const bracketHandles = (text: string, handles: readonly SceneHandle[]): s
     return text.replace(new RegExp(`(?<![\\[\\w])(${escaped.join('|')})(?![\\]\\w])`, 'gi'), (match) => `[${canonical.get(match.toLowerCase()) ?? match}]`)
 }
 
-/** An item's lines in the generator's render: one indent per level, so a possibility's branches sit under it (step 5). */
+/** An item's lines in the generator's render: one indent per level, so a possibility's branches sit under it. */
 const itemLines = (item: StepItem): string[] => {
     if (item.kind !== 'possibility') {
         return [`  - ${item.kind}${item.kind === 'consequence' && item.intended ? ' (intended)' : ''} ${item.path}: ${item.says}`]
@@ -157,14 +157,14 @@ export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.f
     ...items.flatMap(itemLines),
 ]).join('\n')
 
-/** A change once checked (AP-4: sub-items only, unintended only). The model names only the step it adds to; the merge mints the path. */
+/** A change once checked: sub-items only, consequences never intended. The model names only the step it adds to; the merge mints the path. */
 export type PlanChange =
     | { add: 'consequence'; to: string; thing?: SceneHandle; says: string }
     | { add: 'concern'; to: string; says: string }
-    /** The whole group in one change (step 5): each branch a list of consequences, written as flat ones are. */
+    /** The whole group in one change: each branch a list of consequences, written as flat ones are. */
     | { add: 'possibility'; to: string; openness: Openness; says: string; branches: readonly (readonly { thing?: SceneHandle; says: string }[])[] }
 
-/** What a change block is merged against: the plan, and the scene's handles, which the plan doesn't hold (mine: step 0 typed it as the plan alone). */
+/** What a change block is merged against: the plan, and the scene's handles, which the plan doesn't hold (mine). */
 export type PlanChangesInput = { plan: ActionPlan; handles: readonly SceneHandle[] }
 
 const CHANGE_KEYS = ['add', 'to', 'thing', 'says']
@@ -176,7 +176,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 /**
  * What a `thing` outside the handles is, in a refusal: `in the scene` when the handles are the scene's (the default), or as the caller
- * names its handles, such as `a listed thing` for `consequences`, whose handles are the things it lists (step 4b).
+ * names its handles, such as `a listed thing` for `consequences`, whose handles are the things it lists and the target step's own.
  */
 export type MergeOptions = { handlesAre?: string }
 
@@ -191,7 +191,7 @@ const thingProblems = (thing: unknown, { handles, handlesAre }: CheckContext): s
 
 const saysProblems = (says: unknown): string[] => (typeof says === 'string' && says.trim() !== '' ? [] : ['has no non-empty string "says"'])
 
-/** One consequence in a branch: written as a flat one is, `add` optional; a concern has no place in a branch (step 5's refusals). */
+/** One consequence in a branch: written as a flat one is, `add` optional; a concern has no place in a branch. */
 const checkBranchEntry = (entry: unknown, context: CheckContext): { consequence: { thing?: SceneHandle; says: string } } | { problems: string[] } => {
     if (!isRecord(entry)) {
         return { problems: ['is not an object'] }
@@ -284,7 +284,7 @@ const changeItem = (change: PlanChange, stepPath: string, paths: readonly string
     return { kind: 'possibility', path: at(0), openness: change.openness, says: change.says, branches }
 }
 
-/** At most one `execution` possibility per step, counting the plan's and the block's (step 5's refusals). */
+/** At most one `execution` possibility per step, counting the plan's and the block's. */
 const possibilityLimitProblems = (plan: ActionPlan, accepted: readonly { index: number; change: PlanChange }[]): string[] =>
     accepted.flatMap(({ index, change }) => {
         if (change.add !== 'possibility') {
@@ -296,9 +296,9 @@ const possibilityLimitProblems = (plan: ActionPlan, accepted: readonly { index: 
     })
 
 /**
- * A change block merged into a plan (AP-3, AP-6): each addition minted under its step, against the step's paths already taken, and placed
+ * A change block merged into a plan: each addition minted under its step, against the step's paths already taken, and placed
  * by the order rule; existing items and paths unchanged. The whole block is refused on any problem, with every problem listed. A key
- * beside `changes` is a problem, since what it holds would otherwise be dropped unseen (batch 4's `"concerns"`, step 4b).
+ * beside `changes` is a problem, since what it holds would otherwise be dropped unseen (`consequences`' batch 4, a `"concerns"` key).
  */
 export const mergeChanges = (plan: ActionPlan, block: unknown, handles: readonly SceneHandle[], { handlesAre = 'in the scene' }: MergeOptions = {}): { plan: ActionPlan } | { problems: string[] } => {
     const changes = isRecord(block) ? block.changes : undefined
@@ -338,8 +338,8 @@ export const mergeChanges = (plan: ActionPlan, block: unknown, handles: readonly
 }
 
 /**
- * A change block scoped to one step, the one a generator expands (AGENT.actionPlan.planning.md, step 4b): code supplies each change's
- * `to`, by step 0's rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
+ * A change block scoped to one step, the one a generator expands: code supplies each change's
+ * `to`, by the rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
  * otherwise the block is refused, as any problem refuses it. Then `mergeChanges`. The scope reads only `to`, so a new `add`
  * kind passes through it to `checkChange`.
  */

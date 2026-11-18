@@ -24,7 +24,7 @@ describe('assembleDraft', () => {
         expect(assembleDraft(ask, 'core')).toBe(`the ask's part must have exactly one {{core}} line, and has ${slots}`)
     })
 
-    it('assembles an ask with no slot and no core, whose core hash is none (AGENT.actionPlan.planning.md, step 4a)', () => {
+    it('assembles an ask with no slot and no core, whose core hash is none (the explicit render needs no reading guide)', () => {
         expect(assembleDraft('Role: ask.\n\nTask: do it.\n', undefined)).toEqual({
             instructions: 'Role: ask.\n\nTask: do it.',
             hashes: { ask: textHash('Role: ask.\n\nTask: do it.'), core: NO_CORE, instructions: textHash('Role: ask.\n\nTask: do it.') },

@@ -24,7 +24,7 @@ describe('consequences', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
-    describe('the render (AGENT.actionPlan.planning.md, step 4b)', () => {
+    describe('the render', () => {
         it('gives the explicit scene, then the plan, the step to expand and the things to describe last', async () => {
             const text = await renderConsequences(cellOf({}), CONSEQUENCES_OPTIONS)
             expect(text.startsWith('Scene: ')).toBe(true)
@@ -64,7 +64,7 @@ describe('consequences', () => {
     })
 
     describe('its options', () => {
-        it('defaults to the explicit render with no rules (step 4b), and refuses another shape', () => {
+        it('defaults to the explicit render with no rules, and refuses another shape', () => {
             expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
             expect(consequences.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
             expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
@@ -108,7 +108,7 @@ describe('consequences', () => {
             expect('value' in parsed && parsed.value.steps[0].items[1].says).toBe('[teapot1] tips')
         })
 
-        describe('the handles a reply may name (step 5): the listed things, plus the target step\'s own', () => {
+        describe('the handles a reply may name: the listed things, plus the target step\'s own', () => {
             const tipCell = consequencesCells['OC-30/2']
             const success = [{ thing: '[teapot1]', says: '[teapot1] pours [tea2] into [cup1]' }]
             const failure = [{ thing: '[saucer1]', says: '[saucer1] and [cup1] slide off' }]
@@ -186,17 +186,17 @@ describe('consequences', () => {
             expect(named.filter((handle) => scene.things[handle] === undefined)).toEqual([])
         })
 
-        it('pins the inputs hashes, re-pinned at step 5\'s build: intents renamed to `.intent` (step 4b\'s were 869da3e1 and bfa18eab)', async () => {
+        it('pins the inputs hashes, re-pinned when intents became `.intent` (batches 3 and 4 ran 869da3e1 and bfa18eab)', async () => {
             expect(textHash(await renderConsequences(consequencesCells['OC-30/2'], CONSEQUENCES_OPTIONS))).toBe('c639e8eb')
             expect(textHash(await renderConsequences(consequencesCells['OC-1'], CONSEQUENCES_OPTIONS))).toBe('030c1940')
         })
 
-        it('pins the over-flagging cells\' inputs hashes, re-pinned at step 5\'s build (batch 5 ran 5db10e38 and ef0c4cda)', async () => {
+        it('pins the over-flagging cells\' inputs hashes, re-pinned when intents became `.intent` (batch 5 ran 5db10e38 and ef0c4cda)', async () => {
             expect(textHash(await renderConsequences(consequencesCells.cup, CONSEQUENCES_OPTIONS))).toBe('8bb8636c')
             expect(textHash(await renderConsequences(consequencesCells['OC-1/teapot1'], CONSEQUENCES_OPTIONS))).toBe('ad08de90')
         })
 
-        it('the over-flagging cells: the cup lists its tea beside the saucer, and OC-1 narrowed lists the glued teapot alone (step 5)', () => {
+        it('the over-flagging cells: the cup lists its tea beside the saucer, and OC-1 narrowed lists the glued teapot alone', () => {
             expect(consequencesCells.cup.inputs.things).toEqual(['saucer1', 'tea1'])
             expect(consequencesCells['OC-1/teapot1'].inputs.things).toEqual(['teapot1'])
             expect(consequencesCells['OC-1/teapot1'].inputs.plan).toBe(consequencesCells['OC-1'].inputs.plan)

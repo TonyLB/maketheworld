@@ -84,7 +84,7 @@ describe('playByPlay', () => {
             expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
         })
 
-        it('takes the explicit render, which ends with the things to describe (AGENT.actionPlan.planning.md, step 4a)', async () => {
+        it('takes the explicit render, which ends with the things to describe', async () => {
             const options = playByPlay.parseOptions({ scene: 'explicit' })
             expect(options).toEqual({ rules: 'none', scene: 'explicit' })
             const text = await renderPlayByPlay(playByPlayCells['OC-1'], options as PlayByPlayOptions)
@@ -171,7 +171,7 @@ describe('playByPlay', () => {
         )
     })
 
-    describe('the plan it builds (AGENT.actionPlan.planning.md, step 3)', () => {
+    describe('the plan it builds', () => {
         const inputs = cellOf({}).inputs
         const parse = (reply: string, input: PlayByPlayInputs = inputs) => playByPlayContract.parse(reply, { input, rendered: '' })
         const planOfReply = (reply: string, input: PlayByPlayInputs = inputs): ActionPlan => {

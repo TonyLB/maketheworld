@@ -106,7 +106,7 @@ describe('the action plan', () => {
             }
         })
 
-        it('consequences\' cells: their plans, built by hand (step 4b)', () => {
+        it('consequences\' cells: their plans, built by hand', () => {
             for (const [id, { inputs: { plan } }] of Object.entries(consequencesCells)) {
                 expectWellFormed(id, plan)
             }
@@ -119,7 +119,7 @@ describe('the action plan', () => {
         })
     })
 
-    describe('the trial\'s roles, under AP-7', () => {
+    describe('the trial\'s roles: an intended step folds into the method step before it', () => {
         const intent = { kind: 'intent', path: 'tip-table1.intent', says: '[teapot1] pours [tea2] into [cup1]' }
         const intendedPour = { kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2', says: '[teapot1] pours [tea2] into [cup1]', intended: true }
         const tip = { says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1', items: [intent, intendedPour] }
@@ -165,7 +165,7 @@ describe('the action plan', () => {
             .toBe('  - consequence tip-table1.saucer1-cup1-slide: [saucer1] and [cup1] slide off [table1] onto the floor')
     })
 
-    describe('changes merged in (step 2)', () => {
+    describe('changes merged in', () => {
         let handles: string[] = []
         beforeAll(async () => {
             handles = Object.keys((await fixtureScene('teaTable')).things)
@@ -187,7 +187,7 @@ describe('the action plan', () => {
             return 'problems' in result ? result.problems : []
         }
 
-        it('h5: step 0\'s block adds the slide after the intended pour, and the concern last', () => {
+        it('h5: the worked example\'s block adds the slide after the intended pour, and the concern last', () => {
             const plan = merged(h5(), [slide, spout])
             expectWellFormed('h5', plan)
             expect(plan.steps[0].items).toEqual([
@@ -262,7 +262,7 @@ describe('the action plan', () => {
             })
         })
 
-        describe('scoped to one step, with `to` supplied (step 4b)', () => {
+        describe('scoped to one step, with `to` supplied', () => {
             const unscoped = ({ to, ...change }: Record<string, unknown>) => change
             const scoped = (plan: ActionPlan, target: string, block: unknown) => mergeStepChanges(plan, target, block, handles)
 
@@ -318,7 +318,7 @@ describe('the action plan', () => {
             })
         })
 
-        describe('possibilities (step 5)', () => {
+        describe('possibilities', () => {
             // The expand form's target: the step holding its intent alone, as consequences' OC-30/2 cell does.
             const tip = () => planOf([{ step: { says: 'tip [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: '[teapot1] pours [tea2] into [cup1]' }] }])
             const pours = { thing: '[teapot1]', says: '[teapot1] pours [tea2] into [cup1]' }
