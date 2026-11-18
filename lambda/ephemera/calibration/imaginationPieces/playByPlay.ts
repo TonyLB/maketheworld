@@ -6,13 +6,13 @@
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { planOf, renderPlanForGenerator, type ActionPlan, type UnmintedItem } from '../oracleLoop/actionPlan'
+import { planOf, type ActionPlan, type UnmintedItem } from '../oracleLoop/actionPlan'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
-import type { ReadGroup } from '../pieceProbe/readPiece'
 import {
     IMAGINATION_OPTIONS, actionsHandles, caseActions, caseSource, checkActionsBlock, linesByHandle, listedTwice, parseImaginationOptions, renderSceneAndActions,
     thingsLine, type ImaginationOptions,
 } from './imaginationScene'
+import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
 
@@ -153,18 +153,5 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
 
 export const registeredPlayByPlay = registerPiece(playByPlay)
 
-/** A batch's replies for reading (`read-plans`): per cell and repeat, the plan the contract builds as a generator would read it, or why none. */
-export const playByPlayPlansText = (groups: readonly ReadGroup[]): string => groups.flatMap(({ cell, replies }) => {
-    const known = playByPlayCells[cell]
-    return replies.map(({ repeat, reply, error }) => {
-        const heading = `## ${cell}, repeat ${repeat}`
-        if (known === undefined) {
-            return `${heading}\nnot a playByPlay cell`
-        }
-        if (reply === undefined) {
-            return `${heading}\nerror: ${error ?? 'no reply'}`
-        }
-        const parsed = playByPlayContract.parse(reply, { input: known.inputs, rendered: '' })
-        return 'value' in parsed ? `${heading}\n${renderPlanForGenerator(parsed.value)}` : `${heading}\nform: ${parsed.problems.join('; ')}`
-    })
-}).join('\n\n')
+/** A batch's replies for reading (`read-plans`), as plans (`plansText`). */
+export const playByPlayPlansText = plansText('playByPlay', playByPlayCells, playByPlayContract)

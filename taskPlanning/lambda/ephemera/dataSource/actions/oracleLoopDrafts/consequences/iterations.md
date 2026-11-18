@@ -9,6 +9,8 @@ Owned by the [oracle loop plan](../../AGENT.oracleLoop.planning.md), like the [p
 - this ask's part, `N.ask.txt` (Role, `Relations and frames`, examples and Task, with one `{{core}}` line);
 - a version of the shared core, [`../imaginationCore/`](../imaginationCore/2.txt).
 
+From draft 2 a draft is the ask alone, with no `{{core}}` line and no core: the explicit render says what the core taught (CQ-L1).
+
 `npm run assemble-draft` in `lambda/ephemera/` builds the payload and prints each part's hash. A change to the core costs every ask's cells; a change to this part costs this ask's cells only.
 
 The piece is [`imaginationPieces/consequences.ts`](../../../../../../../lambda/ephemera/calibration/imaginationPieces/consequences.ts). It is read, not tallied: code checks each reply's form, and every reply is read against its cell's look-for and the draft's rubric, both written before the batch.
@@ -27,7 +29,8 @@ The piece is [`imaginationPieces/consequences.ts`](../../../../../../../lambda/e
 | CQ-P1 | The knock-on hedged as conditional: the saucer "tilts along with the table", falling "if the table tips too far", where tipping the table to pour slides it | Draft 1: OC-30/2 2 of 3 | ~~The slide stated as what happens, 3 of 3~~ Reframed (the user, 2026-11-18): a hedge that names a condition the plan leaves open is a spread of outcomes worth keeping. It becomes a possibility, in the [action plan](../../AGENT.actionPlan.planning.md)'s step 5. Solved when every hedge names such a condition and none hedges against the scene | Open, reframed |
 | CQ-P2 | Collateral flagged, not listed: breakage, spills, the glue "breaking free", none of which works against the intent | Draft 1: 6 of 6 (OC-1 3/3, OC-30/2 3/3). Draft 2: OC-1 0/3, OC-30/2 3/3 | OC-1's problems empty 3 of 3; OC-30/2's only what works against the pour | Open |
 | CQ-P3 | The chosen method questioned: the glued teapot "might not pour … at all" | Draft 1: OC-30/2 1 of 3. Draft 2: 2 of 3, the glued teapot "tips over with it" and spills, read from the explicit render's securing line | No reply doubts the action it is given | Open |
-| CQ-P4 | A line for a thing not listed: [table1], which the action names | Draft 2: OC-30/2 2 of 3 (draft 1: the teapot, 1 of 3). The render's own `The things:` section lists it, a likely source (mine) | No reply describes a thing not listed | Open; the block is replaced at the action plan's step 4b |
+| CQ-P5 | Bare handles in a change's `says` ("teapot1 moves with table1"): the plan's line names nothing `namedHandles` can find. The `thing` is read either way | Draft 3: 4 of 6 (OC-1 3/3, OC-30/2 1/3) | Every `says` brackets the handles it names | Open; the form check doesn't see it |
+| CQ-P4 | A line for a thing not listed: [table1], which the action names | Draft 2: OC-30/2 2 of 3 (draft 1: the teapot, 1 of 3). The render's own `The things:` section lists it, a likely source (mine) | No reply describes a thing not listed | Open. From draft 3 the block is the change language, and a change naming an unlisted thing is refused by the form check (mine, step 4b) |
 
 ## Library
 
@@ -41,8 +44,9 @@ The piece is [`imaginationPieces/consequences.ts`](../../../../../../../lambda/e
 | PB-L16 | A shorter reply | Untried; booked for when the replies are good |
 | CQ-L1 | The explicit scene render (`scene: 'explicit'`) in place of the Fiction and Graph, with no core: the render says what the reading guide taught (the user's, 2026-11-17, [action plan](../../AGENT.actionPlan.planning.md) step 4a) | Draft 2 ([notes](2.notes.md#results-2026-11-18-batch-2)); batch 2 at parity, OC-1 better; kept (the user, 2026-11-18) |
 | CQ-L2 | `Relations and frames` dropped, as the explicit render's carry lines overlap it (mine) | Untried; kept out of draft 2 so the render is tested alone |
+| CQ-L3 | The reducer in the change language: the plan, the step to expand and the things to describe in; a `changes` list out, `to` supplied by code, merged into the plan (the user's reducer, 2026-11-18; [action plan](../../AGENT.actionPlan.planning.md) step 4b). The examples gain handles and a `Changes:` line (mine) | Draft 3 ([notes](3.notes.md#results-2026-11-18-batch-3)); batch 3: form 6 of 6, content at parity |
 
-**Options:** the `rules` and `scene` options are shared with the play-by-play. Draft 1 runs `rules: 'none'` (PB-2), with `consequence` available. Draft 2 runs `scene: 'explicit'`, which refuses `rules: 'consequence'`.
+**Options:** the `rules` and `scene` options are shared with the play-by-play. Draft 1 runs `rules: 'none'` (PB-2), with `consequence` available. Draft 2 runs `scene: 'explicit'`, which refuses `rules: 'consequence'`. From draft 3, `scene: 'explicit'` is this piece's default (step 4b).
 
 ## Ledger
 
@@ -50,3 +54,4 @@ The piece is [`imaginationPieces/consequences.ts`](../../../../../../../lambda/e
 | --- | --- | --- | --- | --- |
 | 1 | Draft 1, step 1.5's baseline ([notes](1.notes.md#results-2026-11-11-batch-1)) | 2 cells x3, Micro, 6 | Form 3 of 6 (OC-30/2 one entry per thing 3/3, PB-P1). **OC-1's carry 3/3**, with collateral flagged 3/3 (CQ-P2). **OC-30/2's knock-on 3/3, hedged in 2** (CQ-P1); the cup out from under the spout 0/3; against the intent in 1 reply's prose. The method questioned 1/3 (CQ-P3) | The baseline |
 | 2 | Draft 2, the explicit render, no core (CQ-L1; [notes](2.notes.md#results-2026-11-18-batch-2)) | 2 cells x3, Micro, 6 | Form 3 of 6 (OC-30/2: one entry per thing 1/3, a [table1] line 2/3, CQ-P4). **OC-1 3/3:** the carry, problems empty; the glue flag gone. **OC-30/2 0/3, 3 partly, as batch 1:** the knock-on 3/3, hedged in 2; the cup out from under the spout 0/3. The method questioned 2/3 (CQ-P3), from the securing line | Parity; kept (the user, 2026-11-18) |
+| 3 | Draft 3, the reducer in the change language (CQ-L3; [notes](3.notes.md#results-2026-11-18-batch-3)) | 2 cells x3, Micro, 6 | **Form 6 of 6 merge**, every key and kind right, no unlisted thing (CQ-P4 0/6); bare handles in `says` 4/6 (CQ-P5). **OC-1 3/3:** the carry, no concern. **OC-30/2 0/3, 3 partly:** the knock-on 3/3, hedged 3/3, the hedges now in the block; against the intent 3/3, no collateral; the cup out from under the spout 0/3. The method questioned 1/3 | Parity (mine); to the user at 4b's checkpoint |

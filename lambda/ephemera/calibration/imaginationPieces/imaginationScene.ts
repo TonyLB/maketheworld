@@ -68,13 +68,36 @@ const consequenceRules = (scene: SceneModel): string[] => {
 }
 
 /**
- * The prompt's parts up to the actions: the sub-scene of the shown things and every thing the actions name, so the prompt names nothing
- * the scene doesn't show (mine), then each action in order. The asks add their own parts after. With `scene: 'explicit'`, the sub-scene
- * is the explicit render (`renderSceneExplicit`), heading to `End of scene.`, in place of the Fiction and the Graph.
+ * The scene's parts, the sub-scene of the shown things heading to `End of scene.`: the judge render's Fiction and Graph (with the rules
+ * under `rules: 'consequence'`), or with `scene: 'explicit'` the explicit render (`renderSceneExplicit`). A shown handle not in the
+ * fixture's scene throws (`subScene`).
+ */
+export const renderScene = async (
+    { fixture, shown }: { fixture: string; shown: readonly SceneHandle[] },
+    { rules, scene = 'judge' }: ImaginationOptions,
+): Promise<string[]> => {
+    const full = await fixtureScene(fixture)
+    const sub = subScene(full, [...new Set(shown)])
+    if (scene === 'explicit') {
+        return [renderSceneExplicit(sub)]
+    }
+    const sections = judgeSceneSections(sub)
+    return [
+        `Scene: ${heading(full)}`,
+        sections.fiction,
+        sections.graph,
+        ...(rules === 'consequence' ? consequenceRules(sub) : []),
+        'End of scene.',
+    ]
+}
+
+/**
+ * The prompt's parts up to the actions: the scene (`renderScene`) of the shown things and every thing the actions name, so the prompt
+ * names nothing the scene doesn't show (mine), then each action in order. The asks add their own parts after.
  */
 export const renderSceneAndActions = async (
     { fixture, actions, shown }: { fixture: string; actions: readonly string[]; shown: readonly SceneHandle[] },
-    { rules, scene = 'judge' }: ImaginationOptions,
+    options: ImaginationOptions,
 ): Promise<string[]> => {
     if (actions.length === 0) {
         throw new Error('No actions')
@@ -85,20 +108,7 @@ export const renderSceneAndActions = async (
     if (unknown.length > 0) {
         throw new Error(`The actions name ${unknown.join(', ')}, not in ${fixture}'s scene`)
     }
-    const sub = subScene(full, [...new Set([...shown, ...named])])
-    const numbered = actions.map((says, index) => `Action ${index + 1}: ${says}`)
-    if (scene === 'explicit') {
-        return [renderSceneExplicit(sub), ...numbered]
-    }
-    const sections = judgeSceneSections(sub)
-    return [
-        `Scene: ${heading(full)}`,
-        sections.fiction,
-        sections.graph,
-        ...(rules === 'consequence' ? consequenceRules(sub) : []),
-        'End of scene.',
-        ...numbered,
-    ]
+    return [...await renderScene({ fixture, shown: [...shown, ...named] }, options), ...actions.map((says, index) => `Action ${index + 1}: ${says}`)]
 }
 
 /**

@@ -270,18 +270,31 @@ A piece with no closed answer set, such as a generator, is registered with `kind
 - **The render:** the [sub-scene](../dataSource/actions/AGENT.md) of the `alsoShown` things and of every handle the actions name, as the judge shows it (or explicitly, with `scene: 'explicit'`); `Action n: …` for each action; then `The things: [a], [b], …`, the named handles. Under the explicit render that line is `The things to describe: [a], [b], …`, since the render's own per-thing section is headed `The things:`. It throws when there are no actions, the actions name no things, a thing is shown twice, or a handle isn't in the fixture.
 - **The form check:** the reply ends in a fenced `json` block (read through `splitMarkdownReasoningAndJson`) whose `actions` has one entry per action. Each entry maps some of the described things' handles, and no others, to non-empty strings: a described thing with no line is silent, and stays in its frame (user, 2026-11-10). A key is read with or without its brackets (`[teapot1]` is `teapot1`), and where both spellings appear their lines are merged (user, 2026-11-10). That is the rule cell's `motions` for any pair of the things. Each problem is named: no block, a block that doesn't parse, no `actions`, the wrong count, or, per action, an entry that isn't an object, a handle not listed, or a line that is empty or not a string.
 - **Cells:** `OC-1`, `OC-6`, `OC-19` and `OC-20`, each with what a reader looks for. `OC-20`'s action is hand-written, since the oracle probe has no candidate for it. `OC-30/2` moved to `consequences` at step 1.5.
-- **Shared with `consequences`:** the fixture scene, the `rules` and `scene` options, the scene-and-actions render and the block check are in [`imaginationPieces/imaginationScene.ts`](imaginationPieces/imaginationScene.ts). The block stays shared while the imagination plan's IM-5 (which ask's lines the rule cell reads) is open.
+- **Shared with `consequences`:** the fixture scene, the `rules` and `scene` options, and the scene render (`renderScene`), in [`imaginationPieces/imaginationScene.ts`](imaginationPieces/imaginationScene.ts). The scene-and-actions render and the block check are there too, and since the action plan's step 4b only the play-by-play uses them: `consequences` reads a plan and replies in the change language. The block's IM-5 question (which ask's lines the rule cell reads) is open.
 
-**Consequences** (`consequences`, [`imaginationPieces/consequences.ts`](imaginationPieces/consequences.ts)) is the imagination's other-things ask: given a method already chosen, how each listed thing moves as its actions happen, with the consequences that work against the intent flagged and collateral ones listed, not flagged. Its drafts are in [`oracleLoopDrafts/consequences/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/consequences/iterations.md), on the same shared core as the play-by-play's from core 2.
+**Consequences** (`consequences`, [`imaginationPieces/consequences.ts`](imaginationPieces/consequences.ts)) is the imagination's other-things ask, and a reducer on the [action plan](oracleLoop/actionPlan.ts) (the user, 2026-11-18; the action plan's step 4b). Given a plan and the one step to expand, it says how each listed thing moves as that step is done, and flags the consequences that work against the step's intent, in the change language. Collateral consequences are listed, not flagged. Its drafts are in [`oracleLoopDrafts/consequences/`](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/consequences/iterations.md). From draft 2, they are the ask alone, with no core.
 - **A cell's inputs:**
   - a fixture;
-  - the method's actions in order;
-  - the intent, the player's original full command (the oracle probe case's `request`);
-  - the things to describe, by handle, listed by hand: those whose motion the method doesn't state, named or not (user, 2026-11-11).
-- **Options:** `rules` and `scene`, as the play-by-play's.
-- **The render:** the sub-scene of the listed things and the named ones; `Action n: …`; `The intent: …`; then `The things: [a], [b], …` (`The things to describe: …` under the explicit render). It throws when there are no actions, no things, a thing listed twice, an empty intent, or a handle not in the fixture.
-- **The form check:** the play-by-play's, against the listed things.
-- **Cells:** `OC-30/2` (the saucer and cup slide off the tipped table, and the cup no longer under the spout is a problem) and `OC-1`, the control (everything on the table rises with it, nothing against the intent). Both caps are 1024 tokens.
+  - the plan so far, each step's intent in it;
+  - the target, the path of the step to expand;
+  - the things to describe, by handle, listed by hand: those whose motion the plan doesn't state, named or not (user, 2026-11-11).
+- **Options:** `rules` and `scene`, as the play-by-play's, except that the default is `scene: 'explicit'`. `rules: 'consequence'` needs `scene: 'judge'`.
+- **The render:** the scene of the listed things and every handle the plan's text names (`renderScene`), then:
+  - `The plan:` (`renderPlanForGenerator`);
+  - `The step to expand: <path>`;
+  - `The things to describe: [a], [b], …`.
+
+  It throws when there are no things, a thing is listed twice, the target names no step, or a handle isn't in the fixture. A target that already holds consequences is fine: in production `playByPlay`'s lines arrive first.
+- **The form check:** `consequencesContract`, a stage contract whose value is the merged plan.
+  - **The reply's block** is a `changes` list, merged by `mergeStepChanges`.
+  - **Code supplies each change's `to`,** which is the target. A `to` the reply writes must name the target, or the block is refused.
+  - **Then `mergeChanges`, unchanged,** against the listed things as the handles. So a change naming an unlisted thing is a form failure.
+- **Cells:** each is a one-step plan built by hand (`consequencesPlans`), holding its intent and no consequences, so the reply establishes the outcome (the user, 2026-11-18).
+  - **`OC-30/2`:** `tip [table1]`, with intent `[teapot1] pours [tea2] into [cup1]`, split as the trial's h5 is but without AP-7's intended consequence. Its look-for: the saucer and cup slide off the tipped table, and the cup no longer under the spout is a problem.
+  - **`OC-1`, the control:** `pick up [table1]`, whose intent is its own text. Its look-for: everything on the table rises with it, and nothing works against the intent.
+
+  Both caps are 1024 tokens.
+- **Reading a batch:** `npm run read-plans -- <results.json>` prints each reply's plan, `playByPlay`'s built or `consequences`' merged, by the response's `piece` (`imaginationPieces/plansText.ts`).
 
 #### Scene renders
 

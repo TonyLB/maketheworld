@@ -181,6 +181,32 @@ export const mergeChanges = (plan: ActionPlan, block: unknown, handles: readonly
     }
 }
 
+/**
+ * A change block scoped to one step, the one a generator expands (AGENT.actionPlan.planning.md, step 4b): code supplies each change's
+ * `to`, by step 0's rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
+ * otherwise the block is refused, as any problem refuses it. Then `mergeChanges`, unchanged. The scope reads only `to`, so a new `add`
+ * kind passes through it to `checkChange`.
+ */
+export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknown, handles: readonly SceneHandle[]): { plan: ActionPlan } | { problems: string[] } => {
+    if (!plan.steps.some(({ path }) => path === target)) {
+        throw new Error(`The target "${target}" names no step of the plan`)
+    }
+    const changes = isRecord(block) ? block.changes : undefined
+    if (!Array.isArray(changes)) {
+        return mergeChanges(plan, block, handles)
+    }
+    const problems = changes.flatMap((entry, index) => {
+        const to = isRecord(entry) ? entry.to : undefined
+        return to === undefined || (typeof to === 'string' && to.trim() === target)
+            ? []
+            : [`change ${index + 1}: to ${JSON.stringify(to)} is not the step being expanded, ${target}`]
+    })
+    if (problems.length > 0) {
+        return { problems }
+    }
+    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (isRecord(entry) ? { ...entry, to: target } : entry)) }, handles)
+}
+
 /** A reply in the change language: its trailing JSON block, merged into the plan shown (`mergeChanges`). */
 export const planChangesContract: StageContract<PlanChangesInput, ActionPlan> = {
     name: 'plan changes',

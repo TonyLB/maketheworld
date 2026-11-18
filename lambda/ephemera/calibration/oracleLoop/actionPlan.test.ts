@@ -2,7 +2,7 @@ import { consequencesCells } from '../imaginationPieces/consequences'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { playByPlayCells } from '../imaginationPieces/playByPlay'
 import { nonRuleCellCells } from '../oraclePieces/nonRuleCell'
-import { mergeChanges, mintPaths, orderItems, planChangesContract, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
+import { mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
 import { oracleCases } from './oracleCases'
 
 const allPaths = ({ steps }: ActionPlan): string[] => steps.flatMap(({ path, items }) => [path, ...items.map((item) => item.path)])
@@ -81,10 +81,16 @@ describe('the action plan', () => {
         })
 
         it('the imagination\'s actions, each a step supplied by the system', () => {
-            for (const [id, { inputs: { actions } }] of [...Object.entries(playByPlayCells), ...Object.entries(consequencesCells)]) {
+            for (const [id, { inputs: { actions } }] of Object.entries(playByPlayCells)) {
                 const plan = planFromActions(actions)
                 expectWellFormed(id, plan)
                 expect([id, plan.steps.map(({ says, suppliedBy, items }) => ({ says, suppliedBy, items }))]).toEqual([id, actions.map((says) => ({ says, suppliedBy: 'system', items: [] }))])
+            }
+        })
+
+        it('consequences\' cells: their plans, built by hand (step 4b)', () => {
+            for (const [id, { inputs: { plan } }] of Object.entries(consequencesCells)) {
+                expectWellFormed(id, plan)
             }
         })
 
@@ -235,6 +241,42 @@ describe('the action plan', () => {
                     'change 3: thing "mug1" is not in the scene',
                     'change 3: a concern takes no "thing"',
                 ])
+            })
+        })
+
+        describe('scoped to one step, with `to` supplied (step 4b)', () => {
+            const unscoped = ({ to, ...change }: Record<string, unknown>) => change
+            const scoped = (plan: ActionPlan, target: string, block: unknown) => mergeStepChanges(plan, target, block, handles)
+
+            it('fills each change\'s missing `to` with the target, and merges as mergeChanges does', () => {
+                expect(scoped(h5(), 'tip-table1', { changes: [unscoped(slide), unscoped(spout)] })).toEqual({ plan: merged(h5(), [slide, spout]) })
+            })
+
+            it('passes a written `to` that names the target', () => {
+                expect(scoped(h5(), 'tip-table1', { changes: [slide, unscoped(spout)] })).toEqual({ plan: merged(h5(), [slide, spout]) })
+            })
+
+            it('adds only to the target, leaving the other steps as they were', () => {
+                const result = scoped(h10(), 'tip-table1', { changes: [unscoped(slide)] })
+                expect(result).toEqual({ plan: merged(h10(), [slide]) })
+                expect('plan' in result && result.plan.steps[0]).toEqual(h10().steps[0])
+            })
+
+            it('refuses the block on a `to` naming another step or a sub-item, with every problem', () => {
+                expect(scoped(h10(), 'tip-table1', { changes: [{ ...slide, to: 'pick-up-saucer1' }, { ...spout, to: 'tip-table1.teapot1-pours-tea2' }, { ...spout, to: 3 }] })).toEqual({ problems: [
+                    'change 1: to "pick-up-saucer1" is not the step being expanded, tip-table1',
+                    'change 2: to "tip-table1.teapot1-pours-tea2" is not the step being expanded, tip-table1',
+                    'change 3: to 3 is not the step being expanded, tip-table1',
+                ] })
+            })
+
+            it('leaves the other problems to mergeChanges', () => {
+                expect(scoped(h5(), 'tip-table1', { actions: [] })).toEqual({ problems: ['the JSON block has no "changes" array'] })
+                expect(scoped(h5(), 'tip-table1', { changes: [{ add: 'possibility', says: 'x' }] })).toEqual({ problems: ['change 1: "add" must be one of consequence, concern'] })
+            })
+
+            it('throws on a target that names no step', () => {
+                expect(() => scoped(h5(), 'tip-table1.teapot1-pours-tea2', { changes: [] })).toThrow(/names no step/)
             })
         })
 

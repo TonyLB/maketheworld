@@ -1,13 +1,16 @@
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
+import { planOf, type ActionPlan } from '../oracleLoop/actionPlan'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
-import { CONSEQUENCES_OPTIONS, checkConsequences, consequences, consequencesCells, renderConsequences, type ConsequencesInputs } from './consequences'
+import { CONSEQUENCES_OPTIONS, checkConsequences, consequences, consequencesCells, consequencesContract, consequencesPlansText, renderConsequences, type ConsequencesInputs } from './consequences'
 import { fixtureScene, namedHandles } from './imaginationScene'
 import { textHash } from '../textHash'
 
+const pickUp: ActionPlan = planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [table1]' }] }])
+
 const cellOf = (inputs: Partial<ConsequencesInputs>): ReadPieceCell<ConsequencesInputs> => ({
-    inputs: { fixture: 'teaTable', actions: ['pick up [table1]'], intent: 'I want to pick up [table1].', things: ['saucer1', 'cup1'], ...inputs },
+    inputs: { fixture: 'teaTable', plan: pickUp, target: 'pick-up-table1', things: ['saucer1', 'cup1'], ...inputs },
     lookFor: 'anything',
     source: 'hand-written',
 })
@@ -21,36 +24,39 @@ describe('consequences', () => {
     })
     afterEach(() => jest.restoreAllMocks())
 
-    describe('the render', () => {
-        it('gives the sub-scene, then each action in order, then the intent, then the listed things last', async () => {
+    describe('the render (AGENT.actionPlan.planning.md, step 4b)', () => {
+        it('gives the explicit scene, then the plan, the step to expand and the things to describe last', async () => {
             const text = await renderConsequences(cellOf({}), CONSEQUENCES_OPTIONS)
             expect(text.startsWith('Scene: ')).toBe(true)
+            expect(text).toContain('\n\nThe things:\n- ')
+            expect(text).not.toContain('Graph')
+            expect(text).not.toContain('Rules:')
             expect(text.split('\n\n').slice(-4)).toEqual([
                 'End of scene.',
-                'Action 1: pick up [table1]',
-                'The intent: I want to pick up [table1].',
-                'The things: [saucer1], [cup1]',
+                'The plan:\nStep pick-up-table1: pick up [table1]\n  - intent pick-up-table1.pick-up-table1: pick up [table1]',
+                'The step to expand: pick-up-table1',
+                'The things to describe: [saucer1], [cup1]',
             ])
         })
 
-        it('shows the listed things and the things the actions name in the scene', async () => {
-            const text = await renderConsequences(cellOf({}), CONSEQUENCES_OPTIONS)
+        it('shows the listed things and every thing the plan names in the scene', async () => {
+            const plan = planOf([{ step: { says: 'tip [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: '[teapot1] pours [tea2] into [cup1]' }] }])
+            const text = await renderConsequences(cellOf({ plan, target: 'tip-table1', things: ['saucer1'] }), CONSEQUENCES_OPTIONS)
             const scene = text.slice(0, text.indexOf('End of scene.'))
-            expect(['saucer1', 'cup1', 'table1'].filter((handle) => !scene.includes(`[${handle}]`))).toEqual([])
+            expect(['saucer1', 'table1', 'teapot1', 'tea2', 'cup1'].filter((handle) => !scene.includes(`[${handle}]`))).toEqual([])
         })
 
-        it('shows the rules as fact and consequence with rules: consequence, and no rules by default', async () => {
-            const cell = cellOf({ things: ['teapot1'] })
-            expect(await renderConsequences(cell, CONSEQUENCES_OPTIONS)).not.toContain('Rules:')
-            expect(await renderConsequences(cell, { rules: 'consequence' })).toContain('[teapot1] is glued to [table1].')
+        it('still takes the judge render, as an option', async () => {
+            const text = await renderConsequences(cellOf({ things: ['teapot1'] }), { rules: 'consequence', scene: 'judge' })
+            expect(text).toContain('\nGraph:\n')
+            expect(text).toContain('[teapot1] is glued to [table1].')
         })
 
         it.each([
-            [{ actions: [] }, /No actions/],
             [{ things: [] }, /No things to describe/],
             [{ things: ['cup1', 'saucer1', 'cup1'] }, /Things listed twice: cup1/],
-            [{ intent: ' ' }, /No intent/],
-            [{ actions: ['pick up [kettle1]'] }, /The actions name kettle1, not in teaTable's scene/],
+            [{ target: 'tip-table1' }, /The target "tip-table1" names no step of the plan/],
+            [{ target: 'pick-up-table1.pick-up-table1' }, /names no step of the plan/],
             [{ things: ['kettle1'] }, /Unknown scene handle\(s\) kettle1/],
         ])('throws on %j', async (inputs, error) => {
             await expect(renderConsequences(cellOf(inputs), CONSEQUENCES_OPTIONS)).rejects.toThrow(error)
@@ -58,88 +64,103 @@ describe('consequences', () => {
     })
 
     describe('its options', () => {
-        it('defaults to no rules, and refuses another shape', () => {
-            expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none' })
-            expect(consequences.parseOptions({ rules: 'consequence' })).toEqual({ rules: 'consequence' })
+        it('defaults to the explicit render with no rules (step 4b), and refuses another shape', () => {
+            expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
+            expect(consequences.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
+            expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
             expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
         })
 
-        it('takes a scene render, and refuses the explicit render with rules: consequence (AGENT.actionPlan.planning.md, step 4a)', () => {
-            expect(consequences.parseOptions({ scene: 'explicit' })).toEqual({ rules: 'none', scene: 'explicit' })
-            expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
-            expect(consequences.parseOptions({ scene: 'prose' })).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
+        it('refuses rules: consequence under the explicit render, its default included', () => {
             expect(consequences.parseOptions({ scene: 'explicit', rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
+            expect(consequences.parseOptions({ rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
         })
     })
 
-    describe('the explicit render (AGENT.actionPlan.planning.md, step 4a)', () => {
-        it('leaves the default render as batch 1 had it: the inputs hashes hold', async () => {
-            expect(textHash(await renderConsequences(consequencesCells['OC-30/2'], CONSEQUENCES_OPTIONS))).toBe('d1d07973')
-            expect(textHash(await renderConsequences(consequencesCells['OC-1'], CONSEQUENCES_OPTIONS))).toBe('b96b6792')
-        })
-
-        it.each(Object.keys(consequencesCells))('%s gives the explicit sub-scene in place of the Fiction and Graph, then the actions, the intent and the things to describe', async (id) => {
-            const cell = consequencesCells[id]
-            const text = await renderConsequences(cell, { rules: 'none', scene: 'explicit' })
-            const judged = await renderConsequences(cell, CONSEQUENCES_OPTIONS)
-            expect(text.split('\n\n')[0]).toBe(judged.split('\n\n')[0])
-            expect(text).toContain('\n\nThe things:\n- ')
-            expect(text).not.toContain('Graph')
-            expect(text).not.toContain('Reading the scene')
-            expect(text.split('\n\n').slice(-(cell.inputs.actions.length + 3))).toEqual([
-                'End of scene.',
-                ...cell.inputs.actions.map((says, index) => `Action ${index + 1}: ${says}`),
-                `The intent: ${cell.inputs.intent}`,
-                `The things to describe: ${cell.inputs.things.map((handle) => `[${handle}]`).join(', ')}`,
-            ])
-        })
-
-        it('states the securing as a carry line, with no Rules section', async () => {
-            const text = await renderConsequences(cellOf({ things: ['teapot1'] }), { rules: 'none', scene: 'explicit' })
-            expect(text).not.toContain('Rules:')
-            expect(text).toContain('[teapot1] is glued to [table1]')
-        })
-    })
-
-    describe('the check', () => {
+    describe('the check: does the block merge into the plan?', () => {
         const cell = cellOf({})
 
-        it('passes a line for some of the listed things, a silent one staying in its frame', () => {
-            expect(checkConsequences(fenced({ actions: [{ saucer1: 'rises with [table1]' }], problems: [] }), cell)).toEqual([])
+        it('merges changes with no `to` into the step to expand, as code supplies it', () => {
+            const reply = fenced({ changes: [
+                { add: 'consequence', thing: '[saucer1]', says: '[saucer1] rises with [table1]' },
+                { add: 'concern', says: '[cup1] may rattle on [saucer1]' },
+            ] })
+            expect(checkConsequences(reply, cell)).toEqual([])
+            expect(consequencesContract.parse(reply, { input: cell.inputs, rendered: '' })).toEqual({ value: { steps: [{
+                ...pickUp.steps[0],
+                items: [
+                    ...pickUp.steps[0].items,
+                    { kind: 'consequence', path: 'pick-up-table1.saucer1-rises-table1', thing: 'saucer1', says: '[saucer1] rises with [table1]' },
+                    { kind: 'concern', path: 'pick-up-table1.cup1-may-rattle', says: '[cup1] may rattle on [saucer1]' },
+                ],
+            }] } })
+        })
+
+        it('passes an empty list: nothing to add', () => {
+            expect(checkConsequences(fenced({ changes: [] }), cell)).toEqual([])
         })
 
         it.each([
             ['no block', 'The saucer rises.', ['no JSON block']],
-            ['the wrong count', fenced({ actions: [] }), ['expected 1 actions, got 0']],
-            ['a named thing not listed', fenced({ actions: [{ saucer1: 'rises', table1: 'rises' }] }), ['action 1: table1 is not a listed thing']],
-            ['an empty line', fenced({ actions: [{ '[cup1]': ' ' }] }), ["action 1: cup1's line is empty"]],
-        ])('reports %s', (_, reply, problems) => {
+            ['the old block', fenced({ actions: [{ saucer1: 'rises' }], problems: [] }), ['the JSON block has no "changes" array']],
+            ['a `to` naming another step', fenced({ changes: [{ add: 'consequence', to: 'tip-table1', says: 'x' }] }), ['change 1: to "tip-table1" is not the step being expanded, pick-up-table1']],
+            ['a thing not listed (CQ-P4)', fenced({ changes: [{ add: 'consequence', thing: 'table1', says: '[table1] rises' }] }), ['change 1: thing "table1" is not in the scene']],
+            ['an intended consequence', fenced({ changes: [{ add: 'consequence', intended: true, says: 'x' }] }), ['change 1: "intended" isn\'t writable: a change adds only unintended consequences']],
+        ])('refuses %s', (_, reply, problems) => {
             expect(checkConsequences(reply, cell)).toEqual(problems)
         })
     })
 
     describe('its cells', () => {
-        it.each(Object.keys(consequencesCells))('%s renders, with its case\'s request as the intent, and every thing in its fixture\'s scene', async (id) => {
+        it('each a one-step plan holding its intent and no consequences, so the reply establishes the outcome (the user, 2026-11-18)', () => {
+            expect(Object.fromEntries(Object.entries(consequencesCells).map(([id, { inputs: { plan, target } }]) => [id, { target, plan }]))).toEqual({
+                'OC-30/2': { target: 'tip-table1', plan: { steps: [{
+                    says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1',
+                    items: [{ kind: 'intent', path: 'tip-table1.teapot1-pours-tea2', says: '[teapot1] pours [tea2] into [cup1]' }],
+                }] } },
+                'OC-1': { target: 'pick-up-table1', plan: { steps: [{
+                    says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1',
+                    items: [{ kind: 'intent', path: 'pick-up-table1.pick-up-table1', says: 'pick up [table1]' }],
+                }] } },
+            })
+        })
+
+        it.each(Object.keys(consequencesCells))('%s renders, with every thing in its fixture\'s scene', async (id) => {
             const cell = consequencesCells[id]
             const text = await renderConsequences(cell, CONSEQUENCES_OPTIONS)
-            expect(text).toContain(`\n\nThe intent: ${cell.inputs.intent}\n\n`)
+            expect(text).toContain(`\n\nThe step to expand: ${cell.inputs.target}\n\n`)
             const scene = await fixtureScene(cell.inputs.fixture)
-            const named = [...cell.inputs.things, ...cell.inputs.actions.flatMap(namedHandles)]
+            const named = [...cell.inputs.things, ...cell.inputs.plan.steps.flatMap(({ says, items }) => [says, ...items.map((item) => item.says)]).flatMap(namedHandles)]
             expect(named.filter((handle) => scene.things[handle] === undefined)).toEqual([])
         })
 
-        it('OC-30/2 lists the cup, which its action names, beside the saucer, which it doesn\'t (user, 2026-11-11)', () => {
-            expect(consequencesCells['OC-30/2'].inputs.things).toEqual(['saucer1', 'cup1'])
-            expect(consequencesCells['OC-30/2'].inputs.actions.flatMap(namedHandles)).toContain('cup1')
+        it('pins the inputs hashes, new at step 4b (batches 1 and 2 had the actions and the request)', async () => {
+            expect(textHash(await renderConsequences(consequencesCells['OC-30/2'], CONSEQUENCES_OPTIONS))).toBe('869da3e1')
+            expect(textHash(await renderConsequences(consequencesCells['OC-1'], CONSEQUENCES_OPTIONS))).toBe('bfa18eab')
         })
+
+        it('OC-30/2 lists the cup, which its intent names, beside the saucer, which it doesn\'t (user, 2026-11-11)', () => {
+            expect(consequencesCells['OC-30/2'].inputs.things).toEqual(['saucer1', 'cup1'])
+        })
+    })
+
+    it('prints a batch\'s merged plans for reading (`read-plans`)', () => {
+        const slide = fenced({ changes: [{ add: 'consequence', thing: 'cup1', says: '[cup1] slides off with [saucer1]' }] })
+        expect(consequencesPlansText([
+            { cell: 'OC-30/2', lookFor: '', replies: [{ repeat: 1, reply: slide }, { repeat: 2, reply: fenced({ changes: [{ add: 'concern', to: 'tip', says: 'x' }] }) }] },
+            { cell: 'OC-99', lookFor: '', replies: [{ repeat: 1, reply: slide }] },
+        ])).toBe([
+            '## OC-30/2, repeat 1\nStep tip-table1: tip [table1]\n  - intent tip-table1.teapot1-pours-tea2: [teapot1] pours [tea2] into [cup1]\n  - consequence tip-table1.cup1-slides-saucer1: [cup1] slides off with [saucer1]',
+            '## OC-30/2, repeat 2\nform: change 1: to "tip" is not the step being expanded, tip-table1',
+            '## OC-99, repeat 1\nnot a consequences cell',
+        ].join('\n\n'))
     })
 
     it('is registered, and runs through the probe: two cells x 3, each reply form-checked and grouped by cell', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async ({ messages }) => {
             const prompt = messages[0].content?.[0]?.text ?? ''
-            const things = namedHandles(prompt.slice(prompt.lastIndexOf('The things: ')))
-            const actions = prompt.split('\n\n').filter((part) => part.startsWith('Action ')).length
-            return { success: true as const, body: fenced({ actions: Array(actions).fill(Object.fromEntries(things.map((handle) => [handle, 'stays']))), problems: [] }) }
+            const things = namedHandles(prompt.slice(prompt.lastIndexOf('The things to describe: ')))
+            return { success: true as const, body: fenced({ changes: things.map((handle) => ({ add: 'consequence', thing: handle, says: `[${handle}] stays` })) }) }
         })
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'consequences', instructions: 'Say what happens.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
