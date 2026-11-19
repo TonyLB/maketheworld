@@ -118,7 +118,7 @@ describe('judgeRules, a rule in parts', () => {
             consequence: 'When [table1] changes its position or orientation, [teapot1] moves with it.',
         }
         expect(judgeRules(sceneOf(contents, { teapot1: [glued('table1')] }))).toEqual([{
-            handle: 'teapot-secured-to-table', ends: ['teapot1', 'table1'], sentence: expect.any(String), parts,
+            handle: 'teapot-secured-to-table', ends: ['teapot1', 'table1'], sentence: expect.any(String), parts, subject: 'teapot1', target: { kind: 'thing', handle: 'table1' },
         }])
         expect(judgeRules(sceneOf([entry('boat1'), entry('post1')], { boat1: [{ kind: 'SecuredTo', target: { kind: 'thing', handle: 'post1' } }] }))[0].parts.fact)
             .toBe('[boat1] is secured to [post1].')

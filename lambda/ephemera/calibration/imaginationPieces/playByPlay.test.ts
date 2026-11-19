@@ -2,7 +2,8 @@ import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
-import { mergeStepChanges, planOf, planSteps, type ActionPlan } from '../oracleLoop/actionPlan'
+import { parseProblems } from '../../llm/stageContract'
+import { mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
 import { textHash } from '../textHash'
 import { fixtureScene, planHandles } from './imaginationScene'
 import {
@@ -87,25 +88,38 @@ describe('playByPlay', () => {
     })
 
     describe('its options', () => {
-        it('defaults to the explicit render with no rules, which refuses rules: consequence unless the judge render is named', () => {
-            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
-            expect(playByPlay.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
+        it('defaults to the explicit render with rule handles (IS-6), refusing rules: consequence unless the judge render is named', () => {
+            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'handles', scene: 'explicit' })
+            expect(playByPlay.parseOptions({})).toEqual({ rules: 'handles', scene: 'explicit' })
+            expect(playByPlay.parseOptions({ rules: 'none' })).toEqual({ rules: 'none', scene: 'explicit' })
             expect(playByPlay.parseOptions({ rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
             expect(playByPlay.parseOptions({ rules: 'consequence', scene: 'judge' })).toEqual({ rules: 'consequence', scene: 'judge' })
         })
 
-        it('pins the cells\' inputs hashes on the default (with `missing`; batches 32 and 33 ran ecfa6fcc, e3a5763d, 4e15e889, 99c1b023 without it)', async () => {
-            const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-19', 'OC-20'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
-            expect(hashes).toEqual(['500b35a7', '58d72024', 'b8f4b846', '048eb091', 'df87eec6'])
+        it('takes the judge render with no rules when it names no rules, and refuses rule handles with it: they tag the explicit render', () => {
+            expect(playByPlay.parseOptions({ scene: 'judge' })).toEqual({ rules: 'none', scene: 'judge' })
+            expect(playByPlay.parseOptions({ rules: 'handles', scene: 'judge' })).toMatch(/rules: 'handles' tags the explicit render's securings/)
+        })
+
+        it('pins the cells\' inputs hashes on the default (rules: handles from the item standing build; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
+            const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-19', 'OC-20', 'OC-20/concession'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
+            expect(hashes).toEqual(['5d7de0bb', 'b40d7083', 'd7e1d475', 'cd2cd21f', 'eec99d53', 'a401a721'])
+        })
+
+        it('shows each securing with its rule\'s handle by default, and none with rules: none', async () => {
+            const text = await renderPlayByPlay(playByPlayCells['OC-20'], PLAY_BY_PLAY_OPTIONS)
+            expect(text).toContain('[table1] is chained to [wall1] (rule [table-secured-to-wall]).')
+            expect(await renderPlayByPlay(playByPlayCells['OC-1'], PLAY_BY_PLAY_OPTIONS)).toContain('[teapot1] is glued to [table1] (rule [teapot-secured-to-table]), so')
+            expect(await renderPlayByPlay(playByPlayCells['OC-20'], { rules: 'none', scene: 'explicit' })).not.toContain('(rule [')
         })
 
         it.each([['loud'], [{ rules: 'v45' }], [{ sceneRules: true }], [{ show: 'none' }]])('refuses %j', (value) => {
-            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
+            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence' | 'handles', scene?: 'judge' | 'explicit' }")
         })
 
         it('renders the explicit scene by default, with no Fiction and Graph', async () => {
             const options = playByPlay.parseOptions({ scene: 'explicit' })
-            expect(options).toEqual({ rules: 'none', scene: 'explicit' })
+            expect(options).toEqual({ rules: 'handles', scene: 'explicit' })
             expect(await renderPlayByPlay(playByPlayCells['OC-1'], options as PlayByPlayOptions)).not.toContain('Graph')
         })
     })
@@ -149,17 +163,88 @@ describe('playByPlay', () => {
         it.each([
             ['no block', 'Lift it, then tilt it.', ['no JSON block']],
             ['a list of two (the reply is one object)', fenced([steps, { atomic: true }]), ['the JSON block does not parse']],
-            ['the change language written out (batch 32)', fenced({ changes: [{ add: 'steps', steps: [lift, tilt] }] }), ['has "changes", not one of steps, atomic']],
+            ['the change language written out (batch 32)', fenced({ changes: [{ add: 'steps', steps: [lift, tilt] }] }), ['has "changes", not one of steps, atomic, consequences']],
             ['an empty object', fenced({}), ['has neither "steps" nor "atomic": expand the step, or mark it atomic']],
             ['both steps and atomic', fenced({ ...steps, atomic: true }), ['has both "steps" and "atomic": expand the step, or mark it atomic']],
             ['atomic false', fenced({ atomic: false }), ['"atomic" must be true']],
-            ['a written `to`', fenced({ ...steps, to: 'pour-tea2-teapot1' }), ['has "to", not one of steps, atomic']],
-            ['a consequence (no per-thing lines)', fenced({ ...steps, thing: 'teapot1' }), ['has "thing", not one of steps, atomic']],
+            ['a written `to`', fenced({ ...steps, to: 'pour-tea2-teapot1' }), ['has "to", not one of steps, atomic, consequences']],
+            ['a thing on the record (no per-thing lines)', fenced({ ...steps, thing: 'teapot1' }), ['has "thing", not one of steps, atomic, consequences']],
+            ['a replace (playByPlay is no authority for consequences or rules)', fenced({ ...steps, replace: 'pour-tea2-teapot1.intent' }), ['has "replace", not one of steps, atomic, consequences']],
+            ['consequences alone', fenced({ consequences: [{ says: '[tea2] pours' }] }), ['has neither "steps" nor "atomic": expand the step, or mark it atomic']],
             ['steps not a list', fenced({ steps: 'lift it, tilt it' }), ['has no "steps" list']],
             ['a single sub-step', fenced({ steps: [lift] }), ['has 1 sub-step; an expansion needs at least two']],
-            ['a sub-step with another key', fenced({ steps: [lift, { ...tilt, thing: 'cup1' }] }), ['sub-step 2: has "thing", not one of says, intent']],
+            ['a sub-step with another key', fenced({ steps: [lift, { ...tilt, thing: 'cup1' }] }), ['sub-step 2: has "thing", not one of says, intent, consequences']],
         ])('refuses %s', (_, reply, problems) => {
             expect(parse(reply)).toEqual({ problems })
+        })
+
+        describe('with consequences, at two scopes (IS-5)', () => {
+            const oc20 = playByPlayCells['OC-20']
+            const shown = async () => ({ input: oc20.inputs, rendered: await renderPlayByPlay(oc20, PLAY_BY_PLAY_OPTIONS) })
+            const chain = { rule: '[table-secured-to-wall]', stance: 'violation' }
+            const pulls = { says: '[table1] pulls away from [wall1]', thing: '[table1]', rules: [chain] }
+            const reply = { steps: [
+                { says: 'grip [table1] by its edges', intent: '[table1] is held firmly' },
+                { says: 'lift [table1] straight up', intent: '[table1] rises off the floor', consequences: [pulls] },
+            ] }
+            const merged = async (value: unknown): Promise<ActionPlan> => {
+                const parsed = playByPlayContract.parse(fenced(value), await shown())
+                if (!('value' in parsed)) {
+                    throw new Error(parsed.problems.join('; '))
+                }
+                return parsed.value
+            }
+            const problems = async (value: unknown): Promise<string[]> => parseProblems(playByPlayContract.parse(fenced(value), await shown()))
+
+            it('merges step 0\'s OC-20 reply into its worked example: the grip ordinary, the chain only in the proposals', async () => {
+                expect(renderPlanForGenerator(await merged(reply))).toBe([
+                    'Step pick-up-table1: pick up [table1]',
+                    '  - intent pick-up-table1.intent: pick up [table1]',
+                    '  - step grip-table1-by: grip [table1] by its edges',
+                    '    - intent grip-table1-by.intent: [table1] is held firmly',
+                    '  - step lift-table1-straight: lift [table1] straight up',
+                    '    - intent lift-table1-straight.intent: [table1] rises off the floor',
+                    '    - consequence lift-table1-straight.table1-pulls-away (unchecked): [table1] pulls away from [wall1]',
+                    '      - Rule (Violation) lift-table1-straight.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                ].join('\n'))
+            })
+
+            it('attaches the record\'s consequences to the target, beside the atomic mark ("you\'re asking the wrong agent")', async () => {
+                const plan = await merged({ atomic: true, consequences: [{ says: '[table1] moves away from [wall1]', rules: [chain] }] })
+                expect(plan.steps[0].atomic).toBe(true)
+                expect(renderPlanForGenerator(plan).split('\n').slice(2)).toEqual([
+                    '  - consequence pick-up-table1.table1-moves-away (unchecked): [table1] moves away from [wall1]',
+                    '    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                ])
+            })
+
+            it('records the same consequence at both scopes, each in its own', async () => {
+                const plan = await merged({ ...reply, consequences: [pulls] })
+                expect(planSteps(plan).flatMap(({ items }) => items.filter(({ kind }) => kind === 'consequence').map(({ path }) => path)))
+                    .toEqual(['pick-up-table1.table1-pulls-away', 'lift-table1-straight.table1-pulls-away'])
+            })
+
+            it('brackets a bare handle in a consequence, and takes a bare rule handle', async () => {
+                const plan = await merged({ atomic: true, consequences: [{ says: 'table1 stays', rules: [{ rule: 'table-secured-to-wall', stance: 'consistent' }] }] })
+                expect(renderPlanForGenerator(plan).split('\n').slice(2)).toEqual([
+                    '  - consequence pick-up-table1.table1-stays (unchecked): [table1] stays',
+                    '    - Rule (Consistent) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                ])
+            })
+
+            it.each([
+                ['a rule outside a consequence', { ...reply, rules: [chain] }, ['has "rules", not one of steps, atomic, consequences']],
+                ['a rule on a sub-step', { steps: [reply.steps[0], { says: 'lift [table1]', rules: [chain] }] }, ['sub-step 2: has "rules", not one of says, intent, consequences']],
+                ['a rule handle the scene doesn\'t hold', { atomic: true, consequences: [{ says: 'it holds', rules: [{ rule: 'table-secured', stance: 'violation' }] }] }, ['consequence 1: rule 1: rule "table-secured" is not a rule the scene holds']],
+                ['a stance other than the two', { atomic: true, consequences: [{ says: 'it holds', rules: [{ ...chain, stance: 'blocks' }] }] }, ['consequence 1: rule 1: "stance" must be one of violation, consistent']],
+                ['a consequence with no says', { atomic: true, consequences: [{ thing: 'table1' }] }, ['consequence 1: has no non-empty string "says"']],
+                ['a rule handle as a thing', { atomic: true, consequences: [{ says: 'it holds', thing: 'table-secured-to-wall' }] }, ['consequence 1: thing "table-secured-to-wall" is not in the scene']],
+                ['a consequence with another key', { atomic: true, consequences: [{ says: 'it holds', standing: 'confirmed' }] }, ['consequence 1: "standing" isn\'t writable: code sets it from who wrote the item']],
+                ['consequences not a list', { atomic: true, consequences: { says: 'it holds' } }, ['"consequences" is not a list']],
+                ['a sub-step\'s consequence with no says', { steps: [reply.steps[0], { says: 'lift [table1]', consequences: [{}] }] }, ['sub-step 2: consequence 1: has no non-empty string "says"']],
+            ])('refuses %s', async (_, value, expected) => {
+                expect(await problems(value)).toEqual(expected)
+            })
         })
     })
 
@@ -180,7 +265,7 @@ describe('playByPlay', () => {
         ] as const)('%s is one step, %j, whose intent is its own text, and its target', (id, says, path) => {
             const { plan, target } = playByPlayCells[id].inputs
             expect(plan).toBe(playByPlayPlans[id])
-            expect(plan.steps).toEqual([{ says, suppliedBy: 'system', path, items: [{ kind: 'intent', path: `${path}.intent`, says }] }])
+            expect(plan.steps).toEqual([{ says, suppliedBy: 'system', path, standing: 'confirmed', items: [{ kind: 'intent', path: `${path}.intent`, standing: 'confirmed', says }] }])
             expect(target).toBe(path)
         })
 
@@ -190,6 +275,27 @@ describe('playByPlay', () => {
                 ['pick-up-table1', 'pick up [table1]'], ['grip-table1-by', 'grip [table1] by its edges'], ['lift-table1-floor', 'lift [table1] off the floor'],
             ])
             expect([target, missing]).toEqual(['grip-table1-by', 'how [table1] is held'])
+        })
+
+        it('the concession cell is OC-20\'s plan holding a wrong, unchecked proposal on the target, as step 0\'s example (IS-6)', async () => {
+            const { plan, target, missing, fixture, alsoShown } = playByPlayCells['OC-20/concession'].inputs
+            expect(renderPlanForGenerator(plan)).toBe([
+                'Step pick-up-table1: pick up [table1]',
+                '  - intent pick-up-table1.intent: pick up [table1]',
+                '  - consequence pick-up-table1.table1-cannot-be (unchecked): [table1] cannot be lifted',
+                '    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+            ].join('\n'))
+            const { plan: _, ...oc20 } = playByPlayCells['OC-20'].inputs
+            expect({ target, missing, fixture, alsoShown }).toEqual(oc20)
+        })
+
+        it('the concession cell\'s expansion leaves the input\'s proposal on the target, untouched', async () => {
+            const cell = playByPlayCells['OC-20/concession']
+            const parsed = playByPlayContract.parse(fenced({ steps: [{ says: 'grip [table1] by its edges' }, { says: 'lift [table1] straight up' }] }), { input: cell.inputs, rendered: await renderPlayByPlay(cell, PLAY_BY_PLAY_OPTIONS) })
+            if (!('value' in parsed)) {
+                throw new Error(parsed.problems.join('; '))
+            }
+            expect(parsed.value.steps[0].items.filter(({ kind }) => kind !== 'step')).toEqual(cell.inputs.plan.steps[0].items)
         })
 
         it('OC-1 and OC-20 ask for the same detail, so they differ by the scene alone', () => {
@@ -204,30 +310,30 @@ describe('playByPlay', () => {
         })
     })
 
-    it('is registered, and runs through the probe: five cells x 3, each reply form-checked and grouped by cell', async () => {
+    it('is registered, and runs through the probe: six cells x 3, each reply form-checked and grouped by cell', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({
             success: true as const, body: fenced({ steps: [{ says: 'take hold' }, { says: 'move it' }] }),
         }))
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Expand the step.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(15)
+        expect(invoke).toHaveBeenCalledTimes(18)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 15, formFails: 0, errors: 0 })
+        expect(result.summary).toEqual({ calls: 18, formFails: 0, errors: 0 })
         expect(result.options).toEqual(PLAY_BY_PLAY_OPTIONS)
         expect(result.read.map(({ cell, replies }: { cell: string; replies: unknown[] }) => [cell, replies.length])).toEqual(
             Object.keys(playByPlayCells).map((id) => [id, 3]),
         )
     })
 
-    it('prints a batch\'s merged plans for reading, or why a reply gave none', () => {
+    it('prints a batch\'s merged plans for reading, or why a reply gave none', async () => {
         const groups = [{ cell: 'OC-20', lookFor: '', replies: [
             { repeat: 1, reply: fenced({ steps: [{ says: 'grip [table1] by its edges' }, { says: 'lift [table1]', intent: '[table1] is off the floor' }] }), problems: [] },
             { repeat: 2, reply: fenced({ atomic: true }), problems: [] },
             { repeat: 3, reply: 'The table rises.', problems: ['no JSON block'] },
             { repeat: 4, error: 'throttled' },
         ] }, { cell: 'OC-99', lookFor: '', replies: [{ repeat: 1, reply: 'x' }] }]
-        expect(playByPlayPlansText(groups)).toBe([
+        expect(await playByPlayPlansText(groups)).toBe([
             [
                 '## OC-20, repeat 1',
                 'Step pick-up-table1: pick up [table1]',
@@ -241,5 +347,12 @@ describe('playByPlay', () => {
             '## OC-20, repeat 4\nerror: throttled',
             '## OC-99, repeat 1\nnot a playByPlay cell',
         ].join('\n\n'))
+    })
+
+    it('reads a reply naming a rule, since each cell is rendered with the batch\'s options and so shows its rule handles', async () => {
+        const reply = fenced({ atomic: true, consequences: [{ says: '[table1] moves away from [wall1]', rules: [{ rule: 'table-secured-to-wall', stance: 'violation' }] }] })
+        const groups = [{ cell: 'OC-20', lookFor: '', replies: [{ repeat: 1, reply, problems: [] }] }]
+        expect((await playByPlayPlansText(groups, PLAY_BY_PLAY_OPTIONS)).split('\n').slice(-1)).toEqual(['    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]'])
+        expect(await playByPlayPlansText(groups, { rules: 'none' })).toContain('form: consequence 1: rule 1: rule "table-secured-to-wall" is not a rule the scene holds')
     })
 })

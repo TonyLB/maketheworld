@@ -71,7 +71,7 @@ export const consequencesContract: StageContract<ConsequencesInputs, ActionPlan>
             return { problems: [parsed.malformed] }
         }
         const shown = [...new Set([...things, ...planHandles(plan), ...namedHandles(rendered)])]
-        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), replyHandles({ plan, target, things }), { handlesAre: 'a listed thing or named by the step' })
+        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), replyHandles({ plan, target, things }), { author: 'consequences', handlesAre: 'a listed thing or named by the step' })
         return 'problems' in merged ? merged : { value: merged.plan }
     },
 }
@@ -135,4 +135,4 @@ export const consequences: ReadPiece<ConsequencesInputs, ConsequencesOptions> = 
 export const registeredConsequences = registerPiece(consequences)
 
 /** A batch's replies for reading (`read-plans`), as merged plans (`plansText`). */
-export const consequencesPlansText = plansText('consequences', consequencesCells, consequencesContract)
+export const consequencesPlansText = plansText(consequences, consequencesContract)

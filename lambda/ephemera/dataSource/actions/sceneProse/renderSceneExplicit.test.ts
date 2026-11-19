@@ -4,8 +4,9 @@
 //
 import { buildSceneFixture, sceneFixture } from '../../positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
-import { renderSceneExplicit } from './renderSceneExplicit'
-import { withoutSecuring } from './sceneRules'
+import { renderSceneExplicit, ruleTagHandles } from './renderSceneExplicit'
+import { judgeRules, withoutSecuring } from './sceneRules'
+import { subScene } from './subScene'
 
 const TEA_TABLE_OMITTED = [
     "Scene: The Parlour",
@@ -119,6 +120,37 @@ describe('the explicit scene render', () => {
     ] as const)('renders %s with the securing %s', async (name, securing, golden) => {
         const scene = await fixture(name)
         expect(renderSceneExplicit(securing === 'removed' ? withoutSecuring(scene) : scene)).toBe(golden)
+    })
+
+    describe("with rules: 'handles' (AGENT.itemStanding.planning.md, IS-3)", () => {
+        it('tags each securing\'s fact with its rule\'s handle, and changes nothing else', async () => {
+            const scene = await fixture('teaTableChained')
+            const tagged = renderSceneExplicit(scene, { rules: 'handles' })
+            expect(tagged).toBe(CHAINED_SHOWN
+                .replace('[table1] is chained to [wall1]. [table1] and', '[table1] is chained to [wall1] (rule [table-secured-to-wall]). [table1] and')
+                .replace('[teapot1] is glued to [table1], so', '[teapot1] is glued to [table1] (rule [teapot-secured-to-table]), so'))
+            expect(ruleTagHandles(tagged)).toEqual(['table-secured-to-wall', 'teapot-secured-to-table'])
+            expect(ruleTagHandles(renderSceneExplicit(scene))).toEqual([])
+        })
+
+        it('mints each handle on the full scene, so a sub-scene shows the full scene\'s handle', async () => {
+            const scene = await fixture('teaTable')
+            const glued = (handle: string) => ({ kind: 'Custom' as const, label: 'glued to', target: { kind: 'thing' as const, handle }, secured: true })
+            const full: SceneModel = {
+                ...scene,
+                things: { ...scene.things, tea1: { ...scene.things.tea1, relations: [glued('table1')] }, tea2: { ...scene.things.tea2, relations: [glued('table1')] } },
+            }
+            const sub = subScene(full, ['tea1', 'table1'])
+            expect(judgeRules(sub).map(({ handle }) => handle)).toContain('tea-secured-to-table')
+            expect(ruleTagHandles(renderSceneExplicit(sub, { rules: 'handles', full }))).toContain('tea1-secured-to-table1')
+        })
+
+        it('has no form yet for a securing to something other than a thing', async () => {
+            const scene = await fixture('teaTable')
+            const boat = { ...scene, things: { ...scene.things, table1: { ...scene.things.table1, relations: [{ kind: 'SecuredTo' as const, target: { kind: 'notShown' as const } }] } } }
+            expect(() => renderSceneExplicit(boat, { rules: 'handles' })).toThrow('no rule handle yet')
+            expect(() => renderSceneExplicit(boat)).not.toThrow()
+        })
     })
 
     describe('refuses the shapes step 0 does not probe', () => {

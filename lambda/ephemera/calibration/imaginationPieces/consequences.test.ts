@@ -68,7 +68,7 @@ describe('consequences', () => {
             expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
             expect(consequences.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
             expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
-            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence', scene?: 'judge' | 'explicit' }")
+            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence' | 'handles', scene?: 'judge' | 'explicit' }")
         })
 
         it('refuses rules: consequence under the explicit render, its default included', () => {
@@ -90,8 +90,8 @@ describe('consequences', () => {
                 ...pickUp.steps[0],
                 items: [
                     ...pickUp.steps[0].items,
-                    { kind: 'consequence', path: 'pick-up-table1.saucer1-rises-table1', thing: 'saucer1', says: '[saucer1] rises with [table1]' },
-                    { kind: 'concern', path: 'pick-up-table1.cup1-may-rattle', says: '[cup1] may rattle on [saucer1]' },
+                    { kind: 'consequence', path: 'pick-up-table1.saucer1-rises-table1', standing: 'confirmed', thing: 'saucer1', says: '[saucer1] rises with [table1]' },
+                    { kind: 'concern', path: 'pick-up-table1.cup1-may-rattle', standing: 'confirmed', says: '[cup1] may rattle on [saucer1]' },
                 ],
             }] } })
         })
@@ -159,20 +159,20 @@ describe('consequences', () => {
         it('each a one-step plan holding its intent and no consequences, so the reply establishes the outcome (the user, 2026-11-18)', () => {
             expect(Object.fromEntries(Object.entries(consequencesCells).map(([id, { inputs: { plan, target } }]) => [id, { target, plan }]))).toEqual({
                 'OC-30/2': { target: 'tip-table1', plan: { steps: [{
-                    says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1',
-                    items: [{ kind: 'intent', path: 'tip-table1.intent', says: '[teapot1] pours [tea2] into [cup1]' }],
+                    says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1', standing: 'confirmed',
+                    items: [{ kind: 'intent', path: 'tip-table1.intent', standing: 'confirmed', says: '[teapot1] pours [tea2] into [cup1]' }],
                 }] } },
                 'OC-1': { target: 'pick-up-table1', plan: { steps: [{
-                    says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1',
-                    items: [{ kind: 'intent', path: 'pick-up-table1.intent', says: 'pick up [table1]' }],
+                    says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1', standing: 'confirmed',
+                    items: [{ kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: 'pick up [table1]' }],
                 }] } },
                 cup: { target: 'pick-up-cup1', plan: { steps: [{
-                    says: 'pick up [cup1]', suppliedBy: 'system', path: 'pick-up-cup1',
-                    items: [{ kind: 'intent', path: 'pick-up-cup1.intent', says: 'pick up [cup1]' }],
+                    says: 'pick up [cup1]', suppliedBy: 'system', path: 'pick-up-cup1', standing: 'confirmed',
+                    items: [{ kind: 'intent', path: 'pick-up-cup1.intent', standing: 'confirmed', says: 'pick up [cup1]' }],
                 }] } },
                 'OC-1/teapot1': { target: 'pick-up-table1', plan: { steps: [{
-                    says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1',
-                    items: [{ kind: 'intent', path: 'pick-up-table1.intent', says: 'pick up [table1]' }],
+                    says: 'pick up [table1]', suppliedBy: 'system', path: 'pick-up-table1', standing: 'confirmed',
+                    items: [{ kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: 'pick up [table1]' }],
                 }] } },
             })
         })
@@ -207,9 +207,9 @@ describe('consequences', () => {
         })
     })
 
-    it('prints a batch\'s merged plans for reading (`read-plans`)', () => {
+    it('prints a batch\'s merged plans for reading (`read-plans`)', async () => {
         const slide = fenced({ changes: [{ add: 'consequence', thing: 'cup1', says: '[cup1] slides off with [saucer1]' }] })
-        expect(consequencesPlansText([
+        expect(await consequencesPlansText([
             { cell: 'OC-30/2', lookFor: '', replies: [{ repeat: 1, reply: slide }, { repeat: 2, reply: fenced({ changes: [{ add: 'concern', to: 'tip', says: 'x' }] }) }] },
             { cell: 'OC-99', lookFor: '', replies: [{ repeat: 1, reply: slide }] },
         ])).toBe([

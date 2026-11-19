@@ -17,9 +17,10 @@ export type ImaginationOptions = {
     /**
      * How the sub-scene's rules are shown: `none` (the default), or `consequence`, each rule's fact and what it does when the thing its
      * subject is secured to is moved (user, 2026-11-10). Whether a rule blocks is the rule cell's, so an ask is shown only what a rule
-     * causes (PB-2, PR-1). Replaces a `sceneRules` boolean that showed v45's sentences.
+     * causes (PB-2, PR-1). Replaces a `sceneRules` boolean that showed v45's sentences. Or `handles`, the explicit render's securings each
+     * tagged with its rule's handle, minted on the full scene (AGENT.itemStanding.planning.md, IS-3), so a reply can name a rule.
      */
-    rules: 'none' | 'consequence'
+    rules: 'none' | 'consequence' | 'handles'
     /**
      * Which render the sub-scene takes: the judge render's Fiction and Graph when absent, or the explicit render
      * (calibration AGENT.md, "Scene renders"). The explicit render states each securing as a carry line itself, so it takes no `rules: 'consequence'` (mine).
@@ -33,28 +34,44 @@ export const parseImaginationOptions = (value: unknown): ImaginationOptions | st
     if (value === undefined) {
         return IMAGINATION_OPTIONS
     }
-    const shape = `options must be { rules?: 'none' | 'consequence', scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    const shape = `options must be { rules?: 'none' | 'consequence' | 'handles', scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
     const { rules = IMAGINATION_OPTIONS.rules, scene, ...rest } = value as Record<string, unknown>
-    if (Object.keys(rest).length > 0 || (rules !== 'none' && rules !== 'consequence') || (scene !== undefined && !isSceneRender(scene))) {
+    if (Object.keys(rest).length > 0 || (rules !== 'none' && rules !== 'consequence' && rules !== 'handles') || (scene !== undefined && !isSceneRender(scene))) {
         return shape
     }
     if (scene === 'explicit' && rules === 'consequence') {
         return "scene: 'explicit' takes no rules: 'consequence'; the explicit render states the securing itself"
     }
+    if (scene !== 'explicit' && rules === 'handles') {
+        return "rules: 'handles' tags the explicit render's securings; it needs scene: 'explicit'"
+    }
     return scene === undefined ? { rules } : { rules, scene }
 }
 
+/** Whether a `rules` value fits a scene render: `handles` tags the explicit render, `consequence` adds to the judge render's. */
+const rulesFit = (rules: ImaginationOptions['rules'], scene: SceneRender | undefined): boolean =>
+    rules === 'none' || (rules === 'handles' ? scene === 'explicit' : scene !== 'explicit')
+
 /**
- * The imagination's options over a piece's defaults: with no options the defaults, and the default scene filled in where the options
- * name none, before the check, so the default too refuses `rules: 'consequence'` under the explicit render.
+ * The imagination's options over a piece's defaults: with no options the defaults; the default scene filled in where the options name
+ * none, before the check, so the default too refuses `rules: 'consequence'` under the explicit render; and the default rules where the
+ * options name none and the default fits the scene, else `none` (so `{ scene: 'judge' }` stays a valid ask on a `handles` default).
  */
-export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value: unknown): ImaginationOptions | string =>
-    parseImaginationOptions(value === undefined ? defaults
-        : defaults.scene !== undefined && typeof value === 'object' && value !== null && !Array.isArray(value) && !('scene' in value) ? { ...value, scene: defaults.scene }
-        : value)
+export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value: unknown): ImaginationOptions | string => {
+    if (value === undefined) {
+        return parseImaginationOptions(defaults)
+    }
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return parseImaginationOptions(value)
+    }
+    const named = value as Record<string, unknown>
+    const withScene = defaults.scene !== undefined && !('scene' in named) ? { ...named, scene: defaults.scene } : named
+    const scene = withScene.scene as SceneRender | undefined
+    return parseImaginationOptions('rules' in named ? withScene : { ...withScene, rules: rulesFit(defaults.rules, scene) ? defaults.rules : 'none' })
+}
 
 export const fixtureScene = async (name: string): Promise<SceneModel> => {
     const fixture = sceneFixture(name)
@@ -79,7 +96,8 @@ const consequenceRules = (scene: SceneModel): string[] => {
 
 /**
  * The scene's parts, the sub-scene of the shown things heading to `End of scene.`: the judge render's Fiction and Graph (with the rules
- * under `rules: 'consequence'`), or with `scene: 'explicit'` the explicit render (`renderSceneExplicit`). A shown handle not in the
+ * under `rules: 'consequence'`), or with `scene: 'explicit'` the explicit render (`renderSceneExplicit`), its securings tagged with their
+ * full-scene rule handles under `rules: 'handles'`. A shown handle not in the
  * fixture's scene throws (`subScene`).
  */
 export const renderScene = async (
@@ -89,7 +107,7 @@ export const renderScene = async (
     const full = await fixtureScene(fixture)
     const sub = subScene(full, [...new Set(shown)])
     if (scene === 'explicit') {
-        return [renderSceneExplicit(sub)]
+        return [renderSceneExplicit(sub, { rules: rules === 'handles' ? 'handles' : 'none', full })]
     }
     const sections = judgeSceneSections(sub)
     return [
