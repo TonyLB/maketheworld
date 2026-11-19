@@ -1,6 +1,6 @@
 //
-// What the imagination's pieces render and check in common (AGENT.imagination.planning.md, step 1.5): the fixture's sub-scene and the
-// actions, the `rules` option, and the block, a line per thing per action and a list of problems, shared while IM-5 is open.
+// What the imagination's pieces render in common (AGENT.imagination.planning.md, step 1.5): the fixture's sub-scene, the `rules` and
+// `scene` options, and the handles a plan names. Both pieces are reducers on the action plan, replying in its change language.
 //
 import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
@@ -9,7 +9,7 @@ import { subScene } from '../../dataSource/actions/sceneProse/subScene'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
-import { splitMarkdownReasoningAndJson } from '../../llm/splitMarkdownReasoningAndJson'
+import { itemTexts, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../pieceProbe/sceneRenders'
 
@@ -47,6 +47,15 @@ export const parseImaginationOptions = (value: unknown): ImaginationOptions | st
     return scene === undefined ? { rules } : { rules, scene }
 }
 
+/**
+ * The imagination's options over a piece's defaults: with no options the defaults, and the default scene filled in where the options
+ * name none, before the check, so the default too refuses `rules: 'consequence'` under the explicit render.
+ */
+export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value: unknown): ImaginationOptions | string =>
+    parseImaginationOptions(value === undefined ? defaults
+        : defaults.scene !== undefined && typeof value === 'object' && value !== null && !Array.isArray(value) && !('scene' in value) ? { ...value, scene: defaults.scene }
+        : value)
+
 export const fixtureScene = async (name: string): Promise<SceneModel> => {
     const fixture = sceneFixture(name)
     return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
@@ -55,8 +64,9 @@ export const fixtureScene = async (name: string): Promise<SceneModel> => {
 /** The handles a text names in brackets, in order. */
 export const namedHandles = (text: string): SceneHandle[] => [...text.matchAll(/\[([^\]]+)\]/g)].map(([, handle]) => handle)
 
-/** The handles a list of actions names, each once, in order. */
-export const actionsHandles = (actions: readonly string[]): SceneHandle[] => [...new Set(actions.flatMap(namedHandles))]
+/** The handles a plan's text names, its sub-steps' included, each once, in order. */
+export const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
+    [...new Set(steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)]).flatMap(namedHandles))]
 
 /** The handles listed more than once, each once. */
 export const listedTwice = (handles: readonly SceneHandle[]): SceneHandle[] => [...new Set(handles.filter((handle, index) => handles.indexOf(handle) !== index))]
@@ -92,87 +102,11 @@ export const renderScene = async (
 }
 
 /**
- * The prompt's parts up to the actions: the scene (`renderScene`) of the shown things and every thing the actions name, so the prompt
- * names nothing the scene doesn't show (mine), then each action in order. The asks add their own parts after.
- */
-export const renderSceneAndActions = async (
-    { fixture, actions, shown }: { fixture: string; actions: readonly string[]; shown: readonly SceneHandle[] },
-    options: ImaginationOptions,
-): Promise<string[]> => {
-    if (actions.length === 0) {
-        throw new Error('No actions')
-    }
-    const full = await fixtureScene(fixture)
-    const named = actionsHandles(actions)
-    const unknown = named.filter((handle) => full.things[handle] === undefined)
-    if (unknown.length > 0) {
-        throw new Error(`The actions name ${unknown.join(', ')}, not in ${fixture}'s scene`)
-    }
-    return [...await renderScene({ fixture, shown: [...shown, ...named] }, options), ...actions.map((says, index) => `Action ${index + 1}: ${says}`)]
-}
-
-/**
  * The things to describe. Under the explicit render the line is `The things to describe:`, since the render's own per-thing section is
  * headed `The things:` (mine).
  */
 export const thingsLine = (things: readonly SceneHandle[], { scene = 'judge' }: Pick<ImaginationOptions, 'scene'> = {}): string =>
     `${scene === 'explicit' ? 'The things to describe' : 'The things'}: ${things.map((handle) => `[${handle}]`).join(', ')}`
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/**
- * An entry's lines by bare handle: `[teapot1]` and `teapot1` are the same key, as the prompt writes every handle in brackets (user, 2026-11-10).
- * Where both spellings appear, their values are merged in the entry's order.
- */
-export const linesByHandle = (entry: Record<string, unknown>): Map<SceneHandle, unknown[]> => Object.entries(entry).reduce((lines, [key, value]) => {
-    const handle = key.trim().replace(/^\[(.*)\]$/, '$1')
-    return lines.set(handle, [...(lines.get(handle) ?? []), value])
-}, new Map<SceneHandle, unknown[]>())
-
-/**
- * The form problems of one reply: a fenced `json` block whose `actions` has an entry per action, each a non-empty line for some of the
- * described things and no others, keyed by handle with or without its brackets. A described thing with no line is silent, not a form
- * failure: it keeps its relations and stays in its frame (user, 2026-11-10).
- */
-export const checkActionsBlock = (reply: string, actionCount: number, things: readonly SceneHandle[]): string[] => {
-    const split = splitMarkdownReasoningAndJson(reply)
-    if (!split.ok) {
-        return ['no JSON block']
-    }
-    let value: unknown
-    try {
-        value = JSON.parse(split.jsonText)
-    } catch {
-        return ['the JSON block does not parse']
-    }
-    const given = isRecord(value) ? value.actions : undefined
-    if (!Array.isArray(given)) {
-        return ['the JSON block has no "actions" array']
-    }
-    return [
-        ...(given.length === actionCount ? [] : [`expected ${actionCount} actions, got ${given.length}`]),
-        ...given.flatMap((entry, index): string[] => {
-            const action = `action ${index + 1}`
-            if (!isRecord(entry)) {
-                return [`${action} is not an object`]
-            }
-            const lines = linesByHandle(entry)
-            return [
-                ...[...lines.keys()].filter((handle) => !things.includes(handle)).map((handle) => `${action}: ${handle} is not a listed thing`),
-                ...things.flatMap((handle) => {
-                    const values = lines.get(handle)
-                    if (values === undefined) {
-                        return []
-                    }
-                    if (!values.every((value): value is string => typeof value === 'string')) {
-                        return [`${action}: ${handle}'s line is not a string`]
-                    }
-                    return values.join(' ').trim() === '' ? [`${action}: ${handle}'s line is empty`] : []
-                }),
-            ]
-        }),
-    ]
-}
 
 /** A case's first candidate's actions, as the oracle probe has them. */
 export const caseActions = (id: string): readonly string[] => oracleCases[id].candidates[0].steps.map(({ says }) => says)
