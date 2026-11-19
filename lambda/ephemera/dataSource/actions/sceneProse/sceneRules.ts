@@ -130,6 +130,9 @@ export const rulesLines = (scene: SceneModel, style: 'relative' | 'action' = 're
  */
 type JudgeRule = { ends: SceneHandle[]; sentence: string }
 
+/** The securing edge a rule is minted from: its subject, and the relation's target. */
+type RuleEdge = { subject: SceneHandle; target: SceneRelationTarget }
+
 /**
  * How a rule's sentence is worded: `v45`, the built judge's invariant; or `violation` (oracleLoop's drafts, a Prototype the oracle harness
  * selects), a test of a method: it keeps the rule by moving the two together or by first changing the fact behind it, and breaks it by
@@ -213,8 +216,11 @@ const handleStem = (handle: SceneHandle): string => handle.replace(/-?\p{N}+$/u,
 
 const ruleHandle = (ends: string[]): string => (ends.length === 1 ? `${ends[0]}-secured` : ends.join('-secured-to-'))
 
-/** One rule of the judge's Rules section: its handle, the things it names, its sentence in the given wording, and its parts. */
-export type JudgeRuleLine = { handle: string; ends: SceneHandle[]; sentence: string; parts: JudgeRuleParts }
+/**
+ * One rule of the judge's Rules section: its handle, the things it names, its sentence in the given wording, its parts, and the securing
+ * edge it is minted from (`subject`, `target`), so a render can find a securing's rule by its edge (AGENT.itemStanding.planning.md, IS-3).
+ */
+export type JudgeRuleLine = { handle: string; ends: SceneHandle[]; sentence: string; parts: JudgeRuleParts } & RuleEdge
 
 /** The rules `judgeRulesLines` lists, one by one, so a reader can take a single rule by its handle (the oracle's rule cell, `calibration/oraclePieces/ruleCell.ts`). */
 export const judgeRules = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): JudgeRuleLine[] => {
@@ -226,12 +232,12 @@ export const judgeRules = (scene: SceneModel, wording: JudgeRulesWording = 'v45'
         }
         const rule = judgeRule(subject, relation.target, hosts)
         const parts = ruleParts(subject, relation.target, words)
-        return [{ ...rule, parts, ...(wording === 'v45' ? {} : { sentence: draftSentences[wording](subject, relation.target, words) }) }]
+        return [{ ...rule, parts, subject, target: relation.target, ...(wording === 'v45' ? {} : { sentence: draftSentences[wording](subject, relation.target, words) }) }]
     }))
     const stemmed = rules.map(({ ends }) => ruleHandle(ends.map(handleStem)))
-    return rules.map(({ ends, sentence, parts }, index) => {
+    return rules.map(({ ends, sentence, parts, subject, target }, index) => {
         const unique = stemmed.filter((handle) => handle === stemmed[index]).length === 1
-        return { handle: unique ? stemmed[index] : ruleHandle(ends), ends, sentence, parts }
+        return { handle: unique ? stemmed[index] : ruleHandle(ends), ends, sentence, parts, subject, target }
     })
 }
 

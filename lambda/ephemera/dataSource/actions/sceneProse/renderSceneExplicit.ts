@@ -10,13 +10,17 @@
  * - the default for everything unstated (the user's, with the gloss written in): "In everything the scene doesn't say, [table1] is as an
  *   ordinary small round tea table is."
  *
+ * - with `rules: 'handles'` (AGENT.itemStanding.planning.md, IS-3), each securing's fact tagged with its rule's handle, " (rule [h])", so a
+ *   reader can name the rule. The handle is minted from the securing edge in the full scene (`judgeRules(full)`), never from this render,
+ *   so it is the same in every sub-scene. The default, `none`, is the render as it was, byte for byte.
+ *
  * The wording is provisional, pinned by `renderSceneExplicit.test.ts`. Shapes step 0 doesn't probe (a join, a spread thing, Concepts)
  * throw, rather than render a guess.
  */
 import type { SceneEntry, SceneHandle, SceneModel, SceneRelation } from '../../positions/ludicCache/sceneModel'
 import { listWords, sceneEntries } from './renderSceneRegisters'
 import { judgeSceneSections } from './renderSceneJudge'
-import { actionRule, hostsOf, securingWords, withoutSecuring } from './sceneRules'
+import { actionRule, hostsOf, judgeRules, securingWords, withoutSecuring } from './sceneRules'
 import { bracket, headText, heading, hostingClause, relationPhrases, roomRef, targetWords } from './sceneWording'
 
 type Placed = { entry: SceneEntry; place: string }
@@ -44,10 +48,39 @@ const refuseUnprobed = (scene: SceneModel): void => {
     })
 }
 
+/**
+ * What the explicit render shows of the scene's rules: `none` (the default), or `handles`, each securing tagged with its rule's handle.
+ * `full` is the scene the handles are minted from, by default the scene rendered; a caller rendering a sub-scene passes the full scene.
+ */
+export type ExplicitRenderOptions = { rules?: 'none' | 'handles'; full?: SceneModel }
+
+/** The tag after a securing's fact: ` (rule [h])`. */
+const ruleTag = (handle: string): string => ` (rule ${bracket(handle)})`
+
+/** The rule handles a rendered text tags (`ruleTag`), in order, each once: what a reader of the render was shown it can name. */
+export const ruleTagHandles = (text: string): string[] => [...new Set([...text.matchAll(/ \(rule \[([^\]]+)\]\)/g)].map(([, handle]) => handle))]
+
+/** A securing's tag under `rules: 'handles'`: its rule in the full scene, found by its edge. A target other than a thing has no form yet (IS-3). */
+type SecuringTag = (subject: SceneHandle, relation: SceneRelation) => string
+
+const securingTag = (full: SceneModel): SecuringTag => {
+    const rules = judgeRules(full)
+    return (subject, { target }) => {
+        if (target.kind !== 'thing') {
+            throw new Error(`The explicit render has no rule handle yet for a securing to ${targetWords(target)} ([${subject}])`)
+        }
+        const rule = rules.find((candidate) => candidate.subject === subject && candidate.target.kind === 'thing' && candidate.target.handle === target.handle)
+        if (rule === undefined) {
+            throw new Error(`No rule in the full scene for [${subject}]'s securing to [${target.handle}]`)
+        }
+        return ruleTag(rule.handle)
+    }
+}
+
 /** A securing as a carry line: a hosted end goes wherever its host goes; any other pair takes the action rule's sentences. */
-const securedSentence = (subject: SceneHandle, relation: SceneRelation, words: string, hosts: Map<SceneHandle, Set<SceneHandle>>): string => {
+const securedSentence = (subject: SceneHandle, relation: SceneRelation, words: string, hosts: Map<SceneHandle, Set<SceneHandle>>, tag?: SecuringTag): string => {
     const { target } = relation
-    const fact = `${bracket(subject)} is ${words} ${targetWords(target)}`
+    const fact = `${bracket(subject)} is ${words} ${targetWords(target)}${tag === undefined ? '' : tag(subject, relation)}`
     if (target.kind === 'thing' && hosts.get(subject)?.has(target.handle)) {
         return `${fact}, so it goes wherever ${bracket(target.handle)} goes, even when ${bracket(target.handle)} is tipped.`
     }
@@ -115,12 +148,12 @@ const ordinary = (scene: SceneModel, handle: SceneHandle): string => {
     return `an ordinary ${what}`
 }
 
-const thingLine = (scene: SceneModel, { entry, place }: Placed, hosts: Map<SceneHandle, Set<SceneHandle>>, secured: ReadonlySet<SceneHandle>, loose: SceneModel): string => {
+const thingLine = (scene: SceneModel, { entry, place }: Placed, hosts: Map<SceneHandle, Set<SceneHandle>>, secured: ReadonlySet<SceneHandle>, loose: SceneModel, tag?: SecuringTag): string => {
     const { handle } = entry
     const relations = scene.things[handle].relations
     const securings = relations.flatMap((relation) => {
         const words = securingWords(relation)
-        return words === undefined ? [] : [securedSentence(handle, relation, words, hosts)]
+        return words === undefined ? [] : [securedSentence(handle, relation, words, hosts, tag)]
     })
     const others = relationPhrases(loose, handle).map((phrase) => `${bracket(handle)} is ${phrase.replace(/^is /, '')}.`)
     const groups = childGroups(entry.children)
@@ -134,15 +167,16 @@ const thingLine = (scene: SceneModel, { entry, place }: Placed, hosts: Map<Scene
     ].join(' ')}`
 }
 
-export const renderSceneExplicit = (scene: SceneModel): string => {
+export const renderSceneExplicit = (scene: SceneModel, { rules = 'none', full = scene }: ExplicitRenderOptions = {}): string => {
     refuseUnprobed(scene)
     const hosts = hostsOf(scene)
     const secured = securedToHost(scene, hosts)
     const loose = withoutSecuring(scene)
+    const tag = rules === 'handles' ? securingTag(full) : undefined
     return [
         `Scene: ${heading(scene)}`,
         judgeSceneSections(scene).fiction,
-        ['The things:', ...placed(scene).map((item) => thingLine(scene, item, hosts, secured, loose))].join('\n'),
+        ['The things:', ...placed(scene).map((item) => thingLine(scene, item, hosts, secured, loose, tag))].join('\n'),
         'End of scene.',
     ].join('\n\n')
 }

@@ -9,7 +9,7 @@ import type { ReadGroup } from '../pieceProbe/readPiece'
 import { consequencesPlansText } from './consequences'
 import { playByPlayPlansText } from './playByPlay'
 
-const PLANS_TEXT: Record<string, (groups: readonly ReadGroup[]) => string> = { playByPlay: playByPlayPlansText, consequences: consequencesPlansText }
+const PLANS_TEXT: Record<string, (groups: readonly ReadGroup[], options?: unknown) => Promise<string>> = { playByPlay: playByPlayPlansText, consequences: consequencesPlansText }
 
 const [resultsPath] = process.argv.slice(2)
 if (!resultsPath) {
@@ -28,4 +28,11 @@ if (!Array.isArray(body.read)) {
     console.error(`${resultsPath}: no "read" groups`)
     process.exit(1)
 }
-console.log(text(body.read))
+// Each cell is rendered with the batch's own options, so the contract reads the prompt the batch was shown. Building a fixture's scene
+// logs, so its console output is dropped and the plans written straight to stdout.
+console.log = () => {}
+console.info = () => {}
+text(body.read, body.options).then((printed) => process.stdout.write(`${printed}\n`)).catch((error: unknown) => {
+    console.error(`${resultsPath}: ${error instanceof Error ? error.message : String(error)}`)
+    process.exit(1)
+})

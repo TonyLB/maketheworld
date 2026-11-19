@@ -90,7 +90,7 @@ describe('the action plan', () => {
             for (const [id, { steps }] of candidates) {
                 const plan = planFromCandidateSteps(steps)
                 expectWellFormed(id, plan)
-                expect([id, plan.steps.map(({ path, items, ...step }) => ({ step, items }))]).toEqual([id, steps.map((step) => ({ step, items: [] }))])
+                expect([id, plan.steps.map(({ path, items, standing, ...step }) => ({ step, standing, items }))]).toEqual([id, steps.map((step) => ({ step, standing: 'confirmed', items: [] }))])
             }
         })
 
@@ -129,9 +129,9 @@ describe('the action plan', () => {
     })
 
     describe('the trial\'s roles: an intended step folds into the method step before it', () => {
-        const intent = { kind: 'intent', path: 'tip-table1.intent', says: '[teapot1] pours [tea2] into [cup1]' }
-        const intendedPour = { kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2', says: '[teapot1] pours [tea2] into [cup1]', intended: true }
-        const tip = { says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1', items: [intent, intendedPour] }
+        const intent = { kind: 'intent', path: 'tip-table1.intent', standing: 'confirmed', says: '[teapot1] pours [tea2] into [cup1]' }
+        const intendedPour = { kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2', standing: 'confirmed', says: '[teapot1] pours [tea2] into [cup1]', intended: true }
+        const tip = { says: 'tip [table1]', suppliedBy: 'system', path: 'tip-table1', standing: 'confirmed', items: [intent, intendedPour] }
 
         it('h5: the pour folds into the tip as its intent and its intended consequence', () => {
             expect(planFromNonRuleSteps(nonRuleCellCells['OC-30/h5'].inputs.steps)).toEqual({ steps: [tip] })
@@ -139,20 +139,20 @@ describe('the action plan', () => {
 
         it('h7: the slide line follows the intended pour', () => {
             expect(planFromNonRuleSteps(nonRuleCellCells['OC-30/h7'].inputs.steps)).toEqual({ steps: [{
-                ...tip, items: [intent, intendedPour, { kind: 'consequence', path: 'tip-table1.saucer1-cup1-slide', says: '[saucer1] and [cup1] slide off [table1] onto the floor' }],
+                ...tip, items: [intent, intendedPour, { kind: 'consequence', path: 'tip-table1.saucer1-cup1-slide', standing: 'confirmed', says: '[saucer1] and [cup1] slide off [table1] onto the floor' }],
             }] })
         })
 
         it('h10: the saucer picked up first, with no items, then the tip as in h5', () => {
             expect(planFromNonRuleSteps(nonRuleCellCells['OC-30/h10'].inputs.steps)).toEqual({ steps: [
-                { says: 'pick up [saucer1]', suppliedBy: 'system', path: 'pick-up-saucer1', items: [] },
+                { says: 'pick up [saucer1]', suppliedBy: 'system', path: 'pick-up-saucer1', standing: 'confirmed', items: [] },
                 tip,
             ] })
         })
 
         it('a single intended step stays a step, with an intent of its own text and no intended consequence', () => {
             expect(planFromNonRuleSteps(nonRuleCellCells['OC-2'].inputs.steps)).toEqual({ steps: [
-                { says: 'pick up [cup1]', suppliedBy: 'system', path: 'pick-up-cup1', items: [{ kind: 'intent', path: 'pick-up-cup1.intent', says: 'pick up [cup1]' }] },
+                { says: 'pick up [cup1]', suppliedBy: 'system', path: 'pick-up-cup1', standing: 'confirmed', items: [{ kind: 'intent', path: 'pick-up-cup1.intent', standing: 'confirmed', says: 'pick up [cup1]' }] },
             ] })
         })
 
@@ -184,15 +184,16 @@ describe('the action plan', () => {
         const h10 = () => planFromNonRuleSteps(nonRuleCellCells['OC-30/h10'].inputs.steps)
         const slide = { add: 'consequence', to: 'tip-table1', thing: 'cup1', says: '[cup1] slides off with [saucer1] onto the floor' }
         const spout = { add: 'concern', to: 'tip-table1', says: '[cup1] is no longer under [teapot1]\'s spout' }
+        const asConsequences: MergeOptions = { author: 'consequences' }
         const merged = (plan: ActionPlan, changes: unknown[]): ActionPlan => {
-            const result = mergeChanges(plan, { changes }, handles)
+            const result = mergeChanges(plan, { changes }, handles, asConsequences)
             if ('problems' in result) {
                 throw new Error(result.problems.join('; '))
             }
             return result.plan
         }
         const refused = (plan: ActionPlan, block: unknown): string[] => {
-            const result = mergeChanges(plan, block, handles)
+            const result = mergeChanges(plan, block, handles, asConsequences)
             return 'problems' in result ? result.problems : []
         }
 
@@ -200,10 +201,10 @@ describe('the action plan', () => {
             const plan = merged(h5(), [slide, spout])
             expectWellFormed('h5', plan)
             expect(plan.steps[0].items).toEqual([
-                { kind: 'intent', path: 'tip-table1.intent', says: '[teapot1] pours [tea2] into [cup1]' },
-                { kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2', says: '[teapot1] pours [tea2] into [cup1]', intended: true },
-                { kind: 'consequence', path: 'tip-table1.cup1-slides-saucer1', says: '[cup1] slides off with [saucer1] onto the floor', thing: 'cup1' },
-                { kind: 'concern', path: 'tip-table1.cup1-no-longer', says: '[cup1] is no longer under [teapot1]\'s spout' },
+                { kind: 'intent', path: 'tip-table1.intent', standing: 'confirmed', says: '[teapot1] pours [tea2] into [cup1]' },
+                { kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2', standing: 'confirmed', says: '[teapot1] pours [tea2] into [cup1]', intended: true },
+                { kind: 'consequence', path: 'tip-table1.cup1-slides-saucer1', standing: 'confirmed', says: '[cup1] slides off with [saucer1] onto the floor', thing: 'cup1' },
+                { kind: 'concern', path: 'tip-table1.cup1-no-longer', standing: 'confirmed', says: '[cup1] is no longer under [teapot1]\'s spout' },
             ])
         })
 
@@ -222,12 +223,12 @@ describe('the action plan', () => {
             expectWellFormed('h10', plan)
             expect(plan.steps[0]).toBe(before.steps[0])
             expect(plan.steps[1].items.slice(-1)).toEqual([
-                { kind: 'consequence', path: 'tip-table1.teapot1-slides-toward', says: '[teapot1] slides toward the tipped edge', thing: 'teapot1' },
+                { kind: 'consequence', path: 'tip-table1.teapot1-slides-toward', standing: 'confirmed', says: '[teapot1] slides toward the tipped edge', thing: 'teapot1' },
             ])
         })
 
         it('h10: a block that addresses a step not in the plan is refused whole', () => {
-            expect(mergeChanges(h10(), { changes: [slide, { ...spout, to: 'pick-up-cup1' }] }, handles)).toEqual({ problems: ['change 2: to "pick-up-cup1" names no step'] })
+            expect(mergeChanges(h10(), { changes: [slide, { ...spout, to: 'pick-up-cup1' }] }, handles, asConsequences)).toEqual({ problems: ['change 2: to "pick-up-cup1" names no step'] })
         })
 
         it('gives a repeat of an existing item\'s text the next free -n', () => {
@@ -273,7 +274,7 @@ describe('the action plan', () => {
 
         describe('scoped to one step, with `to` supplied', () => {
             const unscoped = ({ to, ...change }: Record<string, unknown>) => change
-            const scoped = (plan: ActionPlan, target: string, block: unknown) => mergeStepChanges(plan, target, block, handles)
+            const scoped = (plan: ActionPlan, target: string, block: unknown) => mergeStepChanges(plan, target, block, handles, asConsequences)
 
             it('fills each change\'s missing `to` with the target, and merges as mergeChanges does', () => {
                 expect(scoped(h5(), 'tip-table1', { changes: [unscoped(slide), unscoped(spout)] })).toEqual({ plan: merged(h5(), [slide, spout]) })
@@ -298,12 +299,12 @@ describe('the action plan', () => {
             })
 
             it('refuses a key beside "changes", with the other problems', () => {
-                expect(mergeChanges(h5(), { changes: [slide], concerns: [spout] }, handles)).toEqual({ problems: ['the JSON block has "concerns"; everything it adds goes in "changes"'] })
-                expect(mergeChanges(h5(), { concerns: [spout] }, handles)).toEqual({ problems: ['the JSON block has no "changes" array', 'the JSON block has "concerns"; everything it adds goes in "changes"'] })
+                expect(mergeChanges(h5(), { changes: [slide], concerns: [spout] }, handles, asConsequences)).toEqual({ problems: ['the JSON block has "concerns"; everything it adds goes in "changes"'] })
+                expect(mergeChanges(h5(), { concerns: [spout] }, handles, asConsequences)).toEqual({ problems: ['the JSON block has no "changes" array', 'the JSON block has "concerns"; everything it adds goes in "changes"'] })
             })
 
             it('names its handles in a refusal as the caller says', () => {
-                expect(mergeChanges(h5(), { changes: [{ ...slide, thing: 'mug1' }] }, handles, { handlesAre: 'a listed thing' })).toEqual({ problems: ['change 1: thing "mug1" is not a listed thing'] })
+                expect(mergeChanges(h5(), { changes: [{ ...slide, thing: 'mug1' }] }, handles, { author: 'consequences', handlesAre: 'a listed thing' })).toEqual({ problems: ['change 1: thing "mug1" is not a listed thing'] })
             })
 
             it('leaves the other problems to mergeChanges', () => {
@@ -319,11 +320,11 @@ describe('the action plan', () => {
         describe('the contract', () => {
             it('parses a reply\'s fenced block into the merged plan', () => {
                 const reply = ['Tipping the table moves the cup.', '', '```json', JSON.stringify({ changes: [slide, spout] }), '```'].join('\n')
-                expect(planChangesContract.parse(reply, { input: { plan: h5(), handles }, rendered: '' })).toEqual({ value: merged(h5(), [slide, spout]) })
+                expect(planChangesContract.parse(reply, { input: { plan: h5(), handles, author: 'consequences' }, rendered: '' })).toEqual({ value: merged(h5(), [slide, spout]) })
             })
 
             it('gives the form problem of a reply with no block', () => {
-                expect(planChangesContract.parse('Nothing changes.', { input: { plan: h5(), handles }, rendered: '' })).toEqual({ problems: ['no JSON block'] })
+                expect(planChangesContract.parse('Nothing changes.', { input: { plan: h5(), handles, author: 'consequences' }, rendered: '' })).toEqual({ problems: ['no JSON block'] })
             })
         })
 
@@ -339,8 +340,8 @@ describe('the action plan', () => {
                 const plan = merged(tip(), [execution])
                 expectWellFormed('tip', plan)
                 expect(plan.steps[0].items).toEqual([
-                    { kind: 'intent', path: 'tip-table1.intent', says: '[teapot1] pours [tea2] into [cup1]' },
-                    { kind: 'possibility', path: 'tip-table1.execution', openness: 'execution', says: execution.says, branches: [
+                    { kind: 'intent', path: 'tip-table1.intent', standing: 'confirmed', says: '[teapot1] pours [tea2] into [cup1]' },
+                    { kind: 'possibility', path: 'tip-table1.execution', standing: 'confirmed', openness: 'execution', says: execution.says, branches: [
                         { kind: 'maybe', path: 'tip-table1.maybe', items: [{ kind: 'consequence', path: 'tip-table1.teapot1-pours-tea2', thing: 'teapot1', says: pours.says }] },
                         { kind: 'maybe', path: 'tip-table1.maybe-2', items: [
                             { kind: 'consequence', path: 'tip-table1.saucer1-cup1-slide', thing: 'saucer1', says: slides.says },
@@ -385,7 +386,7 @@ describe('the action plan', () => {
 
             it('mints a later addition against every path the step holds, branches included', () => {
                 const plan = merged(merged(tip(), [execution]), [{ add: 'consequence', to: 'tip-table1', says: '[tea2] spills' }])
-                expect(plan.steps[0].items[1]).toEqual({ kind: 'consequence', path: 'tip-table1.tea2-spills-2', says: '[tea2] spills' })
+                expect(plan.steps[0].items[1]).toEqual({ kind: 'consequence', path: 'tip-table1.tea2-spills-2', standing: 'confirmed', says: '[tea2] spills' })
                 expectWellFormed('tip, twice', plan)
             })
 
@@ -419,7 +420,7 @@ describe('the action plan', () => {
 
             it('is scoped like any change: code supplies `to`', () => {
                 const { to: _, ...unaddressed } = execution
-                expect(mergeStepChanges(tip(), 'tip-table1', { changes: [unaddressed] }, handles)).toEqual({ plan: merged(tip(), [execution]) })
+                expect(mergeStepChanges(tip(), 'tip-table1', { changes: [unaddressed] }, handles, asConsequences)).toEqual({ plan: merged(tip(), [execution]) })
             })
         })
 
@@ -430,7 +431,7 @@ describe('the action plan', () => {
             const tilt = { says: 'tilt [teapot1] over [cup1]', intent: '[tea2] pours into [cup1]' }
             const expand = { add: 'steps', to: 'pour-tea2-teapot1', steps: [lift, tilt] }
             const mark = { mark: 'atomic', to: 'pour-tea2-teapot1' }
-            const takes: MergeOptions = { adds: ['steps'], marks: ['atomic'] }
+            const takes: MergeOptions = { author: 'playByPlay', adds: ['steps'], marks: ['atomic'] }
             const expanded = (plan: ActionPlan, changes: unknown[], options: MergeOptions = takes): ActionPlan => {
                 const result = mergeChanges(plan, { changes }, handles, options)
                 if ('problems' in result) {
@@ -445,10 +446,10 @@ describe('the action plan', () => {
 
             it('expands a step in place: its path and items kept, each sub-step a flat step path with its intent, after the intent', () => {
                 const plan = expanded(pour(), [expand])
-                expect(plan.steps).toEqual([{ says: POUR, suppliedBy: 'system', path: 'pour-tea2-teapot1', items: [
-                    { kind: 'intent', path: 'pour-tea2-teapot1.intent', says: POUR },
-                    { kind: 'step', path: 'lift-teapot1-table1', says: lift.says, suppliedBy: 'system', items: [{ kind: 'intent', path: 'lift-teapot1-table1.intent', says: lift.intent }] },
-                    { kind: 'step', path: 'tilt-teapot1-over', says: tilt.says, suppliedBy: 'system', items: [{ kind: 'intent', path: 'tilt-teapot1-over.intent', says: tilt.intent }] },
+                expect(plan.steps).toEqual([{ says: POUR, suppliedBy: 'system', path: 'pour-tea2-teapot1', standing: 'confirmed', items: [
+                    { kind: 'intent', path: 'pour-tea2-teapot1.intent', standing: 'confirmed', says: POUR },
+                    { kind: 'step', path: 'lift-teapot1-table1', standing: 'confirmed', says: lift.says, suppliedBy: 'system', items: [{ kind: 'intent', path: 'lift-teapot1-table1.intent', standing: 'confirmed', says: lift.intent }] },
+                    { kind: 'step', path: 'tilt-teapot1-over', standing: 'confirmed', says: tilt.says, suppliedBy: 'system', items: [{ kind: 'intent', path: 'tilt-teapot1-over.intent', standing: 'confirmed', says: tilt.intent }] },
                 ] }])
             })
 
@@ -465,7 +466,7 @@ describe('the action plan', () => {
 
             it('takes a sub-step with no intent, and one naming a thing the scene doesn\'t hold (an improvised object)', () => {
                 const plan = expanded(pour(), [{ ...expand, steps: [{ says: 'slide [cloth1] under [teapot1]' }, tilt] }])
-                expect(plan.steps[0].items[1]).toEqual({ kind: 'step', path: 'slide-cloth1-under', says: 'slide [cloth1] under [teapot1]', suppliedBy: 'system', items: [] })
+                expect(plan.steps[0].items[1]).toEqual({ kind: 'step', path: 'slide-cloth1-under', standing: 'confirmed', says: 'slide [cloth1] under [teapot1]', suppliedBy: 'system', items: [] })
             })
 
             it('expands a sub-step in turn, minting against the step paths at every depth', () => {
@@ -484,11 +485,11 @@ describe('the action plan', () => {
             })
 
             it('adds a consequence aimed at a sub-step in that sub-step\'s own scope, after its intent', () => {
-                const plan = expanded(expanded(pour(), [expand]), [{ add: 'consequence', to: 'lift-teapot1-table1', says: '[teapot1] rises' }], {})
+                const plan = expanded(expanded(pour(), [expand]), [{ add: 'consequence', to: 'lift-teapot1-table1', says: '[teapot1] rises' }], asConsequences)
                 const sub = planSteps(plan).find(({ path }) => path === 'lift-teapot1-table1')
                 expect(sub?.items).toEqual([
-                    { kind: 'intent', path: 'lift-teapot1-table1.intent', says: lift.intent },
-                    { kind: 'consequence', path: 'lift-teapot1-table1.teapot1-rises', says: '[teapot1] rises' },
+                    { kind: 'intent', path: 'lift-teapot1-table1.intent', standing: 'confirmed', says: lift.intent },
+                    { kind: 'consequence', path: 'lift-teapot1-table1.teapot1-rises', standing: 'confirmed', says: '[teapot1] rises' },
                 ])
             })
 
@@ -516,8 +517,8 @@ describe('the action plan', () => {
             })
 
             it('is refused by default, so a block takes the sub-item kinds unless told otherwise', () => {
-                expect(refusedWith(pour(), [expand], {})).toEqual(['change 1: "add" must be one of consequence, concern, possibility'])
-                expect(refusedWith(pour(), [mark], {})).toEqual(['change 1: "mark" isn\'t a change this block takes'])
+                expect(refusedWith(pour(), [expand], { author: 'playByPlay' })).toEqual(['change 1: "add" must be one of consequence, concern, possibility'])
+                expect(refusedWith(pour(), [mark], { author: 'playByPlay' })).toEqual(['change 1: "mark" isn\'t a change this block takes'])
                 expect(refusedWith(pour(), [{ add: 'consequence', to: 'pour-tea2-teapot1', says: '[teapot1] tilts' }])).toEqual(['change 1: "add" must be one of steps'])
             })
 
@@ -526,7 +527,7 @@ describe('the action plan', () => {
                 ['no steps list', [{ ...expand, steps: 'lift it' }], ['change 1: has no "steps" list']],
                 ['a sub-step that is not an object', [{ ...expand, steps: [lift, 'tilt'] }], ['change 1: sub-step 2: is not an object']],
                 ['a sub-step with no says', [{ ...expand, steps: [lift, { intent: 'it pours' }] }], ['change 1: sub-step 2: has no non-empty string "says"']],
-                ['a sub-step with another key', [{ ...expand, steps: [lift, { ...tilt, thing: 'cup1' }] }], ['change 1: sub-step 2: has "thing", not one of says, intent']],
+                ['a sub-step with another key', [{ ...expand, steps: [lift, { ...tilt, thing: 'cup1' }] }], ['change 1: sub-step 2: has "thing", not one of says, intent, consequences']],
                 ['a blank intent', [{ ...expand, steps: [lift, { ...tilt, intent: ' ' }] }], ['change 1: sub-step 2: "intent" is not a non-empty string']],
                 ['an expansion with its own says', [{ ...expand, says: 'pour it' }], ['change 1: has "says", not one of add, to, steps']],
                 ['a mark not taken', [{ ...mark, mark: 'done' }], ['change 1: "mark" must be one of atomic']],
@@ -552,6 +553,174 @@ describe('the action plan', () => {
             it('brackets bare handles in a sub-step\'s says and intent', () => {
                 expect(bracketChanges({ changes: [{ add: 'steps', steps: [{ says: 'lift teapot1', intent: 'teapot1 is up' }, 'x'] }] }, ['teapot1'])).toEqual({
                     changes: [{ add: 'steps', steps: [{ says: 'lift [teapot1]', intent: '[teapot1] is up' }, 'x'] }],
+                })
+            })
+        })
+
+        describe('standing, rules and replace (AGENT.itemStanding.planning.md)', () => {
+            const RULES = ['table-secured-to-wall', 'teapot-secured-to-table']
+            const pickUp = () => planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [table1]' }] }])
+            const chain = { rule: '[table-secured-to-wall]', stance: 'violation' }
+            const oc20 = {
+                add: 'steps', to: 'pick-up-table1', steps: [
+                    { says: 'grip [table1] by its edges', intent: '[table1] is held firmly' },
+                    { says: 'lift [table1] straight up', intent: '[table1] rises off the floor', consequences: [{ says: '[table1] pulls away from [wall1]', thing: '[table1]', rules: [chain] }] },
+                ],
+            }
+            const cannot = { add: 'consequence', to: 'pick-up-table1', says: '[table1] cannot be lifted', rules: [chain] }
+            const by = (author: MergeOptions['author'], extra: Partial<MergeOptions> = {}): MergeOptions => ({ author, adds: ['steps', 'consequence', 'concern'], marks: ['atomic'], rules: RULES, ...extra })
+            const mergedBy = (plan: ActionPlan, changes: unknown[], options: MergeOptions): ActionPlan => {
+                const result = mergeChanges(plan, { changes }, handles, options)
+                if ('problems' in result) {
+                    throw new Error(result.problems.join('; '))
+                }
+                return result.plan
+            }
+            const refusedBy = (plan: ActionPlan, changes: unknown[], options: MergeOptions): string[] => {
+                const result = mergeChanges(plan, { changes }, handles, options)
+                return 'problems' in result ? result.problems : []
+            }
+            const conceded = () => mergedBy(pickUp(), [cannot], by('playByPlay'))
+
+            it('builders confirm every step and item: a plan\'s source is the authority for it', () => {
+                const plan = planFromNonRuleSteps(nonRuleCellCells['OC-30/h7'].inputs.steps)
+                expect(plan.steps.every(({ standing, items }) => standing === 'confirmed' && items.every((item) => item.standing === 'confirmed'))).toBe(true)
+            })
+
+            it('sets each standing from the author and the authority map: playByPlay\'s sub-steps and intents confirmed, its consequences and rules unchecked (OC-20)', () => {
+                const plan = mergedBy(pickUp(), [oc20], by('playByPlay'))
+                expectWellFormed('OC-20', plan)
+                const lift = planSteps(plan).find(({ path }) => path === 'lift-table1-straight')
+                expect(lift).toEqual({ kind: 'step', path: 'lift-table1-straight', standing: 'confirmed', says: 'lift [table1] straight up', suppliedBy: 'system', items: [
+                    { kind: 'intent', path: 'lift-table1-straight.intent', standing: 'confirmed', says: '[table1] rises off the floor' },
+                    { kind: 'consequence', path: 'lift-table1-straight.table1-pulls-away', standing: 'unchecked', says: '[table1] pulls away from [wall1]', thing: 'table1', rules: [
+                        { kind: 'rule', path: 'lift-table1-straight.table-secured-to-wall', standing: 'unchecked', rule: 'table-secured-to-wall', stance: 'violation' },
+                    ] },
+                ] })
+            })
+
+            it('renders R1 as step 0\'s OC-20 example: (unchecked) after the path, a rule under its consequence', () => {
+                expect(renderPlanForGenerator(mergedBy(pickUp(), [oc20], by('playByPlay')))).toBe([
+                    'Step pick-up-table1: pick up [table1]',
+                    '  - intent pick-up-table1.intent: pick up [table1]',
+                    '  - step grip-table1-by: grip [table1] by its edges',
+                    '    - intent grip-table1-by.intent: [table1] is held firmly',
+                    '  - step lift-table1-straight: lift [table1] straight up',
+                    '    - intent lift-table1-straight.intent: [table1] rises off the floor',
+                    '    - consequence lift-table1-straight.table1-pulls-away (unchecked): [table1] pulls away from [wall1]',
+                    '      - Rule (Violation) lift-table1-straight.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                ].join('\n'))
+            })
+
+            it('renders the concession cell\'s plan as step 0\'s example, and a consistent stance as such', () => {
+                expect(renderPlanForGenerator(conceded())).toBe([
+                    'Step pick-up-table1: pick up [table1]',
+                    '  - intent pick-up-table1.intent: pick up [table1]',
+                    '  - consequence pick-up-table1.table1-cannot-be (unchecked): [table1] cannot be lifted',
+                    '    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                ].join('\n'))
+                const carry = mergedBy(pickUp(), [{ add: 'consequence', to: 'pick-up-table1', says: '[teapot1] rises with [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'consistent' }] }], by('playByPlay'))
+                expect(renderPlanForGenerator(carry).split('\n').slice(-1)).toEqual(['    - Rule (Consistent) pick-up-table1.teapot-secured-to-table (unchecked): [teapot-secured-to-table]'])
+            })
+
+            it('confirms consequences\' own consequence, and still leaves its rule unchecked: the rule cell is the rule\'s authority', () => {
+                const [, consequence] = mergedBy(pickUp(), [cannot], by('consequences')).steps[0].items
+                expect(consequence).toMatchObject({ standing: 'confirmed', rules: [{ standing: 'unchecked' }] })
+            })
+
+            it('mints a rule\'s path from its handle, unslugged, with -2 when the scope already holds it', () => {
+                const plan = mergedBy(conceded(), [{ ...cannot, says: '[table1] stays put' }], by('playByPlay'))
+                expect(planSteps(plan)[0].items.flatMap(itemPaths)).toEqual([
+                    'pick-up-table1.intent', 'pick-up-table1.table1-cannot-be', 'pick-up-table1.table-secured-to-wall',
+                    'pick-up-table1.table1-stays-put', 'pick-up-table1.table-secured-to-wall-2',
+                ])
+                expectWellFormed('two rules', plan)
+            })
+
+            it.each([
+                ['a rule the scene doesn\'t hold', [{ ...cannot, rules: [{ rule: 'table-secured', stance: 'violation' }] }], ['change 1: rule 1: rule "table-secured" is not a rule the scene holds']],
+                ['a stance other than the two', [{ ...cannot, rules: [{ ...chain, stance: 'hinders' }] }], ['change 1: rule 1: "stance" must be one of violation, consistent']],
+                ['a rule with another key', [{ ...cannot, rules: [{ ...chain, why: 'chained' }] }], ['change 1: rule 1: has "why", not one of rule, stance']],
+                ['a rule that is not an object', [{ ...cannot, rules: ['table-secured-to-wall'] }], ['change 1: rule 1: is not an object']],
+                ['rules that are not a list', [{ ...cannot, rules: chain }], ['change 1: "rules" is not a list']],
+                ['rules on a concern', [{ add: 'concern', to: 'pick-up-table1', says: 'it may not lift', rules: [chain] }], ['change 1: a concern takes no "rules": a rule follows from a consequence']],
+                ['a rule in a branch', [{ add: 'possibility', to: 'pick-up-table1', kind: 'execution', says: 'if the chain holds', branches: [[{ says: '[table1] rises', rules: [chain] }], []] }], ['change 1: "add" must be one of steps, consequence, concern', 'change 1: branch 1, entry 1: has "rules", not one of add, thing, says']],
+                ['a rule on a sub-step, outside a consequence', [{ ...oc20, steps: [oc20.steps[0], { says: 'lift [table1]', rules: [chain] }] }], ['change 1: sub-step 2: has "rules", not one of says, intent, consequences']],
+                ['a sub-step consequence with no says', [{ ...oc20, steps: [oc20.steps[0], { says: 'lift [table1]', consequences: [{ thing: 'table1' }] }] }], ['change 1: sub-step 2: consequence 1: has no non-empty string "says"']],
+                ['a sub-step consequence naming a thing not in the scene', [{ ...oc20, steps: [oc20.steps[0], { says: 'lift [table1]', consequences: [{ says: 'it rises', thing: 'mug1' }] }] }], ['change 1: sub-step 2: consequence 1: thing "mug1" is not in the scene']],
+                ['sub-step consequences that are not a list', [{ ...oc20, steps: [oc20.steps[0], { says: 'lift [table1]', consequences: 'it rises' }] }], ['change 1: sub-step 2: "consequences" is not a list']],
+                ['a standing written', [{ ...cannot, standing: 'confirmed' }], ['change 1: "standing" isn\'t writable: code sets it from who wrote the item']],
+            ])('refuses %s', (_, changes, problems) => {
+                expect(refusedBy(pickUp(), changes, by('playByPlay'))).toEqual(problems)
+            })
+
+            it('refuses any rule when the merge names no rules the scene holds', () => {
+                expect(refusedBy(pickUp(), [cannot], { author: 'playByPlay', adds: ['consequence'] })).toEqual(['change 1: rule 1: rule "table-secured-to-wall" is not a rule the scene holds'])
+            })
+
+            describe('replace: the kind\'s authority replaces an unchecked item with a confirmed one (IS-2)', () => {
+                const checker = (author: MergeOptions['author']) => by(author, { replaces: true })
+                const PATH = 'pick-up-table1.table1-cannot-be'
+
+                it('confirms as written: the same text gives the same path, now confirmed, and its children leave', () => {
+                    const plan = mergedBy(conceded(), [{ replace: PATH, with: { says: '[table1] cannot be lifted' } }], checker('consequences'))
+                    expect(plan.steps[0].items).toEqual([
+                        { kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: 'pick up [table1]' },
+                        { kind: 'consequence', path: PATH, standing: 'confirmed', says: '[table1] cannot be lifted' },
+                    ])
+                })
+
+                it('takes a more nuanced replacement in the old one\'s place, with a fresh path; its own rules are new, and unchecked', () => {
+                    const before = mergedBy(conceded(), [{ add: 'consequence', to: 'pick-up-table1', says: '[saucer1] slides' }], by('playByPlay'))
+                    const plan = mergedBy(before, [{ replace: PATH, with: { says: '[table1] rises until the chain is taut', rules: [{ rule: 'table-secured-to-wall', stance: 'consistent' }] } }], checker('consequences'))
+                    expect(renderPlanForGenerator(plan).split('\n').slice(2)).toEqual([
+                        '  - consequence pick-up-table1.table1-rises-until: [table1] rises until the chain is taut',
+                        '    - Rule (Consistent) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                        '  - consequence pick-up-table1.saucer1-slides (unchecked): [saucer1] slides',
+                    ])
+                    expectWellFormed('replaced', plan)
+                })
+
+                it('replaces a rule within its consequence, by the rule cell: the same handle keeps its path; the consequence stays as it was', () => {
+                    const plan = mergedBy(conceded(), [{ replace: 'pick-up-table1.table-secured-to-wall', with: { rule: 'table-secured-to-wall', stance: 'consistent' } }], checker('ruleCell'))
+                    expect(plan.steps[0].items[1]).toEqual({ kind: 'consequence', path: PATH, standing: 'unchecked', says: '[table1] cannot be lifted', rules: [
+                        { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'confirmed', rule: 'table-secured-to-wall', stance: 'consistent' },
+                    ] })
+                })
+
+                it.each([
+                    ['by a merge that takes none', [{ replace: PATH, with: { says: 'x' } }], by('consequences'), ['change 1: "replace" isn\'t a change this block takes']],
+                    ['by an author not the kind\'s authority', [{ replace: PATH, with: { says: 'x' } }], checker('playByPlay'), ['change 1: only consequences replaces a consequence; this block is playByPlay\'s']],
+                    ['a rule by consequences', [{ replace: 'pick-up-table1.table-secured-to-wall', with: chain }], checker('consequences'), ['change 1: only ruleCell replaces a rule; this block is consequences\'s']],
+                    ['another kind (an intent)', [{ replace: 'pick-up-table1.intent', with: { says: 'x' } }], checker('playByPlay'), ['change 1: replace takes a consequence or a rule, not an intent']],
+                    ['across kinds', [{ replace: PATH, with: chain }], checker('consequences'), ['change 1: with: "with" is a rule; "pick-up-table1.table1-cannot-be" is a consequence']],
+                    ['a path naming no item', [{ replace: 'pick-up-table1.nothing', with: { says: 'x' } }], checker('consequences'), ['change 1: replace "pick-up-table1.nothing" names no item']],
+                    ['a step', [{ replace: 'pick-up-table1', with: { says: 'x' } }], checker('consequences'), ['change 1: replace "pick-up-table1" names a step; a step isn\'t replaced']],
+                    ['a with that is not an object', [{ replace: PATH, with: 'x' }], checker('consequences'), ['change 1: with: "with" is not an object']],
+                    ['a with with no says', [{ replace: PATH, with: { thing: 'table1' } }], checker('consequences'), ['change 1: with: has no non-empty string "says"']],
+                    ['another key', [{ replace: PATH, with: { says: 'x' }, to: 'pick-up-table1' }], checker('consequences'), ['change 1: has "to", not one of replace, with']],
+                    ['one item twice', [{ replace: PATH, with: { says: 'x' } }, { replace: PATH, with: { says: 'y' } }], checker('consequences'), ['change 2: "pick-up-table1.table1-cannot-be" is already replaced in this block']],
+                ])('refuses a replace %s', (_, changes, options, problems) => {
+                    expect(refusedBy(conceded(), changes, options)).toEqual(problems)
+                })
+
+                it('refuses a confirmed item, so nothing is replaced twice', () => {
+                    const confirmed = mergedBy(conceded(), [{ replace: PATH, with: { says: '[table1] cannot be lifted' } }], checker('consequences'))
+                    expect(refusedBy(confirmed, [{ replace: PATH, with: { says: 'x' } }], checker('consequences'))).toEqual(['change 1: "pick-up-table1.table1-cannot-be" is confirmed; only an unchecked item is replaced'])
+                })
+
+                it('is scoped like any change: no `to` supplied, and the path must be in the target\'s own scope', () => {
+                    const expanded = mergedBy(conceded(), [{ ...oc20, steps: [oc20.steps[0], { says: 'lift [table1]', consequences: [{ says: '[table1] rises' }] }] }], by('playByPlay'))
+                    const replace = { replace: PATH, with: { says: '[table1] cannot be lifted' } }
+                    expect(mergeStepChanges(expanded, 'pick-up-table1', { changes: [replace] }, handles, checker('consequences'))).toEqual({ plan: mergedBy(expanded, [replace], checker('consequences')) })
+                    expect(mergeStepChanges(expanded, 'lift-table1', { changes: [replace] }, handles, checker('consequences')))
+                        .toEqual({ problems: ['change 1: replace "pick-up-table1.table1-cannot-be" is not in the step being expanded, lift-table1'] })
+                })
+            })
+
+            it('brackets bare handles in a sub-step\'s consequences and in a replacement', () => {
+                expect(bracketChanges({ changes: [{ add: 'steps', steps: [{ says: 'lift table1', consequences: [{ says: 'table1 rises' }] }] }, { replace: 'p', with: { says: 'table1 stays' } }] }, ['table1'])).toEqual({
+                    changes: [{ add: 'steps', steps: [{ says: 'lift [table1]', consequences: [{ says: '[table1] rises' }] }] }, { replace: 'p', with: { says: '[table1] stays' } }],
                 })
             })
         })
