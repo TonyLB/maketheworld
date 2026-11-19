@@ -79,11 +79,44 @@ Suffix ignored typically`
         const r = splitMarkdownReasoningAndJson(body)
         expect(r.ok).toBe(true)
         if (r.ok) {
-            // Trailing-fence path: last block is ```json ... ```; Suffix is outside closing fence so
-            // it is included in reasoning (model should not emit trailing prose after JSON).
+            // Last-fence path: the body doesn't end in a fence, so the last ```json block is taken and
+            // the suffix after it dropped.
             expect(r.jsonText).toBe('{"k":"v"}')
-            expect(r.reasoningMarkdown).toContain('Prefix')
+            expect(r.reasoningMarkdown).toBe('Prefix')
         }
+    })
+
+    it('takes the last json block when two are followed by prose (a draft block, then the full one)', () => {
+        const body = `Steps:
+
+\`\`\`json
+{"steps": [{"says": "a"}]}
+\`\`\`
+
+Then the consequences.
+
+\`\`\`json
+{"steps": [{"says": "a", "consequences": []}]}
+\`\`\`
+
+This object breaks the step down.`
+        expect(splitMarkdownReasoningAndJson(body)).toEqual({
+            ok: true,
+            reasoningMarkdown: 'Steps:\n\n```json\n{"steps": [{"says": "a"}]}\n```\n\nThen the consequences.',
+            jsonText: '{"steps": [{"says": "a", "consequences": []}]}',
+        })
+    })
+
+    it('takes an untagged fenced object followed by prose', () => {
+        expect(splitMarkdownReasoningAndJson('R\n```\n{"a":1}\n```\nnote {b}')).toEqual({ ok: true, reasoningMarkdown: 'R', jsonText: '{"a":1}' })
+    })
+
+    it('skips a later fence in another language for the json block before it', () => {
+        expect(splitMarkdownReasoningAndJson('R\n```json\n{"a":1}\n```\n```text\n{not json}\n```\nend')).toEqual({ ok: true, reasoningMarkdown: 'R', jsonText: '{"a":1}' })
+    })
+
+    it('falls back to the brace slice when no fence holds an object', () => {
+        expect(splitMarkdownReasoningAndJson('R\n```json\nnot json\n```\n{"a":1}\nend')).toEqual({ ok: true, reasoningMarkdown: 'R\n```json\nnot json\n```', jsonText: '{"a":1}' })
     })
 
     it('ignores trailing prose after raw JSON when using brace fallback', () => {
