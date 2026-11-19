@@ -1,6 +1,6 @@
 # Item standing: what an agent proposes, held apart from what an authority has checked
 
-**Status (2026-11-19): opened; step 0's design written and reviewed the same day, IS-1 to IS-8 settled; step 1, the build, done the same day. Next: step 2, the drafts (deploy first).** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user at the hand-back of `playByPlay`'s expand plan (retired 2026-11-19). It is local to `playByPlay`'s open problems for its first iteration.
+**Status (2026-11-19): opened; step 0's design written and reviewed the same day, IS-1 to IS-8 settled; step 1, the build, done the same day; step 2's draft 20 written and run (batch 35) the same day: not at the bar; diagnosed with the user, its four causes booked one per draft. Next: draft 21, the examples.** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user at the hand-back of `playByPlay`'s expand plan (retired 2026-11-19). It is local to `playByPlay`'s open problems for its first iteration.
 
 **Why** (the user, 2026-11-19):
 - **The pieces can only speak where they are authoritative, and that limits how far they can collaborate.** `playByPlay`'s imagination finds the chain on OC-20 whether or not saying so is its job. With no channel for it, the observation leaks into the one channel it has authority over, the method: the grip is sited by the chain, 3 of 3 in batch 34 ([read](oracleLoopDrafts/playByPlay/19.notes.md#results-2026-11-19-batch-34); [diagnosis](oracleLoopDrafts/playByPlay/18.notes.md#diagnosis-with-the-user-2026-11-19)). In batch 31 the Problems section held it, and the method stayed ordinary.
@@ -216,6 +216,12 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - [X] **The render, R1:** `(unchecked)` after the path; `Rule (Violation)` and `Rule (Consistent)` under their consequence.
    - [X] **The six cells** (IS-6): the default `rules: 'handles'`, the concession cell (`OC-20/concession`), the look-fors, the hashes re-pinned (`5d7de0bb`, `b40d7083`, `d7e1d475`, `cd2cd21f`, `eec99d53`, `a401a721`).
 2. [ ] **The drafts:** the ask taught to propose, from draft 20. Deploy first. The bar is step 0's (IS-7), with batch 34 the comparison for what the drafts already do.
+   - [ ] **Draft 20** ([notes](oracleLoopDrafts/playByPlay/20.notes.md)): the ask taught to propose (PB-L30); batch 35 run 2026-11-19: form 9 of 18 (improvised rule handles 6); OC-20 1/3, the chain proposed `consistent` 3/3 and still siting the grip 2/3; the control held 3/3; concession 1/3; OC-6's method held (regraded with the user: the lift is ordinary), but the glue's rule was named `consistent` on the tea; OC-19 slipped to 1/3. Not kept as is. **Diagnosis with the user** ([notes](oracleLoopDrafts/playByPlay/20.notes.md#diagnosis-with-the-user-2026-11-19-why-a-consistent-rule-at-all)): `consistent` read as "the rule is still in force", so the scene's rule is hung on consequences it doesn't bear on. Four causes, all agreed by the user as worth fixing, taken one per draft:
+   - [ ] **Draft 21: varied, representative examples** (the user, 2026-11-19: every proposing example carried a rule). Consequences with no rule, a scene rule no consequence bears on, and steps with no consequences, beside the rule-bearing ones. Written ([notes](oracleLoopDrafts/playByPlay/21.notes.md), PB-L31); batch 36 run 2026-11-19: **OC-20 3/3 at the bar** (to confirm); form 14 of 18; rules on proposals 9 of 18, stray 1, improvised 0; concession 2/3 + 1 partly, its claim restated 3/3. Kept as the base. **Batch 37, the confirm:** OC-20 3/3 again (**6 of 6, IS-7's graded item holds**); the concession cell 1/3 (the chain siting the method 2, so the input's proposal brings it back: watch item 3); form 10 of 18 (two JSON blocks 3).
+   - [ ] **Booked: the Role's "and to the scene's rules"** asks what happens to a rule, as if it were a thing with a fate to report.
+   - [ ] **Booked: what a stance judges, said in the ask.** Whether this consequence breaks the rule, or is what the rule says happens. The ask names the two values only.
+   - [ ] **Booked: the reasoning line's "keeping rule [h]"**, which reads as "the rule is maintained".
+   - [ ] **Booked, open with the user:** the OC-20 reading (the chain taken as a rule the method must keep, perhaps the same cause), and the concession cell (2 of 3 conceded or bent the method; watch item 3).
 3. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
 
 ## Open decisions (implementation --- plan only)
@@ -250,7 +256,7 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
 | --- | --- |
 | The design | **Done** (2026-11-19): reviewed by the user; IS-1 to IS-8 settled |
 | The build | **Done** (2026-11-19): standing, the `rule` kind, `replace`, rule handles, `playByPlay`'s `consequences`, R1 and the six cells; tests and tsc clean. Rules in calibration's [The action plan](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan), [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece) and [Scene renders](../../../../../lambda/ephemera/calibration/AGENT.md#scene-renders) |
-| The drafts | Not started |
+| The drafts | **In progress** (2026-11-19): draft 20 run (batch 35), not at the bar; its causes booked under step 2; draft 21 (the examples) next |
 | Hand back | Not started |
 
 ## When it finishes
