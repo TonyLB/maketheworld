@@ -6,7 +6,7 @@
 // A possibility holds a spread of outcomes, as unlabelled branches of consequences. Every path is flat under its step, in one scope at
 // any depth; consequences and concerns slug their text, every other kind its kind (`tip-table1.intent`, `.maybe-2`).
 // A step expands in place into sub-steps, each a `step` item holding its own items: the one exception to the path rule, since a
-// sub-step's path is a step path, minted in the plan's one scope of step paths at any depth (playByPlayExpand's step 0 design).
+// sub-step's path is a step path, minted in the plan's one scope of step paths at any depth (calibration AGENT.md, "The action plan").
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract } from '../../llm/stageContract'
@@ -322,8 +322,8 @@ const checkBranches = (branches: unknown, context: CheckContext): { branches: { 
 }
 
 /**
- * An expansion's sub-steps: a list of at least two (the user, PX-4), each an object with a non-empty `says` and, where it helps, a
- * non-empty `intent` (the user, PX-1). No `thing` is checked: a sub-step may improvise an object (the user, 2026-11-18).
+ * An expansion's sub-steps: a list of at least two (the user), each an object with a non-empty `says` and, where it helps, a
+ * non-empty `intent` (the user). No `thing` is checked: a sub-step may improvise an object (the user, 2026-11-18).
  */
 const checkSubSteps = (steps: unknown): { steps: SubStepEntry[] } | { problems: string[] } => {
     if (!Array.isArray(steps)) {

@@ -154,7 +154,7 @@ describe('playByPlay', () => {
             ['both steps and atomic', fenced({ ...steps, atomic: true }), ['has both "steps" and "atomic": expand the step, or mark it atomic']],
             ['atomic false', fenced({ atomic: false }), ['"atomic" must be true']],
             ['a written `to`', fenced({ ...steps, to: 'pour-tea2-teapot1' }), ['has "to", not one of steps, atomic']],
-            ['a consequence (no per-thing lines, PX-1)', fenced({ ...steps, thing: 'teapot1' }), ['has "thing", not one of steps, atomic']],
+            ['a consequence (no per-thing lines)', fenced({ ...steps, thing: 'teapot1' }), ['has "thing", not one of steps, atomic']],
             ['steps not a list', fenced({ steps: 'lift it, tilt it' }), ['has no "steps" list']],
             ['a single sub-step', fenced({ steps: [lift] }), ['has 1 sub-step; an expansion needs at least two']],
             ['a sub-step with another key', fenced({ steps: [lift, { ...tilt, thing: 'cup1' }] }), ['sub-step 2: has "thing", not one of says, intent']],

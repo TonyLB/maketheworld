@@ -1,5 +1,5 @@
 //
-// The play-by-play, the imagination's more-detail ask (AGENT.imagination.planning.md; AGENT.playByPlayExpand.planning.md): a read piece,
+// The play-by-play, the imagination's more-detail ask (AGENT.imagination.planning.md; calibration AGENT.md, "A read piece"): a read piece,
 // and a reducer on the action plan (calibration AGENT.md, "The action plan"). Given a fixture, a plan and the path of the one step to
 // expand, it breaks that step into ordered sub-steps, each with an intent where it helps, or marks it atomic, as one motion. The reply
 // is one object, `{"steps": [...]}` or `{"atomic": true}`; code reads it as one change in the change language, supplying the verb, the
@@ -24,9 +24,9 @@ export type PlayByPlayInputs = {
     /** The path of the step to expand, at any depth: the reply expands it alone, or marks it atomic. */
     target: string
     /**
-     * What the requester is looking for (PX-8; NR-3's request carries it): a detail of the method, not of how the method matches the
+     * What the requester is looking for (the non-rule cell's request carries it): a detail of the method, not of how the method matches the
      * intent, so it makes sense to someone who doesn't know the step's intent ("how [table1] is held"). The step is broken down until it
-     * is stated, or marked atomic when no breakdown would state it (PX-9).
+     * is stated, or marked atomic when no breakdown would state it.
      */
     missing: string
     /**
@@ -41,7 +41,7 @@ export type PlayByPlayOptions = ImaginationOptions
 /** The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene renders"). */
 export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'none', scene: 'explicit' }
 
-/** What the play-by-play's block may hold: an expansion or the atomic mark, and nothing else, so `concern` is out (PX-5). */
+/** What the play-by-play's block may hold: an expansion or the atomic mark, and nothing else, so `concern` is out. */
 export const PLAY_BY_PLAY_MERGE: MergeOptions = { adds: ['steps'], marks: ['atomic'] }
 
 export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
@@ -132,7 +132,7 @@ const expandedPlan = (plan: ActionPlan, target: string, steps: readonly { says: 
     return merged.plan
 }
 
-/** The cells' plans, built by hand (PX-7): one step each, the case's own; OC-1b's is OC-1's, expanded once. */
+/** The cells' plans, built by hand: one step each, the case's own; OC-1b's is OC-1's, expanded once. */
 export const playByPlayPlans = {
     'OC-1': oneStepPlan(caseActions('OC-1')[0]),
     'OC-1b': expandedPlan(oneStepPlan(caseActions('OC-1')[0]), 'pick-up-table1', [{ says: 'grip [table1] by its edges' }, { says: 'lift [table1] off the floor' }]),
@@ -141,7 +141,7 @@ export const playByPlayPlans = {
     'OC-20': oneStepPlan('pick up [table1]'),
 } satisfies Record<string, ActionPlan>
 
-/** The scope checks every cell carries (PX-10): they bound the piece, and are not its bar. */
+/** The scope checks every cell carries: they bound the piece, and are not its bar. */
 const BOUNDS = 'no outcome settled (PB-P5)'
 
 export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = {
@@ -153,9 +153,9 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
     'OC-1b': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-1b'], target: 'grip-table1-by', missing: 'how [table1] is held', alsoShown: ['teapot1', 'cup1', 'saucer1'] },
-        lookFor: `atomic: the step already says how [table1] is held. A split into reaching and closing the hands is over-expansion (PX-9). Bounds: ${BOUNDS}`,
+        lookFor: `atomic: the step already says how [table1] is held. A split into reaching and closing the hands is over-expansion. Bounds: ${BOUNDS}`,
         source: caseSource('OC-1'),
-        note: "OC-1's plan expanded once by hand; the target is its grip sub-step, which states the detail asked for. The atomic cell (PX-9).",
+        note: "OC-1's plan expanded once by hand; the target is its grip sub-step, which states the detail asked for. The atomic cell.",
     },
     'OC-6': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-6'], target: 'pour-tea2-teapot1', missing: 'how [teapot1] is held and moved', alsoShown: ['table1'] },
