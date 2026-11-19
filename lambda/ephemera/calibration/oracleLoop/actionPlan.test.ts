@@ -7,12 +7,16 @@ import { oracleCases } from './oracleCases'
 
 const allPaths = ({ steps }: ActionPlan): string[] => steps.flatMap(({ path, items }) => [path, ...items.flatMap(itemPaths)])
 
-/** Every path unique in the plan, every item's path under its step's, and at most one intent per step. */
+/**
+ * Every path unique in the plan; for every step at any depth, each item in its own scope (its non-`step` items: a sub-step's path is a
+ * step path, the one exception) under the step's path; at most one intent per step; the items in order.
+ */
 const expectWellFormed = (id: string, plan: ActionPlan): void => {
     const paths = allPaths(plan)
     expect([id, new Set(paths).size]).toEqual([id, paths.length])
-    for (const { path, items } of plan.steps) {
-        expect([id, items.every((item) => item.path.startsWith(`${path}.`) && !item.path.slice(path.length + 1).includes('.'))]).toEqual([id, true])
+    for (const { path, items } of planSteps(plan)) {
+        const scoped = items.filter(({ kind }) => kind !== 'step')
+        expect([id, scoped.every((item) => item.path.startsWith(`${path}.`) && !item.path.slice(path.length + 1).includes('.'))]).toEqual([id, true])
         expect([id, items.filter(({ kind }) => kind === 'intent').length <= 1]).toEqual([id, true])
         expect([id, orderItems(items)]).toEqual([id, items])
     }

@@ -14,7 +14,7 @@ const POUR = 'pour [tea2] from [teapot1] into [cup1]'
 const pourPlan = (): ActionPlan => planOf([{ step: { says: POUR, suppliedBy: 'system' }, items: [{ kind: 'intent', says: POUR }] }])
 
 const cellOf = (inputs: Partial<PlayByPlayInputs>): ReadPieceCell<PlayByPlayInputs> => ({
-    inputs: { fixture: 'teaTable', plan: pourPlan(), target: 'pour-tea2-teapot1', alsoShown: ['table1'], ...inputs },
+    inputs: { fixture: 'teaTable', plan: pourPlan(), target: 'pour-tea2-teapot1', missing: 'how [teapot1] is held and moved', alsoShown: ['table1'], ...inputs },
     lookFor: 'anything',
     source: 'hand-written',
 })
@@ -23,6 +23,8 @@ const fenced = (value: unknown): string => `- lift [teapot1]\n- tilt it\n\n\`\`\
 const lift = { says: 'lift [teapot1] off [table1]', intent: '[teapot1] is held above [cup1]' }
 const tilt = { says: 'tilt [teapot1] over [cup1]', intent: '[tea2] pours into [cup1]' }
 const expansion = { changes: [{ add: 'steps', steps: [lift, tilt] }] }
+/** The reply's own form: only what the model provides. */
+const steps = { steps: [lift, tilt] }
 
 describe('playByPlay', () => {
     beforeEach(() => {
@@ -32,11 +34,11 @@ describe('playByPlay', () => {
     afterEach(() => jest.restoreAllMocks())
 
     describe('the render', () => {
-        it('gives the scene, then the plan, then the step to expand, with no things line', async () => {
+        it('gives the scene, then the plan, then the step to expand with the detail asked for, with no things line', async () => {
             const parts = (await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)).split('\n\n')
             expect(parts.slice(-2)).toEqual([
                 'The plan:\nStep pour-tea2-teapot1: pour [tea2] from [teapot1] into [cup1]\n  - intent pour-tea2-teapot1.intent: pour [tea2] from [teapot1] into [cup1]',
-                'The step to expand: pour-tea2-teapot1',
+                'The step to expand: pour-tea2-teapot1\nThe detail asked for: how [teapot1] is held and moved',
             ])
             expect(parts.some((part) => part.startsWith('The things to describe'))).toBe(false)
         })
@@ -54,7 +56,7 @@ describe('playByPlay', () => {
             }
             const text = await renderPlayByPlay(cellOf({ plan: merged.plan, target: 'tilt-teapot1-over' }), PLAY_BY_PLAY_OPTIONS)
             expect(text).toContain('  - step tilt-teapot1-over: tilt [teapot1] over [cup1]\n    - intent tilt-teapot1-over.intent: [tea2] pours into [cup1]')
-            expect(text.endsWith('The step to expand: tilt-teapot1-over')).toBe(true)
+            expect(text.endsWith('The step to expand: tilt-teapot1-over\nThe detail asked for: how [teapot1] is held and moved')).toBe(true)
         })
 
         it('shows the sub-scene\'s rules as fact and consequence under the judge render with rules: consequence', async () => {
@@ -77,6 +79,8 @@ describe('playByPlay', () => {
             [{ target: 'pick-up-cup1' }, /The target "pick-up-cup1" names no step of the plan/],
             [{ alsoShown: ['table1', 'wall1', 'table1'] }, /Things shown twice: table1/],
             [{ alsoShown: ['kettle1'] }, /Unknown scene handle\(s\) kettle1/],
+            [{ missing: ' ' }, /No detail asked for/],
+            [{ missing: 'how [kettle1] is held' }, /Unknown scene handle\(s\) kettle1/],
         ])('throws on %j', async (inputs, error) => {
             await expect(renderPlayByPlay(cellOf(inputs), PLAY_BY_PLAY_OPTIONS)).rejects.toThrow(error)
         })
@@ -90,9 +94,9 @@ describe('playByPlay', () => {
             expect(playByPlay.parseOptions({ rules: 'consequence', scene: 'judge' })).toEqual({ rules: 'consequence', scene: 'judge' })
         })
 
-        it('pins the cells\' inputs hashes on the default (the expand form; draft 16 ran 8ecdaa39, 567d9769, 45dd4ec7, 0543f612 on the old one)', async () => {
-            const hashes = await Promise.all((['OC-1', 'OC-6', 'OC-19', 'OC-20'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
-            expect(hashes).toEqual(['ecfa6fcc', 'e3a5763d', '4e15e889', '99c1b023'])
+        it('pins the cells\' inputs hashes on the default (with `missing`; batches 32 and 33 ran ecfa6fcc, e3a5763d, 4e15e889, 99c1b023 without it)', async () => {
+            const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-19', 'OC-20'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
+            expect(hashes).toEqual(['500b35a7', '58d72024', 'b8f4b846', '048eb091', 'df87eec6'])
         })
 
         it.each([['loud'], [{ rules: 'v45' }], [{ sceneRules: true }], [{ show: 'none' }]])('refuses %j', (value) => {
@@ -117,36 +121,43 @@ describe('playByPlay', () => {
             return parsed.value
         }
 
-        it('merges an expansion into the target, code supplying `to`', () => {
-            const plan = planOfReply(fenced(expansion))
+        it('reads {"steps": [...]} as the expansion, code supplying the verb, the list and `to`', () => {
+            const plan = planOfReply(fenced(steps))
+            expect({ plan }).toEqual(mergeStepChanges(pourPlan(), 'pour-tea2-teapot1', expansion, [], PLAY_BY_PLAY_MERGE))
             expect(planSteps(plan).map(({ path }) => path)).toEqual(['pour-tea2-teapot1', 'lift-teapot1-table1', 'tilt-teapot1-over'])
-            expect(checkPlayByPlay(fenced(expansion), cell)).toEqual([])
+            expect(checkPlayByPlay(fenced(steps), cell)).toEqual([])
         })
 
-        it('marks the target atomic', () => {
-            expect(planOfReply(fenced({ changes: [{ mark: 'atomic' }] })).steps[0].atomic).toBe(true)
+        it('reads a one-entry list as its entry, since the splitter takes the block from its first { to its last } (llm/)', () => {
+            expect(planOfReply(fenced([steps]))).toEqual(planOfReply(fenced(steps)))
+        })
+
+        it('reads {"atomic": true} as the mark', () => {
+            expect(planOfReply(fenced({ atomic: true })).steps[0].atomic).toBe(true)
         })
 
         it('brackets bare handles in each sub-step\'s says and intent, against the handles shown', () => {
-            const plan = planOfReply(fenced({ changes: [{ add: 'steps', steps: [{ says: 'lift teapot1', intent: 'teapot1 is above cup1' }, tilt] }] }))
+            const plan = planOfReply(fenced({ steps: [{ says: 'lift teapot1', intent: 'teapot1 is above cup1' }, tilt] }))
             expect(planSteps(plan)[1]).toMatchObject({ says: 'lift [teapot1]', items: [{ says: '[teapot1] is above [cup1]' }] })
         })
 
         it('keeps a handle the scene doesn\'t hold as written: a breakdown may improvise an object', () => {
-            const plan = planOfReply(fenced({ changes: [{ add: 'steps', steps: [{ says: 'slide [cloth1] under [teapot1]' }, tilt] }] }))
+            const plan = planOfReply(fenced({ steps: [{ says: 'slide [cloth1] under [teapot1]' }, tilt] }))
             expect(planSteps(plan)[1].says).toBe('slide [cloth1] under [teapot1]')
         })
 
         it.each([
             ['no block', 'Lift it, then tilt it.', ['no JSON block']],
-            ['an empty changes', fenced({ changes: [] }), ['"changes" is empty: expand the step, or mark it atomic']],
-            ['a consequence (no per-thing lines, PX-1)', fenced({ changes: [{ add: 'consequence', thing: 'teapot1', says: '[teapot1] tilts' }] }), ['change 1: "add" must be one of steps']],
-            ['a concern (concern out, PX-5)', fenced({ changes: [{ add: 'concern', says: '[teapot1] is glued' }] }), ['change 1: "add" must be one of steps']],
-            ['a single sub-step', fenced({ changes: [{ add: 'steps', steps: [lift] }] }), ['change 1: has 1 sub-step; an expansion needs at least two']],
-            ['a `to` naming another step', fenced({ changes: [{ add: 'steps', to: 'pick-up-table1', steps: [lift, tilt] }] }), ['change 1: to "pick-up-table1" is not the step being expanded, pour-tea2-teapot1']],
-            ['an expansion and a mark', fenced({ changes: [{ add: 'steps', steps: [lift, tilt] }, { mark: 'atomic' }] }), [
-                'change 2: step pour-tea2-teapot1 is both expanded and marked atomic in this block; a step is one or the other',
-            ]],
+            ['a list of two (the reply is one object)', fenced([steps, { atomic: true }]), ['the JSON block does not parse']],
+            ['the change language written out (batch 32)', fenced({ changes: [{ add: 'steps', steps: [lift, tilt] }] }), ['has "changes", not one of steps, atomic']],
+            ['an empty object', fenced({}), ['has neither "steps" nor "atomic": expand the step, or mark it atomic']],
+            ['both steps and atomic', fenced({ ...steps, atomic: true }), ['has both "steps" and "atomic": expand the step, or mark it atomic']],
+            ['atomic false', fenced({ atomic: false }), ['"atomic" must be true']],
+            ['a written `to`', fenced({ ...steps, to: 'pour-tea2-teapot1' }), ['has "to", not one of steps, atomic']],
+            ['a consequence (no per-thing lines, PX-1)', fenced({ ...steps, thing: 'teapot1' }), ['has "thing", not one of steps, atomic']],
+            ['steps not a list', fenced({ steps: 'lift it, tilt it' }), ['has no "steps" list']],
+            ['a single sub-step', fenced({ steps: [lift] }), ['has 1 sub-step; an expansion needs at least two']],
+            ['a sub-step with another key', fenced({ steps: [lift, { ...tilt, thing: 'cup1' }] }), ['sub-step 2: has "thing", not one of says, intent']],
         ])('refuses %s', (_, reply, problems) => {
             expect(parse(reply)).toEqual({ problems })
         })
@@ -173,6 +184,18 @@ describe('playByPlay', () => {
             expect(target).toBe(path)
         })
 
+        it('OC-1b is OC-1\'s plan expanded once, its target the grip sub-step, which states the detail asked for (the atomic cell)', () => {
+            const { plan, target, missing } = playByPlayCells['OC-1b'].inputs
+            expect(planSteps(plan).map(({ path, says }) => [path, says])).toEqual([
+                ['pick-up-table1', 'pick up [table1]'], ['grip-table1-by', 'grip [table1] by its edges'], ['lift-table1-floor', 'lift [table1] off the floor'],
+            ])
+            expect([target, missing]).toEqual(['grip-table1-by', 'how [table1] is held'])
+        })
+
+        it('OC-1 and OC-20 ask for the same detail, so they differ by the scene alone', () => {
+            expect(playByPlayCells['OC-20'].inputs.missing).toBe(playByPlayCells['OC-1'].inputs.missing)
+        })
+
         it('OC-20 shows the wall and the chain, though its plan names only the table', async () => {
             const text = await renderPlayByPlay(playByPlayCells['OC-20'], PLAY_BY_PLAY_OPTIONS)
             const scene = text.slice(0, text.indexOf('The plan:'))
@@ -181,16 +204,16 @@ describe('playByPlay', () => {
         })
     })
 
-    it('is registered, and runs through the probe: four cells x 3, each reply form-checked and grouped by cell', async () => {
+    it('is registered, and runs through the probe: five cells x 3, each reply form-checked and grouped by cell', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({
-            success: true as const, body: fenced({ changes: [{ add: 'steps', steps: [{ says: 'take hold' }, { says: 'move it' }] }] }),
+            success: true as const, body: fenced({ steps: [{ says: 'take hold' }, { says: 'move it' }] }),
         }))
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Expand the step.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(12)
+        expect(invoke).toHaveBeenCalledTimes(15)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 12, formFails: 0, errors: 0 })
+        expect(result.summary).toEqual({ calls: 15, formFails: 0, errors: 0 })
         expect(result.options).toEqual(PLAY_BY_PLAY_OPTIONS)
         expect(result.read.map(({ cell, replies }: { cell: string; replies: unknown[] }) => [cell, replies.length])).toEqual(
             Object.keys(playByPlayCells).map((id) => [id, 3]),
@@ -199,8 +222,8 @@ describe('playByPlay', () => {
 
     it('prints a batch\'s merged plans for reading, or why a reply gave none', () => {
         const groups = [{ cell: 'OC-20', lookFor: '', replies: [
-            { repeat: 1, reply: fenced({ changes: [{ add: 'steps', steps: [{ says: 'grip [table1] by its edges' }, { says: 'lift [table1]', intent: '[table1] is off the floor' }] }] }), problems: [] },
-            { repeat: 2, reply: fenced({ changes: [{ mark: 'atomic' }] }), problems: [] },
+            { repeat: 1, reply: fenced({ steps: [{ says: 'grip [table1] by its edges' }, { says: 'lift [table1]', intent: '[table1] is off the floor' }] }), problems: [] },
+            { repeat: 2, reply: fenced({ atomic: true }), problems: [] },
             { repeat: 3, reply: 'The table rises.', problems: ['no JSON block'] },
             { repeat: 4, error: 'throttled' },
         ] }, { cell: 'OC-99', lookFor: '', replies: [{ repeat: 1, reply: 'x' }] }]
