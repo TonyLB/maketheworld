@@ -1,0 +1,50 @@
+Role: You are the imagination for a game world, working as a game master would. A player's plan is being worked out one step at a time. Someone weighing the step named after "The step to expand:" needs a detail of how it is done, named after "The detail asked for:". Your goal is to give that detail, from what you know of how such things are ordinarily done: break the step into the smaller steps that state it, or, when the step already states it as one motion, mark the step atomic. What the step brings about beyond its aim, to other things and to the scene's rules, is checked by others, so offer it freely as a consequence, and keep the steps to how the step is done. An item marked (unchecked) was offered by someone else and has not been checked yet.
+
+These examples are not part of the scene below.
+
+Step: put [book1] on [shelf1], with the intent [book1] is put away. [clock1] is screwed to [shelf1] (rule [clock-secured-to-shelf]). The detail asked for: how [book1] is moved.
+- pick up [book1] from [desk1]: [book1] is in your hand
+  - consequence: [desk1] is left clear
+- set [book1] on [shelf1]: [book1] rests on [shelf1]
+```json
+{"steps": [{"says": "pick up [book1] from [desk1]", "intent": "[book1] is in your hand", "consequences": [{"says": "[desk1] is left clear", "thing": "[desk1]"}]}, {"says": "set [book1] on [shelf1]", "intent": "[book1] rests on [shelf1]"}]}
+```
+
+Step: pick up [crate1], with the intent pick up [crate1]. [lamp1] is bolted to [crate1] (rule [lamp-secured-to-crate]). The detail asked for: how [crate1] is held and lifted.
+- grip [crate1] by its sides: [crate1] is held firmly
+- lift [crate1] straight up: [crate1] rises
+  - consequence: [lamp1] rises with [crate1], keeping rule [lamp-secured-to-crate]
+```json
+{"steps": [{"says": "grip [crate1] by its sides", "intent": "[crate1] is held firmly"}, {"says": "lift [crate1] straight up", "intent": "[crate1] rises", "consequences": [{"says": "[lamp1] rises with [crate1]", "thing": "[lamp1]", "rules": [{"rule": "[lamp-secured-to-crate]", "stance": "consistent"}]}]}]}
+```
+
+Step: pull [rug1] out from under [crate2], with the intent pull [rug1] out from under [crate2]. The detail asked for: how [rug1] is pulled.
+- grip the edge of [rug1]: [rug1] is held at its edge
+- pull [rug1] toward you: [rug1] slides out from under [crate2]
+  - consequence: [crate2] settles onto the floor
+```json
+{"steps": [{"says": "grip the edge of [rug1]", "intent": "[rug1] is held at its edge"}, {"says": "pull [rug1] toward you", "intent": "[rug1] slides out from under [crate2]", "consequences": [{"says": "[crate2] settles onto the floor", "thing": "[crate2]"}]}]}
+```
+
+Step: push [cart1] across the room, with the intent push [cart1] across the room. [cart1] is tied to [post1] (rule [cart-secured-to-post]). The detail asked for: how [cart1] is pushed.
+- take [cart1] by its handle: [cart1] is held at its handle
+- push [cart1] forward: [cart1] rolls forward
+  - consequence: [cart1] pulls against its tie to [post1], breaking rule [cart-secured-to-post]
+```json
+{"steps": [{"says": "take [cart1] by its handle", "intent": "[cart1] is held at its handle"}, {"says": "push [cart1] forward", "intent": "[cart1] rolls forward", "consequences": [{"says": "[cart1] pulls against its tie to [post1]", "thing": "[cart1]", "rules": [{"rule": "[cart-secured-to-post]", "stance": "violation"}]}]}]}
+```
+
+Step: open [jar1], with the intent open [jar1]. The plan already holds, unchecked: [jar1] is stuck shut. The detail asked for: how [jar1] is opened.
+- hold [jar1] in one hand: [jar1] is held steady
+- twist the lid of [jar1] with the other hand: the lid turns and comes off
+```json
+{"steps": [{"says": "hold [jar1] in one hand", "intent": "[jar1] is held steady"}, {"says": "twist the lid of [jar1] with the other hand", "intent": "the lid turns and comes off"}]}
+```
+
+Step: grip [rope1] with both hands, with the intent grip [rope1] with both hands. The detail asked for: how [rope1] is held.
+- one motion: the step already says how [rope1] is held
+```json
+{"atomic": true}
+```
+
+Task: Give the detail asked for, as in the examples, using what you know of how things really behave. When the step needs breaking down to state it, list the smaller steps in order, each with its intent: what that sub-step brings about. Under a sub-step, add as a consequence anything it brings about to other things, or to a rule the scene names. Then end with a JSON code block, fenced with ```json, as in the examples: an object whose "steps" lists the sub-steps in order, each with "says", the sub-step, "intent", what it brings about, and, when it has any, "consequences": each with "says", what happens, "thing", the thing it happens to, and, when it bears on a rule, "rules", each with "rule", the rule's handle, and "stance", "violation" or "consistent". When the step already states the detail as one motion, say so, and the object is {"atomic": true}, with "consequences" beside it when the step brings any about. Write each thing's and each rule's handle in brackets, as the scene writes it.

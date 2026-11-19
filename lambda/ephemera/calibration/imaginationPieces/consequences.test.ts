@@ -68,7 +68,7 @@ describe('consequences', () => {
             expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
             expect(consequences.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
             expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
-            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence' | 'handles', scene?: 'judge' | 'explicit' }")
+            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence' | 'handles' | 'conditions', scene?: 'judge' | 'explicit' }")
         })
 
         it('refuses rules: consequence under the explicit render, its default included', () => {

@@ -43,9 +43,11 @@ export type PlayByPlayOptions = ImaginationOptions
 
 /**
  * The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene
- * renders"). Its securings tagged with their rule handles, so a reply can name a rule (IS-6: every cell renders with `rules: 'handles'`).
+ * renders"). Its securings tagged with their rule handles, so a reply can name a rule (IS-6), and each stated as its condition and carry
+ * (`rules: 'conditions'`; AGENT.itemStanding.planning.md, step 2, the user's diagnosis, 2026-11-19), in place of `actionRule`'s
+ * impossibility, which the concession cell's failures took as confirming "cannot be lifted".
  */
-export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'handles', scene: 'explicit' }
+export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'conditions', scene: 'explicit' }
 
 /**
  * What the play-by-play's block may hold: an expansion or the atomic mark, and the consequences it brings about, so `concern` is out.

@@ -89,8 +89,8 @@ describe('playByPlay', () => {
 
     describe('its options', () => {
         it('defaults to the explicit render with rule handles (IS-6), refusing rules: consequence unless the judge render is named', () => {
-            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'handles', scene: 'explicit' })
-            expect(playByPlay.parseOptions({})).toEqual({ rules: 'handles', scene: 'explicit' })
+            expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'conditions', scene: 'explicit' })
+            expect(playByPlay.parseOptions({})).toEqual({ rules: 'conditions', scene: 'explicit' })
             expect(playByPlay.parseOptions({ rules: 'none' })).toEqual({ rules: 'none', scene: 'explicit' })
             expect(playByPlay.parseOptions({ rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
             expect(playByPlay.parseOptions({ rules: 'consequence', scene: 'judge' })).toEqual({ rules: 'consequence', scene: 'judge' })
@@ -99,27 +99,29 @@ describe('playByPlay', () => {
         it('takes the judge render with no rules when it names no rules, and refuses rule handles with it: they tag the explicit render', () => {
             expect(playByPlay.parseOptions({ scene: 'judge' })).toEqual({ rules: 'none', scene: 'judge' })
             expect(playByPlay.parseOptions({ rules: 'handles', scene: 'judge' })).toMatch(/rules: 'handles' tags the explicit render's securings/)
+            expect(playByPlay.parseOptions({ rules: 'conditions', scene: 'judge' })).toMatch(/rules: 'conditions' tags the explicit render's securings/)
+            expect(playByPlay.parseOptions({ rules: 'handles' })).toEqual({ rules: 'handles', scene: 'explicit' })
         })
 
-        it('pins the cells\' inputs hashes on the default (rules: handles from the item standing build; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
+        it('pins the cells\' inputs hashes on the default (rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
             const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-19', 'OC-20', 'OC-20/concession'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
-            expect(hashes).toEqual(['5d7de0bb', 'b40d7083', 'd7e1d475', 'cd2cd21f', 'eec99d53', 'a401a721'])
+            expect(hashes).toEqual(['38feccd3', 'f901398c', 'a0d0b486', 'f7943193', 'e6c6d43b', '64eca640'])
         })
 
         it('shows each securing with its rule\'s handle by default, and none with rules: none', async () => {
             const text = await renderPlayByPlay(playByPlayCells['OC-20'], PLAY_BY_PLAY_OPTIONS)
-            expect(text).toContain('[table1] is chained to [wall1] (rule [table-secured-to-wall]).')
+            expect(text).toContain('[table1] is chained to [wall1] (rule [table-secured-to-wall]). If an action moves [table1] farther from [wall1] than being chained to it allows')
             expect(await renderPlayByPlay(playByPlayCells['OC-1'], PLAY_BY_PLAY_OPTIONS)).toContain('[teapot1] is glued to [table1] (rule [teapot-secured-to-table]), so')
             expect(await renderPlayByPlay(playByPlayCells['OC-20'], { rules: 'none', scene: 'explicit' })).not.toContain('(rule [')
         })
 
         it.each([['loud'], [{ rules: 'v45' }], [{ sceneRules: true }], [{ show: 'none' }]])('refuses %j', (value) => {
-            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence' | 'handles', scene?: 'judge' | 'explicit' }")
+            expect(playByPlay.parseOptions(value)).toBe("options must be { rules?: 'none' | 'consequence' | 'handles' | 'conditions', scene?: 'judge' | 'explicit' }")
         })
 
         it('renders the explicit scene by default, with no Fiction and Graph', async () => {
             const options = playByPlay.parseOptions({ scene: 'explicit' })
-            expect(options).toEqual({ rules: 'handles', scene: 'explicit' })
+            expect(options).toEqual({ rules: 'conditions', scene: 'explicit' })
             expect(await renderPlayByPlay(playByPlayCells['OC-1'], options as PlayByPlayOptions)).not.toContain('Graph')
         })
     })
