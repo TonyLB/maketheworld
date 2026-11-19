@@ -8,10 +8,10 @@
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { bracketHandles, itemTexts, mergeStepChanges, planOf, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
+import { bracketChanges, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
-import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
 export type ConsequencesInputs = {
@@ -34,16 +34,12 @@ export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { rules: 'none', scene:
 
 export const parseConsequencesOptions = imaginationOptionsParser(CONSEQUENCES_OPTIONS)
 
-/** The handles a plan's text names, each once, in order. */
-const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
-    [...new Set(steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)]).flatMap(namedHandles))]
-
 /**
  * The handles a reply may name (the user, 2026-11-18): the listed things, plus every handle in the
  * target step's own text and its intent. The success branch has to name what the intent names. One rule for every change.
  */
 export const replyHandles = ({ plan, target, things }: Pick<ConsequencesInputs, 'plan' | 'target' | 'things'>): SceneHandle[] => {
-    const step = plan.steps.find(({ path }) => path === target)
+    const step = planSteps(plan).find(({ path }) => path === target)
     const own = step === undefined ? [] : [step.says, ...step.items.flatMap((item) => (item.kind === 'intent' ? [item.says] : []))]
     return [...new Set([...things, ...own.flatMap(namedHandles)])]
 }
@@ -56,34 +52,11 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
     if (twice.length > 0) {
         throw new Error(`Things listed twice: ${twice.join(', ')}`)
     }
-    if (!plan.steps.some(({ path }) => path === target)) {
+    if (!planSteps(plan).some(({ path }) => path === target)) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
     const scene = await renderScene({ fixture, shown: [...things, ...planHandles(plan)] }, options)
     return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/** One entry with its `says` bracketed, and a possibility's branches' entries with theirs. Anything else is left as it is. */
-const bracketEntry = (entry: unknown, handles: readonly SceneHandle[]): unknown => {
-    if (!isRecord(entry)) {
-        return entry
-    }
-    const says = typeof entry.says === 'string' ? { says: bracketHandles(entry.says, handles) } : {}
-    const branches = Array.isArray(entry.branches)
-        ? { branches: entry.branches.map((branch) => (Array.isArray(branch) ? branch.map((inner) => bracketEntry(inner, handles)) : branch)) }
-        : {}
-    return { ...entry, ...says, ...branches }
-}
-
-/**
- * A block with each change's `says` repaired: bare handles bracketed (`bracketHandles`, CQ-P5), against every handle the prompt names
- * (the listed things, the plan's, and the rendered text's, when it is given). Anything else is left for the merge to check.
- */
-export const bracketChanges = (block: Record<string, unknown>, handles: readonly SceneHandle[]): Record<string, unknown> => {
-    const { changes } = block
-    return Array.isArray(changes) ? { ...block, changes: changes.map((entry) => bracketEntry(entry, handles)) } : block
 }
 
 /**

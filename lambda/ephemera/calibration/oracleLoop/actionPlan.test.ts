@@ -2,7 +2,7 @@ import { consequencesCells } from '../imaginationPieces/consequences'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { playByPlayCells } from '../imaginationPieces/playByPlay'
 import { nonRuleCellCells } from '../oraclePieces/nonRuleCell'
-import { bracketHandles, itemPaths, mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planOf, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, renderPlanForGenerator, slug, type ActionPlan } from './actionPlan'
+import { bracketChanges, bracketHandles, itemPaths, mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planOf, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, planSteps, renderPlanForGenerator, slug, type ActionPlan, type MergeOptions } from './actionPlan'
 import { oracleCases } from './oracleCases'
 
 const allPaths = ({ steps }: ActionPlan): string[] => steps.flatMap(({ path, items }) => [path, ...items.flatMap(itemPaths)])
@@ -99,10 +99,15 @@ describe('the action plan', () => {
         })
 
         it('the imagination\'s actions, each a step supplied by the system', () => {
-            for (const [id, { inputs: { actions } }] of Object.entries(playByPlayCells)) {
-                const plan = planFromActions(actions)
+            const actions = ['pick up [saucer1]', 'pour [tea2] from [teapot1] into [cup1]']
+            const plan = planFromActions(actions)
+            expectWellFormed('actions', plan)
+            expect(plan.steps.map(({ says, suppliedBy, items }) => ({ says, suppliedBy, items }))).toEqual(actions.map((says) => ({ says, suppliedBy: 'system', items: [] })))
+        })
+
+        it('playByPlay\'s cells: their plans, built by hand', () => {
+            for (const [id, { inputs: { plan } }] of Object.entries(playByPlayCells)) {
                 expectWellFormed(id, plan)
-                expect([id, plan.steps.map(({ says, suppliedBy, items }) => ({ says, suppliedBy, items }))]).toEqual([id, actions.map((says) => ({ says, suppliedBy: 'system', items: [] }))])
             }
         })
 
@@ -411,6 +416,139 @@ describe('the action plan', () => {
             it('is scoped like any change: code supplies `to`', () => {
                 const { to: _, ...unaddressed } = execution
                 expect(mergeStepChanges(tip(), 'tip-table1', { changes: [unaddressed] }, handles)).toEqual({ plan: merged(tip(), [execution]) })
+            })
+        })
+
+        describe('expansions: sub-steps and the atomic mark', () => {
+            const POUR = 'pour [tea2] from [teapot1] into [cup1]'
+            const pour = () => planOf([{ step: { says: POUR, suppliedBy: 'system' }, items: [{ kind: 'intent', says: POUR }] }])
+            const lift = { says: 'lift [teapot1] off [table1]', intent: '[teapot1] is held above [cup1]' }
+            const tilt = { says: 'tilt [teapot1] over [cup1]', intent: '[tea2] pours into [cup1]' }
+            const expand = { add: 'steps', to: 'pour-tea2-teapot1', steps: [lift, tilt] }
+            const mark = { mark: 'atomic', to: 'pour-tea2-teapot1' }
+            const takes: MergeOptions = { adds: ['steps'], marks: ['atomic'] }
+            const expanded = (plan: ActionPlan, changes: unknown[], options: MergeOptions = takes): ActionPlan => {
+                const result = mergeChanges(plan, { changes }, handles, options)
+                if ('problems' in result) {
+                    throw new Error(result.problems.join('; '))
+                }
+                return result.plan
+            }
+            const refusedWith = (plan: ActionPlan, changes: unknown[], options: MergeOptions = takes): string[] => {
+                const result = mergeChanges(plan, { changes }, handles, options)
+                return 'problems' in result ? result.problems : []
+            }
+
+            it('expands a step in place: its path and items kept, each sub-step a flat step path with its intent, after the intent', () => {
+                const plan = expanded(pour(), [expand])
+                expect(plan.steps).toEqual([{ says: POUR, suppliedBy: 'system', path: 'pour-tea2-teapot1', items: [
+                    { kind: 'intent', path: 'pour-tea2-teapot1.intent', says: POUR },
+                    { kind: 'step', path: 'lift-teapot1-table1', says: lift.says, suppliedBy: 'system', items: [{ kind: 'intent', path: 'lift-teapot1-table1.intent', says: lift.intent }] },
+                    { kind: 'step', path: 'tilt-teapot1-over', says: tilt.says, suppliedBy: 'system', items: [{ kind: 'intent', path: 'tilt-teapot1-over.intent', says: tilt.intent }] },
+                ] }])
+            })
+
+            it('renders it as the design\'s OC-6 example, a sub-step\'s items indented under it', () => {
+                expect(renderPlanForGenerator(expanded(pour(), [expand]))).toBe([
+                    'Step pour-tea2-teapot1: pour [tea2] from [teapot1] into [cup1]',
+                    '  - intent pour-tea2-teapot1.intent: pour [tea2] from [teapot1] into [cup1]',
+                    '  - step lift-teapot1-table1: lift [teapot1] off [table1]',
+                    '    - intent lift-teapot1-table1.intent: [teapot1] is held above [cup1]',
+                    '  - step tilt-teapot1-over: tilt [teapot1] over [cup1]',
+                    '    - intent tilt-teapot1-over.intent: [tea2] pours into [cup1]',
+                ].join('\n'))
+            })
+
+            it('takes a sub-step with no intent, and one naming a thing the scene doesn\'t hold (an improvised object)', () => {
+                const plan = expanded(pour(), [{ ...expand, steps: [{ says: 'slide [cloth1] under [teapot1]' }, tilt] }])
+                expect(plan.steps[0].items[1]).toEqual({ kind: 'step', path: 'slide-cloth1-under', says: 'slide [cloth1] under [teapot1]', suppliedBy: 'system', items: [] })
+            })
+
+            it('expands a sub-step in turn, minting against the step paths at every depth', () => {
+                const once = expanded(pour(), [expand])
+                const twice = expanded(once, [{ add: 'steps', to: 'lift-teapot1-table1', steps: [{ says: 'grasp [teapot1]' }, { says: 'lift [teapot1] off [table1]' }, { says: POUR }] }])
+                expect(planSteps(twice).map(({ path }) => path)).toEqual([
+                    'pour-tea2-teapot1', 'lift-teapot1-table1', 'grasp-teapot1', 'lift-teapot1-table1-2', 'pour-tea2-teapot1-2', 'tilt-teapot1-over',
+                ])
+                expect(renderPlanForGenerator(twice).split('\n').slice(2, 7)).toEqual([
+                    '  - step lift-teapot1-table1: lift [teapot1] off [table1]',
+                    '    - intent lift-teapot1-table1.intent: [teapot1] is held above [cup1]',
+                    '    - step grasp-teapot1: grasp [teapot1]',
+                    '    - step lift-teapot1-table1-2: lift [teapot1] off [table1]',
+                    '    - step pour-tea2-teapot1-2: pour [tea2] from [teapot1] into [cup1]',
+                ])
+            })
+
+            it('adds a consequence aimed at a sub-step in that sub-step\'s own scope, after its intent', () => {
+                const plan = expanded(expanded(pour(), [expand]), [{ add: 'consequence', to: 'lift-teapot1-table1', says: '[teapot1] rises' }], {})
+                const sub = planSteps(plan).find(({ path }) => path === 'lift-teapot1-table1')
+                expect(sub?.items).toEqual([
+                    { kind: 'intent', path: 'lift-teapot1-table1.intent', says: lift.intent },
+                    { kind: 'consequence', path: 'lift-teapot1-table1.teapot1-rises', says: '[teapot1] rises' },
+                ])
+            })
+
+            it('keeps the other steps as they were, and leaves the plan it is given unchanged', () => {
+                const before = planOf([{ step: { says: 'pick up [saucer1]', suppliedBy: 'system' }, items: [] }, { step: { says: POUR, suppliedBy: 'system' }, items: [] }])
+                const copy = JSON.parse(JSON.stringify(before))
+                const plan = expanded(before, [expand])
+                expect(plan.steps[0]).toBe(before.steps[0])
+                expect(before).toEqual(copy)
+            })
+
+            it('marks a step atomic, its items unchanged, and renders the tag on a step and on a sub-step', () => {
+                const plan = expanded(pour(), [mark])
+                expect(plan.steps[0]).toEqual({ ...pour().steps[0], atomic: true })
+                expect(renderPlanForGenerator(plan).split('\n')[0]).toBe('Step pour-tea2-teapot1 (atomic): pour [tea2] from [teapot1] into [cup1]')
+                const sub = expanded(expanded(pour(), [expand]), [{ mark: 'atomic', to: 'tilt-teapot1-over' }])
+                expect(renderPlanForGenerator(sub).split('\n')[4]).toBe('  - step tilt-teapot1-over (atomic): tilt [teapot1] over [cup1]')
+            })
+
+            it('is scoped like any change: code supplies `to` to an expansion and to a mark', () => {
+                expect(mergeStepChanges(pour(), 'pour-tea2-teapot1', { changes: [{ add: 'steps', steps: [lift, tilt] }] }, handles, takes)).toEqual({ plan: expanded(pour(), [expand]) })
+                expect(mergeStepChanges(pour(), 'pour-tea2-teapot1', { changes: [{ mark: 'atomic' }] }, handles, takes)).toEqual({ plan: expanded(pour(), [mark]) })
+                const once = expanded(pour(), [expand])
+                expect(mergeStepChanges(once, 'tilt-teapot1-over', { changes: [{ mark: 'atomic' }] }, handles, takes)).toEqual({ plan: expanded(once, [{ mark: 'atomic', to: 'tilt-teapot1-over' }]) })
+            })
+
+            it('is refused by default, so a block takes the sub-item kinds unless told otherwise', () => {
+                expect(refusedWith(pour(), [expand], {})).toEqual(['change 1: "add" must be one of consequence, concern, possibility'])
+                expect(refusedWith(pour(), [mark], {})).toEqual(['change 1: "mark" isn\'t a change this block takes'])
+                expect(refusedWith(pour(), [{ add: 'consequence', to: 'pour-tea2-teapot1', says: '[teapot1] tilts' }])).toEqual(['change 1: "add" must be one of steps'])
+            })
+
+            it.each([
+                ['a single sub-step', [{ ...expand, steps: [lift] }], ['change 1: has 1 sub-step; an expansion needs at least two']],
+                ['no steps list', [{ ...expand, steps: 'lift it' }], ['change 1: has no "steps" list']],
+                ['a sub-step that is not an object', [{ ...expand, steps: [lift, 'tilt'] }], ['change 1: sub-step 2: is not an object']],
+                ['a sub-step with no says', [{ ...expand, steps: [lift, { intent: 'it pours' }] }], ['change 1: sub-step 2: has no non-empty string "says"']],
+                ['a sub-step with another key', [{ ...expand, steps: [lift, { ...tilt, thing: 'cup1' }] }], ['change 1: sub-step 2: has "thing", not one of says, intent']],
+                ['a blank intent', [{ ...expand, steps: [lift, { ...tilt, intent: ' ' }] }], ['change 1: sub-step 2: "intent" is not a non-empty string']],
+                ['an expansion with its own says', [{ ...expand, says: 'pour it' }], ['change 1: has "says", not one of add, to, steps']],
+                ['a mark not taken', [{ ...mark, mark: 'done' }], ['change 1: "mark" must be one of atomic']],
+                ['a mark with another key', [{ ...mark, why: 'simple' }], ['change 1: has "why", not one of mark, to']],
+                ['an expansion twice in one block', [expand, expand], ['change 2: step pour-tea2-teapot1 is already expanded; expand one of its sub-steps for more detail']],
+                ['a mark twice in one block', [mark, mark], ['change 2: step pour-tea2-teapot1 is already marked atomic']],
+                ['an expansion, then a mark', [expand, mark], ['change 2: step pour-tea2-teapot1 is both expanded and marked atomic in this block; a step is one or the other']],
+                ['a mark, then an expansion', [mark, expand], ['change 2: step pour-tea2-teapot1 is both expanded and marked atomic in this block; a step is one or the other']],
+            ])('refuses %s', (_, changes, problems) => {
+                expect(refusedWith(pour(), changes)).toEqual(problems)
+            })
+
+            it('refuses against what the plan already holds', () => {
+                const once = expanded(pour(), [expand])
+                const atomic = expanded(pour(), [mark])
+                expect(refusedWith(atomic, [expand])).toEqual(['change 1: step pour-tea2-teapot1 is marked as one motion; nothing to expand'])
+                expect(refusedWith(atomic, [mark])).toEqual(['change 1: step pour-tea2-teapot1 is already marked atomic'])
+                expect(refusedWith(once, [expand])).toEqual(['change 1: step pour-tea2-teapot1 is already expanded; expand one of its sub-steps for more detail'])
+                expect(refusedWith(once, [mark])).toEqual(['change 1: step pour-tea2-teapot1 is already expanded, so it isn\'t one motion'])
+                expect(refusedWith(once, [{ ...expand, to: 'lift-teapot1-table1.intent' }])).toEqual(['change 1: to "lift-teapot1-table1.intent" names a sub-item, not a step'])
+            })
+
+            it('brackets bare handles in a sub-step\'s says and intent', () => {
+                expect(bracketChanges({ changes: [{ add: 'steps', steps: [{ says: 'lift teapot1', intent: 'teapot1 is up' }, 'x'] }] }, ['teapot1'])).toEqual({
+                    changes: [{ add: 'steps', steps: [{ says: 'lift [teapot1]', intent: '[teapot1] is up' }, 'x'] }],
+                })
             })
         })
 

@@ -7,6 +7,8 @@ Owned by the [oracle loop plan](../../AGENT.oracleLoop.planning.md), like the [r
 
 **From draft 11, a draft is two parts** (imagination plan, step 1): this ask's part, `N.ask.txt` (Role, examples and Task, with one `{{core}}` line), and a version of the shared core, [`../imaginationCore/`](../imaginationCore/1.txt) (core 1: `Reading the scene` and `Relations and frames`; core 2, from draft 11: `Reading the scene` only, with `Relations and frames` moved to `consequences`, imagination plan step 1.5). `npm run assemble-draft` in `lambda/ephemera/` ([`assembleDraft.ts`](../../../../../../../lambda/ephemera/calibration/pieceProbe/assembleDraft.ts)) builds the payload and prints each part's hash, and a draft's notes say which part changed. Draft 10, split, is [`10.ask.txt`](10.ask.txt) (`4b18b3b0`) and core 1 (`006c128e`), which assemble to `93a12284`.
 
+**From draft 17, the expand form** ([the playByPlayExpand plan](../../AGENT.playByPlayExpand.planning.md), step 2, built 2026-11-18): the piece expands one step of a plan into sub-steps, or marks it atomic, in the change language. The old reply form, a line per named thing per action and a problems list, is retired in code, so drafts 1 to 16 can't be re-assembled against it; their payloads and results stay the record (git has the code).
+
 The piece is read, not tallied: code checks each reply's form, and every reply is read against its cell's look-for and the draft's rubric, both written before the batch.
 
 **IDs:**

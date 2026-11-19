@@ -1,27 +1,29 @@
 //
-// The play-by-play, the imagination's more-detail ask (AGENT.imagination.planning.md): a read piece. Given a fixture and a candidate's
-// actions in order, it says how each action would ordinarily be done, as a line for each thing the actions name, and what in the scene
-// might get in the way. There is no answer set: code checks each reply's form, and a reader reads the replies against each cell's
-// `lookFor`. What happens to the things the actions don't move is `consequences`' (step 1.5's sort).
+// The play-by-play, the imagination's more-detail ask (AGENT.imagination.planning.md; AGENT.playByPlayExpand.planning.md): a read piece,
+// and a reducer on the action plan (calibration AGENT.md, "The action plan"). Given a fixture, a plan and the path of the one step to
+// expand, it breaks that step into ordered sub-steps, each with an intent where it helps, or marks it atomic, as one motion, in the
+// change language. Code supplies each change's `to`, and the merge expands the step in place. There is no answer set: code checks each
+// reply's form (does the block merge?), and a reader reads the merged plans against each cell's `lookFor`.
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { planOf, type ActionPlan, type UnmintedItem } from '../oracleLoop/actionPlan'
-import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import {
-    actionsHandles, caseActions, caseSource, checkActionsBlock, imaginationOptionsParser, linesByHandle, listedTwice, renderSceneAndActions,
-    thingsLine, type ImaginationOptions,
-} from './imaginationScene'
+    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan, type MergeOptions,
+} from '../oracleLoop/actionPlan'
+import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
 
 export type PlayByPlayInputs = {
     fixture: string
-    /** The candidate's actions in order, each in its words (`says`). The things described are the handles they name (PB-1). */
-    actions: readonly string[]
+    /** The plan so far. */
+    plan: ActionPlan
+    /** The path of the step to expand, at any depth: the reply expands it alone, or marks it atomic. */
+    target: string
     /**
-     * The other things the sub-scene shows, by handle, listed by hand: a sub-scene of the named handles alone keeps only them and their
+     * The other things the scene shows, by handle, listed by hand: a scene of the plan's handles alone keeps only them and their
      * containers, so a relation to anything else (OC-20's chain to the wall) would drop out.
      */
     alsoShown: readonly SceneHandle[]
@@ -32,79 +34,48 @@ export type PlayByPlayOptions = ImaginationOptions
 /** The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene renders"). */
 export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'none', scene: 'explicit' }
 
-/** The things a cell describes: the handles its actions name, each once, in order. */
-export const playByPlayThings = ({ actions }: PlayByPlayInputs): SceneHandle[] => actionsHandles(actions)
+/** What the play-by-play's block may hold: an expansion or the atomic mark, and nothing else, so `concern` is out (PX-5). */
+export const PLAY_BY_PLAY_MERGE: MergeOptions = { adds: ['steps'], marks: ['atomic'] }
 
-export const renderPlayByPlay = async ({ inputs }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
-    const twice = listedTwice(inputs.alsoShown)
+export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
+    const twice = listedTwice(alsoShown)
     if (twice.length > 0) {
         throw new Error(`Things shown twice: ${twice.join(', ')}`)
     }
-    const parts = await renderSceneAndActions({ fixture: inputs.fixture, actions: inputs.actions, shown: inputs.alsoShown }, options)
-    const things = playByPlayThings(inputs)
-    if (things.length === 0) {
-        throw new Error('The actions name no things to describe')
+    const step = planSteps(plan).find(({ path }) => path === target)
+    if (step === undefined) {
+        throw new Error(`The target "${target}" names no step of the plan`)
     }
-    return [...parts, thingsLine(things, options)].join('\n\n')
-}
-
-const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/** The step a problem names, by the render's own label (`Action N`, N in range; the first such mention), else the last (mine). */
-const problemStep = (problem: string, actionCount: number): number => {
-    const named = [...problem.matchAll(/\bAction (\d+)\b/g)].map(([, number]) => Number(number)).find((number) => number >= 1 && number <= actionCount)
-    return (named ?? actionCount) - 1
+    // Asking for what the merge would refuse is the caller's error (mine).
+    if (step.atomic) {
+        throw new Error(`The target "${target}" is marked atomic; nothing to expand`)
+    }
+    if (isExpanded(step)) {
+        throw new Error(`The target "${target}" is already expanded; expand one of its sub-steps`)
+    }
+    const scene = await renderScene({ fixture, shown: [...alsoShown, ...planHandles(plan)] }, options)
+    return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step to expand: ${target}`].join('\n\n')
 }
 
 /**
- * A checked reply's block as a new plan (calibration AGENT.md, "The action plan"): each action a step, supplied by the system; each
- * described thing's line an unintended consequence with its `thing`, in the things' order (mine); each problem a concern on the step it
- * names, else the last. Code mints every path, so the model names nothing. The block is taken as the contract has checked it.
- */
-export const planFromPlayByPlay = (inputs: PlayByPlayInputs, block: { actions: readonly Record<string, unknown>[]; problems?: readonly string[] }): ActionPlan => {
-    const things = playByPlayThings(inputs)
-    const concerns = (block.problems ?? []).map((says) => ({ step: problemStep(says, inputs.actions.length), says }))
-    return planOf(inputs.actions.map((says, index) => {
-        const lines = linesByHandle(block.actions[index] ?? {})
-        return {
-            step: { says, suppliedBy: 'system' as const },
-            items: [
-                ...things.flatMap((thing): UnmintedItem[] => {
-                    const values = lines.get(thing)
-                    return values === undefined ? [] : [{ kind: 'consequence', thing, says: values.join(' ').trim() }]
-                }),
-                ...concerns.filter(({ step }) => step === index).map(({ says }): UnmintedItem => ({ kind: 'concern', says })),
-            ],
-        }
-    }))
-}
-
-/** The `problems` list's form: absent, or a list of non-empty strings, since each becomes a concern (mine, the one rule beyond the block's). */
-const problemsProblems = (problems: unknown): string[] => {
-    if (problems === undefined) {
-        return []
-    }
-    if (!Array.isArray(problems)) {
-        return ['"problems" is not a list']
-    }
-    return problems.flatMap((problem, index) => (typeof problem === 'string' && problem.trim() !== '' ? [] : [`problem ${index + 1} is not a non-empty string`]))
-}
-
-/**
- * The stage's contract: the reply's block as a plan. The form is `checkActionsBlock`'s, unchanged, and the `problems` list's; with no
- * problem, the value is `planFromPlayByPlay` of the block.
+ * The stage's contract: the reply's block, its bare handles bracketed, scoped to the target and merged into the plan (`mergeStepChanges`),
+ * taking only an expansion or the atomic mark (`PLAY_BY_PLAY_MERGE`). An empty `changes` is refused: every reply expands the step or
+ * marks it atomic (the user, 2026-11-18). A handle the scene doesn't hold is kept as written: a breakdown may improvise an object.
  */
 export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
     name: 'playByPlay',
-    parse: (reply, { input }) => {
-        const blockProblems = checkActionsBlock(reply, input.actions.length, playByPlayThings(input))
+    parse: (reply, { input: { plan, target, alsoShown }, rendered }) => {
         const parsed = replyJsonObject(reply)
-        const problems = [...blockProblems, ...('object' in parsed ? problemsProblems(parsed.object.problems) : [])]
-        if (problems.length > 0 || !('object' in parsed)) {
-            return { problems }
+        if ('malformed' in parsed) {
+            return { problems: [parsed.malformed] }
         }
-        const { actions, problems: given } = parsed.object
-        return { value: planFromPlayByPlay(input, { actions: (actions as unknown[]).filter(isRecord), problems: given as string[] | undefined }) }
+        const { changes } = parsed.object
+        if (Array.isArray(changes) && changes.length === 0) {
+            return { problems: ['"changes" is empty: expand the step, or mark it atomic'] }
+        }
+        const shown = [...new Set([...alsoShown, ...planHandles(plan), ...namedHandles(rendered)])]
+        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), shown, PLAY_BY_PLAY_MERGE)
+        return 'problems' in merged ? merged : { value: merged.plan }
     },
 }
 
@@ -112,27 +83,38 @@ export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
 export const checkPlayByPlay = (reply: string, { inputs }: ReadPieceCell<PlayByPlayInputs>, rendered = ''): string[] =>
     parseProblems(playByPlayContract.parse(reply, { input: inputs, rendered }))
 
+/** A one-step plan whose intent is the step's own text (the single-step rule, as `consequences`' OC-1). */
+const oneStepPlan = (says: string): ActionPlan => planOf([{ step: { says, suppliedBy: 'system' }, items: [{ kind: 'intent', says }] }])
+
+/** The cells' plans, built by hand (PX-7): one step each, the case's own. */
+export const playByPlayPlans = {
+    'OC-1': oneStepPlan(caseActions('OC-1')[0]),
+    'OC-6': oneStepPlan(caseActions('OC-6')[0]),
+    'OC-19': oneStepPlan(caseActions('OC-19')[0]),
+    'OC-20': oneStepPlan('pick up [table1]'),
+} satisfies Record<string, ActionPlan>
+
 export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = {
     'OC-1': {
-        inputs: { fixture: 'teaTable', actions: caseActions('OC-1'), alsoShown: ['teapot1', 'cup1', 'saucer1'] },
-        lookFor: 'the table lifted the ordinary way; things that might fall from it are a fair flag, and the glue flagged is an over-flag',
+        inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-1'], target: 'pick-up-table1', alsoShown: ['teapot1', 'cup1', 'saucer1'] },
+        lookFor: 'an ordinary lift (grip the edges, lift), or the step marked atomic; a sub-step dealing with the glue is a defect (PB-P2)',
         source: caseSource('OC-1'),
     },
     'OC-6': {
-        inputs: { fixture: 'teaTable', actions: caseActions('OC-6'), alsoShown: ['table1'] },
-        lookFor: 'the teapot lifted or tilted off the table, as pouring needs, and not written to fit the glue (PR-1)',
+        inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-6'], target: 'pour-tea2-teapot1', alsoShown: ['table1'] },
+        lookFor: 'the teapot lifted or tilted over the cup, as pouring needs, not fitted to the glue (PR-1); an "unglue" sub-step (PB-P2), or tipping the table instead (an alternate method), is a defect',
         source: caseSource('OC-6'),
     },
     'OC-19': {
-        inputs: { fixture: 'teaTableHammerHeld', actions: caseActions('OC-19'), alsoShown: [] },
-        lookFor: 'the teapot levered up and off the table, the table staying',
+        inputs: { fixture: 'teaTableHammerHeld', plan: playByPlayPlans['OC-19'], target: 'pry-teapot1-table1', alsoShown: [] },
+        lookFor: 'the claw set under the teapot, then the teapot levered up and off; no sub-step moves the table',
         source: caseSource('OC-19'),
     },
     'OC-20': {
-        inputs: { fixture: 'teaTableChained', actions: ['pick up [table1]'], alsoShown: ['wall1'] },
-        lookFor: 'the table lifted and pulled from the wall, the wall staying',
+        inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20'], target: 'pick-up-table1', alsoShown: ['wall1'] },
+        lookFor: 'the table lifted and pulled from the wall; a sub-step detaching the chain first is a defect (PB-P2); no sub-step moves the wall',
         source: 'hand-written',
-        note: "The oracle probe has no candidate, since the template refuses the move; the action is written by hand, as the rule cell's was.",
+        note: "The oracle probe has no candidate, since the template refuses the move; the step is written by hand, as the rule cell's was.",
     },
 }
 
@@ -154,5 +136,5 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
 
 export const registeredPlayByPlay = registerPiece(playByPlay)
 
-/** A batch's replies for reading (`read-plans`), as plans (`plansText`). */
+/** A batch's replies for reading (`read-plans`), as merged plans (`plansText`). */
 export const playByPlayPlansText = plansText('playByPlay', playByPlayCells, playByPlayContract)
