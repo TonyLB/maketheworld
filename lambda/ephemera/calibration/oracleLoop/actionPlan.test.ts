@@ -424,14 +424,17 @@ describe('the action plan', () => {
             })
         })
 
-        describe('expansions: sub-steps and the atomic mark', () => {
+        describe('expansions and restatements (the step record)', () => {
             const POUR = 'pour [tea2] from [teapot1] into [cup1]'
             const pour = () => planOf([{ step: { says: POUR, suppliedBy: 'system' }, items: [{ kind: 'intent', says: POUR }] }])
             const lift = { says: 'lift [teapot1] off [table1]', intent: '[teapot1] is held above [cup1]' }
             const tilt = { says: 'tilt [teapot1] over [cup1]', intent: '[tea2] pours into [cup1]' }
             const expand = { add: 'steps', to: 'pour-tea2-teapot1', steps: [lift, tilt] }
-            const mark = { mark: 'atomic', to: 'pour-tea2-teapot1' }
-            const takes: MergeOptions = { author: 'playByPlay', adds: ['steps'], marks: ['atomic'] }
+            const ANSWERED = 'how [teapot1] is held'
+            const restate = { restate: 'step', to: 'pour-tea2-teapot1', says: POUR, intent: POUR, answered: ANSWERED }
+            const takes: MergeOptions = { author: 'playByPlay', adds: ['steps'], restates: true }
+            const restating: MergeOptions = { author: 'playByPlay', adds: ['steps', 'consequence'], restates: true }
+            const spills = { add: 'consequence', to: 'pour-tea2-teapot1', says: '[tea2] spills over [table1]' }
             const expanded = (plan: ActionPlan, changes: unknown[], options: MergeOptions = takes): ActionPlan => {
                 const result = mergeChanges(plan, { changes }, handles, options)
                 if ('problems' in result) {
@@ -501,24 +504,69 @@ describe('the action plan', () => {
                 expect(before).toEqual(copy)
             })
 
-            it('marks a step atomic, its items unchanged, and renders the tag on a step and on a sub-step', () => {
-                const plan = expanded(pour(), [mark])
-                expect(plan.steps[0]).toEqual({ ...pour().steps[0], atomic: true })
-                expect(renderPlanForGenerator(plan).split('\n')[0]).toBe('Step pour-tea2-teapot1 (atomic): pour [tea2] from [teapot1] into [cup1]')
-                const sub = expanded(expanded(pour(), [expand]), [{ mark: 'atomic', to: 'tilt-teapot1-over' }])
-                expect(renderPlanForGenerator(sub).split('\n')[4]).toBe('  - step tilt-teapot1-over (atomic): tilt [teapot1] over [cup1]')
+            it('restates a step as written: its path and items kept, the detail asked for added to its alreadyAnswers, rendered first under it', () => {
+                const before = expanded(pour(), [spills], asConsequences)
+                const plan = expanded(before, [restate], restating)
+                expect(plan.steps[0]).toEqual({ ...before.steps[0], alreadyAnswers: [ANSWERED] })
+                expect(renderPlanForGenerator(plan).split('\n').slice(0, 2)).toEqual(['Step pour-tea2-teapot1: pour [tea2] from [teapot1] into [cup1]', '  - already answers: how [teapot1] is held'])
             })
 
-            it('is scoped like any change: code supplies `to` to an expansion and to a mark', () => {
-                expect(mergeStepChanges(pour(), 'pour-tea2-teapot1', { changes: [{ add: 'steps', steps: [lift, tilt] }] }, handles, takes)).toEqual({ plan: expanded(pour(), [expand]) })
-                expect(mergeStepChanges(pour(), 'pour-tea2-teapot1', { changes: [{ mark: 'atomic' }] }, handles, takes)).toEqual({ plan: expanded(pour(), [mark]) })
+            it('adds a detail once, keeping the ones before it', () => {
+                const once = expanded(pour(), [restate])
+                expect(expanded(once, [restate]).steps[0].alreadyAnswers).toEqual([ANSWERED])
+                expect(expanded(once, [{ ...restate, answered: 'how [cup1] is held' }]).steps[0].alreadyAnswers).toEqual([ANSWERED, 'how [cup1] is held'])
+            })
+
+            it('revises on a changed intent (IS-10): the items leave, the path kept, the intent the restatement\'s, a carried consequence unchecked', () => {
+                const before = expanded(pour(), [spills], asConsequences)
+                const plan = expanded(before, [{ ...restate, intent: '[tea2] is in [cup1]' }, spills], restating)
+                expect(plan.steps).toEqual([{ says: POUR, suppliedBy: 'system', path: 'pour-tea2-teapot1', standing: 'confirmed', alreadyAnswers: [ANSWERED], items: [
+                    { kind: 'intent', path: 'pour-tea2-teapot1.intent', standing: 'confirmed', says: '[tea2] is in [cup1]' },
+                    { kind: 'consequence', path: 'pour-tea2-teapot1.tea2-spills-over', standing: 'unchecked', says: '[tea2] spills over [table1]' },
+                ] }])
+            })
+
+            it('revises on a changed says: a path minted afresh before the sub-steps\', the old intent kept under it when none is given', () => {
+                const command = planOf([{ step: { says: 'pour tea into cup', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pour tea into cup' }] }])
+                const plan = expanded(command, [
+                    { restate: 'step', to: 'pour-tea-cup', says: POUR, answered: 'how the tea is poured' },
+                    { add: 'steps', to: 'pour-tea-cup', steps: [lift, { says: POUR }] },
+                ])
+                expectWellFormed('revised', plan)
+                expect(planSteps(plan).map(({ path, says }) => [path, says])).toEqual([['pour-tea2-teapot1', POUR], ['lift-teapot1-table1', lift.says], ['pour-tea2-teapot1-2', POUR]])
+                expect(plan.steps[0]).toMatchObject({ path: 'pour-tea2-teapot1', says: POUR, standing: 'confirmed', alreadyAnswers: ['how the tea is poured'] })
+                expect(plan.steps[0].items[0]).toEqual({ kind: 'intent', path: 'pour-tea2-teapot1.intent', standing: 'confirmed', says: 'pour tea into cup' })
+            })
+
+            it('keeps the path of a changed says that slugs the same, as a replacement does', () => {
+                const plan = expanded(pour(), [{ ...restate, says: `${POUR} slowly` }])
+                expect(plan.steps[0]).toMatchObject({ path: 'pour-tea2-teapot1', says: `${POUR} slowly`, items: [{ kind: 'intent', path: 'pour-tea2-teapot1.intent', says: POUR }] })
+            })
+
+            it('revises a sub-step in its place, its parent and siblings as they were', () => {
                 const once = expanded(pour(), [expand])
-                expect(mergeStepChanges(once, 'tilt-teapot1-over', { changes: [{ mark: 'atomic' }] }, handles, takes)).toEqual({ plan: expanded(once, [{ mark: 'atomic', to: 'tilt-teapot1-over' }]) })
+                const plan = expanded(once, [{ restate: 'step', to: 'tilt-teapot1-over', says: 'tip [teapot1] over [cup1]', answered: 'how [teapot1] is tipped' }])
+                expect(planSteps(plan).map(({ path }) => path)).toEqual(['pour-tea2-teapot1', 'lift-teapot1-table1', 'tip-teapot1-over'])
+                expect(planSteps(plan)[2]).toEqual({
+                    kind: 'step', path: 'tip-teapot1-over', standing: 'confirmed', says: 'tip [teapot1] over [cup1]', suppliedBy: 'system', alreadyAnswers: ['how [teapot1] is tipped'],
+                    items: [{ kind: 'intent', path: 'tip-teapot1-over.intent', standing: 'confirmed', says: tilt.intent }],
+                })
+                expect(renderPlanForGenerator(plan).split('\n').slice(4)).toEqual([
+                    '  - step tip-teapot1-over: tip [teapot1] over [cup1]', '    - already answers: how [teapot1] is tipped', '    - intent tip-teapot1-over.intent: [tea2] pours into [cup1]',
+                ])
+            })
+
+            it('is scoped like any change: code supplies `to` to an expansion and to a restatement', () => {
+                expect(mergeStepChanges(pour(), 'pour-tea2-teapot1', { changes: [{ add: 'steps', steps: [lift, tilt] }] }, handles, takes)).toEqual({ plan: expanded(pour(), [expand]) })
+                const { to: _, ...unaddressed } = restate
+                expect(mergeStepChanges(pour(), 'pour-tea2-teapot1', { changes: [unaddressed] }, handles, takes)).toEqual({ plan: expanded(pour(), [restate]) })
+                const once = expanded(pour(), [expand])
+                expect(mergeStepChanges(once, 'tilt-teapot1-over', { changes: [{ ...unaddressed, says: tilt.says }] }, handles, takes)).toEqual({ plan: expanded(once, [{ ...restate, to: 'tilt-teapot1-over', says: tilt.says }]) })
             })
 
             it('is refused by default, so a block takes the sub-item kinds unless told otherwise', () => {
                 expect(refusedWith(pour(), [expand], { author: 'playByPlay' })).toEqual(['change 1: "add" must be one of consequence, concern, possibility'])
-                expect(refusedWith(pour(), [mark], { author: 'playByPlay' })).toEqual(['change 1: "mark" isn\'t a change this block takes'])
+                expect(refusedWith(pour(), [restate], { author: 'playByPlay' })).toEqual(['change 1: "restate" isn\'t a change this block takes'])
                 expect(refusedWith(pour(), [{ add: 'consequence', to: 'pour-tea2-teapot1', says: '[teapot1] tilts' }])).toEqual(['change 1: "add" must be one of steps'])
             })
 
@@ -530,24 +578,32 @@ describe('the action plan', () => {
                 ['a sub-step with another key', [{ ...expand, steps: [lift, { ...tilt, thing: 'cup1' }] }], ['change 1: sub-step 2: has "thing", not one of says, intent, consequences']],
                 ['a blank intent', [{ ...expand, steps: [lift, { ...tilt, intent: ' ' }] }], ['change 1: sub-step 2: "intent" is not a non-empty string']],
                 ['an expansion with its own says', [{ ...expand, says: 'pour it' }], ['change 1: has "says", not one of add, to, steps']],
-                ['a mark not taken', [{ ...mark, mark: 'done' }], ['change 1: "mark" must be one of atomic']],
-                ['a mark with another key', [{ ...mark, why: 'simple' }], ['change 1: has "why", not one of mark, to']],
                 ['an expansion twice in one block', [expand, expand], ['change 2: step pour-tea2-teapot1 is already expanded; expand one of its sub-steps for more detail']],
-                ['a mark twice in one block', [mark, mark], ['change 2: step pour-tea2-teapot1 is already marked atomic']],
-                ['an expansion, then a mark', [expand, mark], ['change 2: step pour-tea2-teapot1 is both expanded and marked atomic in this block; a step is one or the other']],
-                ['a mark, then an expansion', [mark, expand], ['change 2: step pour-tea2-teapot1 is both expanded and marked atomic in this block; a step is one or the other']],
+                ['the retired atomic mark', [{ mark: 'atomic', to: 'pour-tea2-teapot1' }], ['change 1: has "mark", not one of add, to, thing, says', 'change 1: "add" must be one of steps', 'change 1: has no non-empty string "says"']],
+                ['a restatement with no says', [{ ...restate, says: ' ' }], ['change 1: has no non-empty string "says"']],
+                ['a restatement with a blank intent', [{ ...restate, intent: '' }], ['change 1: "intent" is not a non-empty string']],
+                ['a restatement with no detail answered', [{ ...restate, answered: '' }], ['change 1: has no non-empty string "answered"']],
+                ['a restatement with another key', [{ ...restate, why: 'simple' }], ['change 1: has "why", not one of restate, to, says, intent, answered']],
+                ['a restatement of another kind', [{ ...restate, restate: 'intent' }], ['change 1: "restate" must be step']],
+                ['a restatement twice in one block', [restate, restate], ['change 2: step pour-tea2-teapot1 is already restated in this block']],
             ])('refuses %s', (_, changes, problems) => {
                 expect(refusedWith(pour(), changes)).toEqual(problems)
             })
 
             it('refuses against what the plan already holds', () => {
                 const once = expanded(pour(), [expand])
-                const atomic = expanded(pour(), [mark])
-                expect(refusedWith(atomic, [expand])).toEqual(['change 1: step pour-tea2-teapot1 is marked as one motion; nothing to expand'])
-                expect(refusedWith(atomic, [mark])).toEqual(['change 1: step pour-tea2-teapot1 is already marked atomic'])
                 expect(refusedWith(once, [expand])).toEqual(['change 1: step pour-tea2-teapot1 is already expanded; expand one of its sub-steps for more detail'])
-                expect(refusedWith(once, [mark])).toEqual(['change 1: step pour-tea2-teapot1 is already expanded, so it isn\'t one motion'])
+                expect(refusedWith(once, [{ ...restate, intent: '[tea2] is in [cup1]' }])).toEqual(['change 1: step pour-tea2-teapot1 is expanded, so it isn\'t revised; revise one of its sub-steps'])
+                expect(expanded(once, [restate]).steps[0].alreadyAnswers).toEqual([ANSWERED])
                 expect(refusedWith(once, [{ ...expand, to: 'lift-teapot1-table1.intent' }])).toEqual(['change 1: to "lift-teapot1-table1.intent" names a sub-item, not a step'])
+            })
+
+            it('refuses a replacement aimed at an item of a step the block revises, since that item leaves', () => {
+                const proposed = expanded(pour(), [spills], { author: 'playByPlay', adds: ['consequence'] })
+                const replace = { replace: 'pour-tea2-teapot1.tea2-spills-over', with: { says: '[tea2] stays in [teapot1]' } }
+                expect(refusedWith(proposed, [{ ...restate, intent: '[tea2] is in [cup1]' }, replace], { author: 'consequences', restates: true, replaces: true })).toEqual([
+                    'change 2: "pour-tea2-teapot1.tea2-spills-over" is on step pour-tea2-teapot1, which this block revises; a revised step\'s items leave',
+                ])
             })
 
             it('brackets bare handles in a sub-step\'s says and intent', () => {
@@ -568,7 +624,7 @@ describe('the action plan', () => {
                 ],
             }
             const cannot = { add: 'consequence', to: 'pick-up-table1', says: '[table1] cannot be lifted', rules: [chain] }
-            const by = (author: MergeOptions['author'], extra: Partial<MergeOptions> = {}): MergeOptions => ({ author, adds: ['steps', 'consequence', 'concern'], marks: ['atomic'], rules: RULES, ...extra })
+            const by = (author: MergeOptions['author'], extra: Partial<MergeOptions> = {}): MergeOptions => ({ author, adds: ['steps', 'consequence', 'concern'], restates: true, rules: RULES, ...extra })
             const mergedBy = (plan: ActionPlan, changes: unknown[], options: MergeOptions): ActionPlan => {
                 const result = mergeChanges(plan, { changes }, handles, options)
                 if ('problems' in result) {

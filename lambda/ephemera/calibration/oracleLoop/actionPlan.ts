@@ -1,8 +1,8 @@
 //
 // The action plan, a Prototype (calibration AGENT.md, "The action plan"): a candidate step with a path and its sub-items, built from each
 // step shape in use, and a render for a generator to read. The judging pieces don't read it yet; they render from their own inputs.
-// Paths are readable slugs minted at creation; changes add, set a once-only tag, or replace an unchecked item, so an item's path never
-// changes while it is in the plan, and is the item's id.
+// Paths are readable slugs minted at creation; changes add, restate a step, or replace an unchecked item, so an item's path never
+// changes while it is in the plan, and is the item's id; a step revised by its restatement takes a path minted afresh, as a replacement does.
 // A change language adds to it: a block of additions, merged in by code, the whole block refused on any problem.
 // A possibility holds a spread of outcomes, as unlabelled branches of consequences. Every path is flat under its step, in one scope at
 // any depth; consequences and concerns slug their text, every other kind its kind (`tip-table1.intent`, `.maybe-2`).
@@ -61,9 +61,9 @@ export type StepItem =
 
 /**
  * A sub-step: a full planned step inside its parent, in order, from an expansion. Its path is a step path (flat, in the plan's step scope),
- * and its items are in its own scope. `atomic`: marked as one motion, so nothing expands it.
+ * and its items are in its own scope. `alreadyAnswers`: as on any step.
  */
-export type SubStep = { kind: 'step'; path: string; standing: Standing; says: string; suppliedBy: 'system'; atomic?: true; items: readonly StepItem[] }
+export type SubStep = { kind: 'step'; path: string; standing: Standing; says: string; suppliedBy: 'system'; alreadyAnswers?: readonly string[]; items: readonly StepItem[] }
 
 export type StepItemKind = StepItem['kind']
 
@@ -100,11 +100,14 @@ export const itemPaths = (item: StepItem): string[] =>
         : item.kind === 'consequence' ? [item.path, ...(item.rules ?? []).map(({ path }) => path)]
         : [item.path]
 
-/** A step's `atomic`: marked as one motion (set once, by a reply), so nothing expands it. A step is expanded, or atomic, or neither. */
-export type PlannedStep = CandidateStep & { path: string; standing: Standing; atomic?: true; items: readonly StepItem[] }
+/**
+ * A step's `alreadyAnswers` (AGENT.itemStanding.planning.md, the step record): the details asked of it that what it holds answers, each
+ * added by code from a restatement's request, never by a model. The judge's evidence that a question was asked, not a lock on asking it.
+ */
+export type PlannedStep = CandidateStep & { path: string; standing: Standing; alreadyAnswers?: readonly string[]; items: readonly StepItem[] }
 
-/** What a planned step and a sub-step share: enough to find, expand, mark or render either. */
-export type StepNode = { path: string; says: string; standing: Standing; atomic?: true; items: readonly StepItem[] }
+/** What a planned step and a sub-step share: enough to find, expand, restate or render either. */
+export type StepNode = { path: string; says: string; standing: Standing; alreadyAnswers?: readonly string[]; items: readonly StepItem[] }
 
 /** A step and its sub-steps at every depth, depth first. */
 const withSubSteps = (step: StepNode): StepNode[] => [step, ...step.items.flatMap((item) => (item.kind === 'step' ? withSubSteps(item) : []))]
@@ -118,8 +121,11 @@ const scopePaths = (items: readonly StepItem[]): string[] => items.filter(({ kin
 /** Whether a step is expanded: it holds sub-steps. */
 export const isExpanded = ({ items }: Pick<StepNode, 'items'>): boolean => items.some(({ kind }) => kind === 'step')
 
+/** What a change block gives one step: its items, and from a restatement its text, path, standing and answers. */
+type StepUpdate = Partial<Pick<StepNode, 'path' | 'says' | 'standing' | 'alreadyAnswers'>> & Pick<StepNode, 'items'>
+
 /** A step, with the one step at `path` (itself or a sub-step at any depth) given what `change` returns; every other part kept as it is. */
-const mapStep = <Step extends StepNode>(step: Step, path: string, change: (step: StepNode) => Pick<StepNode, 'items' | 'atomic'>): Step => {
+const mapStep = <Step extends StepNode>(step: Step, path: string, change: (step: StepNode) => StepUpdate): Step => {
     if (step.path === path) {
         return { ...step, ...change(step) }
     }
@@ -233,9 +239,6 @@ export const bracketHandles = (text: string, handles: readonly SceneHandle[]): s
     return text.replace(new RegExp(`(?<![\\[\\w])(${escaped.join('|')})(?![\\]\\w])`, 'gi'), (match) => `[${canonical.get(match.toLowerCase()) ?? match}]`)
 }
 
-/** ` (atomic)` on a step marked as one motion, as `(intended)` on an intended consequence. */
-const atomicTag = (atomic?: true): string => (atomic ? ' (atomic)' : '')
-
 /** ` (unchecked)` after an unchecked item's path (R1, IS-1's first render candidate); a confirmed item has no tag and reads as fact. */
 const uncheckedTag = (standing: Standing): string => (standing === 'unchecked' ? ' (unchecked)' : '')
 
@@ -245,11 +248,18 @@ const STANCE_WORDS: Record<RuleStance, string> = { violation: 'Violation', consi
 const ruleLine = ({ path, standing, rule, stance }: RuleItem, indent: string): string =>
     `${indent}- Rule (${STANCE_WORDS[stance]}) ${path}${uncheckedTag(standing)}: [${rule}]`
 
+/** A step's answered details, first under it: `- already answers: <detail>`, one per entry (mine, for tuning). */
+const answerLines = (answers: readonly string[] | undefined, indent: string): string[] => (answers ?? []).map((detail) => `${indent}- already answers: ${detail}`)
+
 /** An item's lines in the generator's render: one indent per level, so a possibility's branches, a sub-step's items and a consequence's rules sit under it. */
 const itemLines = (item: StepItem, depth = 1): string[] => {
     const indent = '  '.repeat(depth)
     if (item.kind === 'step') {
-        return [`${indent}- step ${item.path}${atomicTag(item.atomic)}${uncheckedTag(item.standing)}: ${item.says}`, ...item.items.flatMap((inner) => itemLines(inner, depth + 1))]
+        return [
+            `${indent}- step ${item.path}${uncheckedTag(item.standing)}: ${item.says}`,
+            ...answerLines(item.alreadyAnswers, `${indent}  `),
+            ...item.items.flatMap((inner) => itemLines(inner, depth + 1)),
+        ]
     }
     if (item.kind === 'consequence') {
         return [
@@ -267,8 +277,9 @@ const itemLines = (item: StepItem, depth = 1): string[] => {
 }
 
 /** A plan for a generator to read: a line per step, its items indented under it, each with its kind and path, sub-steps nested. */
-export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.flatMap(({ path, says, standing, atomic, items }) => [
-    `Step ${path}${atomicTag(atomic)}${uncheckedTag(standing)}: ${says}`,
+export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.flatMap(({ path, says, standing, alreadyAnswers, items }) => [
+    `Step ${path}${uncheckedTag(standing)}: ${says}`,
+    ...answerLines(alreadyAnswers, '  '),
     ...items.flatMap((item) => itemLines(item)),
 ]).join('\n')
 
@@ -290,8 +301,13 @@ export type PlanAddition =
     /** An expansion: the step's sub-steps in order, at least two. */
     | { add: 'steps'; to: string; steps: readonly SubStepEntry[] }
 
-/** A once-only tag set on a step: `atomic`, marked as one motion. Nothing moves. */
-export type PlanMark = { mark: 'atomic'; to: string }
+/**
+ * The step record (AGENT.itemStanding.planning.md, IS-9): the step restated, written by code from a reply's `says` and `intent`, with
+ * `answered`, the detail asked of it, which joins its `alreadyAnswers`. A `says` or `intent` other than the step's revises it: its items
+ * leave (IS-10), its intent is the restatement's (or its old one, kept), and a changed `says` takes a path minted afresh. A restatement
+ * as written keeps the step and its items as they are.
+ */
+export type PlanRestate = { restate: 'step'; to: string; says: string; intent?: string; answered: string }
 
 /**
  * A check (IS-2): the kind's authority replaces an unchecked item with a confirmed one of the same kind, an opposite, a more nuanced
@@ -302,24 +318,24 @@ export type PlanReplace =
     | { replace: string; to: string; kind: 'rule'; with: RuleEntry }
 
 /** A change once checked. */
-export type PlanChange = PlanAddition | PlanMark | PlanReplace
+export type PlanChange = PlanAddition | PlanRestate | PlanReplace
 
 export type AddKind = PlanAddition['add']
-export type MarkKind = PlanMark['mark']
 
-/** The additions a block takes by default: the sub-item kinds (`consequences`'), with no expansion and no mark. */
+/** The additions a block takes by default: the sub-item kinds (`consequences`'), with no expansion. */
 export const SUB_ITEM_ADDS: readonly AddKind[] = ['consequence', 'concern', 'possibility']
 
 /** The kinds a `replace` takes: the ones that can be unchecked today (mine; another kind's form waits on a writer of it). */
 const REPLACEABLE: readonly AuthoredKind[] = ['consequence', 'rule']
 
-/** What a merge holds to a step's own items, as against an expansion, a mark or a replacement. */
+/** What a merge holds to a step's own items, as against an expansion, a restatement or a replacement. */
 type ItemAddition = Exclude<PlanAddition, { add: 'steps' }>
 
-const isMark = (change: PlanChange): change is PlanMark => 'mark' in change
+const isRestate = (change: PlanChange): change is PlanRestate => 'restate' in change
 const isReplace = (change: PlanChange): change is PlanReplace => 'replace' in change
-const isExpansion = (change: PlanChange): change is Extract<PlanAddition, { add: 'steps' }> => !isMark(change) && !isReplace(change) && change.add === 'steps'
-const isItemAddition = (change: PlanChange): change is ItemAddition => !isMark(change) && !isReplace(change) && change.add !== 'steps'
+const isAddition = (change: PlanChange): change is PlanAddition => 'add' in change
+const isExpansion = (change: PlanChange): change is Extract<PlanAddition, { add: 'steps' }> => isAddition(change) && change.add === 'steps'
+const isItemAddition = (change: PlanChange): change is ItemAddition => isAddition(change) && change.add !== 'steps'
 const isPossibility = (change: PlanChange): change is Extract<PlanAddition, { add: 'possibility' }> => isItemAddition(change) && change.add === 'possibility'
 
 /** What a change block is merged against: the plan, the scene's handles, which the plan doesn't hold (mine), and who wrote it. */
@@ -329,7 +345,7 @@ const CHANGE_KEYS = ['add', 'to', 'thing', 'says']
 const CONSEQUENCE_KEYS = ['add', 'to', 'thing', 'says', 'rules']
 const POSSIBILITY_KEYS = ['add', 'to', 'kind', 'says', 'branches']
 const STEPS_KEYS = ['add', 'to', 'steps']
-const MARK_KEYS = ['mark', 'to']
+const RESTATE_KEYS = ['restate', 'to', 'says', 'intent', 'answered']
 const REPLACE_KEYS = ['replace', 'with']
 const BRANCH_KEYS = ['add', 'thing', 'says']
 const SUB_STEP_KEYS = ['says', 'intent', 'consequences']
@@ -344,7 +360,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
  * - `handlesAre`: what a `thing` outside the handles is, `in the scene` when the handles are the scene's (the default), or as the caller
  *   names its handles, such as `a listed thing or named by the step` for `consequences`;
  * - `adds`: the additions it takes, by default the sub-item kinds (`SUB_ITEM_ADDS`); `playByPlay` takes `steps` and `consequence`;
- * - `marks`: the marks it takes, by default none; `playByPlay` takes `atomic`;
+ * - `restates`: whether it takes a `restate`, the step record, by default not; `playByPlay`'s does;
  * - `rules`: the rule handles a consequence may name, the ones the scene shows, by default none;
  * - `replaces`: whether it takes a `replace`, by default not (no piece checks yet).
  */
@@ -352,7 +368,7 @@ export type MergeOptions = {
     author: PlanAuthor
     handlesAre?: string
     adds?: readonly AddKind[]
-    marks?: readonly MarkKind[]
+    restates?: boolean
     rules?: readonly string[]
     replaces?: boolean
 }
@@ -367,7 +383,7 @@ type CheckContext = {
     handles: readonly SceneHandle[]
     handlesAre: string
     adds: readonly AddKind[]
-    marks: readonly MarkKind[]
+    restates: boolean
     rules: readonly string[]
     replaces: boolean
     author: PlanAuthor
@@ -531,18 +547,24 @@ const checkSubSteps = (steps: unknown, context: CheckContext): { steps: SubStepE
         }
 }
 
-/** A mark checked: one the merge takes, and a `to` naming a step. */
-const checkMark = (entry: Record<string, unknown>, context: CheckContext): { change: PlanChange } | { problems: string[] } => {
-    const { mark, to } = entry
+const isNonEmpty = (text: unknown): text is string => typeof text === 'string' && text.trim() !== ''
+
+/** A restatement checked: one the merge takes, a `to` naming a step, a `says`, an `intent` where given, and the detail it answers. */
+const checkRestate = (entry: Record<string, unknown>, context: CheckContext): { change: PlanChange } | { problems: string[] } => {
+    const { restate, to, says, intent, answered } = entry
     const target = typeof to === 'string' ? to.trim() : undefined
     const problems = [
-        ...extraKeyProblems(entry, MARK_KEYS),
-        ...(typeof mark === 'string' && (context.marks as readonly string[]).includes(mark)
-            ? []
-            : [context.marks.length === 0 ? '"mark" isn\'t a change this block takes' : `"mark" must be one of ${context.marks.join(', ')}`]),
+        ...(context.restates ? [] : ['"restate" isn\'t a change this block takes']),
+        ...extraKeyProblems(entry, RESTATE_KEYS),
+        ...(restate === 'step' ? [] : ['"restate" must be step']),
         ...targetProblems(target, context),
+        ...saysProblems(says),
+        ...(intent === undefined || isNonEmpty(intent) ? [] : ['"intent" is not a non-empty string']),
+        ...(isNonEmpty(answered) ? [] : ['has no non-empty string "answered"']),
     ]
-    return problems.length > 0 || target === undefined ? { problems } : { change: { mark: 'atomic', to: target } }
+    return problems.length > 0 || target === undefined || !isNonEmpty(says) || !isNonEmpty(answered)
+        ? { problems }
+        : { change: { restate: 'step', to: target, says, ...(isNonEmpty(intent) ? { intent } : {}), answered: answered.trim() } }
 }
 
 /**
@@ -588,8 +610,8 @@ const checkChange = (entry: unknown, context: CheckContext): { change: PlanChang
     if (!isRecord(entry)) {
         return { problems: ['is not an object'] }
     }
-    if ('mark' in entry) {
-        return checkMark(entry, context)
+    if ('restate' in entry) {
+        return checkRestate(entry, context)
     }
     if ('replace' in entry) {
         return checkReplace(entry, context)
@@ -695,13 +717,27 @@ const subStepItem = ({ says, intent, consequences = [] }: SubStepEntry, path: st
 
 type Accepted = { index: number; change: PlanChange }
 
-/** At most one `execution` possibility per step, counting the plan's and the block's. */
-const possibilityLimitProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[]): string[] =>
+/** A step's intent's text, if it has one. */
+const intentOf = ({ items }: StepNode): string | undefined => items.find((item) => item.kind === 'intent')?.says
+
+/** Whether a restatement revises its step (IS-10): a `says`, or a given `intent`, other than the step's. */
+const revises = (step: StepNode, { says, intent }: PlanRestate): boolean =>
+    says.trim() !== step.says.trim() || (intent !== undefined && intent.trim() !== (intentOf(step)?.trim() ?? ''))
+
+/** The steps a block revises, by path: their items leave, so what they held counts for nothing against the block. */
+const revisedSteps = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[]): ReadonlySet<string> =>
+    new Set(accepted.flatMap(({ change }) => {
+        const step = isRestate(change) ? steps.get(change.to) : undefined
+        return step !== undefined && isRestate(change) && revises(step, change) ? [change.to] : []
+    }))
+
+/** At most one `execution` possibility per step, counting the plan's (unless the block revises the step) and the block's. */
+const possibilityLimitProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], revised: ReadonlySet<string>): string[] =>
     accepted.flatMap(({ index, change }) => {
         if (!isPossibility(change)) {
             return []
         }
-        const held = steps.get(change.to)?.items.some((item) => item.kind === 'possibility' && item.openness === change.openness) ?? false
+        const held = !revised.has(change.to) && (steps.get(change.to)?.items.some((item) => item.kind === 'possibility' && item.openness === change.openness) ?? false)
         const earlier = accepted.some((other) => other.index < index && isPossibility(other.change) && other.change.to === change.to && other.change.openness === change.openness)
         return held || earlier ? [`change ${index + 1}: step ${change.to} already has an ${change.openness} possibility; a step holds at most one`] : []
     })
@@ -712,29 +748,36 @@ const replaceProblems = (accepted: readonly Accepted[]): string[] =>
         ? [`change ${index + 1}: "${change.replace}" is already replaced in this block`]
         : []))
 
-/**
- * A step is expanded at most once, more detail going into its sub-steps; a step marked atomic takes no expansion; the tag is set once;
- * and a step is expanded or atomic, never both (the user, 2026-11-18). Counting the plan's and the block's earlier changes.
- */
+/** Whether an earlier change in the block passes `test` and is aimed at the same step. */
+const earlierTo = (accepted: readonly Accepted[], { index, change }: Accepted, test: (other: PlanChange) => boolean): boolean =>
+    accepted.some((other) => other.index < index && other.change.to === change.to && test(other.change))
+
+/** A step is expanded at most once, more detail going into its sub-steps (the user, 2026-11-18). Counting the plan's and the block's earlier changes. */
 const expansionProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[]): string[] =>
-    accepted.flatMap(({ index, change }) => {
+    accepted.flatMap((entry) => {
+        const step = steps.get(entry.change.to)
+        return step !== undefined && isExpansion(entry.change) && (isExpanded(step) || earlierTo(accepted, entry, isExpansion))
+            ? [`change ${entry.index + 1}: step ${entry.change.to} is already expanded; expand one of its sub-steps for more detail`]
+            : []
+    })
+
+/**
+ * A step is restated at most once in a block; an expanded step isn't revised, since its sub-steps would leave with its items (mine);
+ * and a replacement isn't aimed at an item of a step the block revises, since that item leaves.
+ */
+const restateProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], revised: ReadonlySet<string>): string[] =>
+    accepted.flatMap((entry) => {
+        const { index, change } = entry
         const step = steps.get(change.to)
-        if (step === undefined || !(isMark(change) || isExpansion(change))) {
+        if (step === undefined) {
             return []
         }
-        const earlier = (test: (other: PlanChange) => boolean) => accepted.some((other) => other.index < index && other.change.to === change.to && test(other.change))
-        const both = earlier(isExpansion) || earlier(isMark) ? [`step ${change.to} is both expanded and marked atomic in this block; a step is one or the other`] : []
-        const problems = isMark(change)
+        const problems = isRestate(change)
             ? [
-                ...(step.atomic || earlier(isMark) ? [`step ${change.to} is already marked atomic`] : []),
-                ...(isExpanded(step) ? [`step ${change.to} is already expanded, so it isn't one motion`] : []),
-                ...(earlier(isExpansion) ? both : []),
+                ...(earlierTo(accepted, entry, isRestate) ? [`step ${change.to} is already restated in this block`] : []),
+                ...(revised.has(change.to) && isExpanded(step) ? [`step ${change.to} is expanded, so it isn't revised; revise one of its sub-steps`] : []),
             ]
-            : [
-                ...(step.atomic ? [`step ${change.to} is marked as one motion; nothing to expand`] : []),
-                ...(isExpanded(step) || earlier(isExpansion) ? [`step ${change.to} is already expanded; expand one of its sub-steps for more detail`] : []),
-                ...(earlier(isMark) ? both : []),
-            ]
+            : isReplace(change) && revised.has(change.to) ? [`"${change.replace}" is on step ${change.to}, which this block revises; a revised step's items leave`] : []
         return problems.map((problem) => `change ${index + 1}: ${problem}`)
     })
 
@@ -766,24 +809,48 @@ const withReplacements = (items: readonly StepItem[], replacements: readonly { c
     })
 
 /**
- * A step with the block's changes to it applied: replaced items removed first, so a confirmation as written mints its old path again;
- * additions and replacements minted in its own scope, in block order; sub-steps from `subStepPaths`; the mark set.
+ * A revised step's own items before the block's additions (IS-10): the others leave, and its intent is the restatement's, by `author`, or
+ * else its old one, kept as it was, under the step's path.
  */
-const applyChanges = (step: StepNode, changes: readonly Accepted[], subStepPaths: ReadonlyMap<number, readonly string[]>, author: PlanAuthor): Pick<StepNode, 'items' | 'atomic'> => {
+const revisedItems = (step: StepNode, { intent }: PlanRestate, path: string, author: PlanAuthor): StepItem[] => {
+    const old = step.items.find((item) => item.kind === 'intent')
+    return intent !== undefined ? [{ kind: 'intent', path: `${path}.intent`, standing: standingOf('intent', author), says: intent }]
+        : old === undefined ? [] : [{ ...old, path: `${path}.intent` }]
+}
+
+/** A step's answered details with one more, unless it is already there. */
+const withAnswer = (answers: readonly string[] = [], answered: string): readonly string[] => (answers.includes(answered) ? answers : [...answers, answered])
+
+/**
+ * A step with the block's changes to it applied: a revision first, its items gone and its path `revisedPath` when its `says` changed;
+ * then replaced items removed, so a confirmation as written mints its old path again; additions and replacements minted in its own
+ * scope, in block order; sub-steps from `subStepPaths`; a restatement's detail added to `alreadyAnswers`.
+ */
+const applyChanges = (
+    step: StepNode, changes: readonly Accepted[], subStepPaths: ReadonlyMap<number, readonly string[]>, revisedPath: string | undefined, author: PlanAuthor,
+): StepUpdate => {
+    const restate = changes.map(({ change }) => change).find(isRestate)
+    const revised = restate !== undefined && revises(step, restate)
+    const path = revisedPath ?? step.path
+    const own = revised ? revisedItems(step, restate, path, author) : step.items
     const replaces = changes.map(({ change }) => change).filter(isReplace)
-    const kept = withoutReplaced(step.items, new Set(replaces.map(({ replace }) => replace)))
+    const kept = withoutReplaced(own, new Set(replaces.map(({ replace }) => replace)))
     const minted = changes.map(({ change }) => change).filter((change): change is ItemAddition | PlanReplace => isItemAddition(change) || isReplace(change))
     const sources = minted.map(changeSources)
-    const paths = mintPaths(sources.flat(), scopePaths(kept).map((path) => path.slice(step.path.length + 1)))
+    const paths = mintPaths(sources.flat(), scopePaths(kept).map((scoped) => scoped.slice(path.length + 1)))
     const placed = minted.reduce<{ items: StepItem[]; replacements: { change: PlanReplace; paths: string[] }[]; next: number }>(({ items, replacements, next }, change, index) => {
-        const own = paths.slice(next, next + sources[index].length)
+        const slugs = paths.slice(next, next + sources[index].length)
         return isReplace(change)
-            ? { items, replacements: [...replacements, { change, paths: own.map((path) => `${step.path}.${path}`) }], next: next + own.length }
-            : { items: [...items, changeItem(change, step.path, own, author)], replacements, next: next + own.length }
+            ? { items, replacements: [...replacements, { change, paths: slugs.map((slugged) => `${path}.${slugged}`) }], next: next + slugs.length }
+            : { items: [...items, changeItem(change, path, slugs, author)], replacements, next: next + slugs.length }
     }, { items: [], replacements: [], next: 0 })
-    const items = withReplacements(step.items, placed.replacements, author)
+    const items = withReplacements(own, placed.replacements, author)
     const subSteps = changes.flatMap(({ index, change }) => (isExpansion(change) ? change.steps.map((entry, at) => subStepItem(entry, subStepPaths.get(index)?.[at] ?? '', author)) : []))
-    return { items: orderItems([...items, ...placed.items, ...subSteps]), ...(changes.some(({ change }) => isMark(change)) ? { atomic: true as const } : {}) }
+    return {
+        items: orderItems([...items, ...placed.items, ...subSteps]),
+        ...(revised ? { path, says: restate.says, standing: standingOf('step', author) } : {}),
+        ...(restate === undefined ? {} : { alreadyAnswers: withAnswer(step.alreadyAnswers, restate.answered) }),
+    }
 }
 
 /** Every item a `replace` may name, by path: each step's items in its own scope, and each consequence's rules. */
@@ -804,7 +871,7 @@ const indexItems = (steps: readonly StepNode[]): Map<string, IndexedItem> => new
  */
 export const mergeChanges = (
     plan: ActionPlan, block: unknown, handles: readonly SceneHandle[],
-    { author, handlesAre = 'in the scene', adds = SUB_ITEM_ADDS, marks = [], rules = [], replaces = false }: MergeOptions,
+    { author, handlesAre = 'in the scene', adds = SUB_ITEM_ADDS, restates = false, rules = [], replaces = false }: MergeOptions,
 ): { plan: ActionPlan } | { problems: string[] } => {
     const changes = isRecord(block) ? block.changes : undefined
     const besides = isRecord(block) ? Object.keys(block).filter((key) => key !== 'changes').map((key) => `the JSON block has "${key}"; everything it adds goes in "changes"`) : []
@@ -814,30 +881,42 @@ export const mergeChanges = (
     const steps = new Map(planSteps(plan).map((step) => [step.path, step]))
     const itemPathSet = new Set([...steps.values()].flatMap(({ items }) => scopePaths(items)))
     const context: CheckContext = {
-        stepPaths: new Set(steps.keys()), itemPaths: itemPathSet, items: indexItems([...steps.values()]), handles, handlesAre, adds, marks, rules, replaces, author,
+        stepPaths: new Set(steps.keys()), itemPaths: itemPathSet, items: indexItems([...steps.values()]), handles, handlesAre, adds, restates, rules, replaces, author,
     }
     const checked = changes.map((entry) => checkChange(entry, context))
     const accepted = checked.flatMap((result, index): Accepted[] => ('change' in result ? [{ index, change: result.change }] : []))
+    const revised = revisedSteps(steps, accepted)
     const problems = [
         ...besides,
         ...checked.flatMap((result, index) => ('problems' in result ? result.problems.map((problem) => `change ${index + 1}: ${problem}`) : [])),
-        ...possibilityLimitProblems(steps, accepted),
+        ...possibilityLimitProblems(steps, accepted, revised),
         ...expansionProblems(steps, accepted),
+        ...restateProblems(steps, accepted, revised),
         ...replaceProblems(accepted),
     ]
     if (problems.length > 0) {
         return { problems }
     }
+    // A revised step whose `says` changed takes a path minted afresh, its old one free again, before any sub-step's (mine).
+    const renamed = accepted.flatMap(({ change }) => {
+        const step = isRestate(change) ? steps.get(change.to) : undefined
+        return step !== undefined && isRestate(change) && change.says.trim() !== step.says.trim() ? [change] : []
+    })
+    const vacated = new Set(renamed.map(({ to }) => to))
     const expansions = accepted.flatMap(({ index, change }) => (isExpansion(change) ? [{ index, steps: change.steps }] : []))
-    const minted = mintPaths(expansions.flatMap(({ steps: entries }) => entries.map(({ says }) => ({ says, fallback: 'step' }))), [...steps.keys()])
+    const minted = mintPaths(
+        [...renamed.map(({ says }) => ({ says, fallback: 'step' })), ...expansions.flatMap(({ steps: entries }) => entries.map(({ says }) => ({ says, fallback: 'step' })))],
+        [...steps.keys()].filter((path) => !vacated.has(path)),
+    )
+    const revisedPaths = new Map(renamed.map(({ to }, index) => [to, minted[index]]))
     const subStepPaths = new Map(expansions.reduce<{ pairs: [number, string[]][]; next: number }>(({ pairs, next }, { index, steps: entries }) => ({
         pairs: [...pairs, [index, minted.slice(next, next + entries.length)]],
         next: next + entries.length,
-    }), { pairs: [], next: 0 }).pairs)
+    }), { pairs: [], next: renamed.length }).pairs)
     const targets = [...new Set(accepted.map(({ change }) => change.to))]
     return {
         plan: targets.reduce<ActionPlan>((built, target) => ({
-            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, accepted.filter(({ change }) => change.to === target), subStepPaths, author))),
+            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, accepted.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author))),
         }), plan),
     }
 }
@@ -846,7 +925,7 @@ export const mergeChanges = (
  * A change block scoped to one step, the one a generator expands: code supplies each change's
  * `to`, by the rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
  * otherwise the block is refused, as any problem refuses it. A `replace` takes no `to`, and must name an item in the target's own scope.
- * Then `mergeChanges`. The scope reads only `to`, so a new `add` kind, or a mark, passes through it to `checkChange`. The target may be a
+ * Then `mergeChanges`. The scope reads only `to`, so a new `add` kind, or a restatement, passes through it to `checkChange`. The target may be a
  * step at any depth.
  */
 export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknown, handles: readonly SceneHandle[], options: MergeOptions): { plan: ActionPlan } | { problems: string[] } => {
