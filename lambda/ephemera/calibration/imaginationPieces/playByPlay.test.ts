@@ -105,9 +105,9 @@ describe('playByPlay', () => {
             expect(playByPlay.parseOptions({ rules: 'handles' })).toEqual({ rules: 'handles', scene: 'explicit' })
         })
 
-        it('pins the cells\' inputs hashes on the default (OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
+        it('pins the cells\' inputs hashes on the default (OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
             const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-6/command', 'OC-19', 'OC-20', 'OC-20/concession'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
-            expect(hashes).toEqual(['38feccd3', 'f901398c', 'a0d0b486', '8fe8f0b8', 'f7943193', 'e6c6d43b', '64eca640'])
+            expect(hashes).toEqual(['38feccd3', 'f901398c', 'a0d0b486', '3ee72b31', 'f7943193', 'e6c6d43b', '64eca640'])
         })
 
         it('shows each securing with its rule\'s handle by default, and none with rules: none', async () => {
@@ -151,6 +151,10 @@ describe('playByPlay', () => {
         it('reads the record with no "steps" as the step itself the answer: as written, its items kept', () => {
             const plan = planOfReply(fenced(record))
             expect(plan.steps).toEqual([{ ...pourPlan().steps[0], alreadyAnswers: [MISSING] }])
+        })
+
+        it('reads an empty "steps" as none: the step itself the answer (batch 44\'s OC-1b)', () => {
+            expect(planOfReply(fenced({ ...record, steps: [] }))).toEqual(planOfReply(fenced(record)))
         })
 
         it('reads a changed intent as a revision, and a record with no intent as keeping the step\'s', () => {
@@ -276,15 +280,15 @@ describe('playByPlay', () => {
         })
 
         it.each([
-            ['OC-1', 'pick up [table1]', 'pick-up-table1'],
-            ['OC-6', 'pour [tea2] from [teapot1] into [cup1]', 'pour-tea2-teapot1'],
-            ['OC-19', 'pry [teapot1] off [table1] with [hammer1]', 'pry-teapot1-table1'],
-            ['OC-20', 'pick up [table1]', 'pick-up-table1'],
-            ['OC-6/command', 'pour tea into cup', 'pour-tea-cup'],
-        ] as const)('%s is one step, %j, whose intent is its own text, and its target', (id, says, path) => {
+            ['OC-1', 'pick up [table1]', 'pick-up-table1', 'confirmed'],
+            ['OC-6', 'pour [tea2] from [teapot1] into [cup1]', 'pour-tea2-teapot1', 'confirmed'],
+            ['OC-19', 'pry [teapot1] off [table1] with [hammer1]', 'pry-teapot1-table1', 'confirmed'],
+            ['OC-20', 'pick up [table1]', 'pick-up-table1', 'confirmed'],
+            ['OC-6/command', 'pour tea into cup', 'pour-tea-cup', 'unchecked'],
+        ] as const)('%s is one step, %j, whose intent is its own text, and its target; the intent %s (OC-6/command\'s divined from the command)', (id, says, path, standing) => {
             const { plan, target } = playByPlayCells[id].inputs
             expect(plan).toBe(playByPlayPlans[id])
-            expect(plan.steps).toEqual([{ says, suppliedBy: 'system', path, standing: 'confirmed', items: [{ kind: 'intent', path: `${path}.intent`, standing: 'confirmed', says }] }])
+            expect(plan.steps).toEqual([{ says, suppliedBy: 'system', path, standing: 'confirmed', items: [{ kind: 'intent', path: `${path}.intent`, standing, says }] }])
             expect(target).toBe(path)
         })
 
@@ -351,6 +355,23 @@ describe('playByPlay', () => {
                 '  - already answers: how the tea is poured',
                 '  - intent pour-tea2-teapot1.intent: [tea2] is in [cup1]',
             ].join('\n'))
+        })
+
+        it('OC-6/command renders its divined intent as an offer', async () => {
+            expect(await renderPlayByPlay(playByPlayCells['OC-6/command'], PLAY_BY_PLAY_OPTIONS)).toContain('The plan:\nStep pour-tea-cup: pour tea into cup\n  - intent pour-tea-cup.intent (unchecked): pour tea into cup\n')
+        })
+
+        it('OC-6/command: a record restating the command as written confirms its intent; one that leaves the intent out leaves it unchecked', async () => {
+            const cell = playByPlayCells['OC-6/command']
+            const read = async (record: Record<string, unknown>) => {
+                const result = playByPlayContract.parse(fenced(record), { input: cell.inputs, rendered: await renderPlayByPlay(cell, PLAY_BY_PLAY_OPTIONS) })
+                if (!('value' in result)) {
+                    throw new Error(result.problems.join('; '))
+                }
+                return result.value.steps[0].items
+            }
+            expect(await read({ says: 'pour tea into cup', intent: 'pour tea into cup' })).toEqual([{ kind: 'intent', path: 'pour-tea-cup.intent', standing: 'confirmed', says: 'pour tea into cup' }])
+            expect(await read({ says: 'pour tea into cup' })).toEqual([{ kind: 'intent', path: 'pour-tea-cup.intent', standing: 'unchecked', says: 'pour tea into cup' }])
         })
 
         it('OC-1 and OC-20 ask for the same detail, so they differ by the scene alone', () => {

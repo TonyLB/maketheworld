@@ -163,9 +163,13 @@ export const mintPaths = (texts: readonly PathSource[], taken: readonly string[]
 export const orderItems = <Item extends { kind: StepItemKind }>(items: readonly Item[]): Item[] =>
     STEP_ITEM_KINDS.flatMap((kind) => items.filter((item) => item.kind === kind))
 
-/** An item a builder gives, before its path is minted. Possibilities come only from changes, so no builder takes one (mine). */
+/**
+ * An item a builder gives, before its path is minted. Possibilities come only from changes, so no builder takes one (mine). An intent
+ * may be given `unchecked` (the user, 2026-11-20): one divined from a player's command is an offer until its authority restates it; one
+ * established further on is confirmed, the default.
+ */
 export type UnmintedItem =
-    | { kind: 'intent'; says: string }
+    | { kind: 'intent'; says: string; standing?: Standing }
     | { kind: 'consequence'; says: string; thing?: SceneHandle; intended?: true }
     | { kind: 'concern'; says: string }
 
@@ -176,11 +180,11 @@ const pathSource = (kind: 'intent' | 'consequence' | 'concern' | 'maybe' | Openn
 /** A rule's path is its handle, unslugged (a slug would drop its "to"). */
 const ruleSource = (rule: string): PathSource => ({ says: rule, fallback: 'rule', literal: true })
 
-/** A step's items ordered, then each path minted under the step's, in one scope across kinds. A builder's items are its source's, so confirmed. */
+/** A step's items ordered, then each path minted under the step's, in one scope across kinds. A builder's items are its source's, so confirmed, unless an intent is given its standing. */
 const mintItems = (stepPath: string, items: readonly UnmintedItem[]): StepItem[] => {
     const ordered = orderItems(items)
     const paths = mintPaths(ordered.map(({ kind, says }) => pathSource(kind, says)))
-    return ordered.map((item, index) => ({ ...item, path: `${stepPath}.${paths[index]}`, standing: 'confirmed' }) as StepItem)
+    return ordered.map((item, index) => ({ ...item, path: `${stepPath}.${paths[index]}`, standing: ('standing' in item ? item.standing : undefined) ?? 'confirmed' }) as StepItem)
 }
 
 /**
@@ -742,6 +746,32 @@ const possibilityLimitProblems = (steps: ReadonlyMap<string, StepNode>, accepted
         return held || earlier ? [`change ${index + 1}: step ${change.to} already has an ${change.openness} possibility; a step holds at most one`] : []
     })
 
+/**
+ * Whether two consequences say the same: their text, and each rule they bear on with its stance, in order; their things the same when
+ * both give one. A thing on one side only matches (the user, 2026-11-20): batch 44's concession r1 gave the cell's thingless proposal
+ * again with `"thing": "[table1]"`.
+ */
+const sameConsequence = (one: ConsequenceEntry, other: ConsequenceEntry): boolean =>
+    one.says.trim() === other.says.trim()
+    && (one.thing === undefined || other.thing === undefined || one.thing === other.thing)
+    && JSON.stringify((one.rules ?? []).map(({ rule, stance }) => [rule.trim(), stance])) === JSON.stringify((other.rules ?? []).map(({ rule, stance }) => [rule.trim(), stance]))
+
+/**
+ * The block without its repeats (mine, the user agreeing, 2026-11-20): a consequence added to a step that already holds the same one
+ * ({@link sameConsequence}), and keeps it, or that an earlier change of the block adds, is no change; the kept item stays as it is. The record gives a kept item again when it revises (the coat
+ * example), and did so where nothing was revised (batch 44, the concession cell r1), which minted a second copy. A revised step keeps
+ * none of its items, so what it is given again goes in. Any author: a repeat adds nothing, whoever writes it.
+ */
+const withoutRepeats = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], revised: ReadonlySet<string>): Accepted[] =>
+    accepted.filter((entry) => {
+        const { change } = entry
+        if (!isItemAddition(change) || change.add !== 'consequence') {
+            return true
+        }
+        const held = !revised.has(change.to) && (steps.get(change.to)?.items.some((item) => item.kind === 'consequence' && sameConsequence(item, change)) ?? false)
+        return !held && !earlierTo(accepted, entry, (other) => isItemAddition(other) && other.add === 'consequence' && sameConsequence(other, change))
+    })
+
 /** An item is replaced at most once in a block. */
 const replaceProblems = (accepted: readonly Accepted[]): string[] =>
     accepted.flatMap(({ index, change }) => (isReplace(change) && accepted.some((other) => other.index < index && isReplace(other.change) && other.change.replace === change.replace)
@@ -826,13 +856,22 @@ const withAnswer = (answers: readonly string[] = [], answered: string): readonly
  * then replaced items removed, so a confirmation as written mints its old path again; additions and replacements minted in its own
  * scope, in block order; sub-steps from `subStepPaths`; a restatement's detail added to `alreadyAnswers`.
  */
+/**
+ * A step's intent as the author restating it gives it: as written, it takes the author's standing for an intent, so an unchecked one
+ * is confirmed by its authority (`playByPlay`), as a `replace` with the item as written confirms (IS-2), and keeps its path; a confirmed
+ * one is never lowered (mine, the user agreeing, 2026-11-20).
+ */
+const restatedIntent = (items: readonly StepItem[], author: PlanAuthor): StepItem[] =>
+    items.map((item) => (item.kind === 'intent' && item.standing === 'unchecked' ? { ...item, standing: standingOf('intent', author) } : item))
+
 const applyChanges = (
     step: StepNode, changes: readonly Accepted[], subStepPaths: ReadonlyMap<number, readonly string[]>, revisedPath: string | undefined, author: PlanAuthor,
 ): StepUpdate => {
     const restate = changes.map(({ change }) => change).find(isRestate)
     const revised = restate !== undefined && revises(step, restate)
     const path = revisedPath ?? step.path
-    const own = revised ? revisedItems(step, restate, path, author) : step.items
+    // A restatement as written that gives the intent restates it; one that leaves `intent` out says nothing of it (mine).
+    const own = revised ? revisedItems(step, restate, path, author) : restate?.intent !== undefined ? restatedIntent(step.items, author) : step.items
     const replaces = changes.map(({ change }) => change).filter(isReplace)
     const kept = withoutReplaced(own, new Set(replaces.map(({ replace }) => replace)))
     const minted = changes.map(({ change }) => change).filter((change): change is ItemAddition | PlanReplace => isItemAddition(change) || isReplace(change))
@@ -897,6 +936,7 @@ export const mergeChanges = (
     if (problems.length > 0) {
         return { problems }
     }
+    const kept = withoutRepeats(steps, accepted, revised)
     // A revised step whose `says` changed takes a path minted afresh, its old one free again, before any sub-step's (mine).
     const renamed = accepted.flatMap(({ change }) => {
         const step = isRestate(change) ? steps.get(change.to) : undefined
@@ -916,7 +956,7 @@ export const mergeChanges = (
     const targets = [...new Set(accepted.map(({ change }) => change.to))]
     return {
         plan: targets.reduce<ActionPlan>((built, target) => ({
-            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, accepted.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author))),
+            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, kept.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author))),
         }), plan),
     }
 }

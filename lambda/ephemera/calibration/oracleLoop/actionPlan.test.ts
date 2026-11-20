@@ -231,8 +231,8 @@ describe('the action plan', () => {
             expect(mergeChanges(h10(), { changes: [slide, { ...spout, to: 'pick-up-cup1' }] }, handles, asConsequences)).toEqual({ problems: ['change 2: to "pick-up-cup1" names no step'] })
         })
 
-        it('gives a repeat of an existing item\'s text the next free -n', () => {
-            const plan = merged(h5(), [{ add: 'consequence', to: 'tip-table1', says: '[teapot1] pours [tea2] into [cup1]' }])
+        it('gives a path that slugs as an existing item\'s the next free -n', () => {
+            const plan = merged(h5(), [{ add: 'consequence', to: 'tip-table1', says: '[teapot1] pours [tea2] over [saucer1]' }])
             expect(plan.steps[0].items.map(({ path }) => path).slice(-1)).toEqual(['tip-table1.teapot1-pours-tea2-2'])
         })
 
@@ -638,6 +638,34 @@ describe('the action plan', () => {
             }
             const conceded = () => mergedBy(pickUp(), [cannot], by('playByPlay'))
 
+            describe('an intent built unchecked: divined from a command, an offer until its authority restates it (the user, 2026-11-20)', () => {
+                const divined = () => planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [table1]', standing: 'unchecked' }] }])
+                const restate = { restate: 'step', to: 'pick-up-table1', says: 'pick up [table1]', answered: 'how [table1] is held' }
+                const intentOf = (plan: ActionPlan) => plan.steps[0].items.find(({ kind }) => kind === 'intent')
+
+                it('builds and renders with its tag; the default stays confirmed', () => {
+                    expect(intentOf(divined())).toMatchObject({ path: 'pick-up-table1.intent', standing: 'unchecked' })
+                    expect(renderPlanForGenerator(divined()).split('\n')[1]).toBe('  - intent pick-up-table1.intent (unchecked): pick up [table1]')
+                    expect(intentOf(pickUp())).toMatchObject({ standing: 'confirmed' })
+                })
+
+                it('a restatement as written, giving the intent, confirms it by its authority, path kept (as IS-2\'s replace with the item as written)', () => {
+                    expect(intentOf(mergedBy(divined(), [{ ...restate, intent: 'pick up [table1]' }], by('playByPlay')))).toEqual({ kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: 'pick up [table1]' })
+                })
+
+                it('a restatement leaving the intent out says nothing of it: unchecked still', () => {
+                    expect(intentOf(mergedBy(divined(), [restate], by('playByPlay')))).toMatchObject({ standing: 'unchecked' })
+                })
+
+                it('a changed intent revises the step, its intent the author\'s, confirmed', () => {
+                    expect(intentOf(mergedBy(divined(), [{ ...restate, intent: '[table1] is off the floor' }], by('playByPlay')))).toEqual({ kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: '[table1] is off the floor' })
+                })
+
+                it('a restatement by another author leaves it unchecked: only its authority confirms it', () => {
+                    expect(intentOf(mergedBy(divined(), [{ ...restate, intent: 'pick up [table1]' }], by('consequences')))).toMatchObject({ standing: 'unchecked' })
+                })
+            })
+
             it('builders confirm every step and item: a plan\'s source is the authority for it', () => {
                 const plan = planFromNonRuleSteps(nonRuleCellCells['OC-30/h7'].inputs.steps)
                 expect(plan.steps.every(({ standing, items }) => standing === 'confirmed' && items.every((item) => item.standing === 'confirmed'))).toBe(true)
@@ -691,6 +719,47 @@ describe('the action plan', () => {
                     'pick-up-table1.table1-stays-put', 'pick-up-table1.table-secured-to-wall-2',
                 ])
                 expectWellFormed('two rules', plan)
+            })
+
+            describe('a repeat is no change (batch 44, the concession cell r1)', () => {
+                const restate = { restate: 'step', to: 'pick-up-table1', says: 'pick up [table1]', intent: 'pick up [table1]', answered: 'how [table1] is held and lifted' }
+
+                it('drops a consequence the step holds and keeps, as written: no second copy minted', () => {
+                    const plan = mergedBy(conceded(), [restate, oc20, cannot], by('playByPlay'))
+                    expect(plan.steps[0].items.filter(({ kind }) => kind === 'consequence')).toEqual(conceded().steps[0].items.filter(({ kind }) => kind === 'consequence'))
+                    expect(plan.steps[0].alreadyAnswers).toEqual([restate.answered])
+                })
+
+                it('drops a repeat that gives a thing where the item gives none, the item kept as it is (r1 itself)', () => {
+                    expect(mergedBy(conceded(), [restate, { ...cannot, thing: '[table1]' }], by('playByPlay')).steps[0].items).toEqual(conceded().steps[0].items)
+                })
+
+                it('drops a repeat within one block', () => {
+                    expect(mergedBy(pickUp(), [cannot, cannot], by('playByPlay'))).toEqual(conceded())
+                })
+
+                it('drops it whoever the author: consequences\' merge too, the kept item keeping its standing', () => {
+                    const plan = mergedBy(conceded(), [cannot], by('consequences'))
+                    expect(plan).toEqual(conceded())
+                })
+
+                it('gives it again after a revision: the old item left, the repeat goes in under its own path', () => {
+                    const plan = mergedBy(conceded(), [{ ...restate, intent: '[table1] is off the floor' }, cannot], by('playByPlay'))
+                    expect(planSteps(plan)[0].items.flatMap(itemPaths)).toEqual(['pick-up-table1.intent', 'pick-up-table1.table1-cannot-be', 'pick-up-table1.table-secured-to-wall'])
+                })
+
+                it.each([
+                    ['another stance', { ...cannot, rules: [{ ...chain, stance: 'consistent' }] }],
+                    ['no rule', { add: 'consequence', to: 'pick-up-table1', says: '[table1] cannot be lifted' }],
+                    ['other words', { ...cannot, says: '[table1] will not lift' }],
+                ])('keeps a near copy with %s', (_, change) => {
+                    expect(mergedBy(conceded(), [change], by('playByPlay')).steps[0].items.filter(({ kind }) => kind === 'consequence')).toHaveLength(2)
+                })
+
+                it('keeps a near copy on another thing than the item\'s, when both give one', () => {
+                    const onTable = mergedBy(pickUp(), [{ ...cannot, thing: '[table1]' }], by('playByPlay'))
+                    expect(mergedBy(onTable, [{ ...cannot, thing: '[cup1]' }], by('playByPlay')).steps[0].items.filter(({ kind }) => kind === 'consequence')).toHaveLength(2)
+                })
             })
 
             it.each([

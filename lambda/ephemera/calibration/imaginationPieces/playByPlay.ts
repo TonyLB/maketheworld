@@ -13,7 +13,7 @@ import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneMod
 import { ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
 import {
-    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan, type MergeOptions,
+    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan, type MergeOptions, type Standing,
 } from '../oracleLoop/actionPlan'
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, type ImaginationOptions } from './imaginationScene'
@@ -101,7 +101,8 @@ export const replyChanges = (reply: Record<string, unknown>, missing: string): {
     }
     // An entry that isn't an object is passed on as it is, so the merge refuses it as a change that isn't one.
     const added = ((consequences ?? []) as unknown[]).map((entry) => (typeof entry === 'object' && entry !== null && !Array.isArray(entry) ? { add: 'consequence', ...entry } : entry))
-    const expansion = steps === undefined ? [] : [{ add: 'steps', steps }]
+    // An empty `steps` is none: the step itself is the answer (the user, 2026-11-20; batch 44's OC-1b wrote `"steps": []` 3 of 3).
+    const expansion = steps === undefined || (Array.isArray(steps) && steps.length === 0) ? [] : [{ add: 'steps', steps }]
     return {
         changes: [{ restate: 'step', says, ...(intent === undefined ? {} : { intent }), answered: missing }, ...expansion, ...added],
         labels: ['', ...expansion.map(() => ''), ...added.map((_, index) => `consequence ${index + 1}: `)],
@@ -148,8 +149,12 @@ export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
 export const checkPlayByPlay = (reply: string, { inputs }: ReadPieceCell<PlayByPlayInputs>, rendered = ''): string[] =>
     parseProblems(playByPlayContract.parse(reply, { input: inputs, rendered }))
 
-/** A one-step plan whose intent is the step's own text (the single-step rule, as `consequences`' OC-1). */
-const oneStepPlan = (says: string): ActionPlan => planOf([{ step: { says, suppliedBy: 'system' }, items: [{ kind: 'intent', says }] }])
+/**
+ * A one-step plan whose intent is the step's own text (the single-step rule, as `consequences`' OC-1), confirmed unless given its
+ * standing: an intent divined from a player's command is unchecked until `playByPlay` restates it (the user, 2026-11-20).
+ */
+const oneStepPlan = (says: string, intentStanding?: Standing): ActionPlan =>
+    planOf([{ step: { says, suppliedBy: 'system' }, items: [{ kind: 'intent', says, ...(intentStanding === undefined ? {} : { standing: intentStanding }) }] }])
 
 /** A plan with its one step expanded by hand into these sub-steps, as an earlier `playByPlay` reply would have left it. */
 const expandedPlan = (plan: ActionPlan, target: string, steps: readonly { says: string; intent?: string }[]): ActionPlan => {
@@ -174,14 +179,14 @@ const proposedOn = (plan: ActionPlan, target: string, says: string, rules: reado
 
 /**
  * The cells' plans, built by hand: one step each, the case's own; OC-1b's is OC-1's, expanded once; the concession cell's is OC-20's,
- * holding a wrong proposal on the target (IS-6); OC-6/command's is the player's command alone, its intent its own text, so its handles
- * are the reply's to deduce (IS-11).
+ * holding a wrong proposal on the target (IS-6); OC-6/command's is the player's command alone, its intent its own text and unchecked (divined, not yet
+ * restated), so its handles are the reply's to deduce (IS-11).
  */
 export const playByPlayPlans = {
     'OC-1': oneStepPlan(caseActions('OC-1')[0]),
     'OC-1b': expandedPlan(oneStepPlan(caseActions('OC-1')[0]), 'pick-up-table1', [{ says: 'grip [table1] by its edges' }, { says: 'lift [table1] off the floor' }]),
     'OC-6': oneStepPlan(caseActions('OC-6')[0]),
-    'OC-6/command': oneStepPlan('pour tea into cup'),
+    'OC-6/command': oneStepPlan('pour tea into cup', 'unchecked'),
     'OC-19': oneStepPlan(caseActions('OC-19')[0]),
     'OC-20': oneStepPlan('pick up [table1]'),
     'OC-20/concession': proposedOn(oneStepPlan('pick up [table1]'), 'pick-up-table1', '[table1] cannot be lifted', [{ rule: 'table-secured-to-wall', stance: 'violation' }]),
@@ -210,7 +215,7 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
     'OC-6/command': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-6/command'], target: 'pour-tea-cup', missing: 'how the tea is poured', alsoShown: ['table1', 'tea2', 'teapot1', 'cup1'] },
-        lookFor: `the record's "says" and "intent" name [tea2], [teapot1] and [cup1], with or without "steps" (IS-11). Bounds: no "unglue" sub-step (PB-P2), no sub-step moving or tipping [table1], no invented part (a lid); ${BOUNDS}`,
+        lookFor: `the step revised to its handles, with or without "steps" (IS-11), graded in three parts: (a) the revision in the record's "says", not a one-entry "steps"; (b) "says" naming [teapot1] and [cup1], and [tea2] for "tea" (graded apart); (c) the unchecked intent revised to name them. Bounds: no "unglue" sub-step (PB-P2), no sub-step moving or tipping [table1], no invented part (a lid); ${BOUNDS}`,
         source: caseSource('OC-6'),
         note: "The plan as built from the player's command alone, its says and intent both the command's text (the user, IS-11). Its scene is OC-6's (mine: the things OC-6's plan names, shown by hand), so the two differ by the plan; its `missing` names no handle (mine).",
     },
