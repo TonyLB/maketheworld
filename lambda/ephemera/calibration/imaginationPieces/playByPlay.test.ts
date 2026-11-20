@@ -39,11 +39,11 @@ describe('playByPlay', () => {
     afterEach(() => jest.restoreAllMocks())
 
     describe('the render', () => {
-        it('gives the scene, then the plan, then the step to expand with the detail asked for, with no things line', async () => {
+        it('gives the scene, then the plan, then the step asked about, by path, with the detail asked for, with no things line', async () => {
             const parts = (await renderPlayByPlay(cellOf({}), PLAY_BY_PLAY_OPTIONS)).split('\n\n')
             expect(parts.slice(-2)).toEqual([
                 'The plan:\nStep pour-tea2-teapot1: pour [tea2] from [teapot1] into [cup1]\n  - intent pour-tea2-teapot1.intent: pour [tea2] from [teapot1] into [cup1]',
-                'The step to expand: pour-tea2-teapot1\nThe detail asked for: how [teapot1] is held and moved',
+                'The step asked about: pour-tea2-teapot1\nThe detail asked for: how [teapot1] is held and moved',
             ])
             expect(parts.some((part) => part.startsWith('The things to describe'))).toBe(false)
         })
@@ -61,7 +61,7 @@ describe('playByPlay', () => {
             }
             const text = await renderPlayByPlay(cellOf({ plan: merged.plan, target: 'tilt-teapot1-over' }), PLAY_BY_PLAY_OPTIONS)
             expect(text).toContain('  - step tilt-teapot1-over: tilt [teapot1] over [cup1]\n    - intent tilt-teapot1-over.intent: [tea2] pours into [cup1]')
-            expect(text.endsWith('The step to expand: tilt-teapot1-over\nThe detail asked for: how [teapot1] is held and moved')).toBe(true)
+            expect(text.endsWith('The step asked about: tilt-teapot1-over\nThe detail asked for: how [teapot1] is held and moved')).toBe(true)
         })
 
         it('shows the sub-scene\'s rules as fact and consequence under the judge render with rules: consequence', async () => {
@@ -105,9 +105,9 @@ describe('playByPlay', () => {
             expect(playByPlay.parseOptions({ rules: 'handles' })).toEqual({ rules: 'handles', scene: 'explicit' })
         })
 
-        it('pins the cells\' inputs hashes on the default (OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
-            const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-6/command', 'OC-19', 'OC-20', 'OC-20/concession'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
-            expect(hashes).toEqual(['38feccd3', 'f901398c', 'a0d0b486', '3ee72b31', 'f7943193', 'e6c6d43b', '64eca640'])
+        it('pins the cells\' inputs hashes on the default (OC-20/proposed new with IS-13; the label "The step asked about:" from draft 25; batch 47 ran 38feccd3, f901398c, a0d0b486, 3ee72b31, f7943193, e6c6d43b, 64eca640 on "The step to expand:"; OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
+            const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-6/command', 'OC-19', 'OC-20', 'OC-20/concession', 'OC-20/proposed'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
+            expect(hashes).toEqual(['1395e48e', '7bfddef2', '144e5e15', '75d624f0', '2f1e1d3e', 'bfb8a376', '20982627', '27983e17'])
         })
 
         it('shows each securing with its rule\'s handle by default, and none with rules: none', async () => {
@@ -386,16 +386,16 @@ describe('playByPlay', () => {
         })
     })
 
-    it('is registered, and runs through the probe: seven cells x 3, each reply form-checked and grouped by cell', async () => {
+    it('is registered, and runs through the probe: eight cells x 3, each reply form-checked and grouped by cell', async () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({
             success: true as const, body: fenced({ says: 'do it', steps: [{ says: 'take hold' }, { says: 'move it' }] }),
         }))
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'playByPlay', instructions: 'Expand the step.', repeats: 3 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
-        expect(invoke).toHaveBeenCalledTimes(21)
+        expect(invoke).toHaveBeenCalledTimes(24)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 1024)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result.summary).toEqual({ calls: 21, formFails: 0, errors: 0 })
+        expect(result.summary).toEqual({ calls: 24, formFails: 0, errors: 0 })
         expect(result.options).toEqual(PLAY_BY_PLAY_OPTIONS)
         expect(result.read.map(({ cell, replies }: { cell: string; replies: unknown[] }) => [cell, replies.length])).toEqual(
             Object.keys(playByPlayCells).map((id) => [id, 3]),

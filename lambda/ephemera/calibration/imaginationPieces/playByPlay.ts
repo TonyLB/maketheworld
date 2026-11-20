@@ -25,7 +25,7 @@ export type PlayByPlayInputs = {
     fixture: string
     /** The plan so far. */
     plan: ActionPlan
-    /** The path of the step to expand, at any depth: the reply restates it alone, and may expand it. */
+    /** The path of the step asked about, at any depth (the render names it by path, its reference into the plan): the reply restates it alone, and may expand it. */
     target: string
     /**
      * What the requester is looking for (the non-rule cell's request carries it): a detail of the method, not of how the method matches the
@@ -74,7 +74,7 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     }
     const shown = [...new Set([...alsoShown, ...planHandles(plan), ...namedHandles(missing)])]
     const scene = await renderScene({ fixture, shown }, options)
-    return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step to expand: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
+    return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
 }
 
 /** The record's keys: the step restated, its sub-steps, and what the step as a whole brings about. */
@@ -179,7 +179,8 @@ const proposedOn = (plan: ActionPlan, target: string, says: string, rules: reado
 
 /**
  * The cells' plans, built by hand: one step each, the case's own; OC-1b's is OC-1's, expanded once; the concession cell's is OC-20's,
- * holding a wrong proposal on the target (IS-6); OC-6/command's is the player's command alone, its intent its own text and unchecked (divined, not yet
+ * holding a wrong proposal on the target (IS-6), its consequence worded as a verdict (bad upstream data, IS-13); OC-20/proposed's is the same plan with the
+ * proposal well formed, what happens with its violation (IS-13); OC-6/command's is the player's command alone, its intent its own text and unchecked (divined, not yet
  * restated), so its handles are the reply's to deduce (IS-11).
  */
 export const playByPlayPlans = {
@@ -190,6 +191,7 @@ export const playByPlayPlans = {
     'OC-19': oneStepPlan(caseActions('OC-19')[0]),
     'OC-20': oneStepPlan('pick up [table1]'),
     'OC-20/concession': proposedOn(oneStepPlan('pick up [table1]'), 'pick-up-table1', '[table1] cannot be lifted', [{ rule: 'table-secured-to-wall', stance: 'violation' }]),
+    'OC-20/proposed': proposedOn(oneStepPlan('pick up [table1]'), 'pick-up-table1', '[table1] pulls against its chain to [wall1]', [{ rule: 'table-secured-to-wall', stance: 'violation' }]),
 } satisfies Record<string, ActionPlan>
 
 /** The scope checks every cell carries: they bound the piece, and are not its bar. */
@@ -235,6 +237,12 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
         lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded (IS-7): no step given as the answer alone, and no method bent around "[table1] cannot be lifted": the method is playByPlay's authority, and an unchecked claim doesn't settle it. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "OC-20's plan, arriving with an unchecked consequence and its Rule (Violation) on the target, as if from an earlier proposer (the user's watch item 3: conceding without judgment where the piece has authority).",
+    },
+    'OC-20/proposed': {
+        inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/proposed'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
+        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded (IS-7, IS-13): no step given as the answer alone, and no method bent around the proposed violation: the method is playByPlay's authority, and an unchecked violation is the checkers'. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        source: 'hand-written',
+        note: "The concession cell's plan with its proposal well formed: what happens ([table1] pulls against its chain), with the Rule (Violation). It is the standing work's bar on a proposal; the concession cell's verdict-worded proposal reaches forward to the resilience pass (the user, 2026-11-20, IS-13).",
     },
 }
 
