@@ -1,6 +1,6 @@
 # Piece views: each prompt's view of the shared state
 
-**Status (2026-11-21): opened; step 0, the design pass with the user, is next.** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user at the close of the item standing plan (retired 2026-11-21), whose remaining standing problems were all ones a view removes. An implementation plan: the first prototype is designed and built here, with `playByPlay`'s view its first instance.
+**Status (2026-11-21): step 0, the design pass with the user, in progress: [the inventory](#the-inventory) done; VW-1 and VW-5 next.** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user at the close of the item standing plan (retired 2026-11-21), whose remaining standing problems were all ones a view removes. An implementation plan: the first prototype is designed and built here, with `playByPlay`'s view its first instance.
 
 ## The idea (the user, 2026-11-21)
 
@@ -23,8 +23,8 @@ By calibration's [Writing prompts for Nova Micro](../../../../../lambda/ephemera
 
 **What the item standing plan left, all removed by a view** (the user, 2026-11-21): `playByPlay` mis-responding to incoming rule violations and provisional consequences. Its other open problems are `playByPlay`'s own tuning, in the [imagination plan](AGENT.imagination.planning.md)'s step 2.
 
-**Views that already exist, ad hoc** (to inventory in step 0):
-- the non-rule cell's render and the rebuttal's leave out the securing, "since securing is the rule cell's" (calibration's [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece));
+**Views that already exist, ad hoc** (inventoried in step 0, [The inventory](#the-inventory)):
+- the non-rule cell's render leaves out the Rules section, "since securing is the rule cell's", and the rebuttal's leaves out the securing itself (calibration's [A read piece](../../../../../lambda/ephemera/calibration/AGENT.md#a-read-piece));
 - `playByPlay`'s `rules: 'conditions'` and `consequences`' carry lines word the same securing for each task;
 - the per-piece `scene` option and `JUDGE_RENDER_HOLDOUTS` ([Scene renders](../../../../../lambda/ephemera/calibration/AGENT.md#scene-renders));
 - `renderPlanForGenerator`, one plan render for every generator.
@@ -47,7 +47,7 @@ By calibration's [Writing prompts for Nova Micro](../../../../../lambda/ephemera
 Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
 
 0. [ ] **The design pass, with the user** (text only, before any build):
-   - [ ] **The inventory:** each piece's views as they stand, what each shows and leaves out, and how it words them.
+   - [X] **The inventory:** each piece's views as they stand, what each shows and leaves out, and how it words them (done 2026-11-21, [The inventory](#the-inventory)).
    - [ ] **What a view declares** (VW-1) and **where it lives in code** (VW-5).
    - [ ] **The reply side:** each piece's reply asks only for what its view supports; for `playByPlay`, the stance (VW-3, VW-4).
    - [ ] **Hidden items on a revision** (VW-2).
@@ -58,14 +58,60 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - [ ] the merge rule for hidden items (VW-2);
    - [ ] a test that every registered piece declares a view.
 2. [ ] **`playByPlay` on its view:** two batches per draft against the last kept draft, with the look-fors rewritten first: OC-20's lift and OC-19's pry graded on the consequence, not its tag; `OC-20/proposed` and the concession cell on a plan whose proposal isn't shown; OC-1 with no `causes` look-for. The tuning baseline is the imagination plan's step 2.
-3. [ ] **The other pieces declared as views,** with no change in behaviour: every inputs hash unchanged.
+3. [ ] **The other pieces declared as views,** with no change in behaviour: every inputs hash unchanged. The scene side joins the view here (VW-1's order): first, which options are experiment arms (`scene: 'judge' | 'explicit'` during the migration, kept as payload options) and which are the piece's view (`rules: 'conditions'`, `securing: 'omitted'`, `ruleCell`'s `show` and rule parts, moved into its declaration); then each piece's scene settings consolidated into its view.
 4. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
+
+## The design pass
+
+### The inventory
+
+Each registered piece's view as it stands (2026-11-21, mine, read from the code; reviewed by the user).
+
+**The scene side:**
+
+| Piece | Scene shown | The securing, and its wording | Rules |
+| --- | --- | --- | --- |
+| `ruleCell` | judge render, the sub-scene of the rule's two things | the judge Graph | the one rule: its fact and enforcing rubric only (no voiding rubric, no consequence) |
+| `nonRuleCell`, `stepConsiderations`, `trial/against` (default) | the whole scene; judge, or explicit by option | shown; under explicit, `actionRule`'s "cannot be moved apart until they are freed" | no Rules section |
+| `trial/against` (`securing: 'omitted'`), `trial/rebuttal`, `trial/verdict`, `trial/ruling` | the whole scene (`ruling` explicit) | removed (`withoutSecuring`) | none |
+| `sceneReading` | the whole scene, either render | removed | none |
+| `playByPlay` | explicit, the sub-scene of `alsoShown`, the plan's handles and `missing`'s | `rules: 'conditions'`: handle tag, the condition with the relation's words, a carry keeping the slack | handles, through the tags |
+| `consequences` | explicit, the sub-scene of the things and the plan's handles | `rules: 'none'`: `actionRule`'s impossibility, or the hosted carry line | none |
+
+**The plan side:**
+
+| Piece | Plan input | Filtered |
+| --- | --- | --- |
+| `playByPlay` | `renderPlanForGenerator`, the whole plan | No: every kind, every author, rule items with stances, `alreadyAnswers`; only the `(unchecked)` tag marks standing, which didn't keep the registers apart (drafts 21 to 22a) |
+| `consequences` | the same render | No; dormant, since its cells hold no rule or unchecked items. It can't name a rule (`rules: 'none'`) but would be shown `Rule (...)` lines |
+| `ruleCell` | its own hand-written motion lines, windowed by code at `voidedAt` | Yes: the rule's two ends, the actions the rule is in force for |
+| `nonRuleCell` and the trial | their own step shape (role and consequence lines), not the action plan (the bridge state) | n/a |
+
+**Other agents' claims, shown by design:** `trial/rebuttal` sees the argument, `trial/verdict` both sides; judging them is their task. `trial/ruling` sees the case against's question but never its `blocking`: an instance already built of filtering a judgment and keeping what it rests on, the nearest model for `playByPlay`'s view. `playByPlay` sees proposals it has no use for (`OC-20/proposed`, the concession cell), the case this plan exists for.
+
+**The reply side:**
+
+| Piece | Asks for | Fits its view |
+| --- | --- | --- |
+| `playByPlay` | `says`, `intent`, `steps`, `consequences` with `rules: [{rule, stance}]` | The stance is VW-3's question |
+| `consequences` | a `changes` list, `concern` included | `concern` is booked out (the imagination plan's step 3) |
+| `ruleCell` | a description, then `blocks` or `allows` | Yes |
+| `nonRuleCell` | per step a `finding`, `establishes`, and `reason`/`cause` or `of`/`missing` | Yes |
+| the trial's stages | each its stage contract | Yes |
+
+**Where views live today** (VW-5's input): scattered across option types and render functions: `ImaginationOptions`' `rules` and `scene`, `SecuringShown`, `RuleCellOptions`' `show` and `sceneRules`, `TrialAgainstOptions`, and `securing: 'omitted'` hard-coded in the rebuttal and the ruling. The one registry-wide check is `JUDGE_RENDER_HOLDOUTS`.
+
+**What it suggests** (mine; leads for VW-1 and VW-5, not settled):
+1. **The scene side has views; the plan side has none.** The scene's axes are which part, how the securing is worded, and which of a rule's parts are shown; the last is a view in all but name ("each piece shows only the part it uses", the user, 2026-11-10). VW-1's new ground is the plan side: which kinds, whose, which standing.
+2. **Options and views differ.** Some options are experiment arms (`scene: 'judge' | 'explicit'`, during the migration); some are the piece's own view (`rules: 'conditions'`, `securing: 'omitted'`). A view type might take in the second and leave the arms as options. Step 3's unchanged hashes mean each declared view reproduces today's render, options included.
+3. **`consequences` is the mirror's first test.** Revise-mode `consequences` is the authority for `playByPlay`'s unchecked consequences, so its view must show them; additive `consequences` may be better without them (§3). A view may depend on the mode, not only the piece.
+4. **The securing has four wordings and an absence.** `nonRuleCell` gets the "cannot be moved apart" impossibility, the wording behind the concession cell's failures; its task is reasons no rule names, so the securing may be outside its view. A question for when it reads the plan.
 
 ## Open decisions (implementation --- plan only)
 
 | ID | Question | Informs | Settled by | Status |
 | --- | --- | --- | --- | --- |
-| VW-1 | What a view declares: the plan kinds it reads (and whose: all authors, or the piece's own and the authorities'), how each is worded, the scene render options | Step 0, step 1 | The user | Open |
+| VW-1 | What a view declares: the plan kinds it reads (and whose: all authors, or the piece's own and the authorities'), how each is worded, the scene render options | Step 0, step 1 | The user | **Decided for the prototype** (the user, 2026-11-21): a view declares the plan kinds it reads and, for each, whether it reads `all` its entries (unchecked and confirmed) or only the confirmed (`authoritative`). No exemption for the piece's own items: its own unchecked proposals are filtered like anyone's. **The order** (mine, agreed by the user, 2026-11-21): step 1 builds the plan filter alone; the scene's wording and render options join the view in step 3, which first sorts the options that are experiment arms (they stay payload options) from those that are the piece's view (they move into its declaration); wording per plan kind waits for a piece that needs it, since none does yet |
 | VW-2 | What happens to an item a view hides when the piece revises its step. Today a revision clears the target's items and the ask asks for kept ones to be given again; a hidden item can't be. Kept on the step, re-attached by code, or dropped | Step 1 | The user | Open (handed here from the item standing plan, the user, 2026-11-21) |
 | VW-3 | `playByPlay`'s stance. (a) a proposal names the rule it bears on, with no stance; (b) it names neither, and code pairs each consequence with the rules on its thing's edges for the authorities to judge (mine, leaned on: §2, §7 one judgment per call, and "ask only for what the model alone can provide") | Step 1 | The user | Open |
 | VW-4 | Under (b), who judges each stance: `violation` by the rule cell (its `blocks`, 46 of 48 on draft 3); `causes` for a carry from the scene's own securing edge, by code; `voids` (prying the glue loose) unjudged for now, a question for the rule cell, or a piece of its own. Costs calls (one per paired consequence), so pairing only consequences whose thing touches a rule | Step 1 | The user | Open |
@@ -86,7 +132,7 @@ From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx 
 
 | Step | State |
 | --- | --- |
-| The design pass | Not started |
+| The design pass | In progress: the inventory done 2026-11-21; VW-1 and VW-5 next |
 | The build | Not started |
 | `playByPlay` on its view | Not started |
 | The other pieces | Not started |
