@@ -517,7 +517,7 @@ describe('the action plan', () => {
                 expect(expanded(once, [{ ...restate, answered: 'how [cup1] is held' }]).steps[0].alreadyAnswers).toEqual([ANSWERED, 'how [cup1] is held'])
             })
 
-            it('revises on a changed intent (IS-10): the items leave, the path kept, the intent the restatement\'s, a carried consequence unchecked', () => {
+            it('revises on a changed intent: the items leave, the path kept, the intent the restatement\'s, a carried consequence unchecked', () => {
                 const before = expanded(pour(), [spills], asConsequences)
                 const plan = expanded(before, [{ ...restate, intent: '[tea2] is in [cup1]' }, spills], restating)
                 expect(plan.steps).toEqual([{ says: POUR, suppliedBy: 'system', path: 'pour-tea2-teapot1', standing: 'confirmed', alreadyAnswers: [ANSWERED], items: [
@@ -613,7 +613,7 @@ describe('the action plan', () => {
             })
         })
 
-        describe('standing, rules and replace (AGENT.itemStanding.planning.md)', () => {
+        describe('standing, rules and replace', () => {
             const RULES = ['table-secured-to-wall', 'teapot-secured-to-table']
             const pickUp = () => planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [table1]' }] }])
             const chain = { rule: '[table-secured-to-wall]', stance: 'violation' }
@@ -649,7 +649,7 @@ describe('the action plan', () => {
                     expect(intentOf(pickUp())).toMatchObject({ standing: 'confirmed' })
                 })
 
-                it('a restatement as written, giving the intent, confirms it by its authority, path kept (as IS-2\'s replace with the item as written)', () => {
+                it('a restatement as written, giving the intent, confirms it by its authority, path kept (as replace with the item as written)', () => {
                     expect(intentOf(mergedBy(divined(), [{ ...restate, intent: 'pick up [table1]' }], by('playByPlay')))).toEqual({ kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: 'pick up [table1]' })
                 })
 
@@ -707,7 +707,7 @@ describe('the action plan', () => {
                 expect(renderPlanForGenerator(carry).split('\n').slice(-1)).toEqual(['    - Rule (Causes) pick-up-table1.teapot-secured-to-table (unchecked): [teapot-secured-to-table]'])
             })
 
-            it('merges and renders a voids stance: the consequence ends the rule (IS-15)', () => {
+            it('merges and renders a voids stance: the consequence ends the rule', () => {
                 const loose = mergedBy(pickUp(), [{ add: 'consequence', to: 'pick-up-table1', says: '[teapot1] comes loose from [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'voids' }] }], by('playByPlay'))
                 expect(renderPlanForGenerator(loose).split('\n').slice(-2)).toEqual([
                     '  - consequence pick-up-table1.teapot1-comes-loose (unchecked): [teapot1] comes loose from [table1]',
@@ -791,7 +791,7 @@ describe('the action plan', () => {
                 expect(refusedBy(pickUp(), [cannot], { author: 'playByPlay', adds: ['consequence'] })).toEqual(['change 1: rule 1: rule "table-secured-to-wall" is not a rule the scene holds'])
             })
 
-            describe('replace: the kind\'s authority replaces an unchecked item with a confirmed one (IS-2)', () => {
+            describe('replace: the kind\'s authority replaces an unchecked item with a confirmed one', () => {
                 const checker = (author: MergeOptions['author']) => by(author, { replaces: true })
                 const PATH = 'pick-up-table1.table1-cannot-be'
 

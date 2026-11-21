@@ -9,7 +9,7 @@
 // A step expands in place into sub-steps, each a `step` item holding its own items: the one exception to the path rule, since a
 // sub-step's path is a step path, minted in the plan's one scope of step paths at any depth (calibration AGENT.md, "The action plan").
 // Every step and item has a standing, `confirmed` or `unchecked`, which code sets from who wrote it and the authority map, never from a
-// reply; a kind's authority may replace an unchecked item with a confirmed one (AGENT.itemStanding.planning.md). A `rule` item, a
+// reply; a kind's authority may replace an unchecked item with a confirmed one (calibration AGENT.md, The action plan). A `rule` item, a
 // consequence's stance on one of the scene's rules, nests in the consequence it follows from.
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
@@ -23,19 +23,19 @@ export type Openness = typeof OPENNESS_KINDS[number]
 
 /**
  * Whether an item's authority has it (`confirmed`) or someone else proposed it and the authority hasn't checked it (`unchecked`). Every
- * step and item has one (the user, IS-1), set by code from the author and `AUTHORITY`, never by a reply.
+ * step and item has one (the user), set by code from the author and `AUTHORITY`, never by a reply.
  */
 export type Standing = 'unchecked' | 'confirmed'
 
 /** The pieces that write to a plan. */
 export type PlanAuthor = 'playByPlay' | 'consequences' | 'ruleCell'
 
-/** A consequence's stance on a rule: it goes against a rule that stays in force (`violation`); the rule causes it, a result that ordinarily wouldn't happen, as the glue keeping a teapot on a tilted table (`causes`; was `effect`, IS-16, and `consistent` before that, IS-14); or it ends the rule, as prying a glued teapot loose ends the glue (`voids`, IS-15; the after-state, a voided rule gone for later steps, is the parent's "State carried forward"). The user, 2026-11-20. */
+/** A consequence's stance on a rule: it goes against a rule that stays in force (`violation`); the rule causes it, a result that ordinarily wouldn't happen, as the glue keeping a teapot on a tilted table (`causes`; was `effect`, and `consistent` before that); or it ends the rule, as prying a glued teapot loose ends the glue (`voids`; the after-state, a voided rule gone for later steps, is the parent's "State carried forward"). The user, 2026-11-20. */
 export const RULE_STANCES = ['violation', 'causes', 'voids'] as const
 export type RuleStance = typeof RULE_STANCES[number]
 
 /**
- * A rule item (IS-4): a consequence's stance on one of the scene's rules, named by its handle (`judgeRules`). It nests in the consequence
+ * A rule item: a consequence's stance on one of the scene's rules, named by its handle (`judgeRules`). It nests in the consequence
  * it follows from, since a rule is kept or broken by what moves, so it can't stand alone. Its path is flat in the step's scope, and is
  * the handle itself.
  */
@@ -71,7 +71,7 @@ export type StepItemKind = StepItem['kind']
 export type AuthoredKind = StepItemKind | 'rule'
 
 /**
- * Who is authoritative for each kind (IS-1, a fixed map for this iteration): the method's (a sub-step, and its intent) is `playByPlay`'s;
+ * Who is authoritative for each kind (a fixed map for this iteration): the method's (a sub-step, and its intent) is `playByPlay`'s;
  * what happens is `consequences`'; a rule's stance is the rule cell's. A plan's own steps are its source's, so builders confirm them.
  */
 export const AUTHORITY: Record<AuthoredKind, PlanAuthor> = {
@@ -101,7 +101,7 @@ export const itemPaths = (item: StepItem): string[] =>
         : [item.path]
 
 /**
- * A step's `alreadyAnswers` (AGENT.itemStanding.planning.md, the step record): the details asked of it that what it holds answers, each
+ * A step's `alreadyAnswers` (calibration AGENT.md, The action plan): the details asked of it that what it holds answers, each
  * added by code from a restatement's request, never by a model. The judge's evidence that a question was asked, not a lock on asking it.
  */
 export type PlannedStep = CandidateStep & { path: string; standing: Standing; alreadyAnswers?: readonly string[]; items: readonly StepItem[] }
@@ -243,12 +243,12 @@ export const bracketHandles = (text: string, handles: readonly SceneHandle[]): s
     return text.replace(new RegExp(`(?<![\\[\\w])(${escaped.join('|')})(?![\\]\\w])`, 'gi'), (match) => `[${canonical.get(match.toLowerCase()) ?? match}]`)
 }
 
-/** ` (unchecked)` after an unchecked item's path (R1, IS-1's first render candidate); a confirmed item has no tag and reads as fact. */
+/** ` (unchecked)` after an unchecked item's path (R1, the first render candidate tried); a confirmed item has no tag and reads as fact. */
 const uncheckedTag = (standing: Standing): string => (standing === 'unchecked' ? ' (unchecked)' : '')
 
 const STANCE_WORDS: Record<RuleStance, string> = { violation: 'Violation', causes: 'Causes', voids: 'Voids' }
 
-/** A rule under its consequence: `Rule (Violation) <path>: [<handle>]` (the user's wording, IS-4). */
+/** A rule under its consequence: `Rule (Violation) <path>: [<handle>]` (the user's wording). */
 const ruleLine = ({ path, standing, rule, stance }: RuleItem, indent: string): string =>
     `${indent}- Rule (${STANCE_WORDS[stance]}) ${path}${uncheckedTag(standing)}: [${rule}]`
 
@@ -306,15 +306,15 @@ export type PlanAddition =
     | { add: 'steps'; to: string; steps: readonly SubStepEntry[] }
 
 /**
- * The step record (AGENT.itemStanding.planning.md, IS-9): the step restated, written by code from a reply's `says` and `intent`, with
+ * The step record (calibration AGENT.md, The action plan): the step restated, written by code from a reply's `says` and `intent`, with
  * `answered`, the detail asked of it, which joins its `alreadyAnswers`. A `says` or `intent` other than the step's revises it: its items
- * leave (IS-10), its intent is the restatement's (or its old one, kept), and a changed `says` takes a path minted afresh. A restatement
+ * leave, its intent is the restatement's (or its old one, kept), and a changed `says` takes a path minted afresh. A restatement
  * as written keeps the step and its items as they are.
  */
 export type PlanRestate = { restate: 'step'; to: string; says: string; intent?: string; answered: string }
 
 /**
- * A check (IS-2): the kind's authority replaces an unchecked item with a confirmed one of the same kind, an opposite, a more nuanced
+ * A check: the kind's authority replaces an unchecked item with a confirmed one of the same kind, an opposite, a more nuanced
  * agreement, or the item as written. `to` is the step that holds the item, found by code. The old item and its children leave.
  */
 export type PlanReplace =
@@ -360,7 +360,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
 
 /**
  * What a merge takes, and how it words a refusal:
- * - `author`: the piece that wrote the block, which sets each item's standing by `AUTHORITY` (IS-1);
+ * - `author`: the piece that wrote the block, which sets each item's standing by `AUTHORITY`;
  * - `handlesAre`: what a `thing` outside the handles is, `in the scene` when the handles are the scene's (the default), or as the caller
  *   names its handles, such as `a listed thing or named by the step` for `consequences`;
  * - `adds`: the additions it takes, by default the sub-item kinds (`SUB_ITEM_ADDS`); `playByPlay` takes `steps` and `consequence`;
@@ -500,7 +500,7 @@ const checkBranches = (branches: unknown, context: CheckContext): { branches: { 
         : { branches: checked.map((entries) => (entries ?? []).flatMap((result) => ('consequence' in result ? [result.consequence] : []))) }
 }
 
-/** A sub-step's `consequences`: absent, or a list of consequence entries, what that motion brings about (IS-5). */
+/** A sub-step's `consequences`: absent, or a list of consequence entries, what that motion brings about. */
 const checkSubStepConsequences = (consequences: unknown, context: CheckContext): { consequences?: ConsequenceEntry[] } | { problems: string[] } => {
     if (consequences === undefined) {
         return {}
@@ -572,7 +572,7 @@ const checkRestate = (entry: Record<string, unknown>, context: CheckContext): { 
 }
 
 /**
- * A replacement checked (IS-2): one the merge takes, naming an unchecked consequence or rule, from that kind's authority, with a `with`
+ * A replacement checked: one the merge takes, naming an unchecked consequence or rule, from that kind's authority, with a `with`
  * of the same kind. A consequence's `with` is a consequence entry; a rule's is a rule entry.
  */
 const checkReplace = (entry: Record<string, unknown>, context: CheckContext): { change: PlanChange } | { problems: string[] } => {
@@ -700,7 +700,7 @@ const changeItem = (change: ItemAddition, stepPath: string, paths: readonly stri
 
 /**
  * A sub-step as an item: its path a step path, then in its own scope its intent (when given), and the consequences that motion brings
- * about with their rules. Each standing by `author`: from `playByPlay`, the sub-step and its intent confirmed, the rest unchecked (IS-8).
+ * about with their rules. Each standing by `author`: from `playByPlay`, the sub-step and its intent confirmed, the rest unchecked.
  */
 const subStepItem = ({ says, intent, consequences = [] }: SubStepEntry, path: string, author: PlanAuthor): SubStep => {
     const sources = consequences.map(consequenceSources)
@@ -724,7 +724,7 @@ type Accepted = { index: number; change: PlanChange }
 /** A step's intent's text, if it has one. */
 const intentOf = ({ items }: StepNode): string | undefined => items.find((item) => item.kind === 'intent')?.says
 
-/** Whether a restatement revises its step (IS-10): a `says`, or a given `intent`, other than the step's. */
+/** Whether a restatement revises its step: a `says`, or a given `intent`, other than the step's. */
 const revises = (step: StepNode, { says, intent }: PlanRestate): boolean =>
     says.trim() !== step.says.trim() || (intent !== undefined && intent.trim() !== (intentOf(step)?.trim() ?? ''))
 
@@ -839,7 +839,7 @@ const withReplacements = (items: readonly StepItem[], replacements: readonly { c
     })
 
 /**
- * A revised step's own items before the block's additions (IS-10): the others leave, and its intent is the restatement's, by `author`, or
+ * A revised step's own items before the block's additions: the others leave, and its intent is the restatement's, by `author`, or
  * else its old one, kept as it was, under the step's path.
  */
 const revisedItems = (step: StepNode, { intent }: PlanRestate, path: string, author: PlanAuthor): StepItem[] => {
@@ -858,7 +858,7 @@ const withAnswer = (answers: readonly string[] = [], answered: string): readonly
  */
 /**
  * A step's intent as the author restating it gives it: as written, it takes the author's standing for an intent, so an unchecked one
- * is confirmed by its authority (`playByPlay`), as a `replace` with the item as written confirms (IS-2), and keeps its path; a confirmed
+ * is confirmed by its authority (`playByPlay`), as a `replace` with the item as written confirms, and keeps its path; a confirmed
  * one is never lowered (mine, the user agreeing, 2026-11-20).
  */
 const restatedIntent = (items: readonly StepItem[], author: PlanAuthor): StepItem[] =>

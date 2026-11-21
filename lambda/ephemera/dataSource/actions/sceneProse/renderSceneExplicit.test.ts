@@ -122,7 +122,7 @@ describe('the explicit scene render', () => {
         expect(renderSceneExplicit(securing === 'removed' ? withoutSecuring(scene) : scene)).toBe(golden)
     })
 
-    describe("with rules: 'handles' (AGENT.itemStanding.planning.md, IS-3)", () => {
+    describe("with rules: 'handles'", () => {
         it('tags each securing\'s fact with its rule\'s handle, and changes nothing else', async () => {
             const scene = await fixture('teaTableChained')
             const tagged = renderSceneExplicit(scene, { rules: 'handles' })
@@ -153,7 +153,7 @@ describe('the explicit scene render', () => {
         })
     })
 
-    describe("with rules: 'conditions' (AGENT.itemStanding.planning.md, step 2)", () => {
+    describe("with rules: 'conditions'", () => {
         it('tags each securing and states its condition, with the relation as its measure; a pair takes a carry line with slack in place of the action rule', async () => {
             const scene = await fixture('teaTableChained')
             expect(renderSceneExplicit(scene, { rules: 'conditions' })).toBe(CHAINED_SHOWN

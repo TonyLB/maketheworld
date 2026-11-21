@@ -18,8 +18,8 @@ export type ImaginationOptions = {
      * How the sub-scene's rules are shown: `none` (the default), or `consequence`, each rule's fact and what it does when the thing its
      * subject is secured to is moved (user, 2026-11-10). Whether a rule blocks is the rule cell's, so an ask is shown only what a rule
      * causes (PB-2, PR-1). Replaces a `sceneRules` boolean that showed v45's sentences. Or `handles`, the explicit render's securings each
-     * tagged with its rule's handle, minted on the full scene (AGENT.itemStanding.planning.md, IS-3), so a reply can name a rule. Or
-     * `conditions`, the handles with each securing's condition and carry (AGENT.itemStanding.planning.md, step 2, the user's diagnosis).
+     * tagged with its rule's handle, minted on the full scene (calibration AGENT.md, Scene renders), so a reply can name a rule. Or
+     * `conditions`, the handles with each securing's condition and carry (the user's diagnosis, 2026-11-19).
      */
     rules: 'none' | 'consequence' | 'handles' | 'conditions'
     /**

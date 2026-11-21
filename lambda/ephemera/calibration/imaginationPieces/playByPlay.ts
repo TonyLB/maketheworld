@@ -1,10 +1,10 @@
 //
 // The play-by-play, the imagination's more-detail ask (AGENT.imagination.planning.md; calibration AGENT.md, "A read piece"): a read piece,
 // and a reducer on the action plan (calibration AGENT.md, "The action plan"). Given a fixture, a plan and the path of the one step to
-// expand, it gives the detail asked for: the reply is the step record (AGENT.itemStanding.planning.md, IS-9), the step restated,
+// expand, it gives the detail asked for: the reply is the step record (calibration AGENT.md, The action plan), the step restated,
 // `{"says", "intent", "steps"?, "consequences"?}`. Its `says` and `intent` revise the step where they differ; two or more `steps` break
 // it into ordered sub-steps, each with an intent where it helps; with none, the step itself is the answer. The record and each sub-step
-// may carry the `consequences` they bring about (IS-5). Code reads it as changes in the change language, supplying the verbs, the list,
+// may carry the `consequences` they bring about. Code reads it as changes in the change language, supplying the verbs, the list,
 // `to` and the detail answered, which joins the step's `alreadyAnswers`. `playByPlay` is the method's authority, so its steps and
 // intents merge confirmed, and its consequences and rules unchecked. There is no answer set: code checks each
 // reply's form (does the block merge?), and a reader reads the merged plans against each cell's `lookFor`.
@@ -44,8 +44,8 @@ export type PlayByPlayOptions = ImaginationOptions
 
 /**
  * The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene
- * renders"). Its securings tagged with their rule handles, so a reply can name a rule (IS-6), and each stated as its condition and carry
- * (`rules: 'conditions'`; AGENT.itemStanding.planning.md, step 2, the user's diagnosis, 2026-11-19), in place of `actionRule`'s
+ * renders"). Its securings tagged with their rule handles, so a reply can name a rule, and each stated as its condition and carry
+ * (`rules: 'conditions'`; the user's diagnosis, 2026-11-19), in place of `actionRule`'s
  * impossibility, which the concession cell's failures took as confirming "cannot be lifted".
  */
 export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'conditions', scene: 'explicit' }
@@ -83,7 +83,7 @@ const REPLY_KEYS = ['says', 'intent', 'steps', 'consequences'] as const
 /**
  * The reply's one object as the changes it stands for, each with the label its problems take in the reply's terms, or why it stands for
  * none. The reply gives only what the model alone can provide (the user, 2026-11-19): the step record, `{"says", "intent"?, "steps"?,
- * "consequences"?}` (IS-9). Code supplies the rest of the change language, as it supplies `to`: the restatement first, with `missing` as
+ * "consequences"?}`. Code supplies the rest of the change language, as it supplies `to`: the restatement first, with `missing` as
  * the detail it answers, then the expansion when there are `steps`, then a consequence change for each of the record's consequences. A
  * sub-step's own `consequences` ride in its entry.
  */
@@ -123,7 +123,7 @@ const planRuleHandles = (plan: ActionPlan): string[] => planSteps(plan).flatMap(
 /**
  * The stage's contract: the reply's one object, read as changes (`replyChanges`), its bare handles bracketed, scoped to the target and
  * merged into the plan (`mergeStepChanges`), taking only the restatement, an expansion and consequences (`PLAY_BY_PLAY_MERGE`). Every
- * reply restates the step (IS-9). A handle the scene doesn't hold is kept as written: a breakdown may
+ * reply restates the step. A handle the scene doesn't hold is kept as written: a breakdown may
  * improvise an object. A consequence's rule must be one the prompt shows (`ruleTagHandles`), and a rule handle is never a thing.
  */
 export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
@@ -179,9 +179,9 @@ const proposedOn = (plan: ActionPlan, target: string, says: string, rules: reado
 
 /**
  * The cells' plans, built by hand: one step each, the case's own; OC-1b's is OC-1's, expanded once; the concession cell's is OC-20's,
- * holding a wrong proposal on the target (IS-6), its consequence worded as a verdict (bad upstream data, IS-13); OC-20/proposed's is the same plan with the
- * proposal well formed, what happens with its violation (IS-13); OC-6/command's is the player's command alone, its intent its own text and unchecked (divined, not yet
- * restated), so its handles are the reply's to deduce (IS-11).
+ * holding a wrong proposal on the target, its consequence worded as a verdict (bad upstream data); OC-20/proposed's is the same plan with the
+ * proposal well formed, what happens with its violation; OC-6/command's is the player's command alone, its intent its own text and unchecked (divined, not yet
+ * restated), so its handles are the reply's to deduce.
  */
 export const playByPlayPlans = {
     'OC-1': oneStepPlan(caseActions('OC-1')[0]),
@@ -200,7 +200,7 @@ const BOUNDS = 'no outcome settled (PB-P5)'
 export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = {
     'OC-1': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-1'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['teapot1', 'cup1', 'saucer1'] },
-        lookFor: `expanded: the grip (where, with what), then the lift (straight up, level). The control (IS-7): no \`Rule (Violation)\` on the glue ([teapot-secured-to-table]); a \`Rule (Causes)\` only where the glue changes the result (the teapot staying on a tilting table); on an ordinary carry (the teapot or saucer rising with the lifted table) it is a stray (IS-16). Bounds: no sub-step dealing with the glue (PB-P2); ${BOUNDS}`,
+        lookFor: `expanded: the grip (where, with what), then the lift (straight up, level). The control: no \`Rule (Violation)\` on the glue ([teapot-secured-to-table]); a \`Rule (Causes)\` only where the glue changes the result (the teapot staying on a tilting table); on an ordinary carry (the teapot or saucer rising with the lifted table) it is a stray. Bounds: no sub-step dealing with the glue (PB-P2); ${BOUNDS}`,
         source: caseSource('OC-1'),
         note: 'Its `missing` is hand-written (the corpus has no requests), and is OC-20\'s too, so the two differ by the scene alone.',
     },
@@ -217,9 +217,9 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
     'OC-6/command': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-6/command'], target: 'pour-tea-cup', missing: 'how the tea is poured', alsoShown: ['table1', 'tea2', 'teapot1', 'cup1'] },
-        lookFor: `the step revised to its handles, with or without "steps" (IS-11), graded in three parts: (a) the revision in the record's "says", not a one-entry "steps"; (b) "says" naming [teapot1] and [cup1], and [tea2] for "tea" (graded apart); (c) the unchecked intent revised to name them. Bounds: no "unglue" sub-step (PB-P2), no sub-step moving or tipping [table1], no invented part (a lid); ${BOUNDS}`,
+        lookFor: `the step revised to its handles, with or without "steps", graded in three parts: (a) the revision in the record's "says", not a one-entry "steps"; (b) "says" naming [teapot1] and [cup1], and [tea2] for "tea" (graded apart); (c) the unchecked intent revised to name them. Bounds: no "unglue" sub-step (PB-P2), no sub-step moving or tipping [table1], no invented part (a lid); ${BOUNDS}`,
         source: caseSource('OC-6'),
-        note: "The plan as built from the player's command alone, its says and intent both the command's text (the user, IS-11). Its scene is OC-6's (mine: the things OC-6's plan names, shown by hand), so the two differ by the plan; its `missing` names no handle (mine).",
+        note: "The plan as built from the player's command alone, its says and intent both the command's text (the user). Its scene is OC-6's (mine: the things OC-6's plan names, shown by hand), so the two differ by the plan; its `missing` names no handle (mine).",
     },
     'OC-19': {
         inputs: { fixture: 'teaTableHammerHeld', plan: playByPlayPlans['OC-19'], target: 'pry-teapot1-table1', missing: 'which part of [hammer1] goes where, and how it is worked', alsoShown: [] },
@@ -228,21 +228,21 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
     'OC-20': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `expanded: the grip (where), then the lift. Graded (IS-7, the user): the chain out of the grip's placement, in the proposals (unchecked consequences and rules) only. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `expanded: the grip (where), then the lift. Graded (the user): the chain out of the grip's placement, in the proposals (unchecked consequences and rules) only. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "The oracle probe has no candidate, since the template refuses the move; the step is written by hand, as the rule cell's was. Its `missing` is OC-1's, so the reason to expand comes from the request, not the chain (batches 32 and 33's diagnosis).",
     },
     'OC-20/concession': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/concession'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded (IS-7): no step given as the answer alone, and no method bent around "[table1] cannot be lifted": the method is playByPlay's authority, and an unchecked claim doesn't settle it. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded: no step given as the answer alone, and no method bent around "[table1] cannot be lifted": the method is playByPlay's authority, and an unchecked claim doesn't settle it. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "OC-20's plan, arriving with an unchecked consequence and its Rule (Violation) on the target, as if from an earlier proposer (the user's watch item 3: conceding without judgment where the piece has authority).",
     },
     'OC-20/proposed': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/proposed'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded (IS-7, IS-13): no step given as the answer alone, and no method bent around the proposed violation: the method is playByPlay's authority, and an unchecked violation is the checkers'. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded: no step given as the answer alone, and no method bent around the proposed violation: the method is playByPlay's authority, and an unchecked violation is the checkers'. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
-        note: "The concession cell's plan with its proposal well formed: what happens ([table1] pulls against its chain), with the Rule (Violation). It is the standing work's bar on a proposal; the concession cell's verdict-worded proposal reaches forward to the resilience pass (the user, 2026-11-20, IS-13).",
+        note: "The concession cell's plan with its proposal well formed: what happens ([table1] pulls against its chain), with the Rule (Violation). It is the standing work's bar on a proposal; the concession cell's verdict-worded proposal reaches forward to the resilience pass (the user, 2026-11-20).",
     },
 }
 

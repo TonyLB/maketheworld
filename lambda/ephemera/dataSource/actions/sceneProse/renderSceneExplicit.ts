@@ -10,10 +10,10 @@
  * - the default for everything unstated (the user's, with the gloss written in): "In everything the scene doesn't say, [table1] is as an
  *   ordinary small round tea table is."
  *
- * - with `rules: 'handles'` (AGENT.itemStanding.planning.md, IS-3), each securing's fact tagged with its rule's handle, " (rule [h])", so a
+ * - with `rules: 'handles'` (calibration AGENT.md, Scene renders), each securing's fact tagged with its rule's handle, " (rule [h])", so a
  *   reader can name the rule. The handle is minted from the securing edge in the full scene (`judgeRules(full)`), never from this render,
  *   so it is the same in every sub-scene. The default, `none`, is the render as it was, byte for byte.
- * - with `rules: 'conditions'` (AGENT.itemStanding.planning.md, step 2, the user's diagnosis, 2026-11-19), the handles, and each securing
+ * - with `rules: 'conditions'` (the user's diagnosis, 2026-11-19; calibration AGENT.md, Scene renders), the handles, and each securing
  *   also as its condition, a rule's enforcing part said as what an action would have to do to violate it, with the relation's own words
  *   kept as its manner, so a chain keeps its slack. A pair with neither hosting the other gets a carry line of its own, in place of
  *   `actionRule`'s "cannot be moved apart", which read every securing as rigid. For an imagination piece, which is asked what an action
@@ -65,7 +65,7 @@ const ruleTag = (handle: string): string => ` (rule ${bracket(handle)})`
 /** The rule handles a rendered text tags (`ruleTag`), in order, each once: what a reader of the render was shown it can name. */
 export const ruleTagHandles = (text: string): string[] => [...new Set([...text.matchAll(/ \(rule \[([^\]]+)\]\)/g)].map(([, handle]) => handle))]
 
-/** A securing's tag under `rules: 'handles'`: its rule in the full scene, found by its edge. A target other than a thing has no form yet (IS-3). */
+/** A securing's tag under `rules: 'handles'`: its rule in the full scene, found by its edge. A target other than a thing has no form yet. */
 type SecuringTag = (subject: SceneHandle, relation: SceneRelation) => string
 
 const securingTag = (full: SceneModel): SecuringTag => {

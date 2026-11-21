@@ -90,7 +90,7 @@ describe('playByPlay', () => {
     })
 
     describe('its options', () => {
-        it('defaults to the explicit render with rule handles (IS-6), refusing rules: consequence unless the judge render is named', () => {
+        it('defaults to the explicit render with rule handles, refusing rules: consequence unless the judge render is named', () => {
             expect(playByPlay.parseOptions(undefined)).toEqual({ rules: 'conditions', scene: 'explicit' })
             expect(playByPlay.parseOptions({})).toEqual({ rules: 'conditions', scene: 'explicit' })
             expect(playByPlay.parseOptions({ rules: 'none' })).toEqual({ rules: 'none', scene: 'explicit' })
@@ -105,7 +105,7 @@ describe('playByPlay', () => {
             expect(playByPlay.parseOptions({ rules: 'handles' })).toEqual({ rules: 'handles', scene: 'explicit' })
         })
 
-        it('pins the cells\' inputs hashes on the default (OC-20/proposed new with IS-13; the label "The step asked about:" from draft 25; batch 47 ran 38feccd3, f901398c, a0d0b486, 3ee72b31, f7943193, e6c6d43b, 64eca640 on "The step to expand:"; OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
+        it('pins the cells\' inputs hashes on the default (OC-20/proposed new 2026-11-20; the label "The step asked about:" from draft 25; batch 47 ran 38feccd3, f901398c, a0d0b486, 3ee72b31, f7943193, e6c6d43b, 64eca640 on "The step to expand:"; OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
             const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-6/command', 'OC-19', 'OC-20', 'OC-20/concession', 'OC-20/proposed'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
             expect(hashes).toEqual(['1395e48e', '7bfddef2', '144e5e15', '75d624f0', '2f1e1d3e', 'bfb8a376', '20982627', '27983e17'])
         })
@@ -199,7 +199,7 @@ describe('playByPlay', () => {
             expect(parse(reply)).toEqual({ problems })
         })
 
-        describe('with consequences, at two scopes (IS-5)', () => {
+        describe('with consequences, at two scopes', () => {
             const oc20 = playByPlayCells['OC-20']
             const shown = async () => ({ input: oc20.inputs, rendered: await renderPlayByPlay(oc20, PLAY_BY_PLAY_OPTIONS) })
             const chain = { rule: '[table-secured-to-wall]', stance: 'violation' }
@@ -300,7 +300,7 @@ describe('playByPlay', () => {
             expect([target, missing]).toEqual(['grip-table1-by', 'how [table1] is held'])
         })
 
-        it('the concession cell is OC-20\'s plan holding a wrong, unchecked proposal on the target, as step 0\'s example (IS-6)', async () => {
+        it('the concession cell is OC-20\'s plan holding a wrong, unchecked proposal on the target, as the standing design\'s example', async () => {
             const { plan, target, missing, fixture, alsoShown } = playByPlayCells['OC-20/concession'].inputs
             expect(renderPlanForGenerator(plan)).toBe([
                 'Step pick-up-table1: pick up [table1]',
@@ -336,7 +336,7 @@ describe('playByPlay', () => {
             })
         })
 
-        it('OC-6/command shows OC-6\'s scene, so the two differ by the plan alone (IS-11)', async () => {
+        it('OC-6/command shows OC-6\'s scene, so the two differ by the plan alone', async () => {
             const scene = async (id: string) => {
                 const text = await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS)
                 return text.slice(0, text.indexOf('The plan:'))
