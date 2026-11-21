@@ -696,15 +696,23 @@ describe('the action plan', () => {
                 ].join('\n'))
             })
 
-            it('renders the concession cell\'s plan as step 0\'s example, and a consistent stance as such', () => {
+            it('renders the concession cell\'s plan as step 0\'s example, and a causes stance as such', () => {
                 expect(renderPlanForGenerator(conceded())).toBe([
                     'Step pick-up-table1: pick up [table1]',
                     '  - intent pick-up-table1.intent: pick up [table1]',
                     '  - consequence pick-up-table1.table1-cannot-be (unchecked): [table1] cannot be lifted',
                     '    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
                 ].join('\n'))
-                const carry = mergedBy(pickUp(), [{ add: 'consequence', to: 'pick-up-table1', says: '[teapot1] rises with [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'consistent' }] }], by('playByPlay'))
-                expect(renderPlanForGenerator(carry).split('\n').slice(-1)).toEqual(['    - Rule (Consistent) pick-up-table1.teapot-secured-to-table (unchecked): [teapot-secured-to-table]'])
+                const carry = mergedBy(pickUp(), [{ add: 'consequence', to: 'pick-up-table1', says: '[teapot1] rises with [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'causes' }] }], by('playByPlay'))
+                expect(renderPlanForGenerator(carry).split('\n').slice(-1)).toEqual(['    - Rule (Causes) pick-up-table1.teapot-secured-to-table (unchecked): [teapot-secured-to-table]'])
+            })
+
+            it('merges and renders a voids stance: the consequence ends the rule (IS-15)', () => {
+                const loose = mergedBy(pickUp(), [{ add: 'consequence', to: 'pick-up-table1', says: '[teapot1] comes loose from [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'voids' }] }], by('playByPlay'))
+                expect(renderPlanForGenerator(loose).split('\n').slice(-2)).toEqual([
+                    '  - consequence pick-up-table1.teapot1-comes-loose (unchecked): [teapot1] comes loose from [table1]',
+                    '    - Rule (Voids) pick-up-table1.teapot-secured-to-table (unchecked): [teapot-secured-to-table]',
+                ])
             })
 
             it('confirms consequences\' own consequence, and still leaves its rule unchecked: the rule cell is the rule\'s authority', () => {
@@ -749,7 +757,7 @@ describe('the action plan', () => {
                 })
 
                 it.each([
-                    ['another stance', { ...cannot, rules: [{ ...chain, stance: 'consistent' }] }],
+                    ['another stance', { ...cannot, rules: [{ ...chain, stance: 'causes' }] }],
                     ['no rule', { add: 'consequence', to: 'pick-up-table1', says: '[table1] cannot be lifted' }],
                     ['other words', { ...cannot, says: '[table1] will not lift' }],
                 ])('keeps a near copy with %s', (_, change) => {
@@ -764,7 +772,7 @@ describe('the action plan', () => {
 
             it.each([
                 ['a rule the scene doesn\'t hold', [{ ...cannot, rules: [{ rule: 'table-secured', stance: 'violation' }] }], ['change 1: rule 1: rule "table-secured" is not a rule the scene holds']],
-                ['a stance other than the two', [{ ...cannot, rules: [{ ...chain, stance: 'hinders' }] }], ['change 1: rule 1: "stance" must be one of violation, consistent']],
+                ['a stance other than the two', [{ ...cannot, rules: [{ ...chain, stance: 'hinders' }] }], ['change 1: rule 1: "stance" must be one of violation, causes, voids']],
                 ['a rule with another key', [{ ...cannot, rules: [{ ...chain, why: 'chained' }] }], ['change 1: rule 1: has "why", not one of rule, stance']],
                 ['a rule that is not an object', [{ ...cannot, rules: ['table-secured-to-wall'] }], ['change 1: rule 1: is not an object']],
                 ['rules that are not a list', [{ ...cannot, rules: chain }], ['change 1: "rules" is not a list']],
@@ -797,19 +805,19 @@ describe('the action plan', () => {
 
                 it('takes a more nuanced replacement in the old one\'s place, with a fresh path; its own rules are new, and unchecked', () => {
                     const before = mergedBy(conceded(), [{ add: 'consequence', to: 'pick-up-table1', says: '[saucer1] slides' }], by('playByPlay'))
-                    const plan = mergedBy(before, [{ replace: PATH, with: { says: '[table1] rises until the chain is taut', rules: [{ rule: 'table-secured-to-wall', stance: 'consistent' }] } }], checker('consequences'))
+                    const plan = mergedBy(before, [{ replace: PATH, with: { says: '[table1] rises until the chain is taut', rules: [{ rule: 'table-secured-to-wall', stance: 'causes' }] } }], checker('consequences'))
                     expect(renderPlanForGenerator(plan).split('\n').slice(2)).toEqual([
                         '  - consequence pick-up-table1.table1-rises-until: [table1] rises until the chain is taut',
-                        '    - Rule (Consistent) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                        '    - Rule (Causes) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
                         '  - consequence pick-up-table1.saucer1-slides (unchecked): [saucer1] slides',
                     ])
                     expectWellFormed('replaced', plan)
                 })
 
                 it('replaces a rule within its consequence, by the rule cell: the same handle keeps its path; the consequence stays as it was', () => {
-                    const plan = mergedBy(conceded(), [{ replace: 'pick-up-table1.table-secured-to-wall', with: { rule: 'table-secured-to-wall', stance: 'consistent' } }], checker('ruleCell'))
+                    const plan = mergedBy(conceded(), [{ replace: 'pick-up-table1.table-secured-to-wall', with: { rule: 'table-secured-to-wall', stance: 'causes' } }], checker('ruleCell'))
                     expect(plan.steps[0].items[1]).toEqual({ kind: 'consequence', path: PATH, standing: 'unchecked', says: '[table1] cannot be lifted', rules: [
-                        { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'confirmed', rule: 'table-secured-to-wall', stance: 'consistent' },
+                        { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'confirmed', rule: 'table-secured-to-wall', stance: 'causes' },
                     ] })
                 })
 

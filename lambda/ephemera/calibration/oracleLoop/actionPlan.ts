@@ -30,8 +30,8 @@ export type Standing = 'unchecked' | 'confirmed'
 /** The pieces that write to a plan. */
 export type PlanAuthor = 'playByPlay' | 'consequences' | 'ruleCell'
 
-/** A consequence's stance on a rule: the consequence breaks it, or keeps it. */
-export const RULE_STANCES = ['violation', 'consistent'] as const
+/** A consequence's stance on a rule: it goes against a rule that stays in force (`violation`); the rule causes it, a result that ordinarily wouldn't happen, as the glue keeping a teapot on a tilted table (`causes`; was `effect`, IS-16, and `consistent` before that, IS-14); or it ends the rule, as prying a glued teapot loose ends the glue (`voids`, IS-15; the after-state, a voided rule gone for later steps, is the parent's "State carried forward"). The user, 2026-11-20. */
+export const RULE_STANCES = ['violation', 'causes', 'voids'] as const
 export type RuleStance = typeof RULE_STANCES[number]
 
 /**
@@ -246,7 +246,7 @@ export const bracketHandles = (text: string, handles: readonly SceneHandle[]): s
 /** ` (unchecked)` after an unchecked item's path (R1, IS-1's first render candidate); a confirmed item has no tag and reads as fact. */
 const uncheckedTag = (standing: Standing): string => (standing === 'unchecked' ? ' (unchecked)' : '')
 
-const STANCE_WORDS: Record<RuleStance, string> = { violation: 'Violation', consistent: 'Consistent' }
+const STANCE_WORDS: Record<RuleStance, string> = { violation: 'Violation', causes: 'Causes', voids: 'Voids' }
 
 /** A rule under its consequence: `Rule (Violation) <path>: [<handle>]` (the user's wording, IS-4). */
 const ruleLine = ({ path, standing, rule, stance }: RuleItem, indent: string): string =>

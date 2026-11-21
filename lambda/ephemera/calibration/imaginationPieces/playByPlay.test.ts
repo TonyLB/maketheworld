@@ -247,10 +247,10 @@ describe('playByPlay', () => {
             })
 
             it('brackets a bare handle in a consequence, and takes a bare rule handle', async () => {
-                const plan = await merged({ ...oc20Record, consequences: [{ says: 'table1 stays', rules: [{ rule: 'table-secured-to-wall', stance: 'consistent' }] }] })
+                const plan = await merged({ ...oc20Record, consequences: [{ says: 'table1 stays', rules: [{ rule: 'table-secured-to-wall', stance: 'causes' }] }] })
                 expect(renderPlanForGenerator(plan).split('\n').slice(3)).toEqual([
                     '  - consequence pick-up-table1.table1-stays (unchecked): [table1] stays',
-                    '    - Rule (Consistent) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                    '    - Rule (Causes) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
                 ])
             })
 
@@ -258,7 +258,7 @@ describe('playByPlay', () => {
                 ['a rule outside a consequence', { ...reply, rules: [chain] }, [`has "rules", ${KEYS}`]],
                 ['a rule on a sub-step', { ...oc20Record, steps: [reply.steps[0], { says: 'lift [table1]', rules: [chain] }] }, ['sub-step 2: has "rules", not one of says, intent, consequences']],
                 ['a rule handle the scene doesn\'t hold', { ...oc20Record, consequences: [{ says: 'it holds', rules: [{ rule: 'table-secured', stance: 'violation' }] }] }, ['consequence 1: rule 1: rule "table-secured" is not a rule the scene holds']],
-                ['a stance other than the two', { ...oc20Record, consequences: [{ says: 'it holds', rules: [{ ...chain, stance: 'blocks' }] }] }, ['consequence 1: rule 1: "stance" must be one of violation, consistent']],
+                ['a stance other than the two', { ...oc20Record, consequences: [{ says: 'it holds', rules: [{ ...chain, stance: 'blocks' }] }] }, ['consequence 1: rule 1: "stance" must be one of violation, causes, voids']],
                 ['a consequence with no says', { ...oc20Record, consequences: [{ thing: 'table1' }] }, ['consequence 1: has no non-empty string "says"']],
                 ['a rule handle as a thing', { ...oc20Record, consequences: [{ says: 'it holds', thing: 'table-secured-to-wall' }] }, ['consequence 1: thing "table-secured-to-wall" is not in the scene']],
                 ['a consequence with another key', { ...oc20Record, consequences: [{ says: 'it holds', standing: 'confirmed' }] }, ['consequence 1: "standing" isn\'t writable: code sets it from who wrote the item']],

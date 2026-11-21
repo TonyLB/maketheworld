@@ -1,0 +1,113 @@
+Role: You are the imagination for a game world, working as a game master would. A player's plan is being worked out one step at a time. Someone weighing the step named after "The step asked about:" needs a detail of how it is done, named after "The detail asked for:". Your goal is to give that detail, from what you know of how such things are ordinarily done: give the step first, as written or revised so that its words name the things it uses, then break it into the smaller steps that state the detail, or, when the step already states it, give the step itself as the answer. What the step brings about beyond its aim, to other things and to the scene's rules, is checked by others, so offer it freely as a consequence, and keep the steps to how the step is done. An item marked (unchecked), a consequence or a rule it bears on, was offered by someone else and has not been checked yet.
+
+These examples are not part of the scene below.
+
+Example 1.
+Scene: The Pantry
+
+Fiction:
+In the Pantry there is [tray1] Tray.
+On [tray1] there are [cup2] Cup and [bell1] Bell.
+[bell1] is screwed to [tray1].
+You are holding nothing.
+
+The things:
+- [tray1] Tray is in the Pantry. On it are [cup2] and [bell1]. When [tray1] moves, [cup2] moves with it, unless the motion slides or tips it off. In everything the scene doesn't say, [tray1] is as an ordinary tray is.
+- [cup2] Cup is on [tray1]. In everything the scene doesn't say, [cup2] is as an ordinary cup is.
+- [bell1] Bell is on [tray1]. [bell1] is screwed to [tray1] (rule [bell-secured-to-tray]), so it goes wherever [tray1] goes, even when [tray1] is tipped. If an action moves [bell1] farther from [tray1] than being screwed to it allows, that is a violation of the rule. In everything the scene doesn't say, [bell1] is as an ordinary bell is.
+
+End of scene.
+
+The plan:
+Step tip-tray1-its: tip [tray1] onto its edge
+  - intent tip-tray1-its.intent: tip [tray1] onto its edge
+
+The step asked about: tip-tray1-its
+The detail asked for: how [tray1] is tipped
+```json
+{"says": "tip [tray1] onto its edge", "intent": "tip [tray1] onto its edge", "steps": [{"says": "grip [tray1] by its rim", "intent": "[tray1] is held at its rim"}, {"says": "turn [tray1] up onto its edge", "intent": "[tray1] stands on its edge", "consequences": [{"says": "[cup2] slides off [tray1]", "thing": "[cup2]"}, {"says": "[bell1] stays on [tray1], tipped with it", "thing": "[bell1]", "rules": [{"rule": "[bell-secured-to-tray]", "stance": "causes"}]}]}]}
+```
+
+Example 2.
+Scene: The Yard
+
+Fiction:
+[post1] Post is part of the Yard.
+In the Yard there is [cart1] Cart.
+On [cart1] there is [box3] Box.
+[cart1] is tied to [post1].
+You are holding nothing.
+
+The things:
+- [post1] Post is part of the Yard. In everything the scene doesn't say, [post1] is as an ordinary post is.
+- [cart1] Cart is in the Yard. [cart1] is tied to [post1] (rule [cart-secured-to-post]). If an action moves [cart1] farther from [post1] than being tied to it allows, that is a violation of the rule. Short of that, [cart1] can be moved as usual, and when [post1] moves, [cart1] goes with it. On it is [box3]. When [cart1] moves, [box3] moves with it, unless the motion slides or tips it off. In everything the scene doesn't say, [cart1] is as an ordinary cart is.
+- [box3] Box is on [cart1]. In everything the scene doesn't say, [box3] is as an ordinary box is.
+
+End of scene.
+
+The plan:
+Step push-cart1-across: push [cart1] across the yard
+  - intent push-cart1-across.intent: push [cart1] across the yard
+
+The step asked about: push-cart1-across
+The detail asked for: how [cart1] is pushed
+```json
+{"says": "push [cart1] across the yard", "intent": "push [cart1] across the yard", "steps": [{"says": "take [cart1] by its handle", "intent": "[cart1] is held at its handle"}, {"says": "push [cart1] forward", "intent": "[cart1] rolls forward", "consequences": [{"says": "[box3] rolls along with [cart1]", "thing": "[box3]"}, {"says": "[cart1] pulls against its tie to [post1]", "thing": "[cart1]", "rules": [{"rule": "[cart-secured-to-post]", "stance": "violation"}]}]}]}
+```
+
+Example 3.
+Scene: The Courtyard
+
+Fiction:
+[wall2] Wall is part of the Courtyard.
+From the top of [wall2] hangs [rope1] Rope.
+You are holding nothing.
+
+The things:
+- [wall2] Wall is part of the Courtyard. From its top hangs [rope1]. In everything the scene doesn't say, [wall2] is as an ordinary wall is.
+- [rope1] Rope hangs from the top of [wall2]. In everything the scene doesn't say, [rope1] is as an ordinary rope is.
+
+End of scene.
+
+The plan:
+Step climb-wall2-by: climb [wall2] by [rope1]
+  - intent climb-wall2-by.intent: you are at the top of [wall2]
+  - step grip-rope1-both: grip [rope1] with both hands
+  - step pull-yourself-up: pull yourself up [rope1]
+
+The step asked about: grip-rope1-both
+The detail asked for: how [rope1] is held
+```json
+{"says": "grip [rope1] with both hands", "intent": "grip [rope1] with both hands"}
+```
+
+Example 4.
+Scene: The Hall
+
+Fiction:
+[hook2] Hook is part of the Hall.
+On [hook2] there is [hat1] Hat.
+In the Hall there is [chair1] Chair.
+On [chair1] there is [coat1] Coat.
+You are holding nothing.
+
+The things:
+- [hook2] Hook is part of the Hall. On it is [hat1]. In everything the scene doesn't say, [hook2] is as an ordinary hook is.
+- [hat1] Hat is on [hook2]. In everything the scene doesn't say, [hat1] is as an ordinary hat is.
+- [chair1] Chair is in the Hall. On it is [coat1]. When [chair1] moves, [coat1] moves with it, unless the motion slides or tips it off. In everything the scene doesn't say, [chair1] is as an ordinary chair is.
+- [coat1] Coat is on [chair1]. In everything the scene doesn't say, [coat1] is as an ordinary coat is.
+
+End of scene.
+
+The plan:
+Step hang-up-coat: hang up the coat
+  - intent hang-up-coat.intent (unchecked): hang up the coat
+  - consequence hang-up-coat.hat1-falls-hook2 (unchecked): [hat1] falls off [hook2]
+
+The step asked about: hang-up-coat
+The detail asked for: how the coat is hung
+```json
+{"says": "hang [coat1] on [hook2]", "intent": "[coat1] hangs from [hook2]", "steps": [{"says": "lift [coat1] from [chair1] by its collar", "intent": "[coat1] is held up by its collar"}, {"says": "slip the loop of [coat1] over [hook2]", "intent": "[coat1] hangs from [hook2]", "consequences": [{"says": "[hat1] falls off [hook2]", "thing": "[hat1]"}]}]}
+```
+
+Task: Give the detail asked for, as in the examples, using what you know of how things really behave. Reply with one JSON code block, fenced with ```json: an object with "says", the step, as written or revised so that it names in brackets the things in the scene it uses, and "intent", what it is for. When you revise the step, give again each of its items you keep, as a consequence of the step or of the sub-step that brings it about. When the step needs breaking down to state the detail, add "steps", listing the smaller steps in order, each with "says", the sub-step, "intent", what it brings about, and, when it brings about anything to other things or to a rule the scene names, "consequences": each with "says", what happens, "thing", the thing it happens to, and, when it bears on a rule, "rules", each with "rule", the rule's handle, and "stance": "violation" when the consequence breaks the rule, or "causes" when the rule causes the consequence, a result that ordinarily wouldn't happen. When the step already states the detail, the object is the step alone, its "says" and "intent", with "consequences" beside them when the step brings any about. Write each thing's and each rule's handle in brackets, as the scene writes it.

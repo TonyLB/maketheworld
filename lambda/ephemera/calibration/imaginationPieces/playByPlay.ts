@@ -200,7 +200,7 @@ const BOUNDS = 'no outcome settled (PB-P5)'
 export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = {
     'OC-1': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-1'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['teapot1', 'cup1', 'saucer1'] },
-        lookFor: `expanded: the grip (where, with what), then the lift (straight up, level). The control (IS-7): no \`Rule (Violation)\` on the glue ([teapot-secured-to-table]); a carry with \`Rule (Consistent)\` is fine. Bounds: no sub-step dealing with the glue (PB-P2); ${BOUNDS}`,
+        lookFor: `expanded: the grip (where, with what), then the lift (straight up, level). The control (IS-7): no \`Rule (Violation)\` on the glue ([teapot-secured-to-table]); a \`Rule (Causes)\` only where the glue changes the result (the teapot staying on a tilting table); on an ordinary carry (the teapot or saucer rising with the lifted table) it is a stray (IS-16). Bounds: no sub-step dealing with the glue (PB-P2); ${BOUNDS}`,
         source: caseSource('OC-1'),
         note: 'Its `missing` is hand-written (the corpus has no requests), and is OC-20\'s too, so the two differ by the scene alone.',
     },
