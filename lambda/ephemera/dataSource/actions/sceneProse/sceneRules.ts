@@ -218,7 +218,7 @@ const ruleHandle = (ends: string[]): string => (ends.length === 1 ? `${ends[0]}-
 
 /**
  * One rule of the judge's Rules section: its handle, the things it names, its sentence in the given wording, its parts, and the securing
- * edge it is minted from (`subject`, `target`), so a render can find a securing's rule by its edge (AGENT.itemStanding.planning.md, IS-3).
+ * edge it is minted from (`subject`, `target`), so a render can find a securing's rule by its edge (calibration AGENT.md, Scene renders).
  */
 export type JudgeRuleLine = { handle: string; ends: SceneHandle[]; sentence: string; parts: JudgeRuleParts } & RuleEdge
 

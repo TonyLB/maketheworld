@@ -122,7 +122,7 @@ describe('the explicit scene render', () => {
         expect(renderSceneExplicit(securing === 'removed' ? withoutSecuring(scene) : scene)).toBe(golden)
     })
 
-    describe("with rules: 'handles' (AGENT.itemStanding.planning.md, IS-3)", () => {
+    describe("with rules: 'handles'", () => {
         it('tags each securing\'s fact with its rule\'s handle, and changes nothing else', async () => {
             const scene = await fixture('teaTableChained')
             const tagged = renderSceneExplicit(scene, { rules: 'handles' })
@@ -150,6 +150,21 @@ describe('the explicit scene render', () => {
             const boat = { ...scene, things: { ...scene.things, table1: { ...scene.things.table1, relations: [{ kind: 'SecuredTo' as const, target: { kind: 'notShown' as const } }] } } }
             expect(() => renderSceneExplicit(boat, { rules: 'handles' })).toThrow('no rule handle yet')
             expect(() => renderSceneExplicit(boat)).not.toThrow()
+        })
+    })
+
+    describe("with rules: 'conditions'", () => {
+        it('tags each securing and states its condition, with the relation as its measure; a pair takes a carry line with slack in place of the action rule', async () => {
+            const scene = await fixture('teaTableChained')
+            expect(renderSceneExplicit(scene, { rules: 'conditions' })).toBe(CHAINED_SHOWN
+                .replace(
+                    '[table1] is chained to [wall1]. [table1] and [wall1] cannot be moved apart until they are freed. They can still be moved together.',
+                    '[table1] is chained to [wall1] (rule [table-secured-to-wall]). If an action moves [table1] farther from [wall1] than being chained to it allows, that is a violation of the rule. Short of that, [table1] can be moved as usual, and when [wall1] moves, [table1] goes with it.',
+                )
+                .replace(
+                    '[teapot1] is glued to [table1], so it goes wherever [table1] goes, even when [table1] is tipped.',
+                    '[teapot1] is glued to [table1] (rule [teapot-secured-to-table]), so it goes wherever [table1] goes, even when [table1] is tipped. If an action moves [teapot1] farther from [table1] than being glued to it allows, that is a violation of the rule.',
+                ))
         })
     })
 

@@ -3,6 +3,7 @@
 //
 
 import { extractJsonObjectText } from './extractJsonObjectText'
+import { findAllFenceBlocks } from './markdownCodeFences'
 
 export type SplitMarkdownReasoningAndJsonResult =
     | { ok: true; reasoningMarkdown: string; jsonText: string }
@@ -49,11 +50,25 @@ function trySplitTrailingJsonFence(trimmed: string): { reasoning: string; jsonIn
 }
 
 /**
+ * When the body doesn't end in a fence, the **last** fenced block tagged **json** (or untagged) whose
+ * interior is a JSON object, wherever it sits: a model often comments after its block, and sometimes
+ * writes a draft block, reasons on, and writes the full block after it (playByPlay, batch 37), where
+ * the first-brace-to-last-brace slice would span both. Prose after the block is dropped.
+ */
+function tryLastJsonFence(trimmed: string): { reasoning: string; jsonText: string } | null {
+    const blocks = findAllFenceBlocks(trimmed).filter(({ lang, interior }) => (lang === '' || lang.toLowerCase() === 'json') && interior.trim().startsWith('{'))
+    const block = blocks[blocks.length - 1]
+    return block === undefined ? null : { reasoning: trimmed.slice(0, block.start).trim(), jsonText: extractJsonObjectText(block.interior) }
+}
+
+/**
  * Splits **Markdown reasoning** (optional) from a final **JSON object** substring.
  *
  * 1. Prefer a **trailing** triple-backtick code block tagged **json** (last such fence in the body):
  *    reasoning is everything before that opening fence; JSON is taken from the fenced inner text.
- * 2. Otherwise strip optional full-body fences and use the **first `{` … last `}`** slice (same
+ * 2. Otherwise the **last** fenced **json** (or untagged) block holding an object, with prose after
+ *    it dropped ({@link tryLastJsonFence}).
+ * 3. Otherwise strip optional full-body fences and use the **first `{` … last `}`** slice (same
  *    heuristic as {@link extractJsonObjectText}); reasoning is the trimmed prefix before the JSON
  *    slice when it appears verbatim in the input.
  *
@@ -80,6 +95,11 @@ export function splitMarkdownReasoningAndJson(raw: string): SplitMarkdownReasoni
             reasoningMarkdown: fenceSplit.reasoning.trim(),
             jsonText,
         }
+    }
+
+    const lastFence = tryLastJsonFence(trimmed)
+    if (lastFence) {
+        return { ok: true, reasoningMarkdown: lastFence.reasoning, jsonText: lastFence.jsonText }
     }
 
     const jsonText = extractJsonObjectText(trimmed)

@@ -11,7 +11,8 @@
     "build:dev": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js --sourcemap",
     "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js",
     "assemble-draft": "esbuild calibration/pieceProbe/assembleDraftCli.ts --bundle --platform=node --log-level=warning | node -",
-    "read-plans": "esbuild calibration/imaginationPieces/readPlansCli.ts --bundle --platform=node --log-level=warning | node -"
+    "read-plans": "esbuild calibration/imaginationPieces/readPlansCli.ts --bundle --platform=node --log-level=warning | node -",
+    "plan-census": "esbuild calibration/imaginationPieces/planCensusCli.ts --bundle --platform=node --log-level=warning | node -"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.700.0",
