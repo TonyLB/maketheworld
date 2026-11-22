@@ -5,7 +5,7 @@
 // over the registry and over a piece built to break it, so a check that can't fail is caught too.
 //
 import {
-    mergeStepChanges, planSteps, REPLACEABLE, STEP_ITEM_KINDS, viewPlan, type ActionPlan, type AuthoredKind, type MergeOptions, type PlanView,
+    mergeStepChanges, planSteps, REPLACEABLE, RULE_STANCES, STEP_ITEM_KINDS, viewPlan, type ActionPlan, type AuthoredKind, type MergeOptions, type PlanView,
 } from '../oracleLoop/actionPlan'
 import type { RegisteredPiece } from './oraclePiece'
 import { pieces } from './pieces'
@@ -16,10 +16,32 @@ const registered: [string, RegisteredPiece][] = Object.entries(pieces).flatMap((
 
 const KINDS: readonly AuthoredKind[] = [...STEP_ITEM_KINDS, 'rule']
 
-/** A view's problems as declared: a kind that isn't one, or a reading that isn't `all` or `authoritative`. */
-const declarationProblems = ({ reads }: PlanView): string[] => Object.entries(reads).flatMap(([kind, reading]) => [
+const isReading = (reading: unknown): boolean => reading === 'all' || reading === 'authoritative'
+
+/** How a reading prints: its word, or its word and the stances it narrows to. */
+const readingWords = (reading: unknown): string => {
+    if (typeof reading === 'object' && reading !== null) {
+        const { reading: word, stances } = reading as { reading?: unknown; stances?: unknown }
+        return `${String(word)} (${Array.isArray(stances) ? stances.join(', ') : String(stances)})`
+    }
+    return String(reading)
+}
+
+/** A stance-narrowed reading's problems: on the rule kind, a reading, and at least one known stance. */
+const stanceReadingProblems = (kind: string, { reading, stances }: { reading?: unknown; stances?: unknown }): string[] => [
+    ...(kind === 'rule' ? [] : [`narrows ${kind} by stance, which only the rule kind takes`]),
+    ...(isReading(reading) ? [] : [`reads ${kind} at "${String(reading)}"`]),
+    ...(Array.isArray(stances) && stances.length > 0 ? [] : [`narrows ${kind} to no stance`]),
+    ...(Array.isArray(stances) ? stances.filter((stance) => !(RULE_STANCES as readonly unknown[]).includes(stance)).map((stance) => `narrows ${kind} to "${String(stance)}", not a stance`) : []),
+]
+
+/**
+ * A view's problems as declared: a kind that isn't one, a reading that isn't `all` or `authoritative`, or a stance filter off the rule
+ * kind, empty, or naming a stance that isn't one.
+ */
+const declarationProblems = ({ reads }: PlanView): string[] => Object.entries(reads).flatMap(([kind, reading]: [string, unknown]) => [
     ...((KINDS as readonly string[]).includes(kind) ? [] : [`reads "${kind}", not a plan kind`]),
-    ...(reading === 'all' || reading === 'authoritative' ? [] : [`reads ${kind} at "${String(reading)}"`]),
+    ...(typeof reading === 'object' && reading !== null ? stanceReadingProblems(kind, reading) : isReading(reading) ? [] : [`reads ${kind} at "${String(reading)}"`]),
 ])
 
 /**
@@ -28,9 +50,9 @@ const declarationProblems = ({ reads }: PlanView): string[] => Object.entries(re
  */
 const confirmable = ({ replaces = false, restates = false }: MergeOptions): AuthoredKind[] => [...(replaces ? REPLACEABLE : []), ...(restates ? ['intent' as const] : [])]
 
-/** The mirror's problems: each kind the merge can confirm, read at less than `all`. */
+/** The mirror's problems: each kind the merge can confirm, read at less than `all`, a stance filter included (a checker sees every stance). */
 const mirrorProblems = ({ reads }: PlanView, merges: MergeOptions): string[] =>
-    confirmable(merges).flatMap((kind) => (reads[kind] === 'all' ? [] : [`can confirm a ${kind} but reads it ${reads[kind] === undefined ? 'not at all' : `at ${reads[kind]}`}`]))
+    confirmable(merges).flatMap((kind) => (reads[kind] === 'all' ? [] : [`can confirm a ${kind} but reads it ${reads[kind] === undefined ? 'not at all' : `at ${readingWords(reads[kind])}`}`]))
 
 const merged = (plan: ActionPlan, target: string, changes: unknown[], options: MergeOptions): ActionPlan => {
     const result = mergeStepChanges(plan, target, { changes }, [], options)
@@ -95,6 +117,14 @@ describe('piece views over the registry (AGENT.pieceViews.planning.md)', () => {
         expect(declarationProblems({ reads: { consequences: 'all', intent: 'some' } as unknown as PlanView['reads'] })).toEqual(['reads "consequences", not a plan kind', 'reads intent at "some"'])
     })
 
+    it('catches a stance filter declared wrong: off the rule kind, empty, or naming no stance', () => {
+        expect(declarationProblems({ reads: {
+            consequence: { reading: 'authoritative', stances: ['causes'] },
+            rule: { reading: 'authoritative', stances: [] },
+        } as unknown as PlanView['reads'] })).toEqual(['narrows consequence by stance, which only the rule kind takes', 'narrows rule to no stance'])
+        expect(declarationProblems({ reads: { rule: { reading: 'some', stances: ['effect'] } } as unknown as PlanView['reads'] })).toEqual(['reads rule at "some"', 'narrows rule to "effect", not a stance'])
+    })
+
     const merging = registered.flatMap(([id, piece]): [string, PlanView, MergeOptions, unknown[]][] => (
         piece.kind === 'read' && piece.merges !== undefined ? [[id, piece.view.plan, piece.merges, Object.values(piece.cells).map(({ inputs }) => inputs)]] : []
     ))
@@ -115,6 +145,12 @@ describe('piece views over the registry (AGENT.pieceViews.planning.md)', () => {
         it('catches a checker that can\'t see what it confirms', () => {
             expect(mirrorProblems({ reads: { consequence: 'authoritative', intent: 'all' } }, { author: 'consequences', replaces: true, restates: true })).toEqual([
                 'can confirm a consequence but reads it at authoritative', 'can confirm a rule but reads it not at all',
+            ])
+        })
+
+        it('catches a checker that sees only some stances of what it confirms', () => {
+            expect(mirrorProblems({ reads: { consequence: 'all', rule: { reading: 'all', stances: ['causes', 'voids'] } } }, { author: 'consequences', replaces: true })).toEqual([
+                'can confirm a rule but reads it at all (causes, voids)',
             ])
         })
     })

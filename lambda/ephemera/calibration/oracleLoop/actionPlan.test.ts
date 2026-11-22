@@ -1024,6 +1024,50 @@ describe('a view of the plan (AGENT.pieceViews.planning.md, VW-1 and VW-5)', () 
         expect(text).not.toContain('Rule (')
     })
 
+    describe('a rule reading narrowed by stance (step 2\'s amendment: confirmed rules that explain a consequence, not a verdict on the method)', () => {
+        // Three confirmed consequences from `consequences`, their rules unchecked (the rule cell's to check); the rule cell then confirms the
+        // first two as written, a `causes` and a `violation`, and leaves the third's `causes` unchecked.
+        const offered = merged(base, 'pick-up-table1', [
+            { add: 'consequence', says: '[teapot1] stays on [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'causes' }] },
+            { add: 'consequence', says: '[table1] pulls against its chain', rules: [{ rule: 'table-secured-to-wall', stance: 'violation' }] },
+            { add: 'consequence', says: '[saucer1] stays on [table1]', rules: [{ rule: 'saucer-secured-to-table', stance: 'causes' }] },
+        ], { author: 'consequences', rules: ['teapot-secured-to-table', 'table-secured-to-wall', 'saucer-secured-to-table'] })
+        const ruleOf = (plan: ActionPlan, says: string): { path: string; rule: string; stance: string } => {
+            const found = plan.steps[0].items.find((item) => item.kind === 'consequence' && item.says === says)
+            const rule = found?.kind === 'consequence' ? found.rules?.[0] : undefined
+            if (rule === undefined) {
+                throw new Error(`no rule on ${says}`)
+            }
+            return rule
+        }
+        const checked = merged(offered, 'pick-up-table1', ['[teapot1] stays on [table1]', '[table1] pulls against its chain'].map((says) => {
+            const { path, rule, stance } = ruleOf(offered, says)
+            return { replace: path, with: { rule, stance } }
+        }), { author: 'ruleCell', replaces: true, rules: ['teapot-secured-to-table', 'table-secured-to-wall'] })
+        const narrowed = viewPlan(checked, { reads: { consequence: 'authoritative', rule: { reading: 'authoritative', stances: ['causes', 'voids'] } } })
+        const rulesOf = (says: string): unknown => {
+            const found = narrowed.steps[0].items.find((item) => item.kind === 'consequence' && item.says === says)
+            return found?.kind === 'consequence' ? found.rules?.map(({ rule, stance, standing }) => [rule, stance, standing]) : 'no consequence'
+        }
+
+        it('reads a confirmed rule of a stance it names', () => {
+            expect(rulesOf('[teapot1] stays on [table1]')).toEqual([['teapot-secured-to-table', 'causes', 'confirmed']])
+        })
+
+        it('leaves out a confirmed rule of a stance it doesn\'t name, and an unchecked one of a stance it does, keeping their consequences with no rules key', () => {
+            expect(rulesOf('[table1] pulls against its chain')).toBeUndefined()
+            expect(rulesOf('[saucer1] stays on [table1]')).toBeUndefined()
+            expect(renderPlanForGenerator(narrowed).match(/Rule \(/g)).toHaveLength(1)
+        })
+
+        it('reads every stance at its reading when the rule kind names none', () => {
+            const text = renderPlanForGenerator(viewPlan(checked, { reads: { consequence: 'authoritative', rule: 'authoritative' } }))
+            expect(text).toContain('Rule (Causes)')
+            expect(text).toContain('Rule (Violation)')
+            expect(text.match(/Rule \(/g)).toHaveLength(2)
+        })
+    })
+
     it('always keeps the top-level steps and their already-answered details; a sub-step not read takes its items with it', () => {
         const answered = merged(plan, 'pick-up-table1', [{ restate: 'step', says: 'pick up [table1]', answered: 'how [table1] is held' }], { author: 'playByPlay', restates: true })
         const text = renderPlanForGenerator(viewPlan(answered, { reads: {} }))

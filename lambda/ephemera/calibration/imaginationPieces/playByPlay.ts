@@ -57,12 +57,16 @@ export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'conditions', sc
 export const PLAY_BY_PLAY_MERGE: MergeOptions = { author: 'playByPlay', adds: ['steps', 'consequence'], restates: true }
 
 /**
- * What the play-by-play reads of the plan (AGENT.pieceViews.planning.md, step 1; proposed, to confirm): the method at `all`, its own
+ * What the play-by-play reads of the plan (AGENT.pieceViews.planning.md; confirmed by the user, 2026-11-21): the method at `all`, its own
  * kinds, so an unchecked intent divined from a command (`OC-6/command`) is there to be restated, which the checker's mirror requires of a
- * piece that restates; what happens only once confirmed, so no proposal, its own included, is read back as fact (§3); no rule items and no
- * concerns, which it has no use for. The scene, which carries the rules themselves, is unfiltered.
+ * piece that restates; what happens only once confirmed, so no proposal, its own included, is read back as fact (§3); and confirmed rule
+ * items whose stance is `causes` or `voids` (step 2's amendment), since they explain a confirmed consequence, a fact, where a `violation`
+ * is a verdict on the method, which the request's `missing` carries when a step comes back for one. No concerns, which it has no use
+ * for. The scene, which carries the rules themselves, is unfiltered.
  */
-export const PLAY_BY_PLAY_VIEW: PieceView = { plan: { reads: { step: 'all', intent: 'all', consequence: 'authoritative', possibility: 'authoritative' } } }
+export const PLAY_BY_PLAY_VIEW: PieceView = {
+    plan: { reads: { step: 'all', intent: 'all', consequence: 'authoritative', possibility: 'authoritative', rule: { reading: 'authoritative', stances: ['causes', 'voids'] } } },
+}
 
 export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
     const twice = listedTwice(alsoShown)
@@ -210,7 +214,7 @@ const BOUNDS = 'no outcome settled (PB-P5)'
 export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = {
     'OC-1': {
         inputs: { fixture: 'teaTable', plan: playByPlayPlans['OC-1'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['teapot1', 'cup1', 'saucer1'] },
-        lookFor: `expanded: the grip (where, with what), then the lift (straight up, level). The control: no \`Rule (Violation)\` on the glue ([teapot-secured-to-table]); a \`Rule (Causes)\` only where the glue changes the result (the teapot staying on a tilting table); on an ordinary carry (the teapot or saucer rising with the lifted table) it is a stray. Bounds: no sub-step dealing with the glue (PB-P2); ${BOUNDS}`,
+        lookFor: `expanded: the grip (where, with what), then the lift (straight up, level). The control is the method: no sub-step dealing with the glue (PB-P2). Recorded, not graded (the stance is an outlet, an unchecked claim the rule cell rules on): a rule tag on the glue ([teapot-secured-to-table]), a \`causes\` on an ordinary carry (the teapot or saucer rising with the lifted table) or a \`violation\`. Bounds: ${BOUNDS}`,
         source: caseSource('OC-1'),
         note: 'Its `missing` is hand-written (the corpus has no requests), and is OC-20\'s too, so the two differ by the scene alone.',
     },
@@ -233,24 +237,24 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
     'OC-19': {
         inputs: { fixture: 'teaTableHammerHeld', plan: playByPlayPlans['OC-19'], target: 'pry-teapot1-table1', missing: 'which part of [hammer1] goes where, and how it is worked', alsoShown: [] },
-        lookFor: `expanded: the claw of [hammer1] set under the edge of [teapot1], then the handle worked to lever it. Bounds: no sub-step moves [table1]; ${BOUNDS}`,
+        lookFor: `expanded: the claw of [hammer1] set under the edge of [teapot1], then the handle worked to lever it. Graded on the method and the pry's consequence ([teapot1] comes loose from [table1]); its rule tag (\`voids\` or \`violation\` on [teapot-secured-to-table]) recorded, not graded. Bounds: no sub-step moves [table1]; ${BOUNDS}`,
         source: caseSource('OC-19'),
     },
     'OC-20': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `expanded: the grip (where), then the lift. Graded (the user): the chain out of the grip's placement, in the proposals (unchecked consequences and rules) only. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `expanded: the grip (where), then the lift. Graded (the user): the chain out of the grip's placement, in the proposals (unchecked consequences and rules) only; the lift's consequence (it pulls against the chain) graded, its rule tag recorded. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "The oracle probe has no candidate, since the template refuses the move; the step is written by hand, as the rule cell's was. Its `missing` is OC-1's, so the reason to expand comes from the request, not the chain (batches 32 and 33's diagnosis).",
     },
     'OC-20/concession': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/concession'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded: no step given as the answer alone, and no method bent around "[table1] cannot be lifted": the method is playByPlay's authority, and an unchecked claim doesn't settle it. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `as OC-20's: its inputs are OC-20's, the proposal ("[table1] cannot be lifted") hidden by the view (AGENT.pieceViews.planning.md), so it tests the merge, not the prompt, and is left out of the payloads. The merge keeps the proposal on the target: as it was when the record keeps the step's says and intent, stale when it revises them (VW-2). Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "OC-20's plan, arriving with an unchecked consequence and its Rule (Violation) on the target, as if from an earlier proposer (the user's watch item 3: conceding without judgment where the piece has authority).",
     },
     'OC-20/proposed': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/proposed'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `expanded: the ordinary grip and lift, as OC-20's. Graded: no step given as the answer alone, and no method bent around the proposed violation: the method is playByPlay's authority, and an unchecked violation is the checkers'. The input's proposal stays on the target, untouched, when the record keeps the step's says and intent; when it revises them, the proposal leaves unless the reply carries it forward: either is at the bar. Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `as OC-20's: its inputs are OC-20's, the proposal ("[table1] pulls against its chain to [wall1]") hidden by the view (AGENT.pieceViews.planning.md), so it tests the merge, not the prompt, and is left out of the payloads. The merge keeps the proposal on the target: as it was when the record keeps the step's says and intent, stale when it revises them (VW-2). Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "The concession cell's plan with its proposal well formed: what happens ([table1] pulls against its chain), with the Rule (Violation). It is the standing work's bar on a proposal; the concession cell's verdict-worded proposal reaches forward to the resilience pass (the user, 2026-11-20).",
     },

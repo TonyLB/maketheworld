@@ -304,7 +304,14 @@ export type PlanReading = 'all' | 'authoritative'
  * The plan's top-level steps and every step's `alreadyAnswers` are always shown. No exemption for the piece's own items: its unchecked
  * proposals are filtered like anyone's.
  */
-export type PlanView = { reads: Partial<Record<AuthoredKind, PlanReading>> }
+export type PlanView = { reads: Partial<Record<Exclude<AuthoredKind, 'rule'>, PlanReading>> & { rule?: PlanReading | RuleReading } }
+
+/**
+ * A rule reading narrowed by stance: only rule items with one of these stances are read, at the reading (the rule kind alone takes one).
+ * `playByPlay` reads confirmed `causes` and `voids`, which explain a confirmed consequence, and not `violation`, a verdict on the method
+ * (the user, 2026-11-21, AGENT.pieceViews.planning.md step 2).
+ */
+export type RuleReading = { reading: PlanReading; stances: readonly RuleStance[] }
 
 /** Every kind at `all`: the plan as it is. */
 export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', consequence: 'all', possibility: 'all', concern: 'all', rule: 'all' } }
@@ -313,10 +320,15 @@ export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', 
 export const NO_PLAN_VIEW: PlanView = { reads: {} }
 
 /** Whether a view reads an entry of a kind at a standing. */
-const viewReads = ({ reads }: PlanView, kind: AuthoredKind, standing: Standing): boolean => {
-    const reading = reads[kind]
-    return reading === 'all' || (reading === 'authoritative' && standing === 'confirmed')
-}
+const viewReads = ({ reads }: PlanView, kind: Exclude<AuthoredKind, 'rule'>, standing: Standing): boolean => readingTakes(reads[kind], standing)
+
+/** Whether a reading takes an entry at a standing. */
+const readingTakes = (reading: PlanReading | undefined, standing: Standing): boolean => reading === 'all' || (reading === 'authoritative' && standing === 'confirmed')
+
+/** Whether a view reads a rule item: its standing at the rule reading, and its stance among the reading's, when it names some. */
+const viewReadsRule = ({ reads: { rule: reading } }: PlanView, { standing, stance }: RuleItem): boolean => (
+    typeof reading === 'object' ? reading.stances.includes(stance) && readingTakes(reading.reading, standing) : readingTakes(reading, standing)
+)
 
 /** A step's items as a view reads them, at every depth: a dropped sub-step takes its items with it, a dropped consequence its rules; a possibility's branches go with it. */
 const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => items.flatMap((item): StepItem[] => {
@@ -329,7 +341,7 @@ const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => 
     if (item.kind !== 'consequence' || item.rules === undefined) {
         return [item]
     }
-    const rules = item.rules.filter(({ standing }) => viewReads(view, 'rule', standing))
+    const rules = item.rules.filter((rule) => viewReadsRule(view, rule))
     if (rules.length === item.rules.length) {
         return [item]
     }

@@ -3,7 +3,7 @@ import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { pieces } from '../pieceProbe/pieces'
 import { parseProblems } from '../../llm/stageContract'
-import { mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
+import { mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan, type MergeOptions } from '../oracleLoop/actionPlan'
 import { textHash } from '../textHash'
 import { fixtureScene, planHandles } from './imaginationScene'
 import {
@@ -123,6 +123,29 @@ describe('playByPlay', () => {
             }
             const cell = { ...playByPlayCells['OC-20'], inputs: { ...playByPlayCells['OC-20'].inputs, plan: confirmed.plan } }
             expect(await renderPlayByPlay(cell, PLAY_BY_PLAY_OPTIONS)).toContain('- consequence pick-up-table1.table1-rises: [table1] rises')
+        })
+
+        it('reads a confirmed rule that explains a consequence, a causes or voids, and not a confirmed violation (step 2\'s amendment)', async () => {
+            const mergedOrThrow = (plan: ActionPlan, changes: unknown[], options: MergeOptions): ActionPlan => {
+                const result = mergeStepChanges(plan, 'pick-up-table1', { changes }, [], options)
+                if ('problems' in result) {
+                    throw new Error(result.problems.join('; '))
+                }
+                return result.plan
+            }
+            const handles = ['teapot-secured-to-table', 'table-secured-to-wall']
+            const offered = mergedOrThrow(playByPlayPlans['OC-20'], [
+                { add: 'consequence', says: '[teapot1] stays on [table1]', rules: [{ rule: 'teapot-secured-to-table', stance: 'causes' }] },
+                { add: 'consequence', says: '[table1] pulls against its chain to [wall1]', rules: [{ rule: 'table-secured-to-wall', stance: 'violation' }] },
+            ], { author: 'consequences', rules: handles })
+            const checks = offered.steps[0].items.flatMap((item) => (item.kind === 'consequence' ? (item.rules ?? []).map(({ path, rule, stance }) => ({ replace: path, with: { rule, stance } })) : []))
+            expect(checks).toHaveLength(2)
+            const plan = mergedOrThrow(offered, checks, { author: 'ruleCell', replaces: true, rules: handles })
+            const text = await renderPlayByPlay({ ...playByPlayCells['OC-20'], inputs: { ...playByPlayCells['OC-20'].inputs, plan } }, PLAY_BY_PLAY_OPTIONS)
+            expect(text).toContain('- consequence pick-up-table1.teapot1-stays-on: [teapot1] stays on [table1]')
+            expect(text).toContain('- Rule (Causes) pick-up-table1.teapot-secured-to-table: [teapot-secured-to-table]')
+            expect(text).toContain('- consequence pick-up-table1.table1-pulls-against: [table1] pulls against its chain to [wall1]')
+            expect(text).not.toContain('Rule (Violation)')
         })
 
         it('shows each securing with its rule\'s handle by default, and none with rules: none', async () => {
