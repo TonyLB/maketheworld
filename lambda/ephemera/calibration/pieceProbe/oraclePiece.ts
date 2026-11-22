@@ -4,7 +4,14 @@
 // either answered (a closed answer set, tallied by code against each cell's expected answer) or read (no answer set: code checks
 // each reply's form, and a reader reads the replies against each cell's `lookFor`).
 //
+import type { MergeOptions, PlanView } from '../oracleLoop/actionPlan'
 import type { PieceGrade } from './pieceAnswer'
+
+/**
+ * A piece's view (AGENT.pieceViews.planning.md, VW-1 and VW-5): what of the shared state its inputs show. For now the plan side alone:
+ * the plan kinds it reads, each at `all` or `authoritative`. The scene side joins it later (that plan's step 3).
+ */
+export type PieceView = { plan: PlanView }
 
 /**
  * How a payload's prompt reaches the model (AGENT.trialQuestion.planning.md, step 0.5): `user`, the instructions and the render in one
@@ -55,6 +62,8 @@ export type ReadPieceCell<Inputs = unknown> = PieceCellBase<Inputs> & { lookFor:
 export type OraclePiece<Inputs = unknown, Options = unknown> = {
     kind?: 'answered'
     name: string
+    /** What of the shared state the piece's inputs show. */
+    view: PieceView
     /** The closed answer set a reply's `Answer:` line is read against. */
     answers: readonly string[]
     cells: Record<string, PieceCell<Inputs>>
@@ -83,6 +92,10 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
 export type ReadPiece<Inputs = unknown, Options = unknown> = {
     kind: 'read'
     name: string
+    /** What of the shared state the piece's inputs show. */
+    view: PieceView
+    /** What its contract's merge takes, for a piece whose reply merges into the plan: read by the checks over the registry (the mirror, the hidden-refusal invariant). */
+    merges?: MergeOptions
     cells: Record<string, ReadPieceCell<Inputs>>
     check: (reply: string, cell: ReadPieceCell<Inputs>, rendered: string, options: Options) => string[]
     parseOptions: (value: unknown) => Options | string

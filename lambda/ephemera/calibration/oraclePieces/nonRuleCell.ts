@@ -16,6 +16,7 @@ import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/o
 import { replyJsonObject } from '../../llm/stageContract'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
 import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../pieceProbe/sceneRenders'
+import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /**
  * A step's role (the step layout): `intended`, what the player's request states; `method`, a step the system supplies to carry it out.
@@ -343,6 +344,7 @@ export const nonRuleCellCells: Record<string, PieceCell<NonRuleCellInputs>> = {
 
 export const nonRuleCell: OraclePiece<NonRuleCellInputs, NonRuleCellOptions> = {
     name: 'nonRuleCell',
+    view: { plan: NO_PLAN_VIEW },
     answers: NON_RULE_ANSWERS,
     cells: nonRuleCellCells,
     parseOptions: parseNonRuleCellOptions,

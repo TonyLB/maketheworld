@@ -13,9 +13,9 @@ import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneMod
 import { ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
 import {
-    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan, type MergeOptions, type Standing,
+    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
 } from '../oracleLoop/actionPlan'
-import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
@@ -56,6 +56,14 @@ export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'conditions', sc
  */
 export const PLAY_BY_PLAY_MERGE: MergeOptions = { author: 'playByPlay', adds: ['steps', 'consequence'], restates: true }
 
+/**
+ * What the play-by-play reads of the plan (AGENT.pieceViews.planning.md, step 1; proposed, to confirm): the method at `all`, its own
+ * kinds, so an unchecked intent divined from a command (`OC-6/command`) is there to be restated, which the checker's mirror requires of a
+ * piece that restates; what happens only once confirmed, so no proposal, its own included, is read back as fact (§3); no rule items and no
+ * concerns, which it has no use for. The scene, which carries the rules themselves, is unfiltered.
+ */
+export const PLAY_BY_PLAY_VIEW: PieceView = { plan: { reads: { step: 'all', intent: 'all', consequence: 'authoritative', possibility: 'authoritative' } } }
+
 export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
     const twice = listedTwice(alsoShown)
     if (twice.length > 0) {
@@ -72,9 +80,11 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     if (missing.trim() === '') {
         throw new Error('No detail asked for')
     }
-    const shown = [...new Set([...alsoShown, ...planHandles(plan), ...namedHandles(missing)])]
+    // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
+    const viewed = viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)
+    const shown = [...new Set([...alsoShown, ...planHandles(viewed), ...namedHandles(missing)])]
     const scene = await renderScene({ fixture, shown }, options)
-    return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
+    return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
 }
 
 /** The record's keys: the step restated, its sub-steps, and what the step as a whole brings about. */
@@ -139,7 +149,7 @@ export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
         }
         const rules = ruleTagHandles(rendered)
         const notThings = new Set([...rules, ...planRuleHandles(plan)])
-        const shown = [...new Set([...alsoShown, ...planHandles(plan), ...namedHandles(rendered)])].filter((handle) => !notThings.has(handle))
+        const shown = [...new Set([...alsoShown, ...planHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(rendered)])].filter((handle) => !notThings.has(handle))
         const merged = mergeStepChanges(plan, target, bracketChanges({ changes: read.changes }, shown), shown, { ...PLAY_BY_PLAY_MERGE, rules })
         return 'problems' in merged ? { problems: merged.problems.map((problem) => replyProblem(problem, read.labels)) } : { value: merged.plan }
     },
@@ -255,6 +265,8 @@ export const PLAY_BY_PLAY_MAX_TOKENS = 1024
 export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
     kind: 'read',
     name: 'playByPlay',
+    view: PLAY_BY_PLAY_VIEW,
+    merges: PLAY_BY_PLAY_MERGE,
     maxTokens: PLAY_BY_PLAY_MAX_TOKENS,
     cells: playByPlayCells,
     check: checkPlayByPlay,

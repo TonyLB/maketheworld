@@ -11,6 +11,7 @@ import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
+import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /** An action of the plan, and what the play-by-play says each of the rule's things does in it, keyed by the rule's ends exactly. */
 export type RuleCellAction = { says: string; motions: Readonly<Record<SceneHandle, string>> }
@@ -167,6 +168,7 @@ export const ruleCellCells: Record<string, PieceCell<RuleCellInputs>> = {
 
 export const ruleCell: OraclePiece<RuleCellInputs, RuleCellOptions> = {
     name: 'ruleCell',
+    view: { plan: NO_PLAN_VIEW },
     answers: ['blocks', 'allows'],
     cells: ruleCellCells,
     parseOptions: parseRuleCellOptions,

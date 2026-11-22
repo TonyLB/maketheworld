@@ -13,6 +13,7 @@ import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
 import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
 import { nonRuleCellCells } from './nonRuleCell'
+import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 export type SceneReadingInputs = { fixture: string; question: string }
 
@@ -68,6 +69,7 @@ export const sceneReadingCells: Record<string, PieceCell<SceneReadingInputs>> = 
 
 export const sceneReading: OraclePiece<SceneReadingInputs, SceneReadingOptions> = {
     name: 'sceneReading',
+    view: { plan: NO_PLAN_VIEW },
     answers: SCENE_READING_ANSWERS,
     cells: sceneReadingCells,
     parseOptions: parseSceneReadingOptions,

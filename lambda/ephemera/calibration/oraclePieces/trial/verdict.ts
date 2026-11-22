@@ -15,6 +15,7 @@ import type { NonRuleCellInputs } from '../nonRuleCell'
 import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
 import { fitsCurrentContract, renderArguedParts } from './rebuttal'
 import { arguedAsRebutted, TRIAL_VERDICTS, trialCases, type TrialArgument, type TrialRebuttalReply, type TrialVerdict } from './trialCases'
+import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
 
 /** What the verdict stage reads: the non-rule cell's inputs, the argument, and the rebuttal of it. */
 export type TrialVerdictInput = NonRuleCellInputs & { argument: TrialArgument; rebuttal: TrialRebuttalReply }
@@ -113,6 +114,7 @@ export const trialVerdictCells: Record<string, PieceCell<TrialVerdictInputs>> = 
 
 export const trialVerdict: OraclePiece<TrialVerdictInputs, TrialVerdictOptions> = {
     name: 'trial verdict',
+    view: { plan: NO_PLAN_VIEW },
     answers: TRIAL_VERDICTS,
     cells: trialVerdictCells,
     parseOptions: parseVerdictOptions,

@@ -16,6 +16,7 @@ import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCe
 import type { SceneRender } from '../../pieceProbe/sceneRenders'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
+import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
 
 export type { TrialArgument, TrialRebuttalReply } from './trialCases'
 export { parseRebuttal, TRIAL_REBUTTAL_SOURCES, type ParsedRebuttal, type TrialRebuttalSource } from './rebuttalSentence'
@@ -211,6 +212,7 @@ export const trialRebuttalCells: Record<string, ReadPieceCell<TrialRebuttalInput
 export const trialRebuttal: ReadPiece<TrialRebuttalInputs, UpstreamOptions> = {
     kind: 'read',
     name: 'trial rebuttal',
+    view: { plan: NO_PLAN_VIEW },
     cells: trialRebuttalCells,
     check: checkTrialRebuttal,
     parseOptions: parseUpstreamOptions,
