@@ -7,7 +7,7 @@
 // (`trialCases.ts`), each with its against look-for. There is no answer set: code checks each reply's form, and a reader reads the
 // replies against each cell's `lookFor`.
 //
-import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
+import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs, type SecuringShown } from '../nonRuleCell'
 import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
@@ -52,19 +52,24 @@ export const checkTrialAgainst = (reply: string, cell: ReadPieceCell<NonRuleCell
 export type TrialAgainstOptions = { securing: SecuringShown; scene?: SceneRender }
 
 /**
- * The stage's options, `stage` aside (the harness takes it). `securing`: `shown` (the default), or `omitted`, the scene without its securing (the user, 2026-11-14: defensible because the rule cell,
+/**
+ * The case against's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with its securing as rendered, today's
+ * default. The trial's kept setting is `omitted` (the user, 2026-11-14), but the default stays, since flipping it would move the default's
+ * inputs hashes: a behaviour change, outside that step.
+ */
+export const TRIAL_AGAINST_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }
+
+/**
+ * The stage's options, `stage` aside (the harness takes it). `securing`, an arm over the view's: `shown`, or `omitted`, the scene without its securing (the user, 2026-11-14: defensible because the rule cell,
  * a piece of its own, judges the securing; batch 1 argued the glue in 9 of 11). `scene`: the judge render when absent, or `explicit`
  * (AGENT.trialQuestion.planning.md, step 2), which swaps only the scene block.
  */
 export const parseTrialAgainstOptions = (value: unknown): TrialAgainstOptions | string => {
-    if (value === undefined) {
-        return { securing: 'shown' }
-    }
     const shape = `options must be { securing?: 'shown' | 'omitted', scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    if (value !== undefined && (typeof value !== 'object' || value === null || Array.isArray(value))) {
         return shape
     }
-    const { securing = 'shown', scene, ...rest } = value as Record<string, unknown>
+    const { securing = TRIAL_AGAINST_VIEW.scene.securing, scene, ...rest } = (value ?? {}) as Record<string, unknown>
     if (Object.keys(rest).length > 0 || (securing !== 'shown' && securing !== 'omitted') || (scene !== undefined && !isSceneRender(scene))) {
         return shape
     }
@@ -79,7 +84,7 @@ export const trialAgainstCells: Record<string, ReadPieceCell<NonRuleCellInputs>>
 export const trialAgainst: ReadPiece<NonRuleCellInputs, TrialAgainstOptions> = {
     kind: 'read',
     name: 'trial against',
-    view: { plan: NO_PLAN_VIEW },
+    view: TRIAL_AGAINST_VIEW,
     cells: trialAgainstCells,
     check: checkTrialAgainst,
     parseOptions: parseTrialAgainstOptions,

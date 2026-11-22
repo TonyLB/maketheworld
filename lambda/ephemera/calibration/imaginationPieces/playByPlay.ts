@@ -44,11 +44,9 @@ export type PlayByPlayOptions = ImaginationOptions
 
 /**
  * The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene
- * renders"). Its securings tagged with their rule handles, so a reply can name a rule, and each stated as its condition and carry
- * (`rules: 'conditions'`; the user's diagnosis, 2026-11-19), in place of `actionRule`'s
- * impossibility, which the concession cell's failures took as confirming "cannot be lifted".
+ * renders").
  */
-export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { rules: 'conditions', scene: 'explicit' }
+export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { scene: 'explicit' }
 
 /**
  * What the play-by-play's block may hold: the step's restatement, an expansion, and the consequences it brings about, so `concern` is
@@ -62,10 +60,14 @@ export const PLAY_BY_PLAY_MERGE: MergeOptions = { author: 'playByPlay', adds: ['
  * piece that restates; what happens only once confirmed, so no proposal, its own included, is read back as fact (§3); and confirmed rule
  * items whose stance is `causes` or `voids` (step 2's amendment), since they explain a confirmed consequence, a fact, where a `violation`
  * is a verdict on the method, which the request's `missing` carries when a step comes back for one. No concerns, which it has no use
- * for. The scene, which carries the rules themselves, is unfiltered.
+ * for. The scene, which carries the rules themselves, is the sub-scene of the things shown and the viewed plan's handles, its securings
+ * tagged with their rule handles, so a reply can name a rule, and each stated as its condition and carry (`conditions`; the user's
+ * diagnosis, 2026-11-19), in place of `actionRule`'s impossibility, which the concession cell's failures took as confirming "cannot be
+ * lifted".
  */
 export const PLAY_BY_PLAY_VIEW: PieceView = {
     plan: { reads: { step: 'all', intent: 'all', consequence: 'authoritative', possibility: 'authoritative', rule: { reading: 'authoritative', stances: ['causes', 'voids'] } } },
+    scene: { shows: 'subScene', securing: 'conditions', sceneRules: false },
 }
 
 export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
@@ -87,7 +89,7 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
     const viewed = viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)
     const shown = [...new Set([...alsoShown, ...planHandles(viewed), ...namedHandles(missing)])]
-    const scene = await renderScene({ fixture, shown }, options)
+    const scene = await renderScene({ fixture, shown }, PLAY_BY_PLAY_VIEW.scene, options)
     return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
 }
 

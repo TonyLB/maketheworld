@@ -10,7 +10,8 @@ import { subScene } from '../../dataSource/actions/sceneProse/subScene'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
-import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
+import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
+import type { SceneView } from '../pieceProbe/sceneRenders'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /** An action of the plan, and what the play-by-play says each of the rule's things does in it, keyed by the rule's ends exactly. */
@@ -32,7 +33,18 @@ export type RuleCellOptions = {
     sceneRules: boolean
 }
 
-export const RULE_CELL_OPTIONS: RuleCellOptions = { show: 'subScene', sceneRules: false }
+/**
+ * The rule cell's scene (AGENT.pieceViews.planning.md, step 3): the sub-scene of the rule's two things, its securing in the judge's own
+ * wording, no Rules section (the user: the cell doesn't judge rules that interact), and its own Rule section showing the rule's fact and
+ * enforcing rubric only ("each piece shows only the part it uses", the user, 2026-11-10).
+ */
+const RULE_CELL_SCENE = { shows: 'subScene', securing: 'shown', sceneRules: false, ruleParts: ['fact', 'enforcing'] } as const satisfies SceneView
+
+/** The rule cell's view: no plan (the bridge state), and its scene. */
+export const RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: RULE_CELL_SCENE }
+
+/** The view's settings, each an arm a payload may override for comparison. */
+export const RULE_CELL_OPTIONS: RuleCellOptions = { show: RULE_CELL_SCENE.shows, sceneRules: RULE_CELL_SCENE.sceneRules }
 
 const SHOWS: readonly RuleCellOptions['show'][] = ['subScene', 'none']
 
@@ -91,7 +103,7 @@ export const renderRuleCell = async ({ inputs }: PieceCell<RuleCellInputs>, { sh
         ].join('\n\n')
     }
     const cell = [
-        ['Rule:', `- ${rule.handle}: ${rule.parts.fact} ${rule.parts.enforcing}`].join('\n'),
+        ['Rule:', `- ${rule.handle}: ${(RULE_CELL_VIEW.scene.ruleParts ?? []).map((part) => rule.parts[part]).join(' ')}`].join('\n'),
         `The rule's things: ${rule.ends.map((handle) => `[${handle}]`).join(', ')}`,
         ...ruleCellWindow(inputs).map(({ says, motions }, index) => [
             `Action ${index + 1}: ${says}`,
@@ -168,7 +180,7 @@ export const ruleCellCells: Record<string, PieceCell<RuleCellInputs>> = {
 
 export const ruleCell: OraclePiece<RuleCellInputs, RuleCellOptions> = {
     name: 'ruleCell',
-    view: { plan: NO_PLAN_VIEW },
+    view: RULE_CELL_VIEW,
     answers: ['blocks', 'allows'],
     cells: ruleCellCells,
     parseOptions: parseRuleCellOptions,

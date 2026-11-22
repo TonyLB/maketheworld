@@ -8,7 +8,7 @@
 // argued in, with the securing omitted, and the two sides each in a tag naming its stance on the plan (draft 5). Code grades each reply against the cell's expected answer, through the stage's contract.
 //
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
-import { joinParts, registerPiece, type OraclePiece, type PieceCell, type RenderedParts } from '../../pieceProbe/oraclePiece'
+import { joinParts, registerPiece, type OraclePiece, type PieceCell, type PieceView, type RenderedParts } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickPaired, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
 import type { NonRuleCellInputs } from '../nonRuleCell'
@@ -46,6 +46,9 @@ export const verdictContract: StageContract<TrialVerdictInput, TrialVerdict> = {
             : { problems: [`"${answer}" is not one of ${TRIAL_VERDICTS.join(', ')}`] }
     },
 }
+
+/** The verdict's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with the securing omitted, as the rebuttal's. */
+export const TRIAL_VERDICT_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
 
 /** The verdict's options: the upstream source, and which render the scene takes, the judge render when absent (step 1.5's retest). */
 export type TrialVerdictOptions = UpstreamOptions & { scene?: SceneRender }
@@ -89,7 +92,7 @@ const tagged = (tag: string, text: string): string => `<${tag}>\n${text}\n</${ta
  */
 export const renderTrialVerdictParts = async (cell: PieceCell<TrialVerdictInputs>, options: TrialVerdictOptions): Promise<RenderedParts> => {
     const { argument, rebuttal } = judgedPair(cell, options)
-    const parts = await renderArguedParts(cell, argument, options.scene === undefined ? {} : { scene: options.scene })
+    const parts = await renderArguedParts(cell, argument, { securing: TRIAL_VERDICT_VIEW.scene.securing, ...(options.scene === undefined ? {} : { scene: options.scene }) })
     return {
         system: parts.scene,
         user: [parts.question, `${tagged(ARGUES_CANNOT, parts.argument)}\n${tagged(ARGUES_CAN, `${REBUTTAL_LINE}${rebuttal.rebuttal}`)}`].join('\n\n'),
@@ -114,7 +117,7 @@ export const trialVerdictCells: Record<string, PieceCell<TrialVerdictInputs>> = 
 
 export const trialVerdict: OraclePiece<TrialVerdictInputs, TrialVerdictOptions> = {
     name: 'trial verdict',
-    view: { plan: NO_PLAN_VIEW },
+    view: TRIAL_VERDICT_VIEW,
     answers: TRIAL_VERDICTS,
     cells: trialVerdictCells,
     parseOptions: parseVerdictOptions,

@@ -1,77 +1,40 @@
 //
-// What the imagination's pieces render in common (AGENT.imagination.planning.md, step 1.5): the fixture's sub-scene, the `rules` and
-// `scene` options, and the handles a plan names. Both pieces are reducers on the action plan, replying in its change language.
+// What the imagination's pieces render in common (AGENT.imagination.planning.md, step 1.5): the fixture's sub-scene, as the piece's view
+// states its securing, the `scene` option, and the handles a plan names. Both pieces are reducers on the action plan, replying in its change language.
 //
 import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
+import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { subScene } from '../../dataSource/actions/sceneProse/subScene'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { itemTexts, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
-import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../pieceProbe/sceneRenders'
-
-export type ImaginationOptions = {
-    /**
-     * How the sub-scene's rules are shown: `none` (the default), or `consequence`, each rule's fact and what it does when the thing its
-     * subject is secured to is moved (user, 2026-11-10). Whether a rule blocks is the rule cell's, so an ask is shown only what a rule
-     * causes (PB-2, PR-1). Replaces a `sceneRules` boolean that showed v45's sentences. Or `handles`, the explicit render's securings each
-     * tagged with its rule's handle, minted on the full scene (calibration AGENT.md, Scene renders), so a reply can name a rule. Or
-     * `conditions`, the handles with each securing's condition and carry (the user's diagnosis, 2026-11-19).
-     */
-    rules: 'none' | 'consequence' | 'handles' | 'conditions'
-    /**
-     * Which render the sub-scene takes: the judge render's Fiction and Graph when absent, or the explicit render
-     * (calibration AGENT.md, "Scene renders"). The explicit render states each securing as a carry line itself, so it takes no `rules: 'consequence'` (mine).
-     */
-    scene?: SceneRender
-}
-
-export const IMAGINATION_OPTIONS: ImaginationOptions = { rules: 'none' }
-
-export const parseImaginationOptions = (value: unknown): ImaginationOptions | string => {
-    if (value === undefined) {
-        return IMAGINATION_OPTIONS
-    }
-    const shape = `options must be { rules?: 'none' | 'consequence' | 'handles' | 'conditions', scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        return shape
-    }
-    const { rules = IMAGINATION_OPTIONS.rules, scene, ...rest } = value as Record<string, unknown>
-    if (Object.keys(rest).length > 0 || (rules !== 'none' && rules !== 'consequence' && rules !== 'handles' && rules !== 'conditions') || (scene !== undefined && !isSceneRender(scene))) {
-        return shape
-    }
-    if (scene === 'explicit' && rules === 'consequence') {
-        return "scene: 'explicit' takes no rules: 'consequence'; the explicit render states the securing itself"
-    }
-    if (scene !== 'explicit' && (rules === 'handles' || rules === 'conditions')) {
-        return `rules: '${rules}' tags the explicit render's securings; it needs scene: 'explicit'`
-    }
-    return scene === undefined ? { rules } : { rules, scene }
-}
-
-/** Whether a `rules` value fits a scene render: `handles` and `conditions` tag the explicit render, `consequence` adds to the judge render's. */
-const rulesFit = (rules: ImaginationOptions['rules'], scene: SceneRender | undefined): boolean =>
-    rules === 'none' || (rules === 'consequence' ? scene !== 'explicit' : scene === 'explicit')
+import { isSceneRender, SCENE_RENDERS, type SceneRender, type SceneView } from '../pieceProbe/sceneRenders'
 
 /**
- * The imagination's options over a piece's defaults: with no options the defaults; the default scene filled in where the options name
- * none, before the check, so the default too refuses `rules: 'consequence'` under the explicit render; and the default rules where the
- * options name none and the default fits the scene, else `none` (so `{ scene: 'judge' }` stays a valid ask on a `handles` default).
+ * The imagination's options: which render the sub-scene takes, an experiment arm (calibration AGENT.md, "Scene renders"), the judge
+ * render's Fiction and Graph when absent. How the securing is stated is the piece's view (`SceneView`'s `securing`;
+ * AGENT.pieceViews.planning.md, step 3), not an option. The `rules` option it replaces (retired there, the user, 2026-11-22) also took
+ * `consequence` (each rule's fact and what it does, after the judge's Graph) and `handles` (batches 35 to 40), which no live arm used.
  */
+export type ImaginationOptions = { scene?: SceneRender }
+
+/** `{ scene?: 'judge' | 'explicit' }`, over a piece's default: with no options, or no `scene`, the default's. */
 export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value: unknown): ImaginationOptions | string => {
     if (value === undefined) {
-        return parseImaginationOptions(defaults)
+        return defaults
     }
+    const shape = `options must be { scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-        return parseImaginationOptions(value)
+        return shape
     }
-    const named = value as Record<string, unknown>
-    const withScene = defaults.scene !== undefined && !('scene' in named) ? { ...named, scene: defaults.scene } : named
-    const scene = withScene.scene as SceneRender | undefined
-    return parseImaginationOptions('rules' in named ? withScene : { ...withScene, rules: rulesFit(defaults.rules, scene) ? defaults.rules : 'none' })
+    const { scene = defaults.scene, ...rest } = value as Record<string, unknown>
+    if (Object.keys(rest).length > 0 || (scene !== undefined && !isSceneRender(scene))) {
+        return shape
+    }
+    return scene === undefined ? {} : { scene }
 }
 
 export const fixtureScene = async (name: string): Promise<SceneModel> => {
@@ -89,35 +52,26 @@ export const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
 /** The handles listed more than once, each once. */
 export const listedTwice = (handles: readonly SceneHandle[]): SceneHandle[] => [...new Set(handles.filter((handle, index) => handles.indexOf(handle) !== index))]
 
-/** The sub-scene's rules as fact and consequence, or none when it has no securing. */
-const consequenceRules = (scene: SceneModel): string[] => {
-    const lines = judgeRules(scene).map(({ handle, parts }) => `- ${handle}: ${parts.fact} ${parts.consequence}`)
-    return lines.length === 0 ? [] : [['Rules:', ...lines].join('\n')]
-}
-
 /**
- * The scene's parts, the sub-scene of the shown things heading to `End of scene.`: the judge render's Fiction and Graph (with the rules
- * under `rules: 'consequence'`), or with `scene: 'explicit'` the explicit render (`renderSceneExplicit`), its securings tagged with their
- * full-scene rule handles under `rules: 'handles'`, and with their conditions too under `rules: 'conditions'`. A shown handle not in
- * the fixture's scene throws (`subScene`).
+ * The scene's parts, the sub-scene of the shown things heading to `End of scene.`: the judge render's Fiction and Graph, or with
+ * `scene: 'explicit'` the explicit render (`renderSceneExplicit`), its securings stated as the view has them: in the render's own wording
+ * (`shown`), or tagged with their full-scene rule handles and stated as their conditions and carries (`conditions`), which the judge
+ * render doesn't take. With `omitted`, the securing is left out of either (`withoutSecuring`). A shown handle not in the fixture's scene
+ * throws (`subScene`).
  */
 export const renderScene = async (
     { fixture, shown }: { fixture: string; shown: readonly SceneHandle[] },
-    { rules, scene = 'judge' }: ImaginationOptions,
+    { securing }: Pick<SceneView, 'securing'>,
+    { scene = 'judge' }: ImaginationOptions,
 ): Promise<string[]> => {
-    const full = await fixtureScene(fixture)
+    const fixtureFull = await fixtureScene(fixture)
+    const full = securing === 'omitted' ? withoutSecuring(fixtureFull) : fixtureFull
     const sub = subScene(full, [...new Set(shown)])
     if (scene === 'explicit') {
-        return [renderSceneExplicit(sub, { rules: rules === 'consequence' ? 'none' : rules, full })]
+        return [renderSceneExplicit(sub, { rules: securing === 'conditions' ? 'conditions' : 'none', full })]
     }
     const sections = judgeSceneSections(sub)
-    return [
-        `Scene: ${heading(full)}`,
-        sections.fiction,
-        sections.graph,
-        ...(rules === 'consequence' ? consequenceRules(sub) : []),
-        'End of scene.',
-    ]
+    return [`Scene: ${heading(full)}`, sections.fiction, sections.graph, 'End of scene.']
 }
 
 /**

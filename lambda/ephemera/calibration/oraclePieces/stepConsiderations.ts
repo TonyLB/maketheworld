@@ -7,8 +7,7 @@
 //
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { replyJsonObject } from '../../llm/stageContract'
-import { matchQuote, nonRuleCellCells, quotables, renderNonRuleCell, type NonRuleCellInputs } from './nonRuleCell'
-import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
+import { matchQuote, NON_RULE_CELL_VIEW, nonRuleCellCells, quotables, renderNonRuleCell, type NonRuleCellInputs } from './nonRuleCell'
 
 const isNonEmptyString = (value: unknown): boolean => typeof value === 'string' && value.trim() !== ''
 
@@ -73,11 +72,11 @@ export const stepConsiderationsCells: Record<string, ReadPieceCell<NonRuleCellIn
 export const stepConsiderations: ReadPiece<NonRuleCellInputs, undefined> = {
     kind: 'read',
     name: 'stepConsiderations',
-    view: { plan: NO_PLAN_VIEW },
+    view: NON_RULE_CELL_VIEW,
     cells: stepConsiderationsCells,
     check: checkStepConsiderations,
     parseOptions: parseStepConsiderationsOptions,
-    render: (cell) => renderNonRuleCell(cell),
+    render: (cell) => renderNonRuleCell(cell, { securing: NON_RULE_CELL_VIEW.scene.securing }),
     maxTokens: 1024,
 }
 

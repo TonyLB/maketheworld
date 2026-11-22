@@ -11,7 +11,7 @@ import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderS
 import { renderSceneJudge } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
-import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
+import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import { nonRuleCellCells } from './nonRuleCell'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
@@ -36,9 +36,16 @@ export const parseSceneReadingOptions = (value: unknown): SceneReadingOptions | 
         : shape
 }
 
-/** The scene in the named render, the securing removed, then the question. Throws on a question naming a thing not in the scene. */
+/**
+ * The scene reading's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with the securing omitted, as the trial
+ * shows it. Which render it takes is the arm the piece compares (`render`), with no default.
+ */
+export const SCENE_READING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+
+/** The scene in the named render, the securing as the view states it, then the question. Throws on a question naming a thing not in the scene. */
 export const renderSceneReading = async ({ inputs: { fixture, question } }: PieceCell<SceneReadingInputs>, { render }: SceneReadingOptions): Promise<string> => {
-    const scene = withoutSecuring(await fixtureScene(fixture))
+    const full = await fixtureScene(fixture)
+    const scene = SCENE_READING_VIEW.scene.securing === 'omitted' ? withoutSecuring(full) : full
     const unknown = namedHandles(question).filter((handle) => scene.things[handle] === undefined)
     if (unknown.length > 0) {
         throw new Error(`The question names ${unknown.join(', ')}, not in ${fixture}'s scene`)
@@ -69,7 +76,7 @@ export const sceneReadingCells: Record<string, PieceCell<SceneReadingInputs>> = 
 
 export const sceneReading: OraclePiece<SceneReadingInputs, SceneReadingOptions> = {
     name: 'sceneReading',
-    view: { plan: NO_PLAN_VIEW },
+    view: SCENE_READING_VIEW,
     answers: SCENE_READING_ANSWERS,
     cells: sceneReadingCells,
     parseOptions: parseSceneReadingOptions,
