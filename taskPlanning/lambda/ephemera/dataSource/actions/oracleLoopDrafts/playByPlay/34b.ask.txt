@@ -1,0 +1,35 @@
+Role: You are the imagination for a game world, working as a game master would. A player's plan is being worked out one step at a time. Someone weighing the step named after "The step asked about:" needs a detail of how it is done, named after "The detail asked for:". Your goal is to give that detail, from what you know of how such things are ordinarily done: give the step first, as written or revised so that its words name the things it uses, then break it into the smaller steps that state the detail, or, when the step already states it, give the step itself as the answer. What the step brings about beyond its aim, to other things and to the scene's rules, is checked by others, so offer it freely as a consequence, and keep the steps to how the step is done. An item marked (unchecked), a consequence or a rule it bears on, was offered by someone else and has not been checked yet.
+
+These examples are not part of the scene below.
+
+Lesson: Sometimes the only result for other things is that what rests on something, or is fixed to it, moves along with it. The scene already says so, so that needs no consequence, even when a rule holds the thing on; and neither does taking hold of something.
+Step: carry [crate1] to the door, with the intent [crate1] is at the door. [lamp1] is bolted to [crate1] (rule [lamp-secured-to-crate]); [jar1] rests on [crate1]. The detail asked for: how [crate1] is carried.
+```json
+{"says": "carry [crate1] to the door", "intent": "[crate1] is at the door", "steps": [{"says": "grip [crate1] by its sides", "intent": "[crate1] is held firmly"}, {"says": "lift [crate1] and walk to the door", "intent": "[crate1] is at the door"}]}
+```
+
+Lesson: Sometimes other things are affected beyond that, some as you would ordinarily expect, and some in a way a rule shapes. A consequence the rule makes happen, a result that ordinarily wouldn't happen, is marked with the rule's handle and "causes".
+Step: turn [crate1] over, with the intent [crate1] is upside down. [lamp1] is bolted to [crate1] (rule [lamp-secured-to-crate]); [jar1] rests on [crate1]. The detail asked for: how [crate1] is turned.
+```json
+{"says": "turn [crate1] over", "intent": "[crate1] is upside down", "steps": [{"says": "grip [crate1] by its sides", "intent": "[crate1] is held firmly"}, {"says": "roll [crate1] over onto its top", "intent": "[crate1] is upside down", "consequences": [{"says": "[jar1] falls off [crate1]", "thing": "[jar1]"}, {"says": "[lamp1] stays fixed to [crate1], upside down with it", "thing": "[lamp1]", "rules": [{"rule": "[lamp-secured-to-crate]", "stance": "causes"}]}]}]}
+```
+
+Lesson: When the step moves something farther than a rule allows, the consequence is marked with the rule's handle and "violation".
+Step: push [cart1] across the room, with the intent push [cart1] across the room. [cart1] is tied to [post1] (rule [cart-secured-to-post]). The detail asked for: how [cart1] is pushed.
+```json
+{"says": "push [cart1] across the room", "intent": "push [cart1] across the room", "steps": [{"says": "take [cart1] by its handle", "intent": "[cart1] is held at its handle"}, {"says": "push [cart1] forward", "intent": "[cart1] rolls forward", "consequences": [{"says": "[cart1] pulls against its tie to [post1]", "thing": "[cart1]", "rules": [{"rule": "[cart-secured-to-post]", "stance": "violation"}]}]}]}
+```
+
+Lesson: When the step as written already states the detail, it is the answer: give the step alone.
+Step: grip [rope1] with both hands, with the intent grip [rope1] with both hands. The detail asked for: how [rope1] is held.
+```json
+{"says": "grip [rope1] with both hands", "intent": "grip [rope1] with both hands"}
+```
+
+Lesson: When the step names its things loosely, give it revised to name them.
+Step: hang up the coat, with the intent hang up the coat. [coat1] lies on [chair1]; [hat1] hangs on [hook2]. The detail asked for: how the coat is hung.
+```json
+{"says": "hang [coat1] on [hook2]", "intent": "[coat1] hangs from [hook2]", "steps": [{"says": "lift [coat1] from [chair1] by its collar", "intent": "[coat1] is held up by its collar"}, {"says": "slip the loop of [coat1] over [hook2]", "intent": "[coat1] hangs from [hook2]", "consequences": [{"says": "[hat1] falls off [hook2]", "thing": "[hat1]"}]}]}
+```
+
+Task: Give the detail asked for, as in the examples, using what you know of how things really behave. Reply with one JSON code block, fenced with ```json: an object with "says", the step, as written or revised so that it names in brackets the things in the scene it uses, and "intent", what it is for. When you revise the step, give again each of its items you keep, as a consequence of the step or of the sub-step that brings it about. When the step needs breaking down to state the detail, add "steps", listing the smaller steps in order, each with "says", the sub-step, "intent", what it brings about, and, when it brings about anything to other things or to a rule the scene names, "consequences": each with "says", what happens, "thing", the thing it happens to, and, when it bears on a rule, "rules", each with "rule", the rule's handle, and "stance": "violation" when the consequence breaks the rule, or "causes" when the rule causes the consequence, a result that ordinarily wouldn't happen. When the step already states the detail, the object is the step alone, its "says" and "intent", with "consequences" beside them when the step brings any about. Write each thing's and each rule's handle in brackets, as the scene writes it.

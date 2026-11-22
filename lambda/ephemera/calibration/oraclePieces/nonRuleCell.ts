@@ -12,10 +12,10 @@ import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { caseActions, fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
 import { oracleCases } from '../oracleLoop/oracleCases'
-import { registerPiece, type OraclePiece, type PieceCell } from '../pieceProbe/oraclePiece'
+import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import { replyJsonObject } from '../../llm/stageContract'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
-import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../pieceProbe/sceneRenders'
+import { isSceneRender, SCENE_RENDERS, type SceneRender, type Securing } from '../pieceProbe/sceneRenders'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /**
@@ -189,20 +189,28 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
         : { answer: `needs detail of ${(stop as { of: string }).of} ${first + 1}` }
 }
 
-/** How a piece on these inputs shows the securing: as the scene has it (the default), or left out (`withoutSecuring`). */
-export type SecuringShown = 'shown' | 'omitted'
+/** The securing as a payload option can name it, where a piece takes it as an arm: as the scene has it, or left out (`withoutSecuring`). */
+export type SecuringShown = Extract<Securing, 'shown' | 'omitted'>
+
+/**
+ * The non-rule cell's view (calibration AGENT.md, "Piece views"): no plan (the bridge state), and the whole scene with its securing in
+ * the render's own wording and no Rules section (NR-6), since securing is the rule cell's.
+ */
+export const NON_RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }
 
 /** The non-rule cell's options: which render the scene takes (AGENT.trialQuestion.planning.md, step 1.5), the judge render when absent. */
 export type NonRuleCellOptions = { scene?: SceneRender }
 
 /**
  * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
- * consequence lines indented under it. With `securing: 'omitted'`, the scene's securing is left out as well (the trial's case against).
- * With `scene: 'explicit'`, the scene is the explicit render (`renderSceneExplicit`) in place of the Fiction and the Graph (the ruling).
+ * consequence lines indented under it. The securing as the calling piece's view states it, the non-rule cell's when absent: with
+ * `omitted`, the scene's securing is left out as well (the trial's case against, rebuttal, verdict and ruling); `conditions` tags the
+ * explicit render's securings, which no piece on these inputs declares yet. With `scene: 'explicit'`, the scene is the explicit render
+ * (`renderSceneExplicit`) in place of the Fiction and the Graph (the ruling).
  */
 export const renderNonRuleCell = async (
     { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
-    { securing = 'shown', scene: sceneRender = 'judge' }: { securing?: SecuringShown; scene?: SceneRender } = {},
+    { securing = NON_RULE_CELL_VIEW.scene.securing, scene: sceneRender = 'judge' }: { securing?: Securing; scene?: SceneRender } = {},
 ): Promise<string> => {
     if (steps.length === 0) {
         throw new Error('No steps')
@@ -226,7 +234,7 @@ export const renderNonRuleCell = async (
         const { fiction, graph } = judgeSceneSections(full)
         return [`Scene: ${heading(full)}`, fiction, graph, 'End of scene.'].join('\n\n')
     }
-    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full) : judged()
+    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full, { rules: securing === 'conditions' ? 'conditions' : 'none', full: scene }) : judged()
     return [
         sceneBlock,
         `The player's request: ${request}`,
@@ -344,11 +352,11 @@ export const nonRuleCellCells: Record<string, PieceCell<NonRuleCellInputs>> = {
 
 export const nonRuleCell: OraclePiece<NonRuleCellInputs, NonRuleCellOptions> = {
     name: 'nonRuleCell',
-    view: { plan: NO_PLAN_VIEW },
+    view: NON_RULE_CELL_VIEW,
     answers: NON_RULE_ANSWERS,
     cells: nonRuleCellCells,
     parseOptions: parseNonRuleCellOptions,
-    render: (cell, { scene }) => renderNonRuleCell(cell, scene === undefined ? {} : { scene }),
+    render: (cell, { scene }) => renderNonRuleCell(cell, { securing: NON_RULE_CELL_VIEW.scene.securing, ...(scene === undefined ? {} : { scene }) }),
     grade: gradeNonRuleCell,
     maxTokens: 1536,
 }

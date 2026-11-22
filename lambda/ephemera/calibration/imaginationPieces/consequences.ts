@@ -32,16 +32,17 @@ export type ConsequencesInputs = {
 export type ConsequencesOptions = ImaginationOptions
 
 /** The explicit render by default (the kept draft runs explicit, so the default flips; calibration's AGENT.md, "Scene renders"). */
-export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { rules: 'none', scene: 'explicit' }
+export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { scene: 'explicit' }
 
 export const parseConsequencesOptions = imaginationOptionsParser(CONSEQUENCES_OPTIONS)
 
 /**
- * The plan as it reads today, every kind at `all` (AGENT.pieceViews.planning.md, step 3 to revisit): dormant, since its cells hold no
+ * The plan as it reads today, every kind at `all` (calibration AGENT.md, "Piece views"; to revisit when its cells hold unchecked items, booked under the oracle loop plan's Piece views item): dormant, since its cells hold no
  * unchecked or rule items. Additive, it confirms nothing, so the checker's mirror doesn't bind it to `all`; revise mode, once built, is a
- * registration of its own with its own view.
+ * registration of its own with its own view. The scene: the sub-scene of the things to describe and the plan's handles, each securing in
+ * the render's own wording (`actionRule`'s impossibility, or the hosted carry line), since it names no rule.
  */
-export const CONSEQUENCES_VIEW: PieceView = { plan: WHOLE_PLAN_VIEW }
+export const CONSEQUENCES_VIEW: PieceView = { plan: WHOLE_PLAN_VIEW, scene: { shows: 'subScene', securing: 'shown', sceneRules: false } }
 
 /** What its block may hold: the sub-item kinds, against the listed things and the step's own handles. */
 export const CONSEQUENCES_MERGE: MergeOptions = { author: 'consequences', handlesAre: 'a listed thing or named by the step' }
@@ -68,7 +69,7 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
         throw new Error(`The target "${target}" names no step of the plan`)
     }
     const viewed = viewPlan(plan, CONSEQUENCES_VIEW.plan)
-    const scene = await renderScene({ fixture, shown: [...things, ...planHandles(viewed)] }, options)
+    const scene = await renderScene({ fixture, shown: [...things, ...planHandles(viewed)] }, CONSEQUENCES_VIEW.scene, options)
     return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
 }
 

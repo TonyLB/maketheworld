@@ -8,7 +8,7 @@
 // right exactly when the answer is QS-1's. A lifted argument recorded before step 2 has no question, so `lifted` is refused as missing.
 //
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
-import { registerPiece, type OraclePiece, type PieceCell } from '../../pieceProbe/oraclePiece'
+import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
 import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
@@ -61,10 +61,16 @@ export const ruledQuestion = (cell: PieceCell<TrialRulingInputs>, { upstream }: 
     return { question: against.question as string, blocking: against.blocking as TrialRuling }
 }
 
-/** The non-rule cell's render in the explicit scene, the securing omitted, then the question. Nothing argued is shown. */
+/**
+ * The ruling's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the case against's
+ * question was asked of it.
+ */
+export const TRIAL_RULING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+
+/** The non-rule cell's render in the explicit scene, the securing as the view states it, then the question. Nothing argued is shown. */
 export const renderTrialRuling = async (cell: PieceCell<TrialRulingInputs>, options: UpstreamOptions): Promise<string> => {
     const { question } = ruledQuestion(cell, options)
-    const scene = await renderNonRuleCell(cell, { securing: 'omitted', scene: 'explicit' })
+    const scene = await renderNonRuleCell(cell, { securing: TRIAL_RULING_VIEW.scene.securing, scene: 'explicit' })
     return `${scene}\n\n${QUESTION_LINE}${question}`
 }
 
@@ -97,7 +103,7 @@ export const trialRulingCells: Record<string, PieceCell<TrialRulingInputs>> = Ob
 
 export const trialRuling: OraclePiece<TrialRulingInputs, UpstreamOptions> = {
     name: 'trial ruling',
-    view: { plan: NO_PLAN_VIEW },
+    view: TRIAL_RULING_VIEW,
     answers: TRIAL_OUTCOMES,
     cells: trialRulingCells,
     parseOptions: parseUpstreamOptions,

@@ -3,7 +3,7 @@
 // step shape in use, and a render for a generator to read. The judging pieces don't read it yet; they render from their own inputs.
 // Paths are readable slugs minted at creation; changes add, restate a step, or replace or remove an unchecked item, so an item's path never
 // changes while it is in the plan, and is the item's id; a step revised by its restatement takes a path minted afresh, as a replacement does,
-// and its children move under it, called into question (AGENT.pieceViews.planning.md, VW-2).
+// and its children move under it, called into question (the revision rule, calibration AGENT.md, "The action plan").
 // A change language adds to it: a block of additions, merged in by code, the whole block refused on any problem.
 // A possibility holds a spread of outcomes, as unlabelled branches of consequences. Every path is flat under its step, in one scope at
 // any depth; consequences and concerns slug their text, every other kind its kind (`tip-table1.intent`, `.maybe-2`).
@@ -43,7 +43,7 @@ export type RuleStance = typeof RULE_STANCES[number]
 export type RuleItem = { kind: 'rule'; path: string; standing: Standing; rule: string; stance: RuleStance; stale?: true }
 
 /**
- * `stale` (AGENT.pieceViews.planning.md, VW-2): written against wording of its step since changed. Apart from standing: set on a revised
+ * `stale` (the revision rule, calibration AGENT.md, "The action plan"): written against wording of its step since changed. Apart from standing: set on a revised
  * step's children (each also made unchecked), cleared only by the child's authority: a `replace` (a new item), a `remove`, or its giving
  * the child again, which confirms it. Code's, never
  * rendered to a model.
@@ -300,11 +300,18 @@ export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.f
 export type PlanReading = 'all' | 'authoritative'
 
 /**
- * A piece's view of the plan (AGENT.pieceViews.planning.md, VW-1): the kinds it reads, each at a reading; a kind not named isn't read.
+ * A piece's view of the plan (calibration AGENT.md, "Piece views"): the kinds it reads, each at a reading; a kind not named isn't read.
  * The plan's top-level steps and every step's `alreadyAnswers` are always shown. No exemption for the piece's own items: its unchecked
  * proposals are filtered like anyone's.
  */
-export type PlanView = { reads: Partial<Record<AuthoredKind, PlanReading>> }
+export type PlanView = { reads: Partial<Record<Exclude<AuthoredKind, 'rule'>, PlanReading>> & { rule?: PlanReading | RuleReading } }
+
+/**
+ * A rule reading narrowed by stance: only rule items with one of these stances are read, at the reading (the rule kind alone takes one).
+ * `playByPlay` reads confirmed `causes` and `voids`, which explain a confirmed consequence, and not `violation`, a verdict on the method
+ * (the user, 2026-11-21, calibration AGENT.md, "Piece views").
+ */
+export type RuleReading = { reading: PlanReading; stances: readonly RuleStance[] }
 
 /** Every kind at `all`: the plan as it is. */
 export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', consequence: 'all', possibility: 'all', concern: 'all', rule: 'all' } }
@@ -313,10 +320,15 @@ export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', 
 export const NO_PLAN_VIEW: PlanView = { reads: {} }
 
 /** Whether a view reads an entry of a kind at a standing. */
-const viewReads = ({ reads }: PlanView, kind: AuthoredKind, standing: Standing): boolean => {
-    const reading = reads[kind]
-    return reading === 'all' || (reading === 'authoritative' && standing === 'confirmed')
-}
+const viewReads = ({ reads }: PlanView, kind: Exclude<AuthoredKind, 'rule'>, standing: Standing): boolean => readingTakes(reads[kind], standing)
+
+/** Whether a reading takes an entry at a standing. */
+const readingTakes = (reading: PlanReading | undefined, standing: Standing): boolean => reading === 'all' || (reading === 'authoritative' && standing === 'confirmed')
+
+/** Whether a view reads a rule item: its standing at the rule reading, and its stance among the reading's, when it names some. */
+const viewReadsRule = ({ reads: { rule: reading } }: PlanView, { standing, stance }: RuleItem): boolean => (
+    typeof reading === 'object' ? reading.stances.includes(stance) && readingTakes(reading.reading, standing) : readingTakes(reading, standing)
+)
 
 /** A step's items as a view reads them, at every depth: a dropped sub-step takes its items with it, a dropped consequence its rules; a possibility's branches go with it. */
 const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => items.flatMap((item): StepItem[] => {
@@ -329,7 +341,7 @@ const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => 
     if (item.kind !== 'consequence' || item.rules === undefined) {
         return [item]
     }
-    const rules = item.rules.filter(({ standing }) => viewReads(view, 'rule', standing))
+    const rules = item.rules.filter((rule) => viewReadsRule(view, rule))
     if (rules.length === item.rules.length) {
         return [item]
     }
@@ -338,7 +350,7 @@ const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => 
 })
 
 /**
- * The plan as a view reads it (VW-5), for `renderPlanForGenerator` to render unchanged: pure, so a view reading every kind at `all`
+ * The plan as a view reads it, for `renderPlanForGenerator` to render unchanged: pure, so a view reading every kind at `all`
  * gives the plan back as it is, and its render and inputs hash with it. The merge still reads the full plan.
  */
 export const viewPlan = ({ steps }: ActionPlan, view: PlanView): ActionPlan => ({ steps: steps.map((step) => ({ ...step, items: viewedItems(step.items, view) })) })
@@ -365,7 +377,7 @@ export type PlanAddition =
  * The step record (calibration AGENT.md, The action plan): the step restated, written by code from a reply's `says` and `intent`, with
  * `answered`, the detail asked of it, which joins its `alreadyAnswers`. A `says` or `intent` other than the step's revises it: its intent
  * is the restatement's (or its old one, kept); a changed `says` takes a path minted afresh; and its other children stay, called into
- * question (VW-2): each unchecked and stale, moved under the new path. Only a child's authority removes one. A restatement as written
+ * question (the revision rule): each unchecked and stale, moved under the new path. Only a child's authority removes one. A restatement as written
  * keeps the step and its items as they are.
  */
 export type PlanRestate = { restate: 'step'; to: string; says: string; intent?: string; answered: string }
@@ -379,7 +391,7 @@ export type PlanReplace =
     | { replace: string; to: string; kind: 'rule'; with: RuleEntry }
 
 /**
- * A removal (VW-2's minimal one): the kind's authority takes out an unchecked item it rejects, as a `replace` checks one. `to` is the step
+ * A removal (the minimal one): the kind's authority takes out an unchecked item it rejects, as a `replace` checks one. `to` is the step
  * that holds it, found by code. A consequence leaves with its rules; a rule leaves its consequence.
  */
 export type PlanRemove = { remove: string; to: string; kind: 'consequence' | 'rule' }
@@ -817,7 +829,7 @@ const revisedSteps = (steps: ReadonlyMap<string, StepNode>, accepted: readonly A
         return step !== undefined && isRestate(change) && revises(step, change) ? [change.to] : []
     }))
 
-/** At most one `execution` possibility per step, counting the plan's and the block's. A revision frees none: its step's children stay (VW-2). */
+/** At most one `execution` possibility per step, counting the plan's and the block's. A revision frees none: its step's children stay (the revision rule). */
 const possibilityLimitProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[]): string[] =>
     accepted.flatMap(({ index, change }) => {
         if (!isPossibility(change)) {
@@ -842,7 +854,7 @@ const sameConsequence = (one: ConsequenceEntry, other: ConsequenceEntry): boolea
  * The block without its repeats (mine, the user agreeing, 2026-11-20): a consequence added to a step that already holds the same one
  * ({@link sameConsequence}), or that an earlier change of the block adds, is no change. The record gives a kept item again when it revises (the coat
  * example), and did so where nothing was revised (batch 44, the concession cell r1), which minted a second copy. A revised step keeps its
- * children (VW-2), so a child given again is a repeat too. Any author: a repeat adds nothing, whoever writes it. Only a consequence's
+ * children (the revision rule), so a child given again is a repeat too. Any author: a repeat adds nothing, whoever writes it. Only a consequence's
  * authority settles a stale one by giving it again (the user, 2026-11-21): a check as written, so it is confirmed and no longer stale.
  * `refreshed` holds, by step, the paths of those. Another author's repeat leaves the mark, as a revising `playByPlay`'s does.
  */
@@ -945,7 +957,7 @@ const withReplacements = (items: readonly StepItem[], replacements: readonly { c
 /** A path under one step's moved under another's: the same slug, in the same scope. */
 const rebased = (path: string, from: string, to: string): string => (path.startsWith(`${from}.`) ? `${to}${path.slice(from.length)}` : path)
 
-/** A revised step's child, called into question (VW-2): unchecked, stale, under the step's new path; a consequence's rules with it. */
+/** A revised step's child, called into question (the revision rule): unchecked, stale, under the step's new path; a consequence's rules with it. */
 const questioned = (item: Exclude<StepItem, { kind: 'intent' | 'step' }>, from: string, to: string): StepItem => {
     const at = (path: string) => rebased(path, from, to)
     if (item.kind === 'consequence') {
@@ -963,7 +975,7 @@ const questioned = (item: Exclude<StepItem, { kind: 'intent' | 'step' }>, from: 
 /**
  * A revised step's own items before the block's additions: its intent the restatement's, by `author`, or else its old one, kept as
  * it was; and every other child kept, called into question (`questioned`), all under the step's path. Only a child's authority removes
- * one, on checking it; the reviser can't drop a child by leaving it out (VW-2).
+ * one, on checking it; the reviser can't drop a child by leaving it out (the revision rule).
  */
 const revisedItems = (step: StepNode, { intent }: PlanRestate, path: string, author: PlanAuthor): StepItem[] => {
     const old = step.items.find((item) => item.kind === 'intent')
@@ -973,7 +985,7 @@ const revisedItems = (step: StepNode, { intent }: PlanRestate, path: string, aut
 }
 
 /**
- * A stale consequence its authority gives again (VW-2): confirmed, no longer stale. Its rules are the rule cell's, so each keeps its own
+ * A stale consequence its authority gives again (the revision rule): confirmed, no longer stale. Its rules are the rule cell's, so each keeps its own
  * standing and mark.
  */
 const refreshedItem = (item: StepItem): StepItem => {

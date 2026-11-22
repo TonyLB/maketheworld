@@ -6,12 +6,14 @@
 //
 import type { MergeOptions, PlanView } from '../oracleLoop/actionPlan'
 import type { PieceGrade } from './pieceAnswer'
+import type { SceneView } from './sceneRenders'
 
 /**
- * A piece's view (AGENT.pieceViews.planning.md, VW-1 and VW-5): what of the shared state its inputs show. For now the plan side alone:
- * the plan kinds it reads, each at `all` or `authoritative`. The scene side joins it later (that plan's step 3).
+ * A piece's view (calibration AGENT.md, "Piece views"): what of the shared state its inputs show. The plan side: the plan kinds
+ * it reads, each at `all` or `authoritative`. The scene side (that plan's step 3): how much of the scene, how the securing is stated,
+ * whether the scene's Rules section is shown, and a rule's parts where the piece has a Rule section of its own.
  */
-export type PieceView = { plan: PlanView }
+export type PieceView = { plan: PlanView; scene: SceneView }
 
 /**
  * How a payload's prompt reaches the model (AGENT.trialQuestion.planning.md, step 0.5): `user`, the instructions and the render in one

@@ -9,11 +9,11 @@
 // since the rule cell judges the securing. There is no answer set: code checks each reply's form, and a reader reads the replies against
 // each cell's `lookFor`.
 //
-import { registerPiece, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
+import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
 import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
-import type { SceneRender } from '../../pieceProbe/sceneRenders'
+import type { SceneRender, Securing } from '../../pieceProbe/sceneRenders'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
 import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
@@ -157,15 +157,21 @@ export const checkTrialRebuttal = (reply: string, cell: ReadPieceCell<TrialRebut
 )
 
 /**
- * The non-rule cell's render with the securing omitted, the question, and the argument naming its step, as three sections. Throws when
- * there is no argument, or its step quotes none of the plan's steps, so a cell can't carry a step the plan doesn't have. The rebuttal's
- * render joins them; the verdict's tags the argument as one side's voice. The scene takes the judge render unless `scene` names the
- * explicit one (the verdict's retest, AGENT.trialQuestion.planning.md, step 1.5).
+ * The rebuttal's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, since the rule cell
+ * judges the securing.
+ */
+export const TRIAL_REBUTTAL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+
+/**
+ * The non-rule cell's render with the securing as the calling stage's view states it (the rebuttal's when absent), the question, and the
+ * argument naming its step, as three sections. Throws when there is no argument, or its step quotes none of the plan's steps, so a cell
+ * can't carry a step the plan doesn't have. The rebuttal's render joins them; the verdict's tags the argument as one side's voice. The
+ * scene takes the judge render unless `scene` names the explicit one (the verdict's retest, AGENT.trialQuestion.planning.md, step 1.5).
  */
 export const renderArguedParts = async (
     cell: { inputs: NonRuleCellInputs; source: string },
     against: TrialArgument,
-    { scene = 'judge' }: { scene?: SceneRender } = {},
+    { securing = TRIAL_REBUTTAL_VIEW.scene.securing, scene = 'judge' }: { securing?: Securing; scene?: SceneRender } = {},
 ): Promise<{ scene: string; question: string; argument: string }> => {
     const { inputs: { steps } } = cell
     if (!isNonEmptyString(against.argument)) {
@@ -176,7 +182,7 @@ export const renderArguedParts = async (
         throw new Error(`The argument's step: ${quote.malformed}`)
     }
     return {
-        scene: await renderNonRuleCell(cell, { securing: 'omitted', scene }),
+        scene: await renderNonRuleCell(cell, { securing, scene }),
         question: `${QUESTION_LINE}${against.question}`,
         argument: `${ARGUMENT_LINE}"${against.step}": ${against.argument}`,
     }
@@ -212,7 +218,7 @@ export const trialRebuttalCells: Record<string, ReadPieceCell<TrialRebuttalInput
 export const trialRebuttal: ReadPiece<TrialRebuttalInputs, UpstreamOptions> = {
     kind: 'read',
     name: 'trial rebuttal',
-    view: { plan: NO_PLAN_VIEW },
+    view: TRIAL_REBUTTAL_VIEW,
     cells: trialRebuttalCells,
     check: checkTrialRebuttal,
     parseOptions: parseUpstreamOptions,

@@ -46,10 +46,11 @@ describe('consequences', () => {
             expect(['saucer1', 'table1', 'teapot1', 'tea2', 'cup1'].filter((handle) => !scene.includes(`[${handle}]`))).toEqual([])
         })
 
-        it('still takes the judge render, as an option', async () => {
-            const text = await renderConsequences(cellOf({ things: ['teapot1'] }), { rules: 'consequence', scene: 'judge' })
+        it('still takes the judge render, as an arm, its securing in the Graph and no Rules section', async () => {
+            const text = await renderConsequences(cellOf({ things: ['teapot1'] }), { scene: 'judge' })
             expect(text).toContain('\nGraph:\n')
-            expect(text).toContain('[teapot1] is glued to [table1].')
+            expect(text).toContain('glued to')
+            expect(text).not.toContain('Rules:')
         })
 
         it.each([
@@ -64,16 +65,12 @@ describe('consequences', () => {
     })
 
     describe('its options', () => {
-        it('defaults to the explicit render with no rules, and refuses another shape', () => {
-            expect(consequences.parseOptions(undefined)).toEqual({ rules: 'none', scene: 'explicit' })
-            expect(consequences.parseOptions({})).toEqual({ rules: 'none', scene: 'explicit' })
-            expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toEqual({ rules: 'consequence', scene: 'judge' })
-            expect(consequences.parseOptions({ rules: 'v45' })).toBe("options must be { rules?: 'none' | 'consequence' | 'handles' | 'conditions', scene?: 'judge' | 'explicit' }")
-        })
-
-        it('refuses rules: consequence under the explicit render, its default included', () => {
-            expect(consequences.parseOptions({ scene: 'explicit', rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
-            expect(consequences.parseOptions({ rules: 'consequence' })).toMatch(/takes no rules: 'consequence'/)
+        it('defaults to the explicit render, takes the judge render as an arm, and refuses another shape', () => {
+            expect(consequences.parseOptions(undefined)).toEqual({ scene: 'explicit' })
+            expect(consequences.parseOptions({})).toEqual({ scene: 'explicit' })
+            expect(consequences.parseOptions({ scene: 'judge' })).toEqual({ scene: 'judge' })
+            expect(consequences.parseOptions({ rules: 'none' })).toBe("options must be { scene?: 'judge' | 'explicit' }")
+            expect(consequences.parseOptions({ scene: 'judge', rules: 'consequence' })).toBe("options must be { scene?: 'judge' | 'explicit' }")
         })
     })
 
