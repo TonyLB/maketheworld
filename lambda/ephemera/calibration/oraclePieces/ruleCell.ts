@@ -34,7 +34,7 @@ export type RuleCellOptions = {
 }
 
 /**
- * The rule cell's scene (AGENT.pieceViews.planning.md, step 3): the sub-scene of the rule's two things, its securing in the judge's own
+ * The rule cell's scene (calibration AGENT.md, "Piece views"): the sub-scene of the rule's two things, its securing in the judge's own
  * wording, no Rules section (the user: the cell doesn't judge rules that interact), and its own Rule section showing the rule's fact and
  * enforcing rubric only ("each piece shows only the part it uses", the user, 2026-11-10).
  */

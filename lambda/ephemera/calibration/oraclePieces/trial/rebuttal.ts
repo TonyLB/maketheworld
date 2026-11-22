@@ -157,7 +157,7 @@ export const checkTrialRebuttal = (reply: string, cell: ReadPieceCell<TrialRebut
 )
 
 /**
- * The rebuttal's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with the securing omitted, since the rule cell
+ * The rebuttal's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, since the rule cell
  * judges the securing.
  */
 export const TRIAL_REBUTTAL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }

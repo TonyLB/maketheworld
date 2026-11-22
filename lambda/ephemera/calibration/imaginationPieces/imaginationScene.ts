@@ -16,7 +16,7 @@ import { isSceneRender, SCENE_RENDERS, type SceneRender, type SceneView } from '
 /**
  * The imagination's options: which render the sub-scene takes, an experiment arm (calibration AGENT.md, "Scene renders"), the judge
  * render's Fiction and Graph when absent. How the securing is stated is the piece's view (`SceneView`'s `securing`;
- * AGENT.pieceViews.planning.md, step 3), not an option. The `rules` option it replaces (retired there, the user, 2026-11-22) also took
+ * calibration AGENT.md, "Piece views"), not an option. The `rules` option it replaces (retired 2026-11-22, the user) also took
  * `consequence` (each rule's fact and what it does, after the judge's Graph) and `handles` (batches 35 to 40), which no live arm used.
  */
 export type ImaginationOptions = { scene?: SceneRender }

@@ -193,7 +193,7 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
 export type SecuringShown = Extract<Securing, 'shown' | 'omitted'>
 
 /**
- * The non-rule cell's view (AGENT.pieceViews.planning.md, step 3): no plan (the bridge state), and the whole scene with its securing in
+ * The non-rule cell's view (calibration AGENT.md, "Piece views"): no plan (the bridge state), and the whole scene with its securing in
  * the render's own wording and no Rules section (NR-6), since securing is the rule cell's.
  */
 export const NON_RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }

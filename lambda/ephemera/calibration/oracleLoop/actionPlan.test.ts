@@ -753,7 +753,7 @@ describe('the action plan', () => {
                     expect(plan).toEqual(conceded())
                 })
 
-                it('drops it after a revision too: the kept child is the repeat\'s, under its own path (VW-2)', () => {
+                it('drops it after a revision too: the kept child is the repeat\'s, under its own path (the revision rule)', () => {
                     const plan = mergedBy(conceded(), [{ ...restate, intent: '[table1] is off the floor' }, cannot], by('playByPlay'))
                     expect(planSteps(plan)[0].items.flatMap(itemPaths)).toEqual(['pick-up-table1.intent', 'pick-up-table1.table1-cannot-be', 'pick-up-table1.table-secured-to-wall'])
                 })
@@ -793,7 +793,7 @@ describe('the action plan', () => {
                 expect(refusedBy(pickUp(), [cannot], { author: 'playByPlay', adds: ['consequence'] })).toEqual(['change 1: rule 1: rule "table-secured-to-wall" is not a rule the scene holds'])
             })
 
-            describe('a revision calls its step\'s children into question (AGENT.pieceViews.planning.md, VW-2)', () => {
+            describe('a revision calls its step\'s children into question (the revision rule, calibration AGENT.md, "The action plan")', () => {
                 const revise = { restate: 'step', to: 'pick-up-table1', says: 'pick up [table1]', intent: '[table1] is off the floor', answered: 'how [table1] is held' }
                 // The step with a confirmed consequence beside the unchecked proposal and its rule.
                 const held = () => mergedBy(conceded(), [{ add: 'consequence', to: 'pick-up-table1', says: '[cup1] rises' }], by('consequences'))
@@ -975,7 +975,7 @@ describe('the action plan', () => {
     })
 })
 
-describe('a view of the plan (AGENT.pieceViews.planning.md, VW-1 and VW-5)', () => {
+describe('a view of the plan (calibration AGENT.md, "Piece views")', () => {
     const merged = (plan: ActionPlan, target: string, changes: unknown[], options: MergeOptions): ActionPlan => {
         const result = mergeStepChanges(plan, target, { changes }, [], options)
         if ('problems' in result) {

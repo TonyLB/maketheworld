@@ -37,7 +37,7 @@ export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { scene: 'explicit' }
 export const parseConsequencesOptions = imaginationOptionsParser(CONSEQUENCES_OPTIONS)
 
 /**
- * The plan as it reads today, every kind at `all` (AGENT.pieceViews.planning.md, step 3 to revisit): dormant, since its cells hold no
+ * The plan as it reads today, every kind at `all` (calibration AGENT.md, "Piece views"; to revisit when its cells hold unchecked items, booked under the oracle loop plan's Piece views item): dormant, since its cells hold no
  * unchecked or rule items. Additive, it confirms nothing, so the checker's mirror doesn't bind it to `all`; revise mode, once built, is a
  * registration of its own with its own view. The scene: the sub-scene of the things to describe and the plan's handles, each securing in
  * the render's own wording (`actionRule`'s impossibility, or the hosted carry line), since it names no rule.

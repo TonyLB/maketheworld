@@ -62,7 +62,7 @@ export const ruledQuestion = (cell: PieceCell<TrialRulingInputs>, { upstream }: 
 }
 
 /**
- * The ruling's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with the securing omitted, as the case against's
+ * The ruling's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the case against's
  * question was asked of it.
  */
 export const TRIAL_RULING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }

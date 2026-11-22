@@ -53,9 +53,9 @@ export type TrialAgainstOptions = { securing: SecuringShown; scene?: SceneRender
 
 /**
 /**
- * The case against's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with its securing as rendered, today's
+ * The case against's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with its securing as rendered, today's
  * default. The trial's kept setting is `omitted` (the user, 2026-11-14), but the default stays, since flipping it would move the default's
- * inputs hashes: a behaviour change, outside that step.
+ * inputs hashes: a behaviour change, booked under the oracle loop plan's Piece views item for the trial's next redraft.
  */
 export const TRIAL_AGAINST_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }
 

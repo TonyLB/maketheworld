@@ -1,5 +1,5 @@
 //
-// The checks over the registry that a piece's view keeps (AGENT.pieceViews.planning.md, steps 1 and 3): each view names only known kinds and
+// The checks over the registry that a piece's view keeps (calibration AGENT.md, "Piece views"): each view names only known kinds and
 // readings, and known scene settings, which its render keeps and its default options agree with; the checker's mirror (a piece whose merge can confirm an unchecked item of a kind reads that kind at `all`); and the
 // hidden-refusal invariant (a piece's merge never refuses a block on account of anything its view hides). Each check is a function, run
 // over the registry and over a piece built to break it, so a check that can't fail is caught too.
@@ -171,7 +171,7 @@ const optionDrift = ({ shows, securing, sceneRules }: SceneView, options: unknow
     ]
 }
 
-describe('piece views over the registry (AGENT.pieceViews.planning.md)', () => {
+describe('piece views over the registry (calibration AGENT.md, "Piece views")', () => {
     it.each(registered)('%s declares a view of known kinds and readings', (_, piece) => {
         expect(declarationProblems(piece.view.plan)).toEqual([])
     })
@@ -232,7 +232,7 @@ describe('piece views over the registry (AGENT.pieceViews.planning.md)', () => {
         })
     })
 
-    describe('the scene side (step 3): a view of known settings, which the render keeps and the default options agree with', () => {
+    describe('the scene side: a view of known settings, which the render keeps and the default options agree with', () => {
         beforeEach(() => {
             jest.spyOn(console, 'log').mockImplementation(() => {})
             jest.spyOn(console, 'info').mockImplementation(() => {})

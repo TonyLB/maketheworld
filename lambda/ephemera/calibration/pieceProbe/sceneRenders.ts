@@ -35,7 +35,7 @@ export const RULE_PARTS = ['fact', 'enforcing', 'voiding', 'consequence'] as con
 export type RulePart = typeof RULE_PARTS[number]
 
 /**
- * A piece's view of the scene (AGENT.pieceViews.planning.md, step 3): its declared setting on each axis. An option is an experiment arm
+ * A piece's view of the scene (calibration AGENT.md, "Piece views"): its declared setting on each axis. An option is an experiment arm
  * that overrides one axis, its default the view's value; which render the scene takes (`scene`, `SCENE_RENDERS`) is an arm, not the view,
  * while the explicit render becomes every piece's default (`JUDGE_RENDER_HOLDOUTS`).
  */

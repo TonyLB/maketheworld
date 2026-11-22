@@ -37,7 +37,7 @@ export const parseSceneReadingOptions = (value: unknown): SceneReadingOptions | 
 }
 
 /**
- * The scene reading's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with the securing omitted, as the trial
+ * The scene reading's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the trial
  * shows it. Which render it takes is the arm the piece compares (`render`), with no default.
  */
 export const SCENE_READING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }

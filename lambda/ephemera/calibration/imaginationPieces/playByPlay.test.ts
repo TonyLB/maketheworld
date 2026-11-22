@@ -103,7 +103,7 @@ describe('playByPlay', () => {
             expect(hashes).toEqual(['1395e48e', '7bfddef2', '144e5e15', '75d624f0', '2f1e1d3e', 'bfb8a376', 'bfb8a376', 'bfb8a376'])
         })
 
-        it('renders the plan its view reads (AGENT.pieceViews.planning.md): no proposal, its own included; the unchecked intent it restates; a confirmed consequence', async () => {
+        it('renders the plan its view reads (calibration AGENT.md, "Piece views"): no proposal, its own included; the unchecked intent it restates; a confirmed consequence', async () => {
             for (const id of ['OC-20/concession', 'OC-20/proposed'] as const) {
                 const text = await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS)
                 expect([id, text]).toEqual([id, await renderPlayByPlay(playByPlayCells['OC-20'], PLAY_BY_PLAY_OPTIONS)])
@@ -359,7 +359,7 @@ describe('playByPlay', () => {
                 expect(plan.steps[0].items.filter(({ kind }) => kind !== 'step')).toEqual(cell.inputs.plan.steps[0].items)
             })
 
-            it('keeps it, stale, when the record revises the step; a copy given again is a repeat, the mark left for its authority (VW-2)', async () => {
+            it('keeps it, stale, when the record revises the step; a copy given again is a repeat, the mark left for its authority (the revision rule)', async () => {
                 const revised = await parsed({ says: 'pick up [table1]', intent: '[table1] is off the floor', steps: grip })
                 expect(revised.steps[0].items.find(({ kind }) => kind === 'consequence')).toMatchObject({ path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', stale: true })
                 const carried = await parsed({ says: 'pick up [table1]', intent: '[table1] is off the floor', steps: grip, consequences: [{ says: '[table1] cannot be lifted', rules: [{ rule: 'table-secured-to-wall', stance: 'violation' }] }] })

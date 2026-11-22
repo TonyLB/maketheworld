@@ -55,7 +55,7 @@ export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { scene: 'explicit' }
 export const PLAY_BY_PLAY_MERGE: MergeOptions = { author: 'playByPlay', adds: ['steps', 'consequence'], restates: true }
 
 /**
- * What the play-by-play reads of the plan (AGENT.pieceViews.planning.md; confirmed by the user, 2026-11-21): the method at `all`, its own
+ * What the play-by-play reads of the plan (calibration AGENT.md, "Piece views"; confirmed by the user, 2026-11-21): the method at `all`, its own
  * kinds, so an unchecked intent divined from a command (`OC-6/command`) is there to be restated, which the checker's mirror requires of a
  * piece that restates; what happens only once confirmed, so no proposal, its own included, is read back as fact (§3); and confirmed rule
  * items whose stance is `causes` or `voids` (step 2's amendment), since they explain a confirmed consequence, a fact, where a `violation`
@@ -250,13 +250,13 @@ export const playByPlayCells: Record<string, ReadPieceCell<PlayByPlayInputs>> = 
     },
     'OC-20/concession': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/concession'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `as OC-20's: its inputs are OC-20's, the proposal ("[table1] cannot be lifted") hidden by the view (AGENT.pieceViews.planning.md), so it tests the merge, not the prompt, and is left out of the payloads. The merge keeps the proposal on the target: as it was when the record keeps the step's says and intent, stale when it revises them (VW-2). Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `as OC-20's: its inputs are OC-20's, the proposal ("[table1] cannot be lifted") hidden by the view (calibration AGENT.md, "Piece views"), so it tests the merge, not the prompt, and is left out of the payloads. The merge keeps the proposal on the target: as it was when the record keeps the step's says and intent, stale when it revises them (the revision rule). Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "OC-20's plan, arriving with an unchecked consequence and its Rule (Violation) on the target, as if from an earlier proposer (the user's watch item 3: conceding without judgment where the piece has authority).",
     },
     'OC-20/proposed': {
         inputs: { fixture: 'teaTableChained', plan: playByPlayPlans['OC-20/proposed'], target: 'pick-up-table1', missing: 'how [table1] is held and lifted', alsoShown: ['wall1'] },
-        lookFor: `as OC-20's: its inputs are OC-20's, the proposal ("[table1] pulls against its chain to [wall1]") hidden by the view (AGENT.pieceViews.planning.md), so it tests the merge, not the prompt, and is left out of the payloads. The merge keeps the proposal on the target: as it was when the record keeps the step's says and intent, stale when it revises them (VW-2). Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
+        lookFor: `as OC-20's: its inputs are OC-20's, the proposal ("[table1] pulls against its chain to [wall1]") hidden by the view (calibration AGENT.md, "Piece views"), so it tests the merge, not the prompt, and is left out of the payloads. The merge keeps the proposal on the target: as it was when the record keeps the step's says and intent, stale when it revises them (the revision rule). Bounds: no sub-step detaching the chain (PB-P2), no sub-step moving [wall1]; ${BOUNDS}`,
         source: 'hand-written',
         note: "The concession cell's plan with its proposal well formed: what happens ([table1] pulls against its chain), with the Rule (Violation). It is the standing work's bar on a proposal; the concession cell's verdict-worded proposal reaches forward to the resilience pass (the user, 2026-11-20).",
     },

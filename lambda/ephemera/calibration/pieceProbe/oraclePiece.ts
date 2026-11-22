@@ -9,7 +9,7 @@ import type { PieceGrade } from './pieceAnswer'
 import type { SceneView } from './sceneRenders'
 
 /**
- * A piece's view (AGENT.pieceViews.planning.md, VW-1 and VW-5): what of the shared state its inputs show. The plan side: the plan kinds
+ * A piece's view (calibration AGENT.md, "Piece views"): what of the shared state its inputs show. The plan side: the plan kinds
  * it reads, each at `all` or `authoritative`. The scene side (that plan's step 3): how much of the scene, how the securing is stated,
  * whether the scene's Rules section is shown, and a rule's parts where the piece has a Rule section of its own.
  */

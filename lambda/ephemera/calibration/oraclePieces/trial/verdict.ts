@@ -47,7 +47,7 @@ export const verdictContract: StageContract<TrialVerdictInput, TrialVerdict> = {
     },
 }
 
-/** The verdict's view (AGENT.pieceViews.planning.md, step 3): no plan, and the whole scene with the securing omitted, as the rebuttal's. */
+/** The verdict's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the rebuttal's. */
 export const TRIAL_VERDICT_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
 
 /** The verdict's options: the upstream source, and which render the scene takes, the judge render when absent (step 1.5's retest). */

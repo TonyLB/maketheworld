@@ -1,6 +1,6 @@
 //
-// Every registered piece's render pinned, cell by cell, under its default options and each arm it takes (AGENT.pieceViews.planning.md,
-// step 3): the hashes were read from the code on 2026-11-22, before the scene side joined the views, not from batch reports. A refactor that
+// Every registered piece's render pinned, cell by cell, under its default options and each arm it takes (calibration AGENT.md,
+// "Piece views"): the hashes were read from the code on 2026-11-22, before the scene side joined the views, not from batch reports. A refactor that
 // keeps these green keeps every prompt byte for byte. The trial's batch-reported pins (`oraclePieces/trial/renderPins.test.ts`) and
 // `playByPlay`'s and `consequences`' stay where they are. The verdict has no golden rebuttals, so it is pinned on the lifted pairs only.
 //
