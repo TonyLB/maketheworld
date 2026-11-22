@@ -8,6 +8,7 @@
 import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { replyJsonObject } from '../../llm/stageContract'
 import { matchQuote, nonRuleCellCells, quotables, renderNonRuleCell, type NonRuleCellInputs } from './nonRuleCell'
+import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 const isNonEmptyString = (value: unknown): boolean => typeof value === 'string' && value.trim() !== ''
 
@@ -72,6 +73,7 @@ export const stepConsiderationsCells: Record<string, ReadPieceCell<NonRuleCellIn
 export const stepConsiderations: ReadPiece<NonRuleCellInputs, undefined> = {
     kind: 'read',
     name: 'stepConsiderations',
+    view: { plan: NO_PLAN_VIEW },
     cells: stepConsiderationsCells,
     check: checkStepConsiderations,
     parseOptions: parseStepConsiderationsOptions,

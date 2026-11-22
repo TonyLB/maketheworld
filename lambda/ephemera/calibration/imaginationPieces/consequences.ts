@@ -8,9 +8,11 @@
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
-import { bracketChanges, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan } from '../oracleLoop/actionPlan'
+import {
+    bracketChanges, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, WHOLE_PLAN_VIEW, type ActionPlan, type MergeOptions,
+} from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
-import { registerPiece, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
@@ -35,6 +37,16 @@ export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { rules: 'none', scene:
 export const parseConsequencesOptions = imaginationOptionsParser(CONSEQUENCES_OPTIONS)
 
 /**
+ * The plan as it reads today, every kind at `all` (AGENT.pieceViews.planning.md, step 3 to revisit): dormant, since its cells hold no
+ * unchecked or rule items. Additive, it confirms nothing, so the checker's mirror doesn't bind it to `all`; revise mode, once built, is a
+ * registration of its own with its own view.
+ */
+export const CONSEQUENCES_VIEW: PieceView = { plan: WHOLE_PLAN_VIEW }
+
+/** What its block may hold: the sub-item kinds, against the listed things and the step's own handles. */
+export const CONSEQUENCES_MERGE: MergeOptions = { author: 'consequences', handlesAre: 'a listed thing or named by the step' }
+
+/**
  * The handles a reply may name (the user, 2026-11-18): the listed things, plus every handle in the
  * target step's own text and its intent. The success branch has to name what the intent names. One rule for every change.
  */
@@ -55,8 +67,9 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
     if (!planSteps(plan).some(({ path }) => path === target)) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
-    const scene = await renderScene({ fixture, shown: [...things, ...planHandles(plan)] }, options)
-    return [...scene, `The plan:\n${renderPlanForGenerator(plan)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
+    const viewed = viewPlan(plan, CONSEQUENCES_VIEW.plan)
+    const scene = await renderScene({ fixture, shown: [...things, ...planHandles(viewed)] }, options)
+    return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
 }
 
 /**
@@ -70,8 +83,8 @@ export const consequencesContract: StageContract<ConsequencesInputs, ActionPlan>
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const shown = [...new Set([...things, ...planHandles(plan), ...namedHandles(rendered)])]
-        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), replyHandles({ plan, target, things }), { author: 'consequences', handlesAre: 'a listed thing or named by the step' })
+        const shown = [...new Set([...things, ...planHandles(viewPlan(plan, CONSEQUENCES_VIEW.plan)), ...namedHandles(rendered)])]
+        const merged = mergeStepChanges(plan, target, bracketChanges(parsed.object, shown), replyHandles({ plan, target, things }), CONSEQUENCES_MERGE)
         return 'problems' in merged ? merged : { value: merged.plan }
     },
 }
@@ -125,6 +138,8 @@ export const CONSEQUENCES_MAX_TOKENS = 1024
 export const consequences: ReadPiece<ConsequencesInputs, ConsequencesOptions> = {
     kind: 'read',
     name: 'consequences',
+    view: CONSEQUENCES_VIEW,
+    merges: CONSEQUENCES_MERGE,
     maxTokens: CONSEQUENCES_MAX_TOKENS,
     cells: consequencesCells,
     check: checkConsequences,

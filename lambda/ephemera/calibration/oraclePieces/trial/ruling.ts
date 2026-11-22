@@ -14,6 +14,7 @@ import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOpt
 import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
 import { fitsCurrentContract } from './rebuttal'
 import { rulingOutcome, TRIAL_OUTCOMES, TRIAL_RULINGS, trialCases, type TrialArgument, type TrialCase, type TrialOutcome, type TrialRuling } from './trialCases'
+import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
 
 /** A ruling cell's inputs: the non-rule cell's, and the argument whose question is asked, from either source. */
 export type TrialRulingInputs = NonRuleCellInputs & { against: StageInput<TrialArgument> }
@@ -96,6 +97,7 @@ export const trialRulingCells: Record<string, PieceCell<TrialRulingInputs>> = Ob
 
 export const trialRuling: OraclePiece<TrialRulingInputs, UpstreamOptions> = {
     name: 'trial ruling',
+    view: { plan: NO_PLAN_VIEW },
     answers: TRIAL_OUTCOMES,
     cells: trialRulingCells,
     parseOptions: parseUpstreamOptions,

@@ -1,8 +1,9 @@
 //
 // The action plan, a Prototype (calibration AGENT.md, "The action plan"): a candidate step with a path and its sub-items, built from each
 // step shape in use, and a render for a generator to read. The judging pieces don't read it yet; they render from their own inputs.
-// Paths are readable slugs minted at creation; changes add, restate a step, or replace an unchecked item, so an item's path never
-// changes while it is in the plan, and is the item's id; a step revised by its restatement takes a path minted afresh, as a replacement does.
+// Paths are readable slugs minted at creation; changes add, restate a step, or replace or remove an unchecked item, so an item's path never
+// changes while it is in the plan, and is the item's id; a step revised by its restatement takes a path minted afresh, as a replacement does,
+// and its children move under it, called into question (AGENT.pieceViews.planning.md, VW-2).
 // A change language adds to it: a block of additions, merged in by code, the whole block refused on any problem.
 // A possibility holds a spread of outcomes, as unlabelled branches of consequences. Every path is flat under its step, in one scope at
 // any depth; consequences and concerns slug their text, every other kind its kind (`tip-table1.intent`, `.maybe-2`).
@@ -39,7 +40,15 @@ export type RuleStance = typeof RULE_STANCES[number]
  * it follows from, since a rule is kept or broken by what moves, so it can't stand alone. Its path is flat in the step's scope, and is
  * the handle itself.
  */
-export type RuleItem = { kind: 'rule'; path: string; standing: Standing; rule: string; stance: RuleStance }
+export type RuleItem = { kind: 'rule'; path: string; standing: Standing; rule: string; stance: RuleStance; stale?: true }
+
+/**
+ * `stale` (AGENT.pieceViews.planning.md, VW-2): written against wording of its step since changed. Apart from standing: set on a revised
+ * step's children (each also made unchecked), cleared only by the child's authority: a `replace` (a new item), a `remove`, or its giving
+ * the child again, which confirms it. Code's, never
+ * rendered to a model.
+ */
+export type Stale = { stale?: true }
 
 /** A consequence within a branch: it happens only in that branch (the user, 2026-11-18). Never intended, as no change writes one. Its possibility's standing covers it. */
 export type BranchConsequence = { kind: 'consequence'; path: string; says: string; thing?: SceneHandle }
@@ -48,15 +57,15 @@ export type BranchConsequence = { kind: 'consequence'; path: string; says: strin
 export type Branch = { kind: 'maybe'; path: string; items: readonly BranchConsequence[] }
 
 /** A consequence: what happens, with the rules it bears on nested under it. */
-export type ConsequenceItem = { kind: 'consequence'; path: string; standing: Standing; says: string; thing?: SceneHandle; intended?: true; rules?: readonly RuleItem[] }
+export type ConsequenceItem = { kind: 'consequence'; path: string; standing: Standing; says: string; thing?: SceneHandle; intended?: true; rules?: readonly RuleItem[] } & Stale
 
 export type StepItem =
     | { kind: 'intent'; path: string; standing: Standing; says: string }
     | ConsequenceItem
     /** A spread of outcomes: what is open (`says`, the condition), and the branches it may fall into. A flat consequence beside it happens in every branch. */
-    | { kind: 'possibility'; path: string; standing: Standing; openness: Openness; says: string; branches: readonly Branch[] }
+    | ({ kind: 'possibility'; path: string; standing: Standing; openness: Openness; says: string; branches: readonly Branch[] } & Stale)
     /** The imagination's "possible problem": a deferral the oracle classifies, not a judge's claim. */
-    | { kind: 'concern'; path: string; standing: Standing; says: string }
+    | ({ kind: 'concern'; path: string; standing: Standing; says: string } & Stale)
     | SubStep
 
 /**
@@ -287,6 +296,53 @@ export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.f
     ...items.flatMap((item) => itemLines(item)),
 ]).join('\n')
 
+/** How much of a kind a view reads: every entry, unchecked ones included (`all`), or only the confirmed (`authoritative`). */
+export type PlanReading = 'all' | 'authoritative'
+
+/**
+ * A piece's view of the plan (AGENT.pieceViews.planning.md, VW-1): the kinds it reads, each at a reading; a kind not named isn't read.
+ * The plan's top-level steps and every step's `alreadyAnswers` are always shown. No exemption for the piece's own items: its unchecked
+ * proposals are filtered like anyone's.
+ */
+export type PlanView = { reads: Partial<Record<AuthoredKind, PlanReading>> }
+
+/** Every kind at `all`: the plan as it is. */
+export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', consequence: 'all', possibility: 'all', concern: 'all', rule: 'all' } }
+
+/** No kind read: a piece that renders from its own inputs, not the plan (the judges, in the bridge state). */
+export const NO_PLAN_VIEW: PlanView = { reads: {} }
+
+/** Whether a view reads an entry of a kind at a standing. */
+const viewReads = ({ reads }: PlanView, kind: AuthoredKind, standing: Standing): boolean => {
+    const reading = reads[kind]
+    return reading === 'all' || (reading === 'authoritative' && standing === 'confirmed')
+}
+
+/** A step's items as a view reads them, at every depth: a dropped sub-step takes its items with it, a dropped consequence its rules; a possibility's branches go with it. */
+const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => items.flatMap((item): StepItem[] => {
+    if (!viewReads(view, item.kind, item.standing)) {
+        return []
+    }
+    if (item.kind === 'step') {
+        return [{ ...item, items: viewedItems(item.items, view) }]
+    }
+    if (item.kind !== 'consequence' || item.rules === undefined) {
+        return [item]
+    }
+    const rules = item.rules.filter(({ standing }) => viewReads(view, 'rule', standing))
+    if (rules.length === item.rules.length) {
+        return [item]
+    }
+    const { rules: _dropped, ...rest } = item
+    return [rules.length === 0 ? rest : { ...rest, rules }]
+})
+
+/**
+ * The plan as a view reads it (VW-5), for `renderPlanForGenerator` to render unchanged: pure, so a view reading every kind at `all`
+ * gives the plan back as it is, and its render and inputs hash with it. The merge still reads the full plan.
+ */
+export const viewPlan = ({ steps }: ActionPlan, view: PlanView): ActionPlan => ({ steps: steps.map((step) => ({ ...step, items: viewedItems(step.items, view) })) })
+
 /** A rule a consequence bears on, as written: the rule's handle, and whether the consequence breaks or keeps it. */
 export type RuleEntry = { rule: string; stance: RuleStance }
 
@@ -307,9 +363,10 @@ export type PlanAddition =
 
 /**
  * The step record (calibration AGENT.md, The action plan): the step restated, written by code from a reply's `says` and `intent`, with
- * `answered`, the detail asked of it, which joins its `alreadyAnswers`. A `says` or `intent` other than the step's revises it: its items
- * leave, its intent is the restatement's (or its old one, kept), and a changed `says` takes a path minted afresh. A restatement
- * as written keeps the step and its items as they are.
+ * `answered`, the detail asked of it, which joins its `alreadyAnswers`. A `says` or `intent` other than the step's revises it: its intent
+ * is the restatement's (or its old one, kept); a changed `says` takes a path minted afresh; and its other children stay, called into
+ * question (VW-2): each unchecked and stale, moved under the new path. Only a child's authority removes one. A restatement as written
+ * keeps the step and its items as they are.
  */
 export type PlanRestate = { restate: 'step'; to: string; says: string; intent?: string; answered: string }
 
@@ -321,8 +378,14 @@ export type PlanReplace =
     | { replace: string; to: string; kind: 'consequence'; with: ConsequenceEntry }
     | { replace: string; to: string; kind: 'rule'; with: RuleEntry }
 
+/**
+ * A removal (VW-2's minimal one): the kind's authority takes out an unchecked item it rejects, as a `replace` checks one. `to` is the step
+ * that holds it, found by code. A consequence leaves with its rules; a rule leaves its consequence.
+ */
+export type PlanRemove = { remove: string; to: string; kind: 'consequence' | 'rule' }
+
 /** A change once checked. */
-export type PlanChange = PlanAddition | PlanRestate | PlanReplace
+export type PlanChange = PlanAddition | PlanRestate | PlanReplace | PlanRemove
 
 export type AddKind = PlanAddition['add']
 
@@ -330,13 +393,14 @@ export type AddKind = PlanAddition['add']
 export const SUB_ITEM_ADDS: readonly AddKind[] = ['consequence', 'concern', 'possibility']
 
 /** The kinds a `replace` takes: the ones that can be unchecked today (mine; another kind's form waits on a writer of it). */
-const REPLACEABLE: readonly AuthoredKind[] = ['consequence', 'rule']
+export const REPLACEABLE: readonly AuthoredKind[] = ['consequence', 'rule']
 
 /** What a merge holds to a step's own items, as against an expansion, a restatement or a replacement. */
 type ItemAddition = Exclude<PlanAddition, { add: 'steps' }>
 
 const isRestate = (change: PlanChange): change is PlanRestate => 'restate' in change
 const isReplace = (change: PlanChange): change is PlanReplace => 'replace' in change
+const isRemove = (change: PlanChange): change is PlanRemove => 'remove' in change
 const isAddition = (change: PlanChange): change is PlanAddition => 'add' in change
 const isExpansion = (change: PlanChange): change is Extract<PlanAddition, { add: 'steps' }> => isAddition(change) && change.add === 'steps'
 const isItemAddition = (change: PlanChange): change is ItemAddition => isAddition(change) && change.add !== 'steps'
@@ -351,6 +415,7 @@ const POSSIBILITY_KEYS = ['add', 'to', 'kind', 'says', 'branches']
 const STEPS_KEYS = ['add', 'to', 'steps']
 const RESTATE_KEYS = ['restate', 'to', 'says', 'intent', 'answered']
 const REPLACE_KEYS = ['replace', 'with']
+const REMOVE_KEYS = ['remove']
 const BRANCH_KEYS = ['add', 'thing', 'says']
 const SUB_STEP_KEYS = ['says', 'intent', 'consequences']
 const CONSEQUENCE_ENTRY_KEYS = ['says', 'thing', 'rules']
@@ -366,7 +431,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
  * - `adds`: the additions it takes, by default the sub-item kinds (`SUB_ITEM_ADDS`); `playByPlay` takes `steps` and `consequence`;
  * - `restates`: whether it takes a `restate`, the step record, by default not; `playByPlay`'s does;
  * - `rules`: the rule handles a consequence may name, the ones the scene shows, by default none;
- * - `replaces`: whether it takes a `replace`, by default not (no piece checks yet).
+ * - `replaces`: whether it takes a `replace` or a `remove`, a check of an unchecked item, by default not (no piece checks yet).
  */
 export type MergeOptions = {
     author: PlanAuthor
@@ -575,19 +640,35 @@ const checkRestate = (entry: Record<string, unknown>, context: CheckContext): { 
  * A replacement checked: one the merge takes, naming an unchecked consequence or rule, from that kind's authority, with a `with`
  * of the same kind. A consequence's `with` is a consequence entry; a rule's is a rule entry.
  */
-const checkReplace = (entry: Record<string, unknown>, context: CheckContext): { change: PlanChange } | { problems: string[] } => {
-    const path = typeof entry.replace === 'string' ? entry.replace.trim() : undefined
+/** What a check (`replace` or `remove`) names: the item, or why it names none it may check. */
+const checkedItem = (key: 'replace' | 'remove', value: unknown, context: CheckContext): { path?: string; found?: IndexedItem; problems: string[] } => {
+    const [verb, done] = key === 'replace' ? ['replace', 'replaced'] : ['remove', 'removed']
+    const path = typeof value === 'string' ? value.trim() : undefined
     const found = path === undefined ? undefined : context.items.get(path)
-    const named = path === undefined ? ['"replace" is not a string path']
+    const named = path === undefined ? [`"${key}" is not a string path`]
         : found !== undefined ? []
-        : context.stepPaths.has(path) ? [`replace "${path}" names a step; a step isn't replaced`]
-        : [`replace "${path}" names no item`]
+        : context.stepPaths.has(path) ? [`${verb} "${path}" names a step; a step isn't ${done}`]
+        : [`${verb} "${path}" names no item`]
     const standing = found === undefined ? []
-        : !REPLACEABLE.includes(found.kind) ? [`replace takes a consequence or a rule, not ${/^[aeiou]/.test(found.kind) ? 'an' : 'a'} ${found.kind}`]
+        : !REPLACEABLE.includes(found.kind) ? [`${verb} takes a consequence or a rule, not ${/^[aeiou]/.test(found.kind) ? 'an' : 'a'} ${found.kind}`]
         : [
-            ...(found.standing === 'confirmed' ? [`"${path}" is confirmed; only an unchecked item is replaced`] : []),
-            ...(AUTHORITY[found.kind] === context.author ? [] : [`only ${AUTHORITY[found.kind]} replaces a ${found.kind}; this block is ${context.author}'s`]),
+            ...(found.standing === 'confirmed' ? [`"${path}" is confirmed; only an unchecked item is ${done}`] : []),
+            ...(AUTHORITY[found.kind] === context.author ? [] : [`only ${AUTHORITY[found.kind]} ${verb}s a ${found.kind}; this block is ${context.author}'s`]),
         ]
+    return { path, found, problems: [...(context.replaces ? [] : [`"${key}" isn't a change this block takes`]), ...named, ...standing] }
+}
+
+/** A removal checked: one the merge takes, naming an unchecked consequence or rule, from that kind's authority. */
+const checkRemove = (entry: Record<string, unknown>, context: CheckContext): { change: PlanChange } | { problems: string[] } => {
+    const { path, found, problems: named } = checkedItem('remove', entry.remove, context)
+    const problems = [...extraKeyProblems(entry, REMOVE_KEYS), ...named]
+    return problems.length > 0 || path === undefined || found === undefined || (found.kind !== 'consequence' && found.kind !== 'rule')
+        ? { problems }
+        : { change: { remove: path, to: found.step, kind: found.kind } }
+}
+
+const checkReplace = (entry: Record<string, unknown>, context: CheckContext): { change: PlanChange } | { problems: string[] } => {
+    const { path, found, problems: named } = checkedItem('replace', entry.replace, context)
     const replacement = entry.with
     const shapedAs = !isRecord(replacement) ? undefined : 'rule' in replacement || 'stance' in replacement ? 'rule' : 'consequence'
     const withChecked = found === undefined || !REPLACEABLE.includes(found.kind) ? undefined
@@ -595,10 +676,8 @@ const checkReplace = (entry: Record<string, unknown>, context: CheckContext): { 
         : shapedAs !== found.kind ? { problems: [`"with" is a ${shapedAs}; "${path}" is a ${found.kind}`] }
         : found.kind === 'rule' ? checkRule(replacement, context) : checkConsequenceEntry(replacement, context)
     const problems = [
-        ...(context.replaces ? [] : ['"replace" isn\'t a change this block takes']),
         ...extraKeyProblems(entry, REPLACE_KEYS),
         ...named,
-        ...standing,
         ...(withChecked !== undefined && 'problems' in withChecked ? withChecked.problems.map((problem) => `with: ${problem}`) : []),
     ]
     if (problems.length > 0 || path === undefined || found === undefined || withChecked === undefined || 'problems' in withChecked) {
@@ -619,6 +698,9 @@ const checkChange = (entry: unknown, context: CheckContext): { change: PlanChang
     }
     if ('replace' in entry) {
         return checkReplace(entry, context)
+    }
+    if ('remove' in entry) {
+        return checkRemove(entry, context)
     }
     const { add, to, thing, says } = entry
     const keys = add === 'possibility' ? POSSIBILITY_KEYS : add === 'steps' ? STEPS_KEYS : add === 'consequence' ? CONSEQUENCE_KEYS : CHANGE_KEYS
@@ -728,20 +810,20 @@ const intentOf = ({ items }: StepNode): string | undefined => items.find((item) 
 const revises = (step: StepNode, { says, intent }: PlanRestate): boolean =>
     says.trim() !== step.says.trim() || (intent !== undefined && intent.trim() !== (intentOf(step)?.trim() ?? ''))
 
-/** The steps a block revises, by path: their items leave, so what they held counts for nothing against the block. */
+/** The steps a block revises, by path: an expanded one is refused (`restateProblems`). */
 const revisedSteps = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[]): ReadonlySet<string> =>
     new Set(accepted.flatMap(({ change }) => {
         const step = isRestate(change) ? steps.get(change.to) : undefined
         return step !== undefined && isRestate(change) && revises(step, change) ? [change.to] : []
     }))
 
-/** At most one `execution` possibility per step, counting the plan's (unless the block revises the step) and the block's. */
-const possibilityLimitProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], revised: ReadonlySet<string>): string[] =>
+/** At most one `execution` possibility per step, counting the plan's and the block's. A revision frees none: its step's children stay (VW-2). */
+const possibilityLimitProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[]): string[] =>
     accepted.flatMap(({ index, change }) => {
         if (!isPossibility(change)) {
             return []
         }
-        const held = !revised.has(change.to) && (steps.get(change.to)?.items.some((item) => item.kind === 'possibility' && item.openness === change.openness) ?? false)
+        const held = (steps.get(change.to)?.items.some((item) => item.kind === 'possibility' && item.openness === change.openness) ?? false)
         const earlier = accepted.some((other) => other.index < index && isPossibility(other.change) && other.change.to === change.to && other.change.openness === change.openness)
         return held || earlier ? [`change ${index + 1}: step ${change.to} already has an ${change.openness} possibility; a step holds at most one`] : []
     })
@@ -758,25 +840,39 @@ const sameConsequence = (one: ConsequenceEntry, other: ConsequenceEntry): boolea
 
 /**
  * The block without its repeats (mine, the user agreeing, 2026-11-20): a consequence added to a step that already holds the same one
- * ({@link sameConsequence}), and keeps it, or that an earlier change of the block adds, is no change; the kept item stays as it is. The record gives a kept item again when it revises (the coat
- * example), and did so where nothing was revised (batch 44, the concession cell r1), which minted a second copy. A revised step keeps
- * none of its items, so what it is given again goes in. Any author: a repeat adds nothing, whoever writes it.
+ * ({@link sameConsequence}), or that an earlier change of the block adds, is no change. The record gives a kept item again when it revises (the coat
+ * example), and did so where nothing was revised (batch 44, the concession cell r1), which minted a second copy. A revised step keeps its
+ * children (VW-2), so a child given again is a repeat too. Any author: a repeat adds nothing, whoever writes it. Only a consequence's
+ * authority settles a stale one by giving it again (the user, 2026-11-21): a check as written, so it is confirmed and no longer stale.
+ * `refreshed` holds, by step, the paths of those. Another author's repeat leaves the mark, as a revising `playByPlay`'s does.
  */
-const withoutRepeats = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], revised: ReadonlySet<string>): Accepted[] =>
-    accepted.filter((entry) => {
+const withoutRepeats = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], author: PlanAuthor): { kept: Accepted[]; refreshed: ReadonlyMap<string, ReadonlySet<string>> } =>
+    accepted.reduce<{ kept: Accepted[]; refreshed: Map<string, Set<string>> }>(({ kept, refreshed }, entry) => {
         const { change } = entry
         if (!isItemAddition(change) || change.add !== 'consequence') {
-            return true
+            return { kept: [...kept, entry], refreshed }
         }
-        const held = !revised.has(change.to) && (steps.get(change.to)?.items.some((item) => item.kind === 'consequence' && sameConsequence(item, change)) ?? false)
-        return !held && !earlierTo(accepted, entry, (other) => isItemAddition(other) && other.add === 'consequence' && sameConsequence(other, change))
-    })
+        const held = (steps.get(change.to)?.items ?? []).filter((item): item is ConsequenceItem => item.kind === 'consequence' && sameConsequence(item, change))
+        if (held.length > 0) {
+            const settled = AUTHORITY.consequence === author ? held.filter(({ stale }) => stale).map(({ path }) => path) : []
+            return { kept, refreshed: settled.length === 0 ? refreshed : new Map([...refreshed, [change.to, new Set([...(refreshed.get(change.to) ?? []), ...settled])]]) }
+        }
+        return earlierTo(accepted, entry, (other) => isItemAddition(other) && other.add === 'consequence' && sameConsequence(other, change))
+            ? { kept, refreshed }
+            : { kept: [...kept, entry], refreshed }
+    }, { kept: [], refreshed: new Map() })
 
-/** An item is replaced at most once in a block. */
+/** The item a check names: a replacement's or a removal's. */
+const checkedPath = (change: PlanChange): string | undefined => (isReplace(change) ? change.replace : isRemove(change) ? change.remove : undefined)
+
+/** An item is checked (replaced or removed) at most once in a block. */
 const replaceProblems = (accepted: readonly Accepted[]): string[] =>
-    accepted.flatMap(({ index, change }) => (isReplace(change) && accepted.some((other) => other.index < index && isReplace(other.change) && other.change.replace === change.replace)
-        ? [`change ${index + 1}: "${change.replace}" is already replaced in this block`]
-        : []))
+    accepted.flatMap(({ index, change }) => {
+        const path = checkedPath(change)
+        return path !== undefined && accepted.some((other) => other.index < index && checkedPath(other.change) === path)
+            ? [`change ${index + 1}: "${path}" is already replaced or removed in this block`]
+            : []
+    })
 
 /** Whether an earlier change in the block passes `test` and is aimed at the same step. */
 const earlierTo = (accepted: readonly Accepted[], { index, change }: Accepted, test: (other: PlanChange) => boolean): boolean =>
@@ -792,8 +888,8 @@ const expansionProblems = (steps: ReadonlyMap<string, StepNode>, accepted: reado
     })
 
 /**
- * A step is restated at most once in a block; an expanded step isn't revised, since its sub-steps would leave with its items (mine);
- * and a replacement isn't aimed at an item of a step the block revises, since that item leaves.
+ * A step is restated at most once in a block; an expanded step isn't revised (mine: a revision's sub-steps are its method, which a
+ * revised step would no longer match). A check on an item of a step the block revises is taken: the item stays, under the new path.
  */
 const restateProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonly Accepted[], revised: ReadonlySet<string>): string[] =>
     accepted.flatMap((entry) => {
@@ -807,16 +903,24 @@ const restateProblems = (steps: ReadonlyMap<string, StepNode>, accepted: readonl
                 ...(earlierTo(accepted, entry, isRestate) ? [`step ${change.to} is already restated in this block`] : []),
                 ...(revised.has(change.to) && isExpanded(step) ? [`step ${change.to} is expanded, so it isn't revised; revise one of its sub-steps`] : []),
             ]
-            : isReplace(change) && revised.has(change.to) ? [`"${change.replace}" is on step ${change.to}, which this block revises; a revised step's items leave`] : []
+            : []
         return problems.map((problem) => `change ${index + 1}: ${problem}`)
     })
 
-/** A step's items with each replaced path's item gone, its children with it; a replaced rule leaves its consequence. The scope a replacement is minted against. */
+/**
+ * A step's items with each checked path's item gone, its children with it; a checked rule leaves its consequence, with no `rules` once
+ * its last goes. The scope a replacement is minted against.
+ */
 const withoutReplaced = (items: readonly StepItem[], replaced: ReadonlySet<string>): StepItem[] => items
     .filter(({ path }) => !replaced.has(path))
-    .map((item) => (item.kind === 'consequence' && item.rules !== undefined && item.rules.some(({ path }) => replaced.has(path))
-        ? { ...item, rules: item.rules.filter(({ path }) => !replaced.has(path)) }
-        : item))
+    .map((item) => {
+        if (item.kind !== 'consequence' || item.rules === undefined || !item.rules.some(({ path }) => replaced.has(path))) {
+            return item
+        }
+        const { rules, ...rest } = item
+        const left = rules.filter(({ path }) => !replaced.has(path))
+        return left.length === 0 ? rest : { ...rest, rules: left }
+    })
 
 /**
  * A step with its replacements put in: a consequence in the old one's place among the items, a rule in the old one's place among its
@@ -838,24 +942,51 @@ const withReplacements = (items: readonly StepItem[], replacements: readonly { c
         return rules.every((rule, index) => rule === item.rules?.[index]) ? item : { ...item, rules }
     })
 
+/** A path under one step's moved under another's: the same slug, in the same scope. */
+const rebased = (path: string, from: string, to: string): string => (path.startsWith(`${from}.`) ? `${to}${path.slice(from.length)}` : path)
+
+/** A revised step's child, called into question (VW-2): unchecked, stale, under the step's new path; a consequence's rules with it. */
+const questioned = (item: Exclude<StepItem, { kind: 'intent' | 'step' }>, from: string, to: string): StepItem => {
+    const at = (path: string) => rebased(path, from, to)
+    if (item.kind === 'consequence') {
+        return {
+            ...item, path: at(item.path), standing: 'unchecked', stale: true,
+            ...(item.rules === undefined ? {} : { rules: item.rules.map((rule) => ({ ...rule, path: at(rule.path), standing: 'unchecked' as const, stale: true as const })) }),
+        }
+    }
+    if (item.kind === 'possibility') {
+        return { ...item, path: at(item.path), standing: 'unchecked', stale: true, branches: item.branches.map((branch) => ({ ...branch, path: at(branch.path), items: branch.items.map((consequence) => ({ ...consequence, path: at(consequence.path) })) })) }
+    }
+    return { ...item, path: at(item.path), standing: 'unchecked', stale: true }
+}
+
 /**
- * A revised step's own items before the block's additions: the others leave, and its intent is the restatement's, by `author`, or
- * else its old one, kept as it was, under the step's path.
+ * A revised step's own items before the block's additions: its intent the restatement's, by `author`, or else its old one, kept as
+ * it was; and every other child kept, called into question (`questioned`), all under the step's path. Only a child's authority removes
+ * one, on checking it; the reviser can't drop a child by leaving it out (VW-2).
  */
 const revisedItems = (step: StepNode, { intent }: PlanRestate, path: string, author: PlanAuthor): StepItem[] => {
     const old = step.items.find((item) => item.kind === 'intent')
-    return intent !== undefined ? [{ kind: 'intent', path: `${path}.intent`, standing: standingOf('intent', author), says: intent }]
+    const own = intent !== undefined ? [{ kind: 'intent' as const, path: `${path}.intent`, standing: standingOf('intent', author), says: intent }]
         : old === undefined ? [] : [{ ...old, path: `${path}.intent` }]
+    return [...own, ...step.items.flatMap((item) => (item.kind === 'intent' || item.kind === 'step' ? [] : [questioned(item, step.path, path)]))]
+}
+
+/**
+ * A stale consequence its authority gives again (VW-2): confirmed, no longer stale. Its rules are the rule cell's, so each keeps its own
+ * standing and mark.
+ */
+const refreshedItem = (item: StepItem): StepItem => {
+    if (item.kind !== 'consequence') {
+        return item
+    }
+    const { stale: _stale, ...rest } = item
+    return { ...rest, standing: 'confirmed' }
 }
 
 /** A step's answered details with one more, unless it is already there. */
 const withAnswer = (answers: readonly string[] = [], answered: string): readonly string[] => (answers.includes(answered) ? answers : [...answers, answered])
 
-/**
- * A step with the block's changes to it applied: a revision first, its items gone and its path `revisedPath` when its `says` changed;
- * then replaced items removed, so a confirmation as written mints its old path again; additions and replacements minted in its own
- * scope, in block order; sub-steps from `subStepPaths`; a restatement's detail added to `alreadyAnswers`.
- */
 /**
  * A step's intent as the author restating it gives it: as written, it takes the author's standing for an intent, so an unchecked one
  * is confirmed by its authority (`playByPlay`), as a `replace` with the item as written confirms, and keeps its path; a confirmed
@@ -864,17 +995,31 @@ const withAnswer = (answers: readonly string[] = [], answered: string): readonly
 const restatedIntent = (items: readonly StepItem[], author: PlanAuthor): StepItem[] =>
     items.map((item) => (item.kind === 'intent' && item.standing === 'unchecked' ? { ...item, standing: standingOf('intent', author) } : item))
 
+/**
+ * A step with the block's changes to it applied: a revision first, its children kept and called into question, and its path
+ * `revisedPath` when its `says` changed; the stale consequences its authority gave again (`refreshed`) confirmed; then checked items removed, so a
+ * confirmation as written mints its old path again; additions and replacements minted in its own scope, in block order; sub-steps from
+ * `subStepPaths`; a restatement's detail added to `alreadyAnswers`.
+ */
 const applyChanges = (
     step: StepNode, changes: readonly Accepted[], subStepPaths: ReadonlyMap<number, readonly string[]>, revisedPath: string | undefined, author: PlanAuthor,
+    refreshed: ReadonlySet<string> = new Set(),
 ): StepUpdate => {
     const restate = changes.map(({ change }) => change).find(isRestate)
     const revised = restate !== undefined && revises(step, restate)
     const path = revisedPath ?? step.path
+    const moved = (item: string): string => rebased(item, step.path, path)
     // A restatement as written that gives the intent restates it; one that leaves `intent` out says nothing of it (mine).
-    const own = revised ? revisedItems(step, restate, path, author) : restate?.intent !== undefined ? restatedIntent(step.items, author) : step.items
-    const replaces = changes.map(({ change }) => change).filter(isReplace)
-    const kept = withoutReplaced(own, new Set(replaces.map(({ replace }) => replace)))
-    const minted = changes.map(({ change }) => change).filter((change): change is ItemAddition | PlanReplace => isItemAddition(change) || isReplace(change))
+    const restated = revised ? revisedItems(step, restate, path, author) : restate?.intent !== undefined ? restatedIntent(step.items, author) : step.items
+    const fresh = new Set([...refreshed].map(moved))
+    const own = restated.map((item) => (fresh.has(item.path) ? refreshedItem(item) : item))
+    // A check names an item by the path it had when the block was written; a revision in the same block may have moved it.
+    const minted = changes.map(({ change }) => change).flatMap((change): (ItemAddition | PlanReplace)[] => (
+        isItemAddition(change) ? [change] : isReplace(change) ? [{ ...change, replace: moved(change.replace) }] : []
+    ))
+    const replaces = minted.filter(isReplace)
+    const removed = new Set(changes.map(({ change }) => change).filter(isRemove).map(({ remove }) => moved(remove)))
+    const kept = withoutReplaced(own, new Set([...replaces.map(({ replace }) => replace), ...removed]))
     const sources = minted.map(changeSources)
     const paths = mintPaths(sources.flat(), scopePaths(kept).map((scoped) => scoped.slice(path.length + 1)))
     const placed = minted.reduce<{ items: StepItem[]; replacements: { change: PlanReplace; paths: string[] }[]; next: number }>(({ items, replacements, next }, change, index) => {
@@ -883,7 +1028,7 @@ const applyChanges = (
             ? { items, replacements: [...replacements, { change, paths: slugs.map((slugged) => `${path}.${slugged}`) }], next: next + slugs.length }
             : { items: [...items, changeItem(change, path, slugs, author)], replacements, next: next + slugs.length }
     }, { items: [], replacements: [], next: 0 })
-    const items = withReplacements(own, placed.replacements, author)
+    const items = withReplacements(withoutReplaced(own, removed), placed.replacements, author)
     const subSteps = changes.flatMap(({ index, change }) => (isExpansion(change) ? change.steps.map((entry, at) => subStepItem(entry, subStepPaths.get(index)?.[at] ?? '', author)) : []))
     return {
         items: orderItems([...items, ...placed.items, ...subSteps]),
@@ -928,7 +1073,7 @@ export const mergeChanges = (
     const problems = [
         ...besides,
         ...checked.flatMap((result, index) => ('problems' in result ? result.problems.map((problem) => `change ${index + 1}: ${problem}`) : [])),
-        ...possibilityLimitProblems(steps, accepted, revised),
+        ...possibilityLimitProblems(steps, accepted),
         ...expansionProblems(steps, accepted),
         ...restateProblems(steps, accepted, revised),
         ...replaceProblems(accepted),
@@ -936,7 +1081,7 @@ export const mergeChanges = (
     if (problems.length > 0) {
         return { problems }
     }
-    const kept = withoutRepeats(steps, accepted, revised)
+    const { kept, refreshed } = withoutRepeats(steps, accepted, author)
     // A revised step whose `says` changed takes a path minted afresh, its old one free again, before any sub-step's (mine).
     const renamed = accepted.flatMap(({ change }) => {
         const step = isRestate(change) ? steps.get(change.to) : undefined
@@ -956,7 +1101,7 @@ export const mergeChanges = (
     const targets = [...new Set(accepted.map(({ change }) => change.to))]
     return {
         plan: targets.reduce<ActionPlan>((built, target) => ({
-            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, kept.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author))),
+            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, kept.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author, refreshed.get(target)))),
         }), plan),
     }
 }
@@ -964,7 +1109,7 @@ export const mergeChanges = (
 /**
  * A change block scoped to one step, the one a generator expands: code supplies each change's
  * `to`, by the rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
- * otherwise the block is refused, as any problem refuses it. A `replace` takes no `to`, and must name an item in the target's own scope.
+ * otherwise the block is refused, as any problem refuses it. A `replace` or `remove` takes no `to`, and must name an item in the target's own scope.
  * Then `mergeChanges`. The scope reads only `to`, so a new `add` kind, or a restatement, passes through it to `checkChange`. The target may be a
  * step at any depth.
  */
@@ -979,10 +1124,12 @@ export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknow
     }
     const scope = new Set(scopePaths(step.items))
     const problems = changes.flatMap((entry, index) => {
-        if (isRecord(entry) && 'replace' in entry) {
-            return typeof entry.replace !== 'string' || scope.has(entry.replace.trim()) || !planSteps(plan).some(({ items }) => scopePaths(items).includes((entry.replace as string).trim()))
+        const checkKey = isRecord(entry) ? (['replace', 'remove'] as const).find((key) => key in entry) : undefined
+        if (isRecord(entry) && checkKey !== undefined) {
+            const named = entry[checkKey]
+            return typeof named !== 'string' || scope.has(named.trim()) || !planSteps(plan).some(({ items }) => scopePaths(items).includes(named.trim()))
                 ? []
-                : [`change ${index + 1}: replace "${entry.replace}" is not in the step being expanded, ${target}`]
+                : [`change ${index + 1}: ${checkKey} "${named}" is not in the step being expanded, ${target}`]
         }
         const to = isRecord(entry) ? entry.to : undefined
         return to === undefined || (typeof to === 'string' && to.trim() === target)
@@ -992,7 +1139,7 @@ export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknow
     if (problems.length > 0) {
         return { problems }
     }
-    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (isRecord(entry) && !('replace' in entry) ? { ...entry, to: target } : entry)) }, handles, options)
+    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (isRecord(entry) && !('replace' in entry) && !('remove' in entry) ? { ...entry, to: target } : entry)) }, handles, options)
 }
 
 /**

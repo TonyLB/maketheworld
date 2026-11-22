@@ -2,7 +2,7 @@ import { consequencesCells } from '../imaginationPieces/consequences'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { playByPlayCells } from '../imaginationPieces/playByPlay'
 import { nonRuleCellCells } from '../oraclePieces/nonRuleCell'
-import { bracketChanges, bracketHandles, itemPaths, mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planOf, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, planSteps, renderPlanForGenerator, slug, type ActionPlan, type MergeOptions } from './actionPlan'
+import { bracketChanges, bracketHandles, itemPaths, mergeChanges, mergeStepChanges, mintPaths, orderItems, planChangesContract, planOf, planFromActions, planFromCandidateSteps, planFromNonRuleSteps, planSteps, renderPlanForGenerator, slug, viewPlan, WHOLE_PLAN_VIEW, type ActionPlan, type MergeOptions } from './actionPlan'
 import { oracleCases } from './oracleCases'
 
 const allPaths = ({ steps }: ActionPlan): string[] => steps.flatMap(({ path, items }) => [path, ...items.flatMap(itemPaths)])
@@ -517,12 +517,12 @@ describe('the action plan', () => {
                 expect(expanded(once, [{ ...restate, answered: 'how [cup1] is held' }]).steps[0].alreadyAnswers).toEqual([ANSWERED, 'how [cup1] is held'])
             })
 
-            it('revises on a changed intent: the items leave, the path kept, the intent the restatement\'s, a carried consequence unchecked', () => {
+            it('revises on a changed intent: the path kept, the intent the restatement\'s, a consequence given again by the reviser kept unchecked and stale', () => {
                 const before = expanded(pour(), [spills], asConsequences)
                 const plan = expanded(before, [{ ...restate, intent: '[tea2] is in [cup1]' }, spills], restating)
                 expect(plan.steps).toEqual([{ says: POUR, suppliedBy: 'system', path: 'pour-tea2-teapot1', standing: 'confirmed', alreadyAnswers: [ANSWERED], items: [
                     { kind: 'intent', path: 'pour-tea2-teapot1.intent', standing: 'confirmed', says: '[tea2] is in [cup1]' },
-                    { kind: 'consequence', path: 'pour-tea2-teapot1.tea2-spills-over', standing: 'unchecked', says: '[tea2] spills over [table1]' },
+                    { kind: 'consequence', path: 'pour-tea2-teapot1.tea2-spills-over', standing: 'unchecked', stale: true, says: '[tea2] spills over [table1]' },
                 ] }])
             })
 
@@ -598,12 +598,14 @@ describe('the action plan', () => {
                 expect(refusedWith(once, [{ ...expand, to: 'lift-teapot1-table1.intent' }])).toEqual(['change 1: to "lift-teapot1-table1.intent" names a sub-item, not a step'])
             })
 
-            it('refuses a replacement aimed at an item of a step the block revises, since that item leaves', () => {
+            it('takes a replacement aimed at an item of a step the block revises: the item stays, so it is replaced, under the new path when the path moves', () => {
                 const proposed = expanded(pour(), [spills], { author: 'playByPlay', adds: ['consequence'] })
                 const replace = { replace: 'pour-tea2-teapot1.tea2-spills-over', with: { says: '[tea2] stays in [teapot1]' } }
-                expect(refusedWith(proposed, [{ ...restate, intent: '[tea2] is in [cup1]' }, replace], { author: 'consequences', restates: true, replaces: true })).toEqual([
-                    'change 2: "pour-tea2-teapot1.tea2-spills-over" is on step pour-tea2-teapot1, which this block revises; a revised step\'s items leave',
-                ])
+                const checking: MergeOptions = { author: 'consequences', restates: true, replaces: true }
+                const kept = expanded(proposed, [{ ...restate, intent: '[tea2] is in [cup1]' }, replace], checking)
+                expect(kept.steps[0].items[1]).toEqual({ kind: 'consequence', path: 'pour-tea2-teapot1.tea2-stays-in', standing: 'confirmed', says: '[tea2] stays in [teapot1]' })
+                const moved = expanded(proposed, [{ ...restate, says: 'tip [teapot1] over [cup1]' }, replace], checking)
+                expect(moved.steps[0].items[1]).toMatchObject({ path: 'tip-teapot1-over.tea2-stays-in', standing: 'confirmed' })
             })
 
             it('brackets bare handles in a sub-step\'s says and intent', () => {
@@ -751,7 +753,7 @@ describe('the action plan', () => {
                     expect(plan).toEqual(conceded())
                 })
 
-                it('gives it again after a revision: the old item left, the repeat goes in under its own path', () => {
+                it('drops it after a revision too: the kept child is the repeat\'s, under its own path (VW-2)', () => {
                     const plan = mergedBy(conceded(), [{ ...restate, intent: '[table1] is off the floor' }, cannot], by('playByPlay'))
                     expect(planSteps(plan)[0].items.flatMap(itemPaths)).toEqual(['pick-up-table1.intent', 'pick-up-table1.table1-cannot-be', 'pick-up-table1.table-secured-to-wall'])
                 })
@@ -789,6 +791,109 @@ describe('the action plan', () => {
 
             it('refuses any rule when the merge names no rules the scene holds', () => {
                 expect(refusedBy(pickUp(), [cannot], { author: 'playByPlay', adds: ['consequence'] })).toEqual(['change 1: rule 1: rule "table-secured-to-wall" is not a rule the scene holds'])
+            })
+
+            describe('a revision calls its step\'s children into question (AGENT.pieceViews.planning.md, VW-2)', () => {
+                const revise = { restate: 'step', to: 'pick-up-table1', says: 'pick up [table1]', intent: '[table1] is off the floor', answered: 'how [table1] is held' }
+                // The step with a confirmed consequence beside the unchecked proposal and its rule.
+                const held = () => mergedBy(conceded(), [{ add: 'consequence', to: 'pick-up-table1', says: '[cup1] rises' }], by('consequences'))
+
+                it('keeps every child, each unchecked and stale, its rules with it; the intent the restatement\'s', () => {
+                    expect(mergedBy(held(), [revise], by('playByPlay')).steps[0].items).toEqual([
+                        { kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: '[table1] is off the floor' },
+                        { kind: 'consequence', path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', stale: true, says: '[table1] cannot be lifted', rules: [
+                            { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'unchecked', stale: true, rule: 'table-secured-to-wall', stance: 'violation' },
+                        ] },
+                        { kind: 'consequence', path: 'pick-up-table1.cup1-rises', standing: 'unchecked', stale: true, says: '[cup1] rises' },
+                    ])
+                })
+
+                it('moves them under a path minted afresh, their slugs kept, and keeps the step\'s already-answered details', () => {
+                    const plan = mergedBy(held(), [{ ...revise, says: 'lift [table1]' }], by('playByPlay'))
+                    expect(plan.steps[0]).toMatchObject({ path: 'lift-table1', alreadyAnswers: ['how [table1] is held'] })
+                    expect(plan.steps[0].items.flatMap(itemPaths)).toEqual(['lift-table1.intent', 'lift-table1.table1-cannot-be', 'lift-table1.table-secured-to-wall', 'lift-table1.cup1-rises'])
+                    expectWellFormed('moved', plan)
+                })
+
+                it('keeps a possibility and a concern too, and frees no execution possibility', () => {
+                    const possible = { add: 'possibility', to: 'pick-up-table1', kind: 'execution', says: 'the grip holds', branches: [[], [{ says: '[table1] drops' }]] }
+                    const withSpread = mergedBy(conceded(), [possible, { add: 'concern', to: 'pick-up-table1', says: 'the chain may hold' }], by('consequences', { adds: ['possibility', 'concern'] }))
+                    const revised = mergedBy(withSpread, [{ ...revise, says: 'lift [table1]' }], by('playByPlay'))
+                    expect(revised.steps[0].items.filter(({ kind }) => kind === 'possibility' || kind === 'concern')).toMatchObject([
+                        { kind: 'possibility', path: 'lift-table1.execution', standing: 'unchecked', stale: true, branches: [{ path: 'lift-table1.maybe' }, { path: 'lift-table1.maybe-2', items: [{ path: 'lift-table1.table1-drops' }] }] },
+                        { kind: 'concern', path: 'lift-table1.chain-may-hold', standing: 'unchecked', stale: true },
+                    ])
+                    expect(refusedBy(withSpread, [revise, possible], by('consequences', { adds: ['possibility'] }))).toEqual(['change 2: step pick-up-table1 already has an execution possibility; a step holds at most one'])
+                })
+
+                it('leaves the mark when the reviser gives a child again: the step is its, the consequence isn\'t (the user, 2026-11-21)', () => {
+                    const plan = mergedBy(held(), [revise, cannot], by('playByPlay'))
+                    expect(plan.steps[0].items.filter(({ kind }) => kind === 'consequence')).toHaveLength(2)
+                    expect(plan.steps[0].items[1]).toMatchObject({ path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', stale: true })
+                })
+
+                it('settles a stale child its authority gives again: confirmed, no longer stale; its rules keep their own standing and mark', () => {
+                    const revised = mergedBy(held(), [revise], by('playByPlay'))
+                    const plan = mergedBy(revised, [cannot, { add: 'consequence', to: 'pick-up-table1', says: '[cup1] rises' }], by('consequences'))
+                    expect(plan.steps[0].items.slice(1)).toEqual([
+                        { kind: 'consequence', path: 'pick-up-table1.table1-cannot-be', standing: 'confirmed', says: '[table1] cannot be lifted', rules: [
+                            { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'unchecked', stale: true, rule: 'table-secured-to-wall', stance: 'violation' },
+                        ] },
+                        { kind: 'consequence', path: 'pick-up-table1.cup1-rises', standing: 'confirmed', says: '[cup1] rises' },
+                    ])
+                })
+
+                it('clears it by a replace, the authority\'s new item', () => {
+                    const revised = mergedBy(held(), [revise], by('playByPlay'))
+                    const plan = mergedBy(revised, [{ replace: 'pick-up-table1.cup1-rises', with: { says: '[cup1] rises' } }], by('consequences', { replaces: true }))
+                    expect(plan.steps[0].items[2]).toEqual({ kind: 'consequence', path: 'pick-up-table1.cup1-rises', standing: 'confirmed', says: '[cup1] rises' })
+                })
+
+                it('renders no stale mark', () => {
+                    expect(renderPlanForGenerator(mergedBy(held(), [revise], by('playByPlay')))).not.toContain('stale')
+                })
+            })
+
+            describe('remove: the kind\'s authority takes out an unchecked item it rejects', () => {
+                const checker = (author: MergeOptions['author']) => by(author, { replaces: true })
+
+                it('removes a consequence with its rules, and a rule from its consequence', () => {
+                    expect(mergedBy(conceded(), [{ remove: 'pick-up-table1.table1-cannot-be' }], checker('consequences')).steps[0].items).toEqual(pickUp().steps[0].items)
+                    expect(mergedBy(conceded(), [{ remove: 'pick-up-table1.table-secured-to-wall' }], checker('ruleCell')).steps[0].items[1]).toEqual({
+                        kind: 'consequence', path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', says: '[table1] cannot be lifted',
+                    })
+                })
+
+                it('removes a stale child of a step the same block revises, by its old path', () => {
+                    const plan = mergedBy(conceded(), [{ restate: 'step', to: 'pick-up-table1', says: 'lift [table1]', answered: 'how' }, { remove: 'pick-up-table1.table1-cannot-be' }], checker('consequences'))
+                    expect(plan.steps[0].items.flatMap(itemPaths)).toEqual(['lift-table1.intent'])
+                })
+
+                it('takes no `to` when scoped to a step, and refuses an item outside it', () => {
+                    const two = mergedBy(planOf([
+                        { step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [] }, { step: { says: 'set down [table1]', suppliedBy: 'system' }, items: [] },
+                    ]), [{ ...cannot }], by('playByPlay'))
+                    expect(mergeStepChanges(two, 'pick-up-table1', { changes: [{ remove: 'pick-up-table1.table1-cannot-be' }] }, handles, checker('consequences'))).toMatchObject({ plan: { steps: [{ items: [] }, {}] } })
+                    expect(mergeStepChanges(two, 'set-down-table1', { changes: [{ remove: 'pick-up-table1.table1-cannot-be' }] }, handles, checker('consequences'))).toEqual({
+                        problems: ['change 1: remove "pick-up-table1.table1-cannot-be" is not in the step being expanded, set-down-table1'],
+                    })
+                })
+
+                it.each([
+                    ['by default', [{ remove: 'pick-up-table1.table1-cannot-be' }], by('consequences'), ['change 1: "remove" isn\'t a change this block takes']],
+                    ['by another kind\'s authority', [{ remove: 'pick-up-table1.table1-cannot-be' }], checker('ruleCell'), ['change 1: only consequences removes a consequence; this block is ruleCell\'s']],
+                    ['an intent', [{ remove: 'pick-up-table1.intent' }], checker('playByPlay'), ['change 1: remove takes a consequence or a rule, not an intent']],
+                    ['a step', [{ remove: 'pick-up-table1' }], checker('consequences'), ['change 1: remove "pick-up-table1" names a step; a step isn\'t removed']],
+                    ['another key', [{ remove: 'pick-up-table1.table1-cannot-be', with: { says: 'x' } }], checker('consequences'), ['change 1: has "with", not one of remove']],
+                    ['an item replaced in the same block', [{ remove: 'pick-up-table1.table1-cannot-be' }, { replace: 'pick-up-table1.table1-cannot-be', with: { says: 'x' } }], checker('consequences'), ['change 2: "pick-up-table1.table1-cannot-be" is already replaced or removed in this block']],
+                ])('refuses a remove %s', (_, changes, options, problems) => {
+                    expect(refusedBy(conceded(), changes, options)).toEqual(problems)
+                })
+
+                it('refuses a confirmed item', () => {
+                    const confirmed = mergedBy(pickUp(), [{ add: 'consequence', to: 'pick-up-table1', says: '[cup1] rises' }], by('consequences'))
+                    expect(refusedBy(confirmed, [{ remove: 'pick-up-table1.cup1-rises' }], checker('consequences'))).toEqual(['change 1: "pick-up-table1.cup1-rises" is confirmed; only an unchecked item is removed'])
+                })
             })
 
             describe('replace: the kind\'s authority replaces an unchecked item with a confirmed one', () => {
@@ -832,7 +937,7 @@ describe('the action plan', () => {
                     ['a with that is not an object', [{ replace: PATH, with: 'x' }], checker('consequences'), ['change 1: with: "with" is not an object']],
                     ['a with with no says', [{ replace: PATH, with: { thing: 'table1' } }], checker('consequences'), ['change 1: with: has no non-empty string "says"']],
                     ['another key', [{ replace: PATH, with: { says: 'x' }, to: 'pick-up-table1' }], checker('consequences'), ['change 1: has "to", not one of replace, with']],
-                    ['one item twice', [{ replace: PATH, with: { says: 'x' } }, { replace: PATH, with: { says: 'y' } }], checker('consequences'), ['change 2: "pick-up-table1.table1-cannot-be" is already replaced in this block']],
+                    ['one item twice', [{ replace: PATH, with: { says: 'x' } }, { replace: PATH, with: { says: 'y' } }], checker('consequences'), ['change 2: "pick-up-table1.table1-cannot-be" is already replaced or removed in this block']],
                 ])('refuses a replace %s', (_, changes, options, problems) => {
                     expect(refusedBy(conceded(), changes, options)).toEqual(problems)
                 })
@@ -867,5 +972,65 @@ describe('the action plan', () => {
                 '  - concern tip-table1.cup1-no-longer: [cup1] is no longer under [teapot1]\'s spout',
             ].join('\n'))
         })
+    })
+})
+
+describe('a view of the plan (AGENT.pieceViews.planning.md, VW-1 and VW-5)', () => {
+    const merged = (plan: ActionPlan, target: string, changes: unknown[], options: MergeOptions): ActionPlan => {
+        const result = mergeStepChanges(plan, target, { changes }, [], options)
+        if ('problems' in result) {
+            throw new Error(result.problems.join('; '))
+        }
+        return result.plan
+    }
+    // One step: its confirmed intent, a confirmed consequence, possibility and concern from `consequences`; an unchecked consequence with
+    // its unchecked rule from `playByPlay`; and a second step expanded by `playByPlay`, a sub-step holding an unchecked consequence.
+    const base = planOf([
+        { step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [{ kind: 'intent', says: 'pick up [table1]' }] },
+        { step: { says: 'set down [table1]', suppliedBy: 'system' }, items: [] },
+    ])
+    const fromConsequences = merged(base, 'pick-up-table1', [
+        { add: 'consequence', says: '[cup1] rises with [table1]' },
+        { add: 'possibility', kind: 'execution', says: 'the grip holds', branches: [[], [{ says: '[table1] drops' }]] },
+        { add: 'concern', says: 'the tea may spill' },
+    ], { author: 'consequences' })
+    const plan = merged(
+        merged(fromConsequences, 'pick-up-table1', [{ add: 'consequence', says: '[table1] pulls against its chain', rules: [{ rule: 'table-secured-to-wall', stance: 'violation' }] }], { author: 'playByPlay', adds: ['consequence'], rules: ['table-secured-to-wall'] }),
+        'set-down-table1',
+        [{ add: 'steps', steps: [{ says: 'lower [table1]', consequences: [{ says: '[table1] touches the floor' }] }, { says: 'let go of [table1]' }] }],
+        { author: 'playByPlay', adds: ['steps'] },
+    )
+    const lines = (view: Parameters<typeof viewPlan>[1]): string => renderPlanForGenerator(viewPlan(plan, view))
+
+    it('gives the plan back as it is when it reads every kind at all, so its render and hash are unchanged', () => {
+        expect(viewPlan(plan, WHOLE_PLAN_VIEW)).toEqual(plan)
+        expect(lines(WHOLE_PLAN_VIEW)).toBe(renderPlanForGenerator(plan))
+    })
+
+    it('keeps only confirmed entries of a kind read authoritative, its own unchecked proposals included', () => {
+        const text = lines({ reads: { step: 'all', intent: 'all', consequence: 'authoritative', possibility: 'authoritative' } })
+        expect(text).toContain('consequence pick-up-table1.cup1-rises-table1: [cup1] rises with [table1]')
+        expect(text).toContain('possibility (execution)')
+        expect(text).not.toContain('pulls against its chain')
+        expect(text).not.toContain('Rule (')
+        expect(text).not.toContain('[table1] touches the floor')
+        expect(text).toContain('step lower-table1: lower [table1]')
+        expect(text).not.toContain('concern')
+    })
+
+    it('drops a consequence\'s rules when rules aren\'t read, keeping the consequence', () => {
+        const text = lines({ reads: { consequence: 'all' } })
+        expect(text).toContain('pulls against its chain')
+        expect(text).not.toContain('Rule (')
+    })
+
+    it('always keeps the top-level steps and their already-answered details; a sub-step not read takes its items with it', () => {
+        const answered = merged(plan, 'pick-up-table1', [{ restate: 'step', says: 'pick up [table1]', answered: 'how [table1] is held' }], { author: 'playByPlay', restates: true })
+        const text = renderPlanForGenerator(viewPlan(answered, { reads: {} }))
+        expect(text).toBe([
+            'Step pick-up-table1: pick up [table1]',
+            '  - already answers: how [table1] is held',
+            'Step set-down-table1: set down [table1]',
+        ].join('\n'))
     })
 })

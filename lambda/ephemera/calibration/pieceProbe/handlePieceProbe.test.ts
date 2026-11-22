@@ -5,6 +5,7 @@ import { joinParts, registerFamily, registerPiece, type RegistryEntry } from './
 /** A toy piece: a cell's inputs are a word, rendered as a line; an empty word is answered `no` by code. */
 const TOY = registerPiece<{ word: string }, { shout: boolean }>({
     name: 'toy',
+    view: { plan: { reads: {} } },
     answers: ['yes', 'no'],
     cells: {
         A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
@@ -32,6 +33,7 @@ const TOY = registerPiece<{ word: string }, { shout: boolean }>({
 const TOY_READ = registerPiece<{ word: string }, undefined>({
     kind: 'read',
     name: 'toyRead',
+    view: { plan: { reads: {} } },
     cells: {
         A: { inputs: { word: 'apple' }, lookFor: 'mentions fruit', source: 'hand-written' },
         B: { inputs: { word: 'brick' }, lookFor: 'mentions building', source: 'hand-written' },
@@ -55,6 +57,7 @@ const TOY_READ = registerPiece<{ word: string }, undefined>({
 const FIRST = registerPiece<{ word: string }, { loud: boolean }>({
     kind: 'read',
     name: 'toyFamily first',
+    view: { plan: { reads: {} } },
     cells: { A: { inputs: { word: 'apple' }, lookFor: 'the first stage', source: 'hand-written' } },
     check: (reply) => (reply.startsWith('first') ? [] : ['not the first stage\'s reply']),
     parseOptions: (value) => {
@@ -66,6 +69,7 @@ const FIRST = registerPiece<{ word: string }, { loud: boolean }>({
 const SECOND = registerPiece<{ word: string }, { from: string }>({
     kind: 'read',
     name: 'toyFamily second',
+    view: { plan: { reads: {} } },
     cells: {
         A: { inputs: { word: 'apple' }, lookFor: 'the second stage', source: 'hand-written' },
         B: { inputs: { word: 'brick' }, lookFor: 'the second stage', source: 'hand-written' },
@@ -80,6 +84,7 @@ const SECOND = registerPiece<{ word: string }, { from: string }>({
 /** An answered third stage, graded by its own `grade`, which reads the rendered text and the payload's options: `{ word }`, the answer that counts as yes. */
 const THIRD = registerPiece<{ word: string }, { word: string }>({
     name: 'toyFamily third',
+    view: { plan: { reads: {} } },
     answers: ['yes', 'no'],
     cells: {
         A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
@@ -134,6 +139,7 @@ describe('handlePieceProbe', () => {
         /** A toy whose grade gives the reply's word and its length, so an answer carries a parameter; a cell with no expected answer is open. */
         const GRADED = registerPiece<{ word: string }, undefined>({
             name: 'graded',
+            view: { plan: { reads: {} } },
             answers: ['say'],
             cells: {
                 A: { inputs: { word: 'apple' }, expected: 'say 5', lookFor: 'a fruit', source: 'hand-written' },
@@ -361,6 +367,7 @@ describe('handlePieceProbe', () => {
         const PARTS = ({ inputs: { word } }: { inputs: { word: string } }) => ({ system: `Scene: ${word}`, user: `Question: ${word}?` })
         const SPLIT = registerPiece<{ word: string }, undefined>({
             name: 'split',
+            view: { plan: { reads: {} } },
             answers: ['yes', 'no'],
             cells: {
                 A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
@@ -373,6 +380,7 @@ describe('handlePieceProbe', () => {
         const SPLIT_READ = registerPiece<{ word: string }, undefined>({
             kind: 'read',
             name: 'splitRead',
+            view: { plan: { reads: {} } },
             cells: { A: { inputs: { word: 'apple' }, lookFor: 'mentions fruit', source: 'hand-written' } },
             check: () => [],
             parseOptions: () => undefined,

@@ -12,6 +12,7 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../../llm
 import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs, type SecuringShown } from '../nonRuleCell'
 import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRuling } from './trialCases'
+import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
 
 const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
 
@@ -78,6 +79,7 @@ export const trialAgainstCells: Record<string, ReadPieceCell<NonRuleCellInputs>>
 export const trialAgainst: ReadPiece<NonRuleCellInputs, TrialAgainstOptions> = {
     kind: 'read',
     name: 'trial against',
+    view: { plan: NO_PLAN_VIEW },
     cells: trialAgainstCells,
     check: checkTrialAgainst,
     parseOptions: parseTrialAgainstOptions,

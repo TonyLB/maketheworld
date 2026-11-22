@@ -105,9 +105,24 @@ describe('playByPlay', () => {
             expect(playByPlay.parseOptions({ rules: 'handles' })).toEqual({ rules: 'handles', scene: 'explicit' })
         })
 
-        it('pins the cells\' inputs hashes on the default (OC-20/proposed new 2026-11-20; the label "The step asked about:" from draft 25; batch 47 ran 38feccd3, f901398c, a0d0b486, 3ee72b31, f7943193, e6c6d43b, 64eca640 on "The step to expand:"; OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
+        it('pins the cells\' inputs hashes on the default (the view from 2026-11-21, OC-20/concession and OC-20/proposed rendering as OC-20 since their proposals are hidden; batches until then ran them on 20982627, 27983e17; OC-20/proposed new 2026-11-20; the label "The step asked about:" from draft 25; batch 47 ran 38feccd3, f901398c, a0d0b486, 3ee72b31, f7943193, e6c6d43b, 64eca640 on "The step to expand:"; OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {
             const hashes = await Promise.all((['OC-1', 'OC-1b', 'OC-6', 'OC-6/command', 'OC-19', 'OC-20', 'OC-20/concession', 'OC-20/proposed'] as const).map(async (id) => textHash(await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS))))
-            expect(hashes).toEqual(['1395e48e', '7bfddef2', '144e5e15', '75d624f0', '2f1e1d3e', 'bfb8a376', '20982627', '27983e17'])
+            expect(hashes).toEqual(['1395e48e', '7bfddef2', '144e5e15', '75d624f0', '2f1e1d3e', 'bfb8a376', 'bfb8a376', 'bfb8a376'])
+        })
+
+        it('renders the plan its view reads (AGENT.pieceViews.planning.md): no proposal, its own included; the unchecked intent it restates; a confirmed consequence', async () => {
+            for (const id of ['OC-20/concession', 'OC-20/proposed'] as const) {
+                const text = await renderPlayByPlay(playByPlayCells[id], PLAY_BY_PLAY_OPTIONS)
+                expect([id, text]).toEqual([id, await renderPlayByPlay(playByPlayCells['OC-20'], PLAY_BY_PLAY_OPTIONS)])
+                expect(text).not.toContain('Rule (')
+            }
+            expect(await renderPlayByPlay(playByPlayCells['OC-6/command'], PLAY_BY_PLAY_OPTIONS)).toContain('- intent pour-tea-cup.intent (unchecked): pour tea into cup')
+            const confirmed = mergeStepChanges(playByPlayPlans['OC-20'], 'pick-up-table1', { changes: [{ add: 'consequence', says: '[table1] rises' }] }, [], { author: 'consequences' })
+            if ('problems' in confirmed) {
+                throw new Error(confirmed.problems.join('; '))
+            }
+            const cell = { ...playByPlayCells['OC-20'], inputs: { ...playByPlayCells['OC-20'].inputs, plan: confirmed.plan } }
+            expect(await renderPlayByPlay(cell, PLAY_BY_PLAY_OPTIONS)).toContain('- consequence pick-up-table1.table1-rises: [table1] rises')
         })
 
         it('shows each securing with its rule\'s handle by default, and none with rules: none', async () => {
@@ -328,11 +343,13 @@ describe('playByPlay', () => {
                 expect(plan.steps[0].items.filter(({ kind }) => kind !== 'step')).toEqual(cell.inputs.plan.steps[0].items)
             })
 
-            it('drops it when the record revises the step, and a copy carried forward comes back unchecked', async () => {
+            it('keeps it, stale, when the record revises the step; a copy given again is a repeat, the mark left for its authority (VW-2)', async () => {
                 const revised = await parsed({ says: 'pick up [table1]', intent: '[table1] is off the floor', steps: grip })
-                expect(revised.steps[0].items.filter(({ kind }) => kind !== 'step').map(({ kind }) => kind)).toEqual(['intent'])
+                expect(revised.steps[0].items.find(({ kind }) => kind === 'consequence')).toMatchObject({ path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', stale: true })
                 const carried = await parsed({ says: 'pick up [table1]', intent: '[table1] is off the floor', steps: grip, consequences: [{ says: '[table1] cannot be lifted', rules: [{ rule: 'table-secured-to-wall', stance: 'violation' }] }] })
-                expect(carried.steps[0].items.find(({ kind }) => kind === 'consequence')).toMatchObject({ path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked' })
+                const consequences = carried.steps[0].items.filter(({ kind }) => kind === 'consequence')
+                expect(consequences).toHaveLength(1)
+                expect(consequences[0]).toMatchObject({ path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', stale: true })
             })
         })
 
