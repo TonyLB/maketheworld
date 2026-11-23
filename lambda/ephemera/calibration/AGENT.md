@@ -1,6 +1,6 @@
 # Ephemera calibration (operator Bedrock tooling)
 
-Dev-only **read-only** operator tooling reached by direct Lambda invoke. Three trees: object-identity embedding calibration under [`objectMatch/`](objectMatch/) (the bulk of this doc), the scene reasoning probe under [`sceneReasoning/`](sceneReasoning/) (see [Scene reasoning probe](#scene-reasoning-probe)), and the oracle probe under [`oracleLoop/`](oracleLoop/), a prototype owned by the oracle loop plan (see [Oracle probe](#oracle-probe)). Beside them are the [piece probe](#piece-probe) and, in [`compositionProbe/`](compositionProbe/), the loop that chains pieces' calls, which no event runs yet ([its plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.compositionProbe.planning.md)). Embedding calibration tunes object-identity thresholds; production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
+Dev-only **read-only** operator tooling reached by direct Lambda invoke. Three trees: object-identity embedding calibration under [`objectMatch/`](objectMatch/) (the bulk of this doc), the scene reasoning probe under [`sceneReasoning/`](sceneReasoning/) (see [Scene reasoning probe](#scene-reasoning-probe)), and the oracle probe under [`oracleLoop/`](oracleLoop/), a prototype owned by the oracle loop plan (see [Oracle probe](#oracle-probe)). Beside them are the [piece probe](#piece-probe) and the [composition probe](#composition-probe), which chains pieces' calls. Embedding calibration tunes object-identity thresholds; production gates consume locked constants in [`embeddingMatch/thresholds.ts`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/thresholds.ts).
 
 **Layering:** this tree is Bedrock-backed operator tooling (Lambda invoke, corpus runs, snapshot JSON). Mocked parameter sweeps and admissibility A/B harnesses live in [`embeddingMatch/testing/`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/testing/) --- see **Mocked calibration harnesses** in [`embeddingMatch/AGENT.md`](../dataSource/actions/enrich/objectManipulation/embeddingMatch/AGENT.md). Those harnesses feed the same locked constants; snapshots here are the durable record.
 
@@ -326,6 +326,25 @@ A piece with no closed answer set, such as a generator, is registered with `kind
 - **The render is an arm, the rest is the view** ([Piece views](#piece-views)): `scene` stays a payload option during the migration; how much of the scene a piece shows and how its securing is stated are its view's.
 - **Scope:** calibration's pieces only. The production scene formats (`sceneProse`'s `SceneFormat`) are a separate question, which the scene projection plan's SP-10 (rendering for LLMs) owns.
 
+### Composition probe
+
+`CompositionProbe` runs chains of pieces' calls: code chooses each call from the state the last one left, until a chain stops. The harness is [`compositionProbe/`](compositionProbe/). Its rules (the choice of call, what a piece provides, the mocks and the trace) are in [its plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.compositionProbe.planning.md) until that closes. Same access boundary and cost as the piece probe.
+
+```json
+{ "type": "CompositionProbe", "cases": ["OC-6", "OC-20"], "repeats": 3, "model": "NovaMicro", "mocks": ["judge"],
+  "pieces": { "playByPlay": { "instructions": "..." }, "consequences": { "instructions": "..." } } }
+```
+
+- `pieces` is required: each live piece by its registered name, with its draft's `instructions` and, where it takes them, `options`. A piece can be called only if it declares a `part` ([a read piece](#a-read-piece)). `mocks` names the pieces each case's own mock stands in for, none by default. `cases` defaults to all ([`compositionCases.ts`](compositionProbe/compositionCases.ts)), `repeats` to 1 and `model` to `NovaMicro`. Delivery is always `user`.
+- **Caps** ([`handleCompositionProbe.ts`](compositionProbe/handleCompositionProbe.ts)): a chain takes at most 7 hops (`CHAIN_HOP_CAP`). A chain's calls run one after another, at up to 15 seconds each, and 7 of them fit `EphemeraFunction`'s 120 second timeout with 15 to spare. A batch's cases x repeats x 7 is at most 48 (`COMPOSITION_PROBE_HOP_CAP`). Both count mocked hops. Chains run concurrently.
+- **Every refusal happens before the first call:** an unknown case, piece or mock; a piece with no part; instructions that aren't a draft; options the piece refuses; bad repeats or model; a piece both live and mocked; two pieces that answer one kind of request; no judge, live or mocked; over the cap. Once a chain runs, however it stops is a result: a generator that isn't supplied stops the chain where it is asked for.
+- **Returns:**
+  - `model`, `temperature`, `repeats`, `cap` and `mocks`, and each piece's instructions `hash` and `chars` with its parsed `options`;
+  - **`cases` first:** for each, its `n` chains, how many stopped for each reason (`stops`), and where each chain that reached no verdict did (`short`: its repeat, its hops, and the stop);
+  - `summary`: chains, `liveCalls` made, and `stops`;
+  - `read`: for each case, its `source` and `start`, then each repeat's trace, its `hops` and its `stop`.
+- **Invoking from the AWS CLI** needs `--cli-read-timeout 0`: its default gives up after 60 seconds and sends the invoke again.
+
 ### The action plan
 
 **The action plan** ([`oracleLoop/actionPlan.ts`](oracleLoop/actionPlan.ts), a Prototype) is a plan's steps with a path each and sub-items under them, which generating pieces add to through a change language merged in by code. `playByPlayContract` restates one step of it, and may expand it into sub-steps, and `consequencesContract` adds sub-items to one step of it. **A bridge state** (the user, 2026-11-18): the trial and the other judging pieces don't read it yet; they render from their own step shapes, which the trial's render pins hold, until they move onto the plan (booked in the [oracle loop plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.oracleLoop.planning.md)'s Slice 4.5).
@@ -499,6 +518,7 @@ What the drafts have shown, for whoever writes the next prompt for Micro, groupe
 
 **The tools,** each run from `lambda/ephemera/`:
 - **`npm run assemble-draft -- <ask.txt> <core.txt | -> <out.json> --piece <name> [--repeats N] [--cells A,B] [--model M] [--options JSON]`** writes a [Piece probe](#piece-probe) payload from a draft's ask (and a core version, or `-` for none), and prints each part's hash (`pieceProbe/assembleDraft.ts`).
+- **`npm run assemble-chain -- <out.json> --piece <name> <ask.txt> <core.txt | -> [--piece ...] [--options <piece> JSON] [--mocks judge] [--cases A,B] [--repeats N] [--model M]`** writes a [Composition probe](#composition-probe) payload from each live piece's draft, and prints each part's hash. It checks the payload as the Lambda does, and refuses what it would (`compositionProbe/assembleChain.ts`).
 - **`npm run read-plans`** prints each reply's merged plan, with its form problems ([A read piece](#a-read-piece)).
 - **`npm run plan-census`** counts how `playByPlay` replies fill their slots across batches, and reads each reasoning line against its JSON ([A read piece](#a-read-piece)). It reads one line per decision; a reply that answers as a questionnaire reads as absent, so check its absent counts by hand.
 

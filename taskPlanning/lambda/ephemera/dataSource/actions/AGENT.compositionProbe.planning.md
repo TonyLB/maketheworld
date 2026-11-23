@@ -1,6 +1,6 @@
 # Composition probe: the first harness
 
-**Status (2026-11-23): written, then cut down the same day to the harness alone (the user); steps 0 (the design pass) and 1 (the loop, with no LLM) done; step 2, the probe, next.** What is built is in [`calibration/compositionProbe/`](../../../../../lambda/ephemera/calibration/compositionProbe/), with every call scripted; no LLM has run. A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user once `playByPlay` gave a working generator. An implementation plan over Prototypes: it builds the first harness that runs several chained LLM calls, and runs it once on two pieces as they are. When it is done, the [trial question plan](AGENT.trialQuestion.planning.md) resumes (the user).
+**Status (2026-11-23): written, then cut down the same day to the harness alone (the user); steps 0 (the design pass), 1 (the loop, with no LLM) and 2 (the probe) done; step 3, the first run, next.** What is built is in [`calibration/compositionProbe/`](../../../../../lambda/ephemera/calibration/compositionProbe/), with every call scripted; the event isn't deployed, and no LLM has run. A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user once `playByPlay` gave a working generator. An implementation plan over Prototypes: it builds the first harness that runs several chained LLM calls, and runs it once on two pieces as they are. When it is done, the [trial question plan](AGENT.trialQuestion.planning.md) resumes (the user).
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), under the parent's pilot of [`AGENT.designVariant.proposed.md`](../../../../AGENT.designVariant.proposed.md): what it shows about a guess goes up to the parent's [seam ledger](AGENT.oracleLoop.planning.md#seam-ledger).
 
@@ -125,11 +125,15 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - [X] the mocks (`mocks.ts`, and the cases' judge in `compositionCases.ts`): matching, finding the step, and the stop on no match. They are named functions in code, and are shown only the shared state and the request, never the log (mine);
    - [X] the loop (`runLoop.ts`), with every call scripted: a chain that ends in each stop reason, the cap included. `playByPlay`'s replies are batch 61b's, and its form fault batch 62's. `consequences`' are hand-written in draft 5's form, since no batch 6 reply was kept and its cells aren't these cases. The first chain's live prompts on OC-6 and OC-20 hash as their cells' do;
    - [X] the trace (`Hop` in `loopState.ts`).
-2. [ ] **The probe:** a `CompositionProbe` event beside `PieceProbe`, taking cases, repeats, each piece's instructions and the mocks, which it names (they are functions in code); its payload built by an npm script, as `assemble-draft` is; its call cap counted over whole chains. **Check first:** a chain's calls run one after another, each allowed 15 seconds (`PROBE_TIMEOUT_MS`), so the cap has to fit the deployed Lambda's own timeout, which isn't checked yet.
-   - [ ] the pieces' renders and pinned hashes unchanged.
+2. [X] **The probe:** a `CompositionProbe` event beside `PieceProbe`, taking cases, repeats, each piece's instructions and the mocks, which it names (they are functions in code); its payload built by an npm script, as `assemble-draft` is; its call cap counted over whole chains. **Check first:** a chain's calls run one after another, each allowed 15 seconds (`PROBE_TIMEOUT_MS`), so the cap has to fit the deployed Lambda's own timeout. **Done 2026-11-23** ([Composition probe](../../../../../lambda/ephemera/calibration/AGENT.md#composition-probe) has the payload and what it returns).
+   - [X] **the timeout check:** `template.yaml` gives `EphemeraFunction` 120 seconds (since 2026-04-20), and each call is aborted at 15. Seven calls are 105. Read from the template; the deployed function's own setting is checked at step 3;
+   - [X] the handler (`handleCompositionProbe.ts`), its refusals and tallies tested with every call scripted, OC-6 and OC-20 side by side included. Mine: a chain's cap of 7 hops, and a batch's of 48, counted over whole chains and mocked hops alike, so six chains; a missing generator is a chain's result, and a missing judge a refusal;
+   - [X] the route (`routeCalibrationEvent.ts`);
+   - [X] the payload script (`npm run assemble-chain`), which checks a payload as the handler does. On the kept drafts its hashes are theirs: `b9c18e42` and `affc196d`;
+   - [X] the pieces' renders and pinned hashes unchanged.
 3. [ ] **The first run:** the first chain, the two pieces live and untuned, a few chains each on CH-13's cases. A rubric written before the run, reviewed by the user, with my bounds listed apart.
    - [ ] **The rubric reads per hop:** was the choice right; was the input what that piece should get; was the answer right given its input; and where the chain first goes wrong.
-   - [ ] **The payload,** named by its full path. The user deploys and runs it.
+   - [ ] **The payload,** written by `npm run assemble-chain` and named by its full path. The user deploys and runs it, and looks first at the deployed function's timeout (120 seconds in the template; otherwise `LAMBDA_TIMEOUT_MS` changes).
    - [ ] **The read,** with the user. Any result is useful, every chain dying at its first live hop included.
 4. [ ] **Hand back** ([When it finishes](#when-it-finishes)).
 
@@ -146,7 +150,7 @@ Decisions made in order to build the harness. The leanings were mine; the user h
 
 | ID | Question | Blocks | Settled by | Status |
 | --- | --- | --- | --- | --- |
-| CH-2 | The stop reasons, and the cap (IM-3). Mine: a verdict; a piece asked for that isn't supplied; a form fault; the cap. The cap's value waits on step 2's timeout check | Step 1 | The user | **Settled** (the user, 2026-11-23), the cap's value aside |
+| CH-2 | The stop reasons, and the cap (IM-3). Mine: a verdict; a piece asked for that isn't supplied; a form fault; the cap. The cap's value waits on step 2's timeout check | Step 1 | The user | **Settled** (the user, 2026-11-23), the cap's value aside. Its value (mine, step 2): 7 hops, the most that fits the Lambda's timeout were every hop live. It is the Lambda's bound, and no answer to IM-3, which stays open |
 | CH-10 | Do the parent's Slices 5 and 6 fold in? Mine: Slice 5 (the loop by hand) does; Slice 6 keeps its tool-call check | None here | The user | **Settled** (the user, 2026-11-23) |
 | CH-11 | Where a piece's part in a chain is declared. Mine: an optional field on its registration, beside `view`, so a piece with none can't be called in a chain; and the contract named there, since today a read piece registers only its `check` | Step 1 | The user | **Settled** (the user, 2026-11-23), remembering that the graph of possible runs isn't a chain but something like a state machine ([the seam](#the-idea)) |
 | CH-12 | What the mocked judge answers. Mine: a typed value, either a verdict or one NR-3 request (the kind, the step's path, `missing`). It is the probe's stand-in, not a design of any judge's answer: the trial question plan's judges settle their own, and the type follows them | Step 1 | The user | **Settled** (the user, 2026-11-23) |
@@ -168,9 +172,9 @@ From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx 
 
 | Step | State |
 | --- | --- |
-| The design pass | **Done** (2026-11-23, the user): CH-2 and CH-10 to CH-13, `next`'s rules and the trace settled; the cap's value waits on step 2's timeout check |
+| The design pass | **Done** (2026-11-23, the user): CH-2 and CH-10 to CH-13, `next`'s rules and the trace settled |
 | The loop, with no LLM | **Done** (2026-11-23): the state and `next`, the seam, the mocks, the loop and the trace, every call scripted; no prompt or render changed |
-| The probe | Not started |
+| The probe | **Done** (2026-11-23): the event, its caps (7 hops a chain, 48 a batch; mine) and the payload script, every call scripted; not deployed |
 | The first run | Not started |
 | Hand back | Not started |
 
