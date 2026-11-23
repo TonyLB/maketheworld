@@ -13,6 +13,7 @@ import {
 } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { piecePart, requested } from '../pieceProbe/piecePart'
 import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
@@ -141,6 +142,13 @@ export const consequences: ReadPiece<ConsequencesInputs, ConsequencesOptions> = 
     name: 'consequences',
     view: CONSEQUENCES_VIEW,
     merges: CONSEQUENCES_MERGE,
+    part: piecePart({
+        answers: ['consequences'],
+        inputs: ({ fixture, plan, things }, request): ConsequencesInputs => ({ fixture, plan, target: requested('consequences', request).target, things }),
+        contract: consequencesContract,
+        result: (plan) => ({ plan }),
+        unread: ['missing'],
+    }),
     maxTokens: CONSEQUENCES_MAX_TOKENS,
     cells: consequencesCells,
     check: checkConsequences,

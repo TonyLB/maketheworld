@@ -6,6 +6,7 @@
 //
 import type { MergeOptions, PlanView } from '../oracleLoop/actionPlan'
 import type { PieceGrade } from './pieceAnswer'
+import type { PiecePart } from './piecePart'
 import type { SceneView } from './sceneRenders'
 
 /**
@@ -98,6 +99,8 @@ export type ReadPiece<Inputs = unknown, Options = unknown> = {
     view: PieceView
     /** What its contract's merge takes, for a piece whose reply merges into the plan: read by the checks over the registry (the mirror, the hidden-refusal invariant). */
     merges?: MergeOptions
+    /** What it provides to be called by the composition probe's loop. A piece without one can't be. */
+    part?: PiecePart<Inputs>
     cells: Record<string, ReadPieceCell<Inputs>>
     check: (reply: string, cell: ReadPieceCell<Inputs>, rendered: string, options: Options) => string[]
     parseOptions: (value: unknown) => Options | string

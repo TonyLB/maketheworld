@@ -1,6 +1,6 @@
 # Composition probe: the first harness
 
-**Status (2026-11-23): written, then cut down the same day to the harness alone (the user); nothing built yet; step 0, the design pass, done; step 1, the loop with no LLM, next.** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user once `playByPlay` gave a working generator. An implementation plan over Prototypes: it builds the first harness that runs several chained LLM calls, and runs it once on two pieces as they are. When it is done, the [trial question plan](AGENT.trialQuestion.planning.md) resumes (the user).
+**Status (2026-11-23): written, then cut down the same day to the harness alone (the user); steps 0 (the design pass) and 1 (the loop, with no LLM) done; step 2, the probe, next.** What is built is in [`calibration/compositionProbe/`](../../../../../lambda/ephemera/calibration/compositionProbe/), with every call scripted; no LLM has run. A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5, opened by the user once `playByPlay` gave a working generator. An implementation plan over Prototypes: it builds the first harness that runs several chained LLM calls, and runs it once on two pieces as they are. When it is done, the [trial question plan](AGENT.trialQuestion.planning.md) resumes (the user).
 
 Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), under the parent's pilot of [`AGENT.designVariant.proposed.md`](../../../../AGENT.designVariant.proposed.md): what it shows about a guess goes up to the parent's [seam ledger](AGENT.oracleLoop.planning.md#seam-ledger).
 
@@ -88,6 +88,12 @@ Agreed by the user (2026-11-23): what `next` does with the last response.
 | A reply failed its form check | Stops |
 | The request has no piece or mock to answer it | Stops, naming what was asked for |
 | The cap is reached | Stops |
+| A call failed, or a piece's inputs, render or contract threw (mine, added in step 1; the user agreed, 2026-11-23) | Stops, with the error |
+
+**Mine, in step 1's build:**
+- **Why the last row:** it can happen between two live pieces. `playByPlay` may improvise a thing the scene doesn't hold, which its contract allows, and `consequences`' render then throws "Unknown scene handle(s)" (as would `playByPlay`'s own, called again on that plan). A request for more of an already expanded step makes `playByPlay`'s render throw.
+- **The cap counts every hop,** mocked ones included, and is read only when another call would be made. So a verdict on the last allowed hop is a verdict, and "nothing answers" comes before the cap.
+- **"Nothing answers" covers a mocked piece with no matching entry** as well as a request no piece answers. Two pieces for one kind of request are refused before the run, since nothing here says how to choose between them.
 
 With one judge, the first and third rows are nearly forced. With several they aren't: after the plan changes, which judge goes next, and whether an earlier verdict still stands. This harness doesn't need that yet; the trial question plan's chains will raise it.
 
@@ -113,13 +119,13 @@ Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` a
    - [X] **The judge's answer** as the state holds it, and its mock (CH-12; settled 2026-11-23).
    - [X] **The inputs a request doesn't give, and the cases** (CH-13; settled 2026-11-23).
    - [X] **What a hop's log holds,** so a miss is traced to its piece, its inputs or `next` ([the trace](#the-trace); settled 2026-11-23).
-1. [ ] **The loop, with no LLM,** in code with tests, each part checked off as it lands. A new folder, `calibration/compositionProbe/`.
-   - [ ] the state, and `next` with its rules, tested on hand-built states;
-   - [ ] the seam, with `playByPlay`'s and `consequences`' parts declared;
-   - [ ] the mocks: matching, finding the step, and the stop on no match;
-   - [ ] the loop, with every call scripted from kept replies: a chain that ends in each stop reason, the cap included;
-   - [ ] the trace.
-2. [ ] **The probe:** a `CompositionProbe` event beside `PieceProbe`, taking cases, repeats, each piece's instructions and the mocks; its payload built by an npm script, as `assemble-draft` is; its call cap counted over whole chains. **Check first:** a chain's calls run one after another, each allowed 15 seconds (`PROBE_TIMEOUT_MS`), so the cap has to fit the deployed Lambda's own timeout, which isn't checked yet.
+1. [X] **The loop, with no LLM,** in code with tests, each part checked off as it lands. A new folder, `calibration/compositionProbe/`. **Done 2026-11-23.**
+   - [X] the state (`loopState.ts`), and `next` with its rules (`next.ts`), tested on hand-built states;
+   - [X] the seam, an optional `part` on a read piece's registration (`pieceProbe/piecePart.ts`), with `playByPlay`'s and `consequences`' declared. Each part rebuilds every one of its piece's cells' inputs exactly. An answered piece gets one when the first answered judge joins;
+   - [X] the mocks (`mocks.ts`, and the cases' judge in `compositionCases.ts`): matching, finding the step, and the stop on no match. They are named functions in code, and are shown only the shared state and the request, never the log (mine);
+   - [X] the loop (`runLoop.ts`), with every call scripted: a chain that ends in each stop reason, the cap included. `playByPlay`'s replies are batch 61b's, and its form fault batch 62's. `consequences`' are hand-written in draft 5's form, since no batch 6 reply was kept and its cells aren't these cases. The first chain's live prompts on OC-6 and OC-20 hash as their cells' do;
+   - [X] the trace (`Hop` in `loopState.ts`).
+2. [ ] **The probe:** a `CompositionProbe` event beside `PieceProbe`, taking cases, repeats, each piece's instructions and the mocks, which it names (they are functions in code); its payload built by an npm script, as `assemble-draft` is; its call cap counted over whole chains. **Check first:** a chain's calls run one after another, each allowed 15 seconds (`PROBE_TIMEOUT_MS`), so the cap has to fit the deployed Lambda's own timeout, which isn't checked yet.
    - [ ] the pieces' renders and pinned hashes unchanged.
 3. [ ] **The first run:** the first chain, the two pieces live and untuned, a few chains each on CH-13's cases. A rubric written before the run, reviewed by the user, with my bounds listed apart.
    - [ ] **The rubric reads per hop:** was the choice right; was the input what that piece should get; was the answer right given its input; and where the chain first goes wrong.
@@ -144,7 +150,7 @@ Decisions made in order to build the harness. The leanings were mine; the user h
 | CH-10 | Do the parent's Slices 5 and 6 fold in? Mine: Slice 5 (the loop by hand) does; Slice 6 keeps its tool-call check | None here | The user | **Settled** (the user, 2026-11-23) |
 | CH-11 | Where a piece's part in a chain is declared. Mine: an optional field on its registration, beside `view`, so a piece with none can't be called in a chain; and the contract named there, since today a read piece registers only its `check` | Step 1 | The user | **Settled** (the user, 2026-11-23), remembering that the graph of possible runs isn't a chain but something like a state machine ([the seam](#the-idea)) |
 | CH-12 | What the mocked judge answers. Mine: a typed value, either a verdict or one NR-3 request (the kind, the step's path, `missing`). It is the probe's stand-in, not a design of any judge's answer: the trial question plan's judges settle their own, and the type follows them | Step 1 | The user | **Settled** (the user, 2026-11-23) |
-| CH-13 | What a request doesn't give: `consequences`' `things`, `playByPlay`'s `alsoShown`, and which cases run. Mine: the case carries both lists by hand, as the cells do, and the trace logs the unread `missing` as a finding for the imagination plan; the target is the step the judge names, unexpanded or not. Cases: OC-6 and OC-20, with their `playByPlay` inputs as the cells have them, and OC-1 left out | Step 1's scripted chains; step 3 | The user | **Settled** (the user, 2026-11-23) |
+| CH-13 | What a request doesn't give: `consequences`' `things`, `playByPlay`'s `alsoShown`, and which cases run. Mine: the case carries both lists by hand, as the cells do, and the trace logs the unread `missing` as a finding for the imagination plan; the target is the step the judge names, unexpanded or not. Cases: OC-6 and OC-20, with their `playByPlay` inputs as the cells have them, and OC-1 left out | Step 1's scripted chains; step 3 | The user | **Settled** (the user, 2026-11-23). The `things` lists (mine, step 1; to confirm at step 3's rubric): OC-6 [table1] and [saucer1]; OC-20 [teapot1], [cup1], [saucer1] and [wall1], the wall because the chain otherwise drops out of `consequences`' scene when the live plan doesn't name it. The wording of each consequences request's `missing` is mine too, and no piece reads it |
 
 ## How we work
 
@@ -163,7 +169,7 @@ From `lambda/ephemera/`: `npm run test -- --watchAll=false </dev/null` and `npx 
 | Step | State |
 | --- | --- |
 | The design pass | **Done** (2026-11-23, the user): CH-2 and CH-10 to CH-13, `next`'s rules and the trace settled; the cap's value waits on step 2's timeout check |
-| The loop, with no LLM | Not started |
+| The loop, with no LLM | **Done** (2026-11-23): the state and `next`, the seam, the mocks, the loop and the trace, every call scripted; no prompt or render changed |
 | The probe | Not started |
 | The first run | Not started |
 | Hand back | Not started |
