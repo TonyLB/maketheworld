@@ -1,5 +1,5 @@
 //
-// A piece's part in the composition probe (AGENT.compositionProbe.planning.md, "The idea"): what a piece declares, beside its view, to be
+// A piece's part in the composition probe (calibration AGENT.md, "Composition probe"): what a piece declares, beside its view, to be
 // called by a loop that chains calls. It says which requests the piece answers and what its result does to the state, never what comes
 // after it: succession is the loop's alone (`compositionProbe/next.ts`), and nothing here assumes an order or that a piece runs once.
 //

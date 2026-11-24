@@ -56,7 +56,7 @@ describe('a mock', () => {
 describe('the cases', () => {
     it('carry the inputs a request doesn\'t give', () => {
         expect(Object.entries(compositionCases).map(([id, { start: { fixture, things, alsoShown } }]) => [id, fixture, things, alsoShown])).toEqual([
-            ['OC-6', 'teaTable', ['table1', 'saucer1'], ['table1']],
+            ['OC-6', 'teaTable', ['table1', 'saucer1', 'cup1'], ['table1']],
             ['OC-20', 'teaTableChained', ['teapot1', 'cup1', 'saucer1', 'wall1'], ['wall1']],
         ])
     })

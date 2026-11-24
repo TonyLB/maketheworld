@@ -1,5 +1,5 @@
 //
-// Assembles a CompositionProbe payload from each live piece's draft (AGENT.compositionProbe.planning.md, step 2), each draft put together as
+// Assembles a CompositionProbe payload from each live piece's draft (calibration AGENT.md, "Composition probe"), each draft put together as
 // the piece probe's are (`assembleDraft`), with its hashes. The payload is checked as the event's handler checks it, so one the Lambda would
 // refuse is refused here. Run from the command line through `assembleChainCli.ts`.
 //

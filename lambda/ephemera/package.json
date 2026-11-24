@@ -12,6 +12,7 @@
     "build": "esbuild app.ts --bundle --platform=node --target=es2020,node18 --external:@aws-sdk --minify --outfile=build/lambda.js",
     "assemble-draft": "esbuild calibration/pieceProbe/assembleDraftCli.ts --bundle --platform=node --log-level=warning | node -",
     "assemble-chain": "esbuild calibration/compositionProbe/assembleChainCli.ts --bundle --platform=node --log-level=warning | node -",
+    "read-chains": "esbuild calibration/compositionProbe/readChainsCli.ts --bundle --platform=node --log-level=warning | node -",
     "read-plans": "esbuild calibration/imaginationPieces/readPlansCli.ts --bundle --platform=node --log-level=warning | node -",
     "plan-census": "esbuild calibration/imaginationPieces/planCensusCli.ts --bundle --platform=node --log-level=warning | node -"
   },

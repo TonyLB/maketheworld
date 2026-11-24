@@ -92,7 +92,7 @@ describe('runLoop', () => {
 
     it('keeps the part of a request the piece has no place for', async () => {
         const { result: { hops } } = await run('OC-6', { playByPlay: OC6_REPLY, consequences: OC6_OUTCOME })
-        expect(hops.map(({ unread }) => unread)).toEqual([undefined, undefined, undefined, { missing: 'what happens to [table1] and [saucer1] as [teapot1] is moved' }, undefined])
+        expect(hops.map(({ unread }) => unread)).toEqual([undefined, undefined, undefined, { missing: 'what happens to [table1], [saucer1] and [cup1] as [teapot1] is moved' }, undefined])
     })
 
     it('shows consequences OC-20\'s chain, though the plan playByPlay left names no wall', async () => {

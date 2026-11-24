@@ -1,5 +1,5 @@
 //
-// The composition probe's loop (AGENT.compositionProbe.planning.md, "The idea"): it runs what pieces register with it, one fresh call per hop, until
+// The composition probe's loop (calibration AGENT.md, "Composition probe"): it runs what pieces register with it, one fresh call per hop, until
 // `next` gives a reason to stop. It never changes what a piece is asked, shows or accepts: a piece builds its own inputs, renders through its
 // own view, and its contract reads the reply.
 //

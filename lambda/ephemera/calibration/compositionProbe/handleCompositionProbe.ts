@@ -1,5 +1,5 @@
 //
-// The composition probe's event (AGENT.compositionProbe.planning.md, step 2): chains of the live pieces a payload names, with its drafts, on
+// The composition probe's event (calibration AGENT.md, "Composition probe"): chains of the live pieces a payload names, with its drafts, on
 // the composition cases, `repeats` times each. Every refusal happens before the first call. Once a chain runs, however it stops is a result.
 //
 import { isNovaModel, type NovaModel } from '../../llm/novaModel'

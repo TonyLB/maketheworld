@@ -1,5 +1,5 @@
 //
-// The composition probe's state (AGENT.compositionProbe.planning.md, "The idea" and "The trace"): what the pieces share, the request being
+// The composition probe's state (calibration AGENT.md, "Composition probe"): what the pieces share, the request being
 // answered, and the log of hops, which is the trace.
 //
 import type { HopResult, PieceRequest, PieceState } from '../pieceProbe/piecePart'

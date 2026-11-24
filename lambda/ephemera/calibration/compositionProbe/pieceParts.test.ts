@@ -1,5 +1,5 @@
 //
-// The parts the registered pieces declare (AGENT.compositionProbe.planning.md, "The idea"): a part builds exactly the inputs its piece's cells
+// The parts the registered pieces declare (calibration AGENT.md, "Composition probe"): a part builds exactly the inputs its piece's cells
 // have, so a hop asks what a cell asks.
 //
 import { consequencesCells, consequencesContract, consequences } from '../imaginationPieces/consequences'

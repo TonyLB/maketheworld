@@ -328,7 +328,7 @@ A piece with no closed answer set, such as a generator, is registered with `kind
 
 ### Composition probe
 
-`CompositionProbe` runs chains of pieces' calls: code chooses each call from the state the last one left, until a chain stops. The harness is [`compositionProbe/`](compositionProbe/). Its rules (the choice of call, what a piece provides, the mocks and the trace) are in [its plan](../../../taskPlanning/lambda/ephemera/dataSource/actions/AGENT.compositionProbe.planning.md) until that closes. Same access boundary and cost as the piece probe.
+`CompositionProbe` runs chains of pieces' calls: code chooses each call from the state the last one left, until a chain stops. The harness is [`compositionProbe/`](compositionProbe/). Same access boundary and cost as the piece probe. It runs what pieces register, and never changes what a piece is asked, shows or accepts. The first run and its reading are in [composition run 1's notes](../../../taskPlanning/lambda/ephemera/dataSource/actions/oracleLoopDrafts/composition/1.notes.md).
 
 ```json
 { "type": "CompositionProbe", "cases": ["OC-6", "OC-20"], "repeats": 3, "model": "NovaMicro", "mocks": ["judge"],
@@ -343,7 +343,37 @@ A piece with no closed answer set, such as a generator, is registered with `kind
   - **`cases` first:** for each, its `n` chains, how many stopped for each reason (`stops`), and where each chain that reached no verdict did (`short`: its repeat, its hops, and the stop);
   - `summary`: chains, `liveCalls` made, and `stops`;
   - `read`: for each case, its `source` and `start`, then each repeat's trace, its `hops` and its `stop`.
+- **Reading a response:** `npm run read-chains -- <results.json> [--prompts]` prints each chain hop by hop ([`chainsText.ts`](compositionProbe/chainsText.ts)): the request, what it left unread, the inputs hash, the reply, its form problems or error, and the plan where the hop changed it, as a generator reads it. `--prompts` adds each live hop's rendered text. It prints the run's own plans, with no replay of the replies.
 - **Invoking from the AWS CLI** needs `--cli-read-timeout 0`: its default gives up after 60 seconds and sends the invoke again.
+- **The deploy check** is the first live hop's inputs hash against its cell's, **and the response's `start`** against the case in the code. The hash can't see what only a later hop reads, such as `things`: a run on a stale build can pass it.
+
+#### The loop's rules
+
+The state is the action plan, the request being answered, and a log of hops ([`loopState.ts`](compositionProbe/loopState.ts)). Each turn chooses a call, makes it fresh, and applies its result. **A hop is a function of the state,** not of an earlier call's reasoning: a piece is never shown the log.
+
+**The choice** is [`next.ts`](compositionProbe/next.ts), pure code. Where an LLM's response makes a choice (a judge's request), `next` turns it into a call:
+
+| Situation | What `next` does |
+| --- | --- |
+| The start: no response yet | Calls the judge |
+| A judge made a request | Calls the piece that answers that kind |
+| A generator answered (a change to the plan, with no request in it) | Goes back to the judge, as a fresh call |
+| A judge gave a verdict | Stops |
+| A reply failed its form check | Stops |
+| No piece or mock answers the request | Stops, naming what was asked for; a mocked piece with no matching entry is the same |
+| The cap is reached | Stops. The cap is read only when another call would be made, so a verdict on the last allowed hop is a verdict |
+| A call failed, or a piece's inputs, render or contract threw | Stops, with the error. It can happen between two live pieces: a thing `playByPlay` improvises makes a later render throw |
+
+It has one judge. With several, two things have no rule yet: which judge goes after the plan changes, and whether an earlier verdict still stands.
+
+**What a piece provides** is its `part` ([`piecePart.ts`](pieceProbe/piecePart.ts)), declared with the piece as its view is: which requests it answers, how its inputs are built from the state and a request, its contract, and what its result does to the state. A piece never names its successor. One run is a chain, but what is possible is more like a state machine, so nothing assumes an order or that a piece runs once. A part rebuilds each of its piece's cells' inputs exactly. A piece that joins brings its own chains, as it brings its cells.
+
+**Mocks** ([`mocks.ts`](compositionProbe/mocks.ts)) stand in for pieces that don't exist, contract first: the missing piece's contract is designed in its own plan, and the probe mocks it once it exists.
+- **The result is mocked, not the reply,** and is applied as a real one is, through the piece's contract and merge.
+- **A mock matches on the request and the state,** never on the hop number, and finds its step in the state: a restated step's path is minted afresh.
+- **A mocked hop is marked in the trace,** and says nothing about whether Micro could do it. The cases' mocked judge takes any confirmed outcome on the step as an answer, whatever it asked about.
+
+**The trace** is the piece probe's record of each call, plus the piece, its request, whether it was mocked, the rendered text with its hash, and the plan after the hop as data.
 
 ### The action plan
 
@@ -519,6 +549,7 @@ What the drafts have shown, for whoever writes the next prompt for Micro, groupe
 **The tools,** each run from `lambda/ephemera/`:
 - **`npm run assemble-draft -- <ask.txt> <core.txt | -> <out.json> --piece <name> [--repeats N] [--cells A,B] [--model M] [--options JSON]`** writes a [Piece probe](#piece-probe) payload from a draft's ask (and a core version, or `-` for none), and prints each part's hash (`pieceProbe/assembleDraft.ts`).
 - **`npm run assemble-chain -- <out.json> --piece <name> <ask.txt> <core.txt | -> [--piece ...] [--options <piece> JSON] [--mocks judge] [--cases A,B] [--repeats N] [--model M]`** writes a [Composition probe](#composition-probe) payload from each live piece's draft, and prints each part's hash. It checks the payload as the Lambda does, and refuses what it would (`compositionProbe/assembleChain.ts`).
+- **`npm run read-chains`** prints a composition probe's chains, hop by hop ([Composition probe](#composition-probe)).
 - **`npm run read-plans`** prints each reply's merged plan, with its form problems ([A read piece](#a-read-piece)).
 - **`npm run plan-census`** counts how `playByPlay` replies fill their slots across batches, and reads each reasoning line against its JSON ([A read piece](#a-read-piece)). It reads one line per decision; a reply that answers as a questionnaire reads as absent, so check its absent counts by hand.
 

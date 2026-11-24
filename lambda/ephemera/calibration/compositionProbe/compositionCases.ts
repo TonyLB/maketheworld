@@ -1,5 +1,5 @@
 //
-// The composition probe's starting cases (AGENT.compositionProbe.planning.md, "The first chain"), each with its mocked judge. The fixture, the
+// The composition probe's starting cases (calibration AGENT.md, "Composition probe"), each with its mocked judge. The fixture, the
 // plan, what is also shown and the detail asked for are the case's `playByPlay` cell's, so the chain's first live call is the cell's own.
 // `things` is listed by hand, as `consequences`' cells list theirs.
 //
@@ -55,7 +55,8 @@ const fromCell = (id: string, things: readonly SceneHandle[], consequencesMissin
 }
 
 export const compositionCases: Record<string, CompositionCase> = {
-    'OC-6': fromCell('OC-6', ['table1', 'saucer1'], 'what happens to [table1] and [saucer1] as [teapot1] is moved'),
+    // The cup is listed though the plan names it: the things listed are those whose motion the plan doesn't state, named or not.
+    'OC-6': fromCell('OC-6', ['table1', 'saucer1', 'cup1'], 'what happens to [table1], [saucer1] and [cup1] as [teapot1] is moved'),
     // The wall is listed so the chain stays in `consequences`' scene when the live plan doesn't name the wall.
     'OC-20': fromCell('OC-20', ['teapot1', 'cup1', 'saucer1', 'wall1'], 'what happens to the other things as [table1] is lifted'),
 }

@@ -1,5 +1,5 @@
 //
-// The composition probe's one choice (AGENT.compositionProbe.planning.md, "`next`'s rules"): given the state, a call or a reason to stop. It
+// The composition probe's one choice (calibration AGENT.md, "Composition probe"): given the state, a call or a reason to stop. It
 // is code, and pure: where an LLM's response makes a choice (a judge's request), this turns it into a call. A piece never names its successor.
 //
 import type { PieceRequest, RequestKind } from '../pieceProbe/piecePart'
