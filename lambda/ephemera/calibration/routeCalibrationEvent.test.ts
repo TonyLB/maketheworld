@@ -74,6 +74,7 @@ describe('routeCalibrationEvent', () => {
             'JudgeProbe',
             'OracleProbe',
             'PieceProbe',
+            'CompositionProbe',
         ])
     })
 
@@ -93,6 +94,12 @@ describe('routeCalibrationEvent', () => {
         const response = await routeCalibrationEvent({ type: 'SceneReasoningProbe', scene: { fixture: 'nope' } })
         expect(response.statusCode).toBe(400)
         expect(JSON.parse(response.body).error).toContain('tavern')
+    })
+
+    it('dispatches CompositionProbe, refusing an unknown case before any call', async () => {
+        const response = await routeCalibrationEvent({ type: 'CompositionProbe', cases: ['nope'] })
+        expect(response.statusCode).toBe(400)
+        expect(JSON.parse(response.body).error).toContain('OC-6')
     })
 
     it('returns 400 for unknown event type', async () => {

@@ -16,6 +16,7 @@ import {
     bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
 } from '../oracleLoop/actionPlan'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { piecePart, requested } from '../pieceProbe/piecePart'
 import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
@@ -273,6 +274,15 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
     name: 'playByPlay',
     view: PLAY_BY_PLAY_VIEW,
     merges: PLAY_BY_PLAY_MERGE,
+    part: piecePart({
+        answers: ['action'],
+        inputs: ({ fixture, plan, alsoShown }, request): PlayByPlayInputs => {
+            const { target, missing } = requested('playByPlay', request)
+            return { fixture, plan, target, missing, alsoShown }
+        },
+        contract: playByPlayContract,
+        result: (plan) => ({ plan }),
+    }),
     maxTokens: PLAY_BY_PLAY_MAX_TOKENS,
     cells: playByPlayCells,
     check: checkPlayByPlay,
