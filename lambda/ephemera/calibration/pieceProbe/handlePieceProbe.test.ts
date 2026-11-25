@@ -1,3 +1,6 @@
+import { replyJsonObject } from '../../llm/stageContract'
+import { planOf, planSteps, type MergeOptions } from '../oracleLoop/actionPlan'
+import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from './handlePieceProbe'
 import { joinParts, registerFamily, registerPiece, type PieceView, type RegistryEntry } from './oraclePiece'
@@ -234,6 +237,51 @@ describe('handlePieceProbe', () => {
     it('says when no piece is registered', async () => {
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', instructions: INSTRUCTIONS }, { pieces: {} })
         expect(body(response).error).toBe('piece must be one of: (none registered)')
+    })
+
+    describe('an answered piece that merges', () => {
+        const MERGE: MergeOptions = { author: 'triage', adds: [], restates: true }
+        /** An answered piece that merges: its reply is the step record with a verdict beside it, taken off before the record is merged. */
+        const TOY_MERGES = registerPiece<{ word: string }, undefined>({
+            name: 'toyMerges',
+            view: TEST_VIEW,
+            merges: MERGE,
+            answers: ['yes', 'no'],
+            cells: {
+                A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
+                B: { inputs: { word: 'brick' }, source: 'hand-written' },
+            },
+            grade: (reply, { inputs: { word } }) => {
+                const parsed = replyJsonObject(reply)
+                if ('malformed' in parsed) {
+                    return parsed
+                }
+                const { kind, ...record } = parsed.object
+                const plan = planOf([{ step: { says: `eat ${word}`, suppliedBy: 'player' }, standing: 'unchecked', items: [] }])
+                const merged = mergeStepRecord({ plan, target: planSteps(plan)[0].path, record, things: [word], rules: [] }, MERGE)
+                return 'problems' in merged ? { malformed: merged.problems.join('; ') } : { answer: String(kind), plan: merged.plan }
+            },
+            parseOptions: () => undefined,
+            render: async ({ inputs: { word } }) => `Word: ${word}`,
+        })
+        const fenced = (value: unknown): string => `\`\`\`json\n${JSON.stringify(value)}\n\`\`\``
+        const ask = async (replies: string[]) => {
+            let next = 0
+            const invoke = invokeReplying(() => replies[next++])
+            return body(await handlePieceProbe({ type: 'PieceProbe', piece: 'toyMerges', cells: ['A'], instructions: INSTRUCTIONS, repeats: replies.length }, { invoke, pieces: { toyMerges: TOY_MERGES } }))
+        }
+
+        it('is tallied on its answer, its merged plan carried to the read beside it', async () => {
+            const result = await ask([fenced({ kind: 'yes', says: 'eat apple' })])
+            expect(result.cells[0]).toMatchObject({ n: 1, right: 1, wrong: 0, malformed: 0, answers: { yes: 1 } })
+            expect(result.read[0].grade).toMatchObject({ answer: 'yes', plan: { steps: [{ says: 'eat [apple]', standing: 'unchecked' }] } })
+        })
+
+        it('is malformed where its block doesn\'t merge, whatever it answered', async () => {
+            const result = await ask([fenced({ kind: 'yes', says: 'eat apple', steps: [{ says: 'bite it' }, { says: 'chew it' }] })])
+            expect(result.cells[0]).toMatchObject({ n: 1, right: 0, wrong: 0, malformed: 1, answers: {} })
+            expect(Object.keys(result.read[0].grade)).toEqual(['malformed'])
+        })
     })
 
     describe('a read piece', () => {

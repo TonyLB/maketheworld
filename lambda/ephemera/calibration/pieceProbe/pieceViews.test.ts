@@ -12,7 +12,7 @@ import {
 } from '../oracleLoop/actionPlan'
 import { securingWords } from '../../dataSource/actions/sceneProse/sceneRules'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
-import type { RegisteredPiece } from './oraclePiece'
+import { registerPiece, type RegisteredPiece } from './oraclePiece'
 import { pieces } from './pieces'
 import { RULE_PARTS, SCENE_SHOWS, SECURINGS, type SceneView } from './sceneRenders'
 
@@ -155,6 +155,11 @@ const hiddenRefusals = (view: PlanView, merges: MergeOptions, cells: readonly un
         })
     }))
 
+/** The pieces that merge, read or answered: each one's id, plan view, merge and its cells' inputs. */
+const mergingOf = (all: readonly [string, RegisteredPiece][]): [string, PlanView, MergeOptions, unknown[]][] => all.flatMap(([id, piece]): [string, PlanView, MergeOptions, unknown[]][] => (
+    piece.merges === undefined ? [] : [[id, piece.view.plan, piece.merges, Object.values<{ inputs: unknown }>(piece.cells).map(({ inputs }) => inputs)]]
+))
+
 type Merge = typeof mergeStepChanges
 
 /** Each confirmed item a plan holds, in its authority's keeping and without its own details, which may be added to; the plan's steps too. */
@@ -270,12 +275,14 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
         expect(declarationProblems({ reads: { rule: { reading: 'some', stances: ['effect'] } } as unknown as PlanView['reads'] })).toEqual(['reads rule at "some"', 'narrows rule to "effect", not a stance'])
     })
 
-    const merging = registered.flatMap(([id, piece]): [string, PlanView, MergeOptions, unknown[]][] => (
-        piece.kind === 'read' && piece.merges !== undefined ? [[id, piece.view.plan, piece.merges, Object.values(piece.cells).map(({ inputs }) => inputs)]] : []
-    ))
+    const merging = mergingOf(registered)
 
     it('has pieces that merge, so the checks below run', () => {
         expect(merging.map(([id]) => id)).toEqual(expect.arrayContaining(['playByPlay', 'consequences']))
+    })
+
+    it.each(merging)('%s has cells with a plan and a target, so the checks run over something', (_, __, ___, cells) => {
+        expect(cells.flatMap(planCell)).not.toEqual([])
     })
 
     // A proposer of every kind it can, the authority for none, as triage will be: the registry has no such piece yet.
@@ -283,6 +290,28 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
     // The cells' plans, whose own steps are confirmed, and a player's raw command, built unchecked.
     const command = { target: 'pick-up-table', plan: planOf([{ step: { says: 'pick up the table', suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: 'pick up the table', standing: 'unchecked' }] }]) }
     const everyCell = [...merging.flatMap(([, , , cells]) => cells), command]
+
+    describe('an answered piece that merges is checked as a read piece is', () => {
+        const answered = registerPiece({
+            name: 'toyAnswered',
+            // It restates, but reads the intent confirmed only, and adds possibilities it can't see.
+            view: { plan: { reads: { step: 'all', intent: 'authoritative' } }, scene: { shows: 'none', securing: 'shown', sceneRules: false } },
+            merges: { author: 'triage', adds: ['possibility'], restates: true },
+            answers: ['yes', 'no'],
+            cells: { command: { inputs: command, source: 'hand-written' } },
+            parseOptions: () => undefined,
+            render: async () => '',
+        })
+        const [checked] = mergingOf([['toyAnswered', answered]])
+
+        it('by the mirror, the merge\'s standing, and the hidden-refusal invariant', () => {
+            expect(checked).toBeDefined()
+            const [, view, merges, cells] = checked
+            expect(mirrorProblems(view, merges)).toEqual(['can alter a intent but reads it at authoritative', 'can alter a possibility but reads it not at all'])
+            expect(standingBreaches(merges, cells)).toEqual([])
+            expect(hiddenRefusals(view, merges, cells)).toEqual(['pick-up-table, every kind confirmed, a possibility: refused on the full plan only'])
+        })
+    })
 
     describe('the checker\'s mirror: a piece whose merge can alter an unchecked item of a kind reads that kind at all, stale items included', () => {
         it.each(merging)('%s', (_, view, merges) => {

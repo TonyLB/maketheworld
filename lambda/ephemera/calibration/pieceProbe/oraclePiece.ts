@@ -61,12 +61,20 @@ export type PieceCell<Inputs = unknown> = PieceCellBase<Inputs> & {
 /** A cell of a read piece: in place of an expected answer, what a reader looks for in its replies, written before the batch. */
 export type ReadPieceCell<Inputs = unknown> = PieceCellBase<Inputs> & { lookFor: string }
 
-/** An answered piece: a closed answer set, and an expected answer per cell. */
-export type OraclePiece<Inputs = unknown, Options = unknown> = {
-    kind?: 'answered'
+/** What a registration holds whichever kind of piece it is. */
+type PieceBase = {
     name: string
     /** What of the shared state the piece's inputs show. */
     view: PieceView
+    /** What its contract's merge takes, for a piece whose reply merges into the plan: read by the checks over the registry (the mirror, the merge's standing, the hidden-refusal invariant). */
+    merges?: MergeOptions
+    /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
+    maxTokens?: number
+}
+
+/** An answered piece: a closed answer set, and an expected answer per cell. */
+export type OraclePiece<Inputs = unknown, Options = unknown> = PieceBase & {
+    kind?: 'answered'
     /** The closed answer set a reply's `Answer:` line is read against. */
     answers: readonly string[]
     cells: Record<string, PieceCell<Inputs>>
@@ -80,11 +88,10 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
     byCode?: (cell: PieceCell<Inputs>) => string | undefined
     /**
      * The piece's own grade of one reply, given its cell, the cell's rendered text and the payload's options (as a read piece's `check`
-     * has them), in place of `pieceAnswer` against `answers`: for answers with parameters, or a stage's contract parse.
+     * has them), in place of `pieceAnswer` against `answers`: for answers with parameters, a stage's contract parse, or a piece that merges,
+     * whose grade gives the merged plan beside the answer.
      */
     grade?: (reply: string, cell: PieceCell<Inputs>, rendered: string, options: Options) => PieceGrade
-    /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
-    maxTokens?: number
 }
 
 /**
@@ -92,13 +99,8 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = {
  * that matches quotes against what the prompt showed) and the payload's options (for a stage resolving its upstream input), and none
  * when the reply passes.
  */
-export type ReadPiece<Inputs = unknown, Options = unknown> = {
+export type ReadPiece<Inputs = unknown, Options = unknown> = PieceBase & {
     kind: 'read'
-    name: string
-    /** What of the shared state the piece's inputs show. */
-    view: PieceView
-    /** What its contract's merge takes, for a piece whose reply merges into the plan: read by the checks over the registry (the mirror, the hidden-refusal invariant). */
-    merges?: MergeOptions
     /** What it provides to be called by the composition probe's loop. A piece without one can't be. */
     part?: PiecePart<Inputs>
     cells: Record<string, ReadPieceCell<Inputs>>
@@ -107,8 +109,6 @@ export type ReadPiece<Inputs = unknown, Options = unknown> = {
     render: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<string>
     /** The render as its two parts, built in code, for `delivery: 'system'`. Where present, `render` is `joinParts` of these, byte for byte. */
     renderParts?: (cell: ReadPieceCell<Inputs>, options: Options) => Promise<RenderedParts>
-    /** The output cap per call, where the piece's replies run longer than the judge probe's 512 tokens. */
-    maxTokens?: number
 }
 
 /** A registered piece, answered or read. */
