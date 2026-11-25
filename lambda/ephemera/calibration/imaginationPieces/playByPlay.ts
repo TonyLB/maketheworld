@@ -15,7 +15,7 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../llm/st
 import {
     expansionClosed, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
 } from '../oracleLoop/actionPlan'
-import { mergeStepRecord, recordProblems } from '../oracleLoop/stepRecord'
+import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
 import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, type ImaginationOptions } from './imaginationScene'
@@ -96,9 +96,6 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
 }
 
-/** A retired reply form, refused with what to write instead. */
-const ATOMIC_RETIRED = '"atomic" is retired: give the step as "says" (and "intent"); with no "steps", the step itself is the answer'
-
 /**
  * The stage's contract: the reply's one object, the step record (`mergeStepRecord`), with `missing` as the detail it answers, merged into
  * the plan, taking only the restatement, an expansion and consequences (`PLAY_BY_PLAY_MERGE`). Every reply restates the step. A handle the
@@ -112,12 +109,8 @@ export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const { atomic, ...record } = parsed.object
-        if (atomic !== undefined) {
-            return { problems: [ATOMIC_RETIRED, ...recordProblems(record)] }
-        }
         const things = [...alsoShown, ...planHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(rendered)]
-        const merged = mergeStepRecord({ plan, target, record, things, rules: ruleTagHandles(rendered), answered: missing }, PLAY_BY_PLAY_MERGE)
+        const merged = mergeStepRecord({ plan, target, record: parsed.object, things, rules: ruleTagHandles(rendered), answered: missing }, PLAY_BY_PLAY_MERGE)
         return 'problems' in merged ? merged : { value: merged.plan }
     },
 }

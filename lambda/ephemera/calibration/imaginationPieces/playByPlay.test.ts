@@ -208,6 +208,14 @@ describe('playByPlay', () => {
             expect(planOfReply(fenced({ ...record, steps: [] }))).toEqual(planOfReply(fenced(record)))
         })
 
+        it('breaks a step down for one question that was its own answer to another: its path kept, both answered', () => {
+            const answered = planOfReply(fenced(record))
+            const other = 'how [cup1] is steadied'
+            const parsed = playByPlayContract.parse(fenced(steps), { input: { ...cell.inputs, plan: answered, missing: other }, rendered: '' })
+            expect(parsed).toMatchObject({ value: { steps: [{ path: 'pour-tea2-teapot1', says: POUR, standing: 'confirmed', alreadyAnswers: [MISSING, other] }] } })
+            expect('value' in parsed && planSteps(parsed.value).map(({ path }) => path)).toEqual(['pour-tea2-teapot1', 'lift-teapot1-table1', 'tilt-teapot1-over'])
+        })
+
         it('reads a changed intent as a revision, and a record with no intent as keeping the step\'s', () => {
             expect(planOfReply(fenced({ ...record, intent: '[tea2] is in [cup1]' })).steps[0].items).toEqual([
                 { kind: 'intent', path: 'pour-tea2-teapot1.intent', standing: 'confirmed', says: '[tea2] is in [cup1]' },
@@ -231,12 +239,10 @@ describe('playByPlay', () => {
 
         it.each([
             ['no block', 'Lift it, then tilt it.', ['no JSON block']],
-            ['a list of two (the reply is one object)', fenced([steps, { atomic: true }]), ['the JSON block does not parse']],
+            ['a list of two (the reply is one object)', fenced([steps, record]), ['the JSON block does not parse']],
             ['the change language written out (batch 32)', fenced({ changes: [{ add: 'steps', steps: [lift, tilt] }] }), [`has "changes", ${KEYS}`, 'the record restates the step: it needs "says"']],
             ['an empty object', fenced({}), ['the record restates the step: it needs "says"']],
             ['the old expansion, with no says', fenced({ steps: [lift, tilt] }), ['the record restates the step: it needs "says"']],
-            ['the retired atomic record', fenced({ atomic: true }), ['"atomic" is retired: give the step as "says" (and "intent"); with no "steps", the step itself is the answer', 'the record restates the step: it needs "says"']],
-            ['atomic beside the record', fenced({ ...record, atomic: true }), ['"atomic" is retired: give the step as "says" (and "intent"); with no "steps", the step itself is the answer']],
             ['a blank says', fenced({ ...steps, says: ' ' }), ['has no non-empty string "says"']],
             ['a blank intent', fenced({ ...steps, intent: '' }), ['"intent" is not a non-empty string']],
             ['a written `to`', fenced({ ...steps, to: 'pour-tea2-teapot1' }), [`has "to", ${KEYS}`]],

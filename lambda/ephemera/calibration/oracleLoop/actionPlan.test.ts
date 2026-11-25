@@ -579,7 +579,7 @@ describe('the action plan', () => {
                 ['a blank intent', [{ ...expand, steps: [lift, { ...tilt, intent: ' ' }] }], ['change 1: sub-step 2: "intent" is not a non-empty string']],
                 ['an expansion with its own says', [{ ...expand, says: 'pour it' }], ['change 1: has "says", not one of add, to, steps']],
                 ['an expansion twice in one block', [expand, expand], ['change 2: step pour-tea2-teapot1 is already expanded; expand one of its sub-steps for more detail']],
-                ['the retired atomic mark', [{ mark: 'atomic', to: 'pour-tea2-teapot1' }], ['change 1: has "mark", not one of add, to, thing, says', 'change 1: "add" must be one of steps', 'change 1: has no non-empty string "says"']],
+                ['a verb the merge doesn\'t have', [{ mark: 'done', to: 'pour-tea2-teapot1' }], ['change 1: has "mark", not one of add, to, thing, says', 'change 1: "add" must be one of steps', 'change 1: has no non-empty string "says"']],
                 ['a restatement with no says', [{ ...restate, says: ' ' }], ['change 1: has no non-empty string "says"']],
                 ['a restatement with a blank intent', [{ ...restate, intent: '' }], ['change 1: "intent" is not a non-empty string']],
                 ['a restatement with a blank detail answered', [{ ...restate, answered: '' }], ['change 1: "answered" is not a non-empty string']],
