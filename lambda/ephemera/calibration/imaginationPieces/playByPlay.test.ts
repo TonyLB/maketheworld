@@ -71,6 +71,12 @@ describe('playByPlay', () => {
             expect(text).not.toContain('(rule [')
         })
 
+        it('throws on a step naming a thing improvised, which its view doesn\'t show, since nothing in its prompt would say what it is', async () => {
+            const wipe = planOf([{ step: { says: 'wipe [table1] with [cloth1]', suppliedBy: 'system' }, items: [] }])
+            const improvised: ActionPlan = { ...wipe, improvised: [{ handle: 'cloth1', gloss: 'a cloth for wiping', standing: 'confirmed' }] }
+            await expect(renderPlayByPlay(cellOf({ plan: improvised, target: wipe.steps[0].path }), PLAY_BY_PLAY_OPTIONS)).rejects.toThrow(/Unknown scene handle\(s\) cloth1/)
+        })
+
         it('throws on a target already expanded: asking for one is the caller\'s error', async () => {
             const expanded = mergeStepChanges(pourPlan(), 'pour-tea2-teapot1', expansion, [], PLAY_BY_PLAY_MERGE)
             if (!('plan' in expanded)) {

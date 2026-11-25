@@ -20,7 +20,7 @@ const registered: [string, RegisteredPiece][] = Object.entries(pieces).flatMap((
     entry.kind === 'family' ? Object.entries(entry.stages).map(([stage, piece]): [string, RegisteredPiece] => [`${name}/${stage}`, piece]) : [[name, entry]]
 ))
 
-const KINDS: readonly AuthoredKind[] = [...STEP_ITEM_KINDS, 'rule']
+const KINDS: readonly AuthoredKind[] = [...STEP_ITEM_KINDS, 'rule', 'improvise']
 
 const isReading = (reading: unknown): boolean => reading === 'all' || reading === 'authoritative'
 
@@ -52,13 +52,14 @@ const declarationProblems = ({ reads }: PlanView): string[] => Object.entries(re
 
 /**
  * The kinds whose unchecked items a merge can alter, read from its options: those `replace` takes (`replaces`); and each slot it may
- * overwrite, or confirm as written: a step's words and its intent (`restates`), its sub-steps, its possibility.
+ * overwrite, or confirm as written: a step's words and its intent (`restates`), its sub-steps, its possibility, an improvised thing's gloss.
  */
 const alterable = ({ replaces = false, restates = false, adds = ['consequence', 'concern', 'possibility'] }: MergeOptions): AuthoredKind[] => [...new Set<AuthoredKind>([
     ...(replaces ? REPLACEABLE : []),
     ...(restates ? ['step' as const, 'intent' as const] : []),
     ...(adds.includes('steps') ? ['step' as const] : []),
     ...(adds.includes('possibility') ? ['possibility' as const] : []),
+    ...(adds.includes('improvise') ? ['improvise' as const] : []),
 ])]
 
 /** The mirror's problems: each kind the merge can alter, read at less than `all`, a stance filter included (a checker sees every stance). */
@@ -81,12 +82,15 @@ const hiddenItems = [
     { add: 'concern', says: 'the hidden thing may fall' },
 ]
 
-/** A plan with one item of every kind added to its target, each at one standing: a proposer's (`unchecked`), or each kind's authority's. */
+const HIDDEN_THING = { add: 'improvise', handle: 'hidden-tool1', gloss: 'a hidden tool' }
+
+/** A plan with one item of every kind added, to its target or (a thing improvised) beside its steps, each at one standing: a proposer's (`unchecked`), or each kind's authority's. */
 const withEveryKind = (plan: ActionPlan, target: string, standing: 'unchecked' | 'confirmed'): ActionPlan => {
     if (standing === 'unchecked') {
-        return merged(plan, target, hiddenItems, { author: 'triage', adds: ['consequence', 'possibility', 'concern'], rules: [HIDDEN_RULE] })
+        return merged(plan, target, [...hiddenItems, HIDDEN_THING], { author: 'triage', adds: ['consequence', 'possibility', 'concern', 'improvise'], rules: [HIDDEN_RULE] })
     }
-    const confirmed = merged(plan, target, hiddenItems.map(({ rules: _, ...rest }) => rest), { author: 'consequences' })
+    const improvised = merged(plan, target, [HIDDEN_THING], { author: 'improvisation', adds: ['improvise'] })
+    const confirmed = merged(improvised, target, hiddenItems.map(({ rules: _, ...rest }) => rest), { author: 'consequences' })
     return merged(confirmed, target, [hiddenItems[0]], { author: 'ruleCell', adds: ['consequence'], rules: [HIDDEN_RULE] })
 }
 
@@ -131,6 +135,11 @@ const blocksFor = (step: StepNode, { author, adds = ['consequence', 'concern', '
         ['a thing for the hidden consequence', { add: 'consequence', says: '[hidden1] slides', thing: 'hidden1' }],
     ] as [string, unknown][] : []),
     ...(adds.includes('possibility') ? [['a possibility', { add: 'possibility', kind: 'execution', says: 'it holds', branches: [[], []] }]] as [string, unknown][] : []),
+    ...(adds.includes('improvise') ? [
+        ['a thing improvised', { add: 'improvise', handle: 'new-tool1', gloss: 'a new tool' }],
+        ['the hidden thing as written', HIDDEN_THING],
+        ['another gloss for the hidden thing', { ...HIDDEN_THING, gloss: 'another tool' }],
+    ] as [string, unknown][] : []),
     ...(adds.includes('concern') ? [['a concern', { add: 'concern', says: 'it may fall' }]] as [string, unknown][] : []),
 ]
 
@@ -162,14 +171,17 @@ const mergingOf = (all: readonly [string, RegisteredPiece][]): [string, PlanView
 
 type Merge = typeof mergeStepChanges
 
-/** Each confirmed item a plan holds, in its authority's keeping and without its own details, which may be added to; the plan's steps too. */
-const confirmedItems = (plan: ActionPlan): { path: string; kind: AuthoredKind; text: string }[] => planSteps(plan).flatMap(({ path, says, standing, items }) => [
-    ...(standing === 'confirmed' ? [{ path, kind: 'step' as const, text: says }] : []),
-    ...items.flatMap((item: StepItem) => (item.kind === 'step' ? [] : [
-        ...(item.standing === 'confirmed' ? [{ path: item.path, kind: item.kind, text: JSON.stringify({ ...item, ...(item.kind === 'consequence' ? { rules: undefined } : {}) }) }] : []),
-        ...(item.kind === 'consequence' ? (item.rules ?? []).filter((rule) => rule.standing === 'confirmed').map((rule) => ({ path: rule.path, kind: 'rule' as const, text: JSON.stringify(rule) })) : []),
-    ])),
-])
+/** Each confirmed item a plan holds, in its authority's keeping and without its own details, which may be added to; the plan's steps and its improvised things too. */
+const confirmedItems = (plan: ActionPlan): { path: string; kind: AuthoredKind; text: string }[] => [
+    ...(plan.improvised ?? []).filter(({ standing }) => standing === 'confirmed').map((item) => ({ path: item.handle, kind: 'improvise' as const, text: JSON.stringify(item) })),
+    ...planSteps(plan).flatMap(({ path, says, standing, items }) => [
+        ...(standing === 'confirmed' ? [{ path, kind: 'step' as const, text: says }] : []),
+        ...items.flatMap((item: StepItem) => (item.kind === 'step' ? [] : [
+            ...(item.standing === 'confirmed' ? [{ path: item.path, kind: item.kind, text: JSON.stringify({ ...item, ...(item.kind === 'consequence' ? { rules: undefined } : {}) }) }] : []),
+            ...(item.kind === 'consequence' ? (item.rules ?? []).filter((rule) => rule.standing === 'confirmed').map((rule) => ({ path: rule.path, kind: 'rule' as const, text: JSON.stringify(rule) })) : []),
+        ])),
+    ]),
+]
 
 /**
  * The merge's own invariant's breaches, for a piece's options over the cells' plans: a block refused where everything on the target that isn't
@@ -286,7 +298,7 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
     })
 
     // A proposer of every kind it can, the authority for none: wider than triage, which proposes no possibility or concern.
-    const proposer = (author: PlanAuthor = 'triage'): MergeOptions => ({ author, adds: ['steps', 'consequence', 'possibility', 'concern'], restates: true, rules: [HIDDEN_RULE] })
+    const proposer = (author: PlanAuthor = 'triage'): MergeOptions => ({ author, adds: ['steps', 'consequence', 'possibility', 'concern', 'improvise'], restates: true, rules: [HIDDEN_RULE] })
     // The cells' plans, whose own steps are confirmed, and a player's raw command, built unchecked.
     const command = { target: 'pick-up-table', plan: planOf([{ step: { says: 'pick up the table', suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: 'pick up the table', standing: 'unchecked' }] }]) }
     const everyCell = [...merging.flatMap(([, , , cells]) => cells), command]
@@ -318,8 +330,8 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
             expect(mirrorProblems(view, merges)).toEqual([])
         })
 
-        it('binds the pieces that merge today: playByPlay and triage overwrite steps and intents, consequences possibilities', () => {
-            expect(Object.fromEntries(merging.map(([id, , merges]) => [id, alterable(merges)]))).toMatchObject({ playByPlay: ['step', 'intent'], consequences: ['possibility'], triage: ['step', 'intent'] })
+        it('binds the pieces that merge today: playByPlay and triage overwrite steps and intents, triage improvised things, consequences possibilities', () => {
+            expect(Object.fromEntries(merging.map(([id, , merges]) => [id, alterable(merges)]))).toMatchObject({ playByPlay: ['step', 'intent'], consequences: ['possibility'], triage: ['step', 'intent', 'improvise'] })
         })
 
         it('catches a checker that can\'t see what it confirms', () => {
@@ -335,7 +347,7 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
         })
 
         it('catches a piece that can\'t see a slot it overwrites', () => {
-            expect(mirrorProblems({ reads: { intent: 'all', possibility: 'authoritative' } }, proposer())).toEqual(['can alter a step but reads it not at all', 'can alter a possibility but reads it at authoritative'])
+            expect(mirrorProblems({ reads: { intent: 'all', possibility: 'authoritative' } }, proposer())).toEqual(['can alter a step but reads it not at all', 'can alter a possibility but reads it at authoritative', 'can alter a improvise but reads it not at all'])
         })
     })
 
@@ -344,7 +356,7 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
             expect(standingBreaches(merges, cells)).toEqual([])
         })
 
-        it.each<PlanAuthor>(['triage', 'ruleCell', 'consequences', 'playByPlay'])('a piece that writes every kind, as %s', (author) => {
+        it.each<PlanAuthor>(['triage', 'ruleCell', 'consequences', 'playByPlay', 'improvisation'])('a piece that writes every kind, as %s', (author) => {
             expect(standingBreaches(proposer(author), everyCell)).toEqual([])
         })
 
@@ -358,15 +370,37 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
         it('catches a merge that lowers what another confirmed', () => {
             const lowers: Merge = (plan, target, block, handles, options) => {
                 const result = mergeStepChanges(plan, target, block, handles, options)
-                return 'problems' in result ? result : { plan: { steps: result.plan.steps.map((step) => ({ ...step, items: step.items.map((item) => ({ ...item, standing: 'unchecked' as const })) })) } }
+                return 'problems' in result ? result : { plan: { ...result.plan, steps: result.plan.steps.map((step) => ({ ...step, items: step.items.map((item) => ({ ...item, standing: 'unchecked' as const })) })) } }
             }
             expect(standingBreaches(proposer(), everyCell.slice(0, 1), lowers)).toContain('pick-up-table1, every kind confirmed, a consequence: pick-up-table1.hidden1-slides altered')
+        })
+
+        it('catches a merge that drops what another improvised', () => {
+            const drops: Merge = (plan, target, block, handles, options) => {
+                const result = mergeStepChanges(plan, target, block, handles, options)
+                return 'problems' in result ? result : { plan: { steps: result.plan.steps } }
+            }
+            expect(standingBreaches(proposer(), everyCell.slice(0, 1), drops)).toContain('pick-up-table1, every kind confirmed, a consequence: hidden-tool1 altered')
+        })
+
+        it('catches a merge that overwrites what another confirmed', () => {
+            const overwrites: Merge = (plan, target, block, handles, options) => mergeStepChanges({ ...plan, improvised: plan.improvised?.map((item) => ({ ...item, standing: 'unchecked' as const })) }, target, block, handles, options)
+            expect(standingBreaches(proposer(), everyCell.slice(0, 1), overwrites)).toContain('pick-up-table1, every kind confirmed, another gloss for the hidden thing: hidden-tool1 altered')
         })
     })
 
     describe('a piece\'s merge never refuses a block on account of anything its view hides', () => {
         it.each(merging)('%s', (_, view, merges, cells) => {
             expect(hiddenRefusals(view, merges, cells)).toEqual([])
+        })
+
+        it('catches a merge that would: another gloss for a confirmed thing it can\'t see improvised', () => {
+            const [, view, merges, cells] = merging.find(([id]) => id === 'triage') ?? []
+            if (view === undefined || merges === undefined || cells === undefined) {
+                throw new Error('triage merges')
+            }
+            const { improvise: _, ...reads } = view.reads
+            expect(hiddenRefusals({ reads }, merges, cells.slice(0, 1))).toEqual(['pour-tea, every kind confirmed, another gloss for the hidden thing: refused on the full plan only'])
         })
 
         it('catches a merge that would: a possibility it can add, beside a confirmed one it can\'t see', () => {

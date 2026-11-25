@@ -18,7 +18,7 @@ import {
 import { mergeStepRecord, recordProblems } from '../oracleLoop/stepRecord'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, type ImaginationOptions } from './imaginationScene'
+import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
@@ -91,7 +91,7 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     }
     // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
     const viewed = viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)
-    const shown = [...new Set([...alsoShown, ...planHandles(viewed), ...namedHandles(missing)])]
+    const shown = [...new Set([...alsoShown, ...planSceneHandles(viewed), ...namedHandles(missing)])]
     const scene = await renderScene({ fixture, shown }, PLAY_BY_PLAY_VIEW.scene, options)
     return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
 }

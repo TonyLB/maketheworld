@@ -14,7 +14,7 @@ import {
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
 export type ConsequencesInputs = {
@@ -70,7 +70,7 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
         throw new Error(`The target "${target}" names no step of the plan`)
     }
     const viewed = viewPlan(plan, CONSEQUENCES_VIEW.plan)
-    const scene = await renderScene({ fixture, shown: [...things, ...planHandles(viewed)] }, CONSEQUENCES_VIEW.scene, options)
+    const scene = await renderScene({ fixture, shown: [...things, ...planSceneHandles(viewed)] }, CONSEQUENCES_VIEW.scene, options)
     return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
 }
 

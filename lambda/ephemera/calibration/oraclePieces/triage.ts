@@ -1,11 +1,9 @@
 //
 // Triage (AGENT.triage.planning.md): the first screen on a command. Given the player's raw command, as a plan's one unchecked step, and the
 // whole scene, it says the step in full. For now it is the expansion probe alone, a read piece: it asks what the step becomes and what Micro
-// improvises for what the scene lacks, with no verdict. The reply is the step record (calibration AGENT.md, "The action plan"), with
-// `improvise` beside it, which the contract takes off first: how an improvised thing joins the plan is not settled, so it is checked and
-// returned, and nothing of it is merged.
+// improvises for what the scene lacks, with no verdict. The reply is the step record (calibration AGENT.md, "The action plan"), its
+// improvised things with it, all of it merged.
 //
-import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
 import { fixtureScene, namedHandles, planHandles } from '../imaginationPieces/imaginationScene'
@@ -22,22 +20,16 @@ export type TriageInputs = {
     target: string
 }
 
-/** A thing the reply needs and the scene lacks: the handle it was given, without its brackets, and what kind of thing it is. */
-export type Improvised = { handle: SceneHandle; gloss: string }
-
-/** What a reply gives: the plan with the step restated, and what it improvised, which is in no plan. */
-export type TriageOutput = { plan: ActionPlan; improvised: readonly Improvised[] }
-
 /** The authority for no kind, so everything it writes is unchecked. The rules a consequence may name are the ones the prompt shows, added per call. */
-export const TRIAGE_MERGE: MergeOptions = { author: 'triage', adds: ['steps', 'consequence'], restates: true, handlesAre: 'in the scene or improvised' }
+export const TRIAGE_MERGE: MergeOptions = { author: 'triage', adds: ['steps', 'consequence', 'improvise'], restates: true, handlesAre: 'in the scene or improvised' }
 
 /**
- * The step and its intent at `all`, which are all its plan holds, and the whole scene, since grounding comes before there are handles to
- * take a sub-scene of. `conditions` is a first setting picked for convenience (the user, 2026-11-24), an existing value with the parts
+ * The step and its intent at `all`, which are all its plan holds, and what is improvised, which it may overwrite (the checker's mirror); and the
+ * whole scene, since grounding comes before there are handles to take a sub-scene of. `conditions` is a first setting picked for convenience (the user, 2026-11-24), an existing value with the parts
  * triage needs: no precedent, and any draft may change it.
  */
 export const TRIAGE_VIEW: PieceView = {
-    plan: { reads: { step: 'all', intent: 'all' } },
+    plan: { reads: { step: 'all', intent: 'all', improvise: 'all' } },
     scene: { shows: 'whole', securing: 'conditions', sceneRules: false },
 }
 
@@ -59,72 +51,26 @@ export const renderTriage = async ({ inputs: { fixture, plan, target } }: ReadPi
     return [renderSceneExplicit(scene, { rules: 'conditions', full: scene }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
 }
 
-const bare = (text: string): string => text.trim().replace(/^\[(.*)\]$/, '$1').trim()
-
-const isEntry = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
-
-/** One improvised thing, or what is wrong with it: a handle and a gloss, both text, and nothing else. */
-const improvisedEntry = (entry: unknown, sceneHandles: readonly SceneHandle[]): Improvised | string => {
-    if (!isEntry(entry)) {
-        return 'is not an object of "handle" and "gloss"'
-    }
-    const { handle, gloss, ...other } = entry
-    if (Object.keys(other).length > 0) {
-        return `has ${Object.keys(other).map((key) => `"${key}"`).join(', ')}, not one of handle, gloss`
-    }
-    if (typeof handle !== 'string' || typeof gloss !== 'string' || gloss.trim() === '') {
-        return 'needs "handle" and "gloss", each text'
-    }
-    const named = bare(handle)
-    return !/^[^\s[\]]+$/.test(named) ? `"${handle}" is not a handle`
-        : sceneHandles.includes(named) ? `[${named}] is in the scene already`
-        : { handle: named, gloss: gloss.trim() }
-}
-
-/** The reply's `improvise`, read: absent is none. A handle given twice is a problem, since the two can't be told apart. */
-const readImprovised = (value: unknown, sceneHandles: readonly SceneHandle[]): { improvised: Improvised[] } | { problems: string[] } => {
-    if (value === undefined) {
-        return { improvised: [] }
-    }
-    if (!Array.isArray(value)) {
-        return { problems: ['"improvise" is not a list'] }
-    }
-    const read = value.map((entry) => improvisedEntry(entry, sceneHandles))
-    const improvised = read.flatMap((entry) => (typeof entry === 'string' ? [] : [entry]))
-    const handles = improvised.map(({ handle }) => handle)
-    const twice = [...new Set(handles.filter((handle, index) => handles.indexOf(handle) !== index))]
-    const problems = [
-        ...read.flatMap((entry, index) => (typeof entry === 'string' ? [`improvised thing ${index + 1}: ${entry}`] : [])),
-        ...twice.map((handle) => `[${handle}] is improvised twice`),
-    ]
-    return problems.length > 0 ? { problems } : { improvised }
-}
-
 /**
- * The reply's one object: the step record, merged into the plan, and `improvise` beside it. A handle its texts name must be in the scene or
- * improvised. An improvised thing that no text names is no problem: it costs nothing until something reads it.
+ * The reply's one object, the step record, merged into the plan. A handle its texts name must be in the scene or improvised. An improvised thing
+ * that no text names is no problem: it costs nothing until something reads it.
  */
-export const triageContract: StageContract<TriageInputs, TriageOutput> = {
+export const triageContract: StageContract<TriageInputs, ActionPlan> = {
     name: 'triage',
     parse: (reply, { input: { plan, target }, rendered }) => {
         const parsed = replyJsonObject(reply)
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const { improvise, ...record } = parsed.object
         const rules = ruleTagHandles(rendered)
-        const sceneHandles = [...new Set(namedHandles(rendered))].filter((handle) => !rules.includes(handle))
-        const read = readImprovised(improvise, sceneHandles)
-        const improvised = 'improvised' in read ? read.improvised : []
-        const things = [...sceneHandles, ...improvised.map(({ handle }) => handle)]
-        const merged = mergeStepRecord({ plan, target, record, things, rules }, TRIAGE_MERGE)
-        const unknown = 'plan' in merged && 'improvised' in read ? planHandles(merged.plan).filter((handle) => !things.includes(handle)) : []
-        const problems = [
-            ...('problems' in read ? read.problems : []),
-            ...('problems' in merged ? merged.problems : []),
-            ...unknown.map((handle) => `[${handle}] is not in the scene, and not improvised`),
-        ]
-        return problems.length > 0 || 'problems' in merged ? { problems } : { value: { plan: merged.plan, improvised } }
+        const things = [...new Set(namedHandles(rendered))].filter((handle) => !rules.includes(handle))
+        const merged = mergeStepRecord({ plan, target, record: parsed.object, things, rules }, TRIAGE_MERGE)
+        if ('problems' in merged) {
+            return merged
+        }
+        const known = [...things, ...(merged.plan.improvised ?? []).map(({ handle }) => handle)]
+        const unknown = planHandles(merged.plan).filter((handle) => !known.includes(handle))
+        return unknown.length > 0 ? { problems: unknown.map((handle) => `[${handle}] is not in the scene, and not improvised`) } : { value: merged.plan }
     },
 }
 
@@ -188,8 +134,5 @@ export const triage: ReadPiece<TriageInputs, undefined> = {
 
 export const registeredTriage = registerPiece(triage)
 
-/** A batch's replies for reading (`read-plans`): the merged plan, then what was improvised. */
-export const triagePlansText = plansText(triage, triageContract, ({ plan, improvised }) => [
-    renderPlanForGenerator(plan),
-    improvised.length === 0 ? 'Improvised: nothing' : `Improvised:\n${improvised.map(({ handle, gloss }) => `- [${handle}] ${gloss}`).join('\n')}`,
-].join('\n'))
+/** A batch's replies as their merged plans, for reading (`read-plans`). */
+export const triagePlansText = plansText(triage, triageContract, renderPlanForGenerator)

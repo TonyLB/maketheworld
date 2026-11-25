@@ -62,6 +62,16 @@ describe('consequences', () => {
         ])('throws on %j', async (inputs, error) => {
             await expect(renderConsequences(cellOf(inputs), CONSEQUENCES_OPTIONS)).rejects.toThrow(error)
         })
+
+        it('shows a thing improvised in the plan, not the scene, and throws on one that nothing improvised', async () => {
+            const wipe = planOf([{ step: { says: 'wipe [table1] with [cloth1]', suppliedBy: 'system' }, items: [] }])
+            const [{ path: target }] = wipe.steps
+            await expect(renderConsequences(cellOf({ plan: wipe, target }), CONSEQUENCES_OPTIONS)).rejects.toThrow(/Unknown scene handle\(s\) cloth1/)
+            const improvised: ActionPlan = { ...wipe, improvised: [{ handle: 'cloth1', gloss: 'a cloth for wiping', standing: 'unchecked' }] }
+            const [scene, plan] = (await renderConsequences(cellOf({ plan: improvised, target }), CONSEQUENCES_OPTIONS)).split('End of scene.')
+            expect(scene).not.toContain('cloth1')
+            expect(plan).toContain(`The plan:\nImprovise [cloth1] (unchecked): a cloth for wiping\nStep ${target}: wipe [table1] with [cloth1]`)
+        })
     })
 
     describe('its options', () => {

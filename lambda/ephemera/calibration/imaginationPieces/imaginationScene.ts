@@ -49,6 +49,15 @@ export const namedHandles = (text: string): SceneHandle[] => [...text.matchAll(/
 export const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
     [...new Set(steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)]).flatMap(namedHandles))]
 
+/**
+ * The handles a viewed plan's text names that are the scene's to show: all but those the view shows as improvised, which the plan describes
+ * itself. One improvised and hidden by the view stays, so the scene's render throws on it: a prompt that named it would say nothing of what it is.
+ */
+export const planSceneHandles = (viewed: ActionPlan): SceneHandle[] => {
+    const improvised = new Set((viewed.improvised ?? []).map(({ handle }) => handle))
+    return planHandles(viewed).filter((handle) => !improvised.has(handle))
+}
+
 /** The handles listed more than once, each once. */
 export const listedTwice = (handles: readonly SceneHandle[]): SceneHandle[] => [...new Set(handles.filter((handle, index) => handles.indexOf(handle) !== index))]
 

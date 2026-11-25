@@ -14,6 +14,7 @@
 // consequence's stance on one of the scene's rules, nests in the consequence it follows from.
 // An unchecked item never refuses a change, and only its authority alters a confirmed one: a slot holding one value (a step's words, its
 // intent, its sub-steps, its `execution` possibility) is overwritten while it is unchecked, and claims (consequences, rules) accumulate.
+// Beside the steps, a plan holds the things improvised for what its steps need and the scene lacks, each under a handle of its own.
 //
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract } from '../../llm/stageContract'
@@ -30,8 +31,11 @@ export type Openness = typeof OPENNESS_KINDS[number]
  */
 export type Standing = 'unchecked' | 'confirmed'
 
-/** The pieces that write to a plan. `triage`, the first screen on a command, is no kind's authority, so all it writes is unchecked. */
-export type PlanAuthor = 'playByPlay' | 'consequences' | 'ruleCell' | 'triage'
+/**
+ * The pieces that write to a plan. `triage`, the first screen on a command, is no kind's authority, so all it writes is unchecked.
+ * `improvisation` isn't built (the user, 2026-11-20): it is the authority for what the others improvise.
+ */
+export type PlanAuthor = 'playByPlay' | 'consequences' | 'ruleCell' | 'triage' | 'improvisation'
 
 /** A consequence's stance on a rule: it goes against a rule that stays in force (`violation`); the rule causes it, a result that ordinarily wouldn't happen, as the glue keeping a teapot on a tilted table (`causes`; was `effect`, and `consistent` before that); or it ends the rule, as prying a glued teapot loose ends the glue (`voids`; the after-state, a voided rule gone for later steps, is the parent's "State carried forward"). The user, 2026-11-20. */
 export const RULE_STANCES = ['violation', 'causes', 'voids'] as const
@@ -79,15 +83,25 @@ export type SubStep = { kind: 'step'; path: string; standing: Standing; says: st
 
 export type StepItemKind = StepItem['kind']
 
-/** Every kind a piece writes: the step items' and the rule's. */
-export type AuthoredKind = StepItemKind | 'rule'
+/**
+ * A thing improvised (the user, 2026-11-25): where a step needs what should be a handle and the scene has no such object, a handle is
+ * proposed for one, and the steps name it. The gloss says the object, or type of object, the action implies: the need, where what meets it is
+ * the authority's to say. It stands beside the plan's steps, since several may name it, and its handle is its id, the one a model writes,
+ * because its own text has to name it.
+ */
+export type ImproviseItem = { handle: SceneHandle; gloss: string; standing: Standing }
+
+/** Every kind a piece writes: the step items', the rule's and the improvised thing's. */
+export type AuthoredKind = StepItemKind | 'rule' | 'improvise'
 
 /**
  * Who is authoritative for each kind (a fixed map for this iteration): the method's (a sub-step, and its intent) is `playByPlay`'s;
- * what happens is `consequences`'; a rule's stance is the rule cell's. A plan's own steps are its source's, so builders confirm them.
+ * what happens is `consequences`'; a rule's stance is the rule cell's; an improvised thing is `improvisation`'s. A plan's own steps are its
+ * source's, so builders confirm them.
  */
 export const AUTHORITY: Record<AuthoredKind, PlanAuthor> = {
     step: 'playByPlay', intent: 'playByPlay', consequence: 'consequences', possibility: 'consequences', concern: 'consequences', rule: 'ruleCell',
+    improvise: 'improvisation',
 }
 
 /** An item's standing: confirmed from its kind's authority, unchecked from anyone else. */
@@ -183,7 +197,11 @@ const mapStep = <Step extends StepNode>(step: Step, path: string, change: (step:
     return items.every((item, index) => item === step.items[index]) ? step : { ...step, items }
 }
 
-export type ActionPlan = { steps: readonly PlannedStep[] }
+/** A plan: its steps, and the things improvised for them, absent where there are none. */
+export type ActionPlan = { steps: readonly PlannedStep[]; improvised?: readonly ImproviseItem[] }
+
+/** A plan holding these improvised things, with no key where there are none. */
+const withImprovised = (steps: readonly PlannedStep[], improvised: readonly ImproviseItem[]): ActionPlan => ({ steps, ...(improvised.length === 0 ? {} : { improvised }) })
 
 const STOPWORDS = new Set(['a', 'an', 'the', 'of', 'to', 'into', 'onto', 'off', 'from', 'with', 'and', 'so', 'that', 'is', 'are'])
 
@@ -331,12 +349,18 @@ const itemLines = (item: StepItem, depth = 1): string[] => {
     ]
 }
 
-/** A plan for a generator to read: a line per step, its items indented under it, each with its kind and path, sub-steps nested. */
-export const renderPlanForGenerator = ({ steps }: ActionPlan): string => steps.flatMap(({ path, says, standing, alreadyAnswers, items }) => [
-    `Step ${path}${uncheckedTag(standing)}: ${says}`,
-    ...answerLines(alreadyAnswers, '  '),
-    ...items.flatMap((item) => itemLines(item)),
-]).join('\n')
+/**
+ * A plan for a generator to read: a line per improvised thing, before the steps that name it (mine, for tuning: no prompt shows one yet);
+ * then a line per step, its items indented under it, each with its kind and path, sub-steps nested.
+ */
+export const renderPlanForGenerator = ({ steps, improvised = [] }: ActionPlan): string => [
+    ...improvised.map(({ handle, gloss, standing }) => `Improvise [${handle}]${uncheckedTag(standing)}: ${gloss}`),
+    ...steps.flatMap(({ path, says, standing, alreadyAnswers, items }) => [
+        `Step ${path}${uncheckedTag(standing)}: ${says}`,
+        ...answerLines(alreadyAnswers, '  '),
+        ...items.flatMap((item) => itemLines(item)),
+    ]),
+].join('\n')
 
 /** How much of a kind a view reads: every entry, unchecked ones included (`all`), or only the confirmed (`authoritative`). */
 export type PlanReading = 'all' | 'authoritative'
@@ -356,7 +380,7 @@ export type PlanView = { reads: Partial<Record<Exclude<AuthoredKind, 'rule'>, Pl
 export type RuleReading = { reading: PlanReading; stances: readonly RuleStance[] }
 
 /** Every kind at `all`: the plan as it is. */
-export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', consequence: 'all', possibility: 'all', concern: 'all', rule: 'all' } }
+export const WHOLE_PLAN_VIEW: PlanView = { reads: { step: 'all', intent: 'all', consequence: 'all', possibility: 'all', concern: 'all', rule: 'all', improvise: 'all' } }
 
 /** No kind read: a piece that renders from its own inputs, not the plan (the judges, in the bridge state). */
 export const NO_PLAN_VIEW: PlanView = { reads: {} }
@@ -395,7 +419,10 @@ const viewedItems = (items: readonly StepItem[], view: PlanView): StepItem[] => 
  * The plan as a view reads it, for `renderPlanForGenerator` to render unchanged: pure, so a view reading every kind at `all`
  * gives the plan back as it is, and its render and inputs hash with it. The merge still reads the full plan.
  */
-export const viewPlan = ({ steps }: ActionPlan, view: PlanView): ActionPlan => ({ steps: steps.map((step) => ({ ...step, items: viewedItems(step.items, view) })) })
+export const viewPlan = ({ steps, improvised = [] }: ActionPlan, view: PlanView): ActionPlan => withImprovised(
+    steps.map((step) => ({ ...step, items: viewedItems(step.items, view) })),
+    improvised.filter(({ standing }) => viewReads(view, 'improvise', standing)),
+)
 
 /** A rule a consequence bears on, as written: the rule's handle, and whether the consequence breaks or keeps it. */
 export type RuleEntry = { rule: string; stance: RuleStance }
@@ -448,7 +475,13 @@ type PlanDetail = { detail: string; to: string; thing?: SceneHandle; rules: read
 /** What the merge applies: the block's changes, with each repeated consequence as the details it adds. */
 type Applied = PlanChange | PlanDetail
 
-export type AddKind = PlanAddition['add']
+/**
+ * An improvised thing as written: `{"add": "improvise", "handle", "gloss"}`. It is the plan's, not a step's, so it names no step (`to`), and is
+ * merged apart from the {@link PlanChange}s, each of which is a step's.
+ */
+export type ImproviseEntry = { handle: SceneHandle; gloss: string }
+
+export type AddKind = PlanAddition['add'] | 'improvise'
 
 /** The additions a block takes by default: the sub-item kinds (`consequences`'), with no expansion. */
 export const SUB_ITEM_ADDS: readonly AddKind[] = ['consequence', 'concern', 'possibility']
@@ -473,6 +506,7 @@ const isConsequence = (change: Applied): change is Extract<PlanAddition, { add: 
 export type PlanChangesInput = { plan: ActionPlan; handles: readonly SceneHandle[]; author: PlanAuthor }
 
 const CHANGE_KEYS = ['add', 'to', 'thing', 'says']
+const IMPROVISE_KEYS = ['add', 'handle', 'gloss']
 const CONSEQUENCE_KEYS = ['add', 'to', 'thing', 'says', 'rules']
 const POSSIBILITY_KEYS = ['add', 'to', 'kind', 'says', 'branches']
 const STEPS_KEYS = ['add', 'to', 'steps']
@@ -491,7 +525,8 @@ const isRecord = (value: unknown): value is Record<string, unknown> => typeof va
  * - `author`: the piece that wrote the block, which sets each item's standing by `AUTHORITY`;
  * - `handlesAre`: what a `thing` outside the handles is, `in the scene` when the handles are the scene's (the default), or as the caller
  *   names its handles, such as `a listed thing or named by the step` for `consequences`;
- * - `adds`: the additions it takes, by default the sub-item kinds (`SUB_ITEM_ADDS`); `playByPlay` takes `steps` and `consequence`;
+ * - `adds`: the additions it takes, by default the sub-item kinds (`SUB_ITEM_ADDS`); `playByPlay` takes `steps` and `consequence`,
+ *   `triage` those and `improvise`;
  * - `restates`: whether it takes a `restate`, the step record, by default not; `playByPlay`'s does;
  * - `rules`: the rule handles a consequence may name, the ones the scene shows, by default none;
  * - `replaces`: whether it takes a `replace` or a `remove`, a check of an unchecked item, by default not (no piece checks yet).
@@ -571,6 +606,58 @@ const checkRules = (rules: unknown, context: CheckContext): { rules?: RuleEntry[
     const problems = checked.flatMap((result, index) => ('problems' in result ? result.problems.map((problem) => `rule ${index + 1}: ${problem}`) : []))
     return problems.length > 0 ? { problems } : { rules: checked.flatMap((result) => ('rule' in result ? [result.rule] : [])) }
 }
+
+/** Whether two handles are the same: a letter-and-number word is a thing's in any case, as {@link bracketHandles} has it. */
+const sameHandle = (one: SceneHandle, other: SceneHandle): boolean => one.toLowerCase() === other.toLowerCase()
+
+const isImprovise = (entry: unknown): entry is Record<string, unknown> => isRecord(entry) && entry.add === 'improvise'
+
+/** Whether a text could be a handle: one word, without brackets. */
+const isHandle = (text: string): boolean => /^[^\s[\]]+$/.test(text)
+
+/** The handles that improvised things are given, those that could be handles: what else in their block may name them. */
+export const improvisedHandles = (entries: readonly unknown[]): SceneHandle[] => entries.flatMap((entry) => {
+    const handle = isRecord(entry) ? handleOf(entry.handle) : undefined
+    return handle !== undefined && isHandle(handle) ? [handle] : []
+})
+
+/** What an improvised thing is checked against: the handles its block may not give, and the things the plan has improvised. */
+type ImproviseContext = Pick<CheckContext, 'handles' | 'rules' | 'adds' | 'author'> & { held: readonly ImproviseItem[]; earlier: readonly SceneHandle[] }
+
+/**
+ * An improvised thing checked: one the merge takes, a handle that is no scene thing's, rule's or earlier one's in the block, and a gloss. The
+ * caller may pass held ones among its handles, so one held isn't taken for the scene's. A confirmed one's gloss is its authority's to change.
+ */
+const checkImprovise = (entry: Record<string, unknown>, { handles, rules, adds, author, held, earlier }: ImproviseContext): { improvise: ImproviseEntry } | { problems: string[] } => {
+    const handle = handleOf(entry.handle)
+    const gloss = isNonEmpty(entry.gloss) ? entry.gloss.trim() : undefined
+    const among = (list: readonly SceneHandle[]): boolean => handle !== undefined && list.some((one) => sameHandle(one, handle))
+    const found = held.find((item) => handle !== undefined && sameHandle(item.handle, handle))
+    const problems = !adds.includes('improvise') ? [`"add" must be one of ${adds.join(', ')}`] : [
+        ...extraKeyProblems(entry, IMPROVISE_KEYS),
+        ...(handle === undefined ? ['has no string "handle"']
+            : !isHandle(handle) ? [`"${handle}" is not a handle`]
+            : among(rules) ? [`[${handle}] is a rule's handle`]
+            : among(earlier) ? [`[${handle}] is improvised twice`]
+            : found === undefined && among(handles) ? [`[${handle}] is in the scene already`]
+            : found?.standing === 'confirmed' && gloss !== undefined && gloss !== found.gloss && AUTHORITY.improvise !== author ? [`[${found.handle}] is confirmed; only ${AUTHORITY.improvise} changes it`]
+            : []),
+        ...(gloss === undefined ? ['has no non-empty string "gloss"'] : []),
+    ]
+    return problems.length > 0 || handle === undefined || gloss === undefined ? { problems } : { improvise: { handle: found?.handle ?? handle, gloss } }
+}
+
+/**
+ * A plan's improvised things with a block's. A handle held is that thing given again: another gloss takes the old one's place at its author's
+ * standing, and one as written is confirmed by its authority, and otherwise no change. Its gloss is what nothing hangs from, so no step is
+ * called into question; and none is dropped, by a block that leaves it out or a step that no longer names it.
+ */
+const withImprovises = (held: readonly ImproviseItem[], given: readonly ImproviseEntry[], author: PlanAuthor): ImproviseItem[] => given.reduce<ImproviseItem[]>((items, entry) => {
+    const item: ImproviseItem = { ...entry, standing: standingOf('improvise', author) }
+    return items.some(({ handle }) => handle === entry.handle)
+        ? items.map((old) => (old.handle !== entry.handle || (old.gloss === entry.gloss && item.standing === 'unchecked') ? old : item))
+        : [...items, item]
+}, [...held])
 
 /** A consequence's fields checked, wherever it is written: `says`, `thing` and `rules`. Keys are the caller's to check. */
 const checkConsequenceFields = (entry: Record<string, unknown>, context: CheckContext): { consequence: ConsequenceEntry } | { problems: string[] } => {
@@ -1227,7 +1314,8 @@ const indexItems = (steps: readonly StepNode[]): Map<string, IndexedItem> => new
  * by the order rule; each sub-step minted in the plan's one scope of step paths; each replacement in its old item's place; every other
  * item and path unchanged. Each new item's standing is set by `author` (`standingOf`). A change may address a step at any depth. The
  * whole block is refused on any problem, with every problem listed. A key beside `changes` is a problem, since what it holds would
- * otherwise be dropped unseen (`consequences`' batch 4, a `"concerns"` key).
+ * otherwise be dropped unseen (`consequences`' batch 4, a `"concerns"` key). An improvised thing is the plan's, and the block's other changes
+ * may name it, wherever it stands there; those the plan holds are the caller's to pass among the handles.
  */
 export const mergeChanges = (
     plan: ActionPlan, block: unknown, handles: readonly SceneHandle[],
@@ -1240,10 +1328,15 @@ export const mergeChanges = (
     }
     const steps = new Map(planSteps(plan).map((step) => [step.path, step]))
     const itemPathSet = new Set([...steps.values()].flatMap(({ items }) => scopePaths(items)))
+    const held = plan.improvised ?? []
     const context: CheckContext = {
-        stepPaths: new Set(steps.keys()), itemPaths: itemPathSet, items: indexItems([...steps.values()]), handles, handlesAre, adds, restates, rules, replaces, author,
+        stepPaths: new Set(steps.keys()), itemPaths: itemPathSet, items: indexItems([...steps.values()]),
+        handles: adds.includes('improvise') ? [...handles, ...improvisedHandles(changes.filter(isImprovise))] : handles,
+        handlesAre, adds, restates, rules, replaces, author,
     }
-    const checked = changes.map((entry) => checkChange(entry, context))
+    const checked = changes.map((entry, index) => (isImprovise(entry)
+        ? checkImprovise(entry, { handles, rules, adds, author, held, earlier: improvisedHandles(changes.slice(0, index).filter(isImprovise)) })
+        : checkChange(entry, context)))
     const accepted = checked.flatMap((result, index): Accepted[] => ('change' in result ? [{ index, change: result.change }] : []))
     const problems = [
         ...besides,
@@ -1256,6 +1349,7 @@ export const mergeChanges = (
     if (problems.length > 0) {
         return { problems }
     }
+    const improvised = withImprovises(held, checked.flatMap((result) => ('improvise' in result ? [result.improvise] : [])), author)
     const { kept, refreshed } = withRepeatsAsDetails(steps, accepted, author)
     // A revised step whose `says` changed takes a path minted afresh, its old one free again, before any sub-step's (mine).
     const renamed = accepted.flatMap(({ change }) => {
@@ -1282,16 +1376,20 @@ export const mergeChanges = (
     }, { pairs: [], next: renamed.length }).pairs)
     const targets = [...new Set(accepted.map(({ change }) => change.to))]
     return {
-        plan: targets.reduce<ActionPlan>((built, target) => ({
-            steps: built.steps.map((step) => mapStep(step, target, (found) => applyChanges(found, kept.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author, refreshed.get(target)))),
-        }), plan),
+        plan: withImprovised(targets.reduce<readonly PlannedStep[]>((built, target) => (
+            built.map((step) => mapStep(step, target, (found) => applyChanges(found, kept.filter(({ change }) => change.to === target), subStepPaths, revisedPaths.get(target), author, refreshed.get(target))))
+        ), plan.steps), improvised),
     }
 }
+
+/** Whether a change names the step it is for: all but a check, which names its item, and an improvised thing, which is the plan's. */
+const takesTo = (entry: unknown): entry is Record<string, unknown> => isRecord(entry) && entry.add !== 'improvise' && !('replace' in entry) && !('remove' in entry)
 
 /**
  * A change block scoped to one step, the one a generator expands: code supplies each change's
  * `to`, by the rule that an id a model writes is a reference waiting to break. A `to` the block does write must name the target;
- * otherwise the block is refused, as any problem refuses it. A `replace` or `remove` takes no `to`, and must name an item in the target's own scope.
+ * otherwise the block is refused, as any problem refuses it. A `replace` or `remove` takes no `to`, and must name an item in the target's own scope;
+ * an improvised thing takes none either, being the plan's.
  * Then `mergeChanges`. The scope reads only `to`, so a new `add` kind, or a restatement, passes through it to `checkChange`. The target may be a
  * step at any depth.
  */
@@ -1306,6 +1404,9 @@ export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknow
     }
     const scope = new Set(scopePaths(step.items))
     const problems = changes.flatMap((entry, index) => {
+        if (isImprovise(entry)) {
+            return []
+        }
         const checkKey = isRecord(entry) ? (['replace', 'remove'] as const).find((key) => key in entry) : undefined
         if (isRecord(entry) && checkKey !== undefined) {
             const named = entry[checkKey]
@@ -1321,7 +1422,7 @@ export const mergeStepChanges = (plan: ActionPlan, target: string, block: unknow
     if (problems.length > 0) {
         return { problems }
     }
-    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (isRecord(entry) && !('replace' in entry) && !('remove' in entry) ? { ...entry, to: target } : entry)) }, handles, options)
+    return mergeChanges(plan, { ...(block as Record<string, unknown>), changes: changes.map((entry) => (takesTo(entry) ? { ...entry, to: target } : entry)) }, handles, options)
 }
 
 /**

@@ -2,7 +2,7 @@ import { planOf, planSteps, type ActionPlan } from '../oracleLoop/actionPlan'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
-import { planFromCommand, renderTriage, triage, triageCells, triageContract, triagePlansText, type TriageInputs, type TriageOutput } from './triage'
+import { planFromCommand, renderTriage, triage, triageCells, triageContract, triagePlansText, type TriageInputs } from './triage'
 
 const fenced = (value: unknown): string => `The tea has to come from somewhere.\n\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\``
 
@@ -11,7 +11,7 @@ const parse = async (cell: string, value: unknown) => {
     return triageContract.parse(fenced(value), { input: inputs, rendered: await renderTriage(triageCells[cell]) })
 }
 
-const value = async (cell: string, reply: unknown): Promise<TriageOutput> => {
+const value = async (cell: string, reply: unknown): Promise<ActionPlan> => {
     const parsed = await parse(cell, reply)
     if ('problems' in parsed) {
         throw new Error(parsed.problems.join('; '))
@@ -64,26 +64,25 @@ describe('triage', () => {
 
     describe('the contract', () => {
         it('restates the step unchecked, and improvises nothing when the reply gives none', async () => {
-            const { plan, improvised } = await value('pour', { says: 'pour [tea2] from [teapot1]' })
+            const plan = await value('pour', { says: 'pour [tea2] from [teapot1]' })
             expect(planSteps(plan)).toEqual([expect.objectContaining({ says: 'pour [tea2] from [teapot1]', standing: 'unchecked' })])
-            expect(improvised).toEqual([])
+            expect(plan.improvised).toBeUndefined()
         })
 
-        it('gives what was improvised beside the plan, with none of it merged', async () => {
-            const { plan, improvised } = await value('wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]' })
-            expect(improvised).toEqual([{ handle: 'cloth1', gloss: 'a cloth suitable for cleaning' }])
+        it('merges what was improvised, a proposal as all it writes is', async () => {
+            const plan = await value('wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]' })
+            expect(plan.improvised).toEqual([{ handle: 'cloth1', gloss: 'a cloth suitable for cleaning', standing: 'unchecked' }])
             expect(planSteps(plan).map(({ says }) => says)).toEqual(['wipe [table1] with [cloth1]'])
-            expect(JSON.stringify(plan)).not.toContain('suitable for cleaning')
         })
 
         it('takes a handle with or without its brackets, and brackets a bare one in the step, improvised or the scene\'s', async () => {
-            const { plan, improvised } = await value('wipe/cloth', { improvise: [{ ...cloth, handle: 'cloth1' }], says: 'wipe table1 with cloth1' })
-            expect(improvised.map(({ handle }) => handle)).toEqual(['cloth1'])
+            const plan = await value('wipe/cloth', { improvise: [{ ...cloth, handle: 'cloth1' }], says: 'wipe table1 with cloth1' })
+            expect(plan.improvised?.map(({ handle }) => handle)).toEqual(['cloth1'])
             expect(planSteps(plan)[0].says).toBe('wipe [table1] with [cloth1]')
         })
 
         it('takes an empty list as none, and a thing that no text names', async () => {
-            expect((await value('take', { improvise: [], says: 'pick up [cup1]' })).improvised).toEqual([])
+            expect((await value('take', { improvise: [], says: 'pick up [cup1]' })).improvised).toBeUndefined()
             expect((await value('take', { improvise: [{ handle: 'hand1', gloss: 'a hand' }], says: 'pick up [cup1]' })).improvised).toHaveLength(1)
         })
 
@@ -99,12 +98,12 @@ describe('triage', () => {
 
         it.each<[string, unknown, string]>([
             ['a thing the scene has', [{ handle: '[cup1]', gloss: 'a cup' }], 'improvised thing 1: [cup1] is in the scene already'],
-            ['the same handle twice', [cloth, { ...cloth, gloss: 'another cloth' }], '[cloth1] is improvised twice'],
+            ['the same handle twice', [cloth, { ...cloth, gloss: 'another cloth' }], 'improvised thing 2: [cloth1] is improvised twice'],
             ['something that is no handle', [{ handle: 'a clean cloth', gloss: 'a cloth' }], 'improvised thing 1: "a clean cloth" is not a handle'],
-            ['an entry with no gloss', [{ handle: 'cloth1' }], 'improvised thing 1: needs "handle" and "gloss", each text'],
-            ['a blank gloss', [{ handle: 'cloth1', gloss: ' ' }], 'improvised thing 1: needs "handle" and "gloss", each text'],
-            ['another key', [{ ...cloth, cost: 1 }], 'improvised thing 1: has "cost", not one of handle, gloss'],
-            ['a bare name', ['cloth1'], 'improvised thing 1: is not an object of "handle" and "gloss"'],
+            ['an entry with no gloss', [{ handle: 'cloth1' }], 'improvised thing 1: has no non-empty string "gloss"'],
+            ['a blank gloss', [{ handle: 'cloth1', gloss: ' ' }], 'improvised thing 1: has no non-empty string "gloss"'],
+            ['another key', [{ ...cloth, cost: 1 }], 'improvised thing 1: has "cost", not one of add, handle, gloss'],
+            ['a bare name', ['cloth1'], 'improvised thing 1: is not an object'],
             ['one thing, not in a list', cloth, '"improvise" is not a list'],
         ])('refuses %s', async (_, improvise, problem) => {
             expect(await problems('wipe', { improvise, says: 'wipe [table1]' })).toEqual([problem])
@@ -113,7 +112,17 @@ describe('triage', () => {
         it('gives the record\'s own problems beside the improvised things\'', async () => {
             const found = await problems('wipe', { improvise: 'a cloth', say: 'wipe [table1]' })
             expect(found).toContain('"improvise" is not a list')
-            expect(found.some((problem) => problem.includes('has "say", not one of says, intent, steps, consequences'))).toBe(true)
+            expect(found.some((problem) => problem.includes('has "say", not one of improvise, says, intent, steps, consequences'))).toBe(true)
+        })
+
+        it('names a thing the plan already holds improvised, which its prompt shows, or gives it another gloss', async () => {
+            const held = await value('wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]' })
+            const [{ path: target }] = planSteps(held)
+            const rendered = await renderTriage(cellOf(held, target))
+            expect(rendered).toContain('The plan:\nImprovise [cloth1] (unchecked): a cloth suitable for cleaning\nStep ')
+            const again = (record: unknown) => triageContract.parse(fenced(record), { input: { fixture: 'teaTable', plan: held, target }, rendered })
+            expect(again({ says: 'rub [table1] with [cloth1]' })).toMatchObject({ value: { improvised: held.improvised } })
+            expect(again({ improvise: [{ ...cloth, gloss: 'a rag' }], says: 'rub [table1] with [cloth1]' })).toMatchObject({ value: { improvised: [{ handle: 'cloth1', gloss: 'a rag' }] } })
         })
 
         it('refuses a reply with no JSON block', () => {
@@ -136,14 +145,14 @@ describe('triage', () => {
             await Promise.all(Object.values(triageCells).map(async (cell) => expect(await triage.render(cell, undefined)).toContain(`: ${planSteps(cell.inputs.plan)[0].says}\n`)))
         })
 
-        it('prints a batch\'s replies as the plan, then what was improvised', async () => {
+        it('prints a batch\'s replies as their plans, what was improvised among them', async () => {
             const printed = await triagePlansText([{ cell: 'wipe', lookFor: '', replies: [
                 { repeat: 1, reply: fenced({ improvise: [cloth], says: 'wipe [table1] with [cloth1]' }), problems: [] },
                 { repeat: 2, reply: fenced({ says: 'wipe [table1]' }), problems: [] },
             ] }])
             expect(printed).toContain('wipe [table1] with [cloth1]')
-            expect(printed).toContain('Improvised:\n- [cloth1] a cloth suitable for cleaning')
-            expect(printed).toContain('Improvised: nothing')
+            expect(printed).toContain('Improvise [cloth1] (unchecked): a cloth suitable for cleaning\nStep wipe-table1-cloth1')
+            expect(printed.match(/Improvise/g)).toHaveLength(1)
         })
     })
 })

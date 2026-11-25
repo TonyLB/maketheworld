@@ -1273,3 +1273,127 @@ describe('a view of the plan (calibration AGENT.md, "Piece views")', () => {
         ].join('\n'))
     })
 })
+
+describe('improvised things (calibration AGENT.md, "The action plan")', () => {
+    const PATH = 'wipe-table1'
+    const RULE = 'teapot-secured-to-table'
+    const scene = ['table1', 'cup1']
+    const base = planOf([{ step: { says: 'wipe [table1]', suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: 'wipe [table1]', standing: 'unchecked' }] }])
+    const cloth = { add: 'improvise', handle: '[cloth1]', gloss: 'a cloth for wiping' }
+    const other = { ...cloth, gloss: 'a cloth for binding' }
+    const by = (author: MergeOptions['author'], more: Partial<MergeOptions> = {}): MergeOptions => ({ author, adds: ['improvise', 'steps', 'consequence'], restates: true, rules: [RULE], ...more })
+    const result = (plan: ActionPlan, changes: unknown[], options: MergeOptions, handles: readonly string[] = scene) => mergeStepChanges(plan, PATH, { changes }, handles, options)
+    const merged = (plan: ActionPlan, changes: unknown[], options: MergeOptions, handles?: readonly string[]): ActionPlan => {
+        const found = result(plan, changes, options, handles)
+        if ('problems' in found) {
+            throw new Error(found.problems.join('; '))
+        }
+        return found.plan
+    }
+    const refused = (plan: ActionPlan, changes: unknown[], options: MergeOptions, handles?: readonly string[]): string[] => {
+        const found = result(plan, changes, options, handles)
+        return 'problems' in found ? found.problems : []
+    }
+    const offered = () => merged(base, [cloth], by('triage'))
+    const established = () => merged(base, [cloth], by('improvisation'))
+    const unchecked = { handle: 'cloth1', gloss: 'a cloth for wiping', standing: 'unchecked' }
+    const confirmed = { ...unchecked, standing: 'confirmed' }
+
+    it('joins the plan beside its steps, which stay as they were: a proposal from a piece, confirmed from its authority alone', () => {
+        expect(offered()).toEqual({ steps: base.steps, improvised: [unchecked] })
+        expect(established()).toEqual({ steps: base.steps, improvised: [confirmed] })
+        expect((['playByPlay', 'consequences', 'ruleCell', 'triage'] as const).map((author) => merged(base, [cloth], by(author)).improvised?.[0].standing)).toEqual(['unchecked', 'unchecked', 'unchecked', 'unchecked'])
+    })
+
+    it('follows the ones held, in the order given', () => {
+        const two = merged(offered(), [{ add: 'improvise', handle: 'pail1', gloss: 'a pail' }, { add: 'improvise', handle: 'soap1', gloss: ' a cake of soap ' }], by('triage'))
+        expect(two.improvised).toEqual([unchecked, { handle: 'pail1', gloss: 'a pail', standing: 'unchecked' }, { handle: 'soap1', gloss: 'a cake of soap', standing: 'unchecked' }])
+    })
+
+    it.each<[string, () => ActionPlan, unknown, MergeOptions['author'], unknown]>([
+        ['unchecked, another gloss, by a proposer', offered, other, 'playByPlay', [{ ...unchecked, gloss: 'a cloth for binding' }]],
+        ['unchecked, another gloss, by its authority', offered, other, 'improvisation', [{ ...confirmed, gloss: 'a cloth for binding' }]],
+        ['unchecked, as written, by a proposer', offered, cloth, 'playByPlay', [unchecked]],
+        ['unchecked, as written, by its authority', offered, cloth, 'improvisation', [confirmed]],
+        ['confirmed, another gloss, by a proposer', established, other, 'triage', '[cloth1] is confirmed; only improvisation changes it'],
+        ['confirmed, another gloss, by its authority', established, other, 'improvisation', [{ ...confirmed, gloss: 'a cloth for binding' }]],
+        ['confirmed, as written, by a proposer', established, cloth, 'triage', [confirmed]],
+        ['confirmed, as written, by its authority', established, cloth, 'improvisation', [confirmed]],
+        ['its handle in another case', offered, { ...other, handle: '[Cloth1]' }, 'triage', [{ ...unchecked, gloss: 'a cloth for binding' }]],
+    ])('its gloss is a slot: %s', (_, plan, change, author, expected) => {
+        if (typeof expected === 'string') {
+            expect(refused(plan(), [change], by(author))).toEqual([`change 1: ${expected}`])
+            return
+        }
+        const after = merged(plan(), [change], by(author))
+        expect(after.improvised).toEqual(expected)
+        expect(after.steps).toEqual(base.steps)
+    })
+
+    it('is named by a change in the same block, wherever it stands there, and by none in a block that doesn\'t give it', () => {
+        const dries = { add: 'consequence', thing: '[cloth1]', says: '[cloth1] is wet' }
+        const rings = { add: 'steps', steps: [{ says: 'wring [cloth1]', consequences: [{ thing: 'cloth1', says: '[cloth1] drips' }] }, { says: 'rub [table1]' }] }
+        expect(merged(base, [dries, cloth], by('triage')).steps[0].items).toContainEqual(expect.objectContaining({ kind: 'consequence', thing: 'cloth1' }))
+        expect(merged(base, [cloth, rings], by('triage')).improvised).toEqual([unchecked])
+        expect(refused(base, [dries], by('triage'))).toEqual(['change 1: thing "cloth1" is not in the scene'])
+        expect(refused(offered(), [dries], by('triage'))).toEqual(['change 1: thing "cloth1" is not in the scene'])
+        expect(refused(offered(), [dries], by('triage'), [...scene, 'cloth1'])).toEqual([])
+    })
+
+    it('may be given again where the caller passes the held one among its handles', () => {
+        expect(merged(offered(), [other], by('triage'), [...scene, 'cloth1']).improvised).toEqual([{ ...unchecked, gloss: 'a cloth for binding' }])
+    })
+
+    it.each<[string, unknown[], string[]]>([
+        ['a thing in the scene', [{ ...cloth, handle: '[cup1]' }], ['change 1: [cup1] is in the scene already']],
+        ['a thing in the scene, in another case', [{ ...cloth, handle: 'Cup1' }], ['change 1: [Cup1] is in the scene already']],
+        ['a rule\'s handle', [{ ...cloth, handle: RULE }], [`change 1: [${RULE}] is a rule's handle`]],
+        ['the same handle twice', [cloth, { ...other, handle: 'CLOTH1' }], ['change 2: [CLOTH1] is improvised twice']],
+        ['something that is no handle', [{ ...cloth, handle: 'a clean cloth' }], ['change 1: "a clean cloth" is not a handle']],
+        ['no handle', [{ add: 'improvise', gloss: 'a cloth' }], ['change 1: has no string "handle"']],
+        ['a blank gloss', [{ ...cloth, gloss: ' ' }], ['change 1: has no non-empty string "gloss"']],
+        ['a key of no one\'s', [{ ...cloth, cost: 1 }], ['change 1: has "cost", not one of add, handle, gloss']],
+        ['a standing', [{ ...cloth, standing: 'confirmed' }], ['change 1: "standing" isn\'t writable: code sets it from who wrote the item']],
+        ['a step it is for', [{ ...cloth, to: PATH }], ['change 1: has "to", not one of add, handle, gloss']],
+    ])('refuses %s, and the whole block with it', (_, changes, problems) => {
+        expect(refused(base, [...changes, { add: 'consequence', says: 'it is clean' }], by('triage'))).toEqual(problems)
+    })
+
+    it('is refused where the merge doesn\'t take it, and numbered by its place in the block', () => {
+        expect(refused(base, [{ add: 'consequence', says: 'it is clean' }, cloth], { author: 'consequences' })).toEqual(['change 2: "add" must be one of consequence, concern, possibility'])
+        expect(refused(base, [{ add: 'consequence', says: ' ' }, { ...cloth, gloss: '' }, { add: 'consequence', says: '' }], by('triage'))).toEqual([
+            'change 1: has no non-empty string "says"', 'change 2: has no non-empty string "gloss"', 'change 3: has no non-empty string "says"',
+        ])
+    })
+
+    it('stays, as it is, through a block that gives none: one that rewords the step, and one that does nothing', () => {
+        expect(merged(offered(), [{ restate: 'step', says: 'rub [table1]' }], by('playByPlay')).improvised).toEqual([unchecked])
+        expect(merged(offered(), [], by('playByPlay'))).toEqual(offered())
+    })
+
+    it('calls nothing on the steps into question when its gloss changes', () => {
+        const named = merged(base, [cloth, { restate: 'step', says: 'wipe [table1] with [cloth1]' }], by('triage'))
+        expect(mergeStepChanges(named, 'wipe-table1-cloth1', { changes: [other] }, scene, by('improvisation'))).toEqual({ plan: { ...named, improvised: [{ ...confirmed, gloss: 'a cloth for binding' }] } })
+    })
+
+    it('reads first in the render, before the step that names it: a tag when unchecked, as fact when confirmed', () => {
+        const step = 'Step wipe-table1 (unchecked): wipe [table1]\n  - intent wipe-table1.intent (unchecked): wipe [table1]'
+        expect(renderPlanForGenerator(offered())).toBe(`Improvise [cloth1] (unchecked): a cloth for wiping\n${step}`)
+        expect(renderPlanForGenerator(established())).toBe(`Improvise [cloth1]: a cloth for wiping\n${step}`)
+        expect(renderPlanForGenerator(base)).toBe(step)
+    })
+
+    it('is read by a view at its reading of the kind, and a plan with none read has none', () => {
+        const both = merged(established(), [{ add: 'improvise', handle: 'pail1', gloss: 'a pail' }], by('triage'))
+        expect(viewPlan(both, WHOLE_PLAN_VIEW)).toEqual(both)
+        expect(viewPlan(both, { reads: { intent: 'all', improvise: 'authoritative' } })).toEqual({ steps: base.steps, improvised: [confirmed] })
+        expect(Object.keys(viewPlan(both, { reads: { intent: 'all' } }))).toEqual(['steps'])
+        expect(Object.keys(viewPlan(offered(), { reads: { intent: 'all', improvise: 'authoritative' } }))).toEqual(['steps'])
+    })
+
+    it('is absent, not empty, from a plan that holds none, so such a plan is as it was', () => {
+        expect(Object.keys(base)).toEqual(['steps'])
+        expect(Object.keys(merged(base, [{ add: 'consequence', says: 'it is clean' }], by('triage')))).toEqual(['steps'])
+        expect(Object.keys(viewPlan(base, WHOLE_PLAN_VIEW))).toEqual(['steps'])
+    })
+})
