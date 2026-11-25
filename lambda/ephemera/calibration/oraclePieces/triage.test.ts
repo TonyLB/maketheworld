@@ -2,7 +2,7 @@ import { planOf, planSteps, type ActionPlan } from '../oracleLoop/actionPlan'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import type { ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { handlePieceProbe } from '../pieceProbe/handlePieceProbe'
-import { planFromCommand, renderTriage, triage, triageCells, triageContract, triagePlansText, type TriageInputs } from './triage'
+import { planFromCommand, renderTriage, triage, triageCells, triageContract, triagePlansText, type TriageAnswer, type TriageInputs } from './triage'
 
 const fenced = (value: unknown): string => `The tea has to come from somewhere.\n\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\``
 
@@ -11,7 +11,7 @@ const parse = async (cell: string, value: unknown) => {
     return triageContract.parse(fenced(value), { input: inputs, rendered: await renderTriage(triageCells[cell]) })
 }
 
-const value = async (cell: string, reply: unknown): Promise<ActionPlan> => {
+const answer = async (cell: string, reply: unknown): Promise<TriageAnswer> => {
     const parsed = await parse(cell, reply)
     if ('problems' in parsed) {
         throw new Error(parsed.problems.join('; '))
@@ -19,10 +19,15 @@ const value = async (cell: string, reply: unknown): Promise<ActionPlan> => {
     return parsed.value
 }
 
-const problems = async (cell: string, reply: unknown): Promise<string[]> => {
+const refused = async (cell: string, reply: unknown): Promise<string[]> => {
     const parsed = await parse(cell, reply)
     return 'problems' in parsed ? parsed.problems : []
 }
+
+// For the tests of the record, whatever the verdict beside it: the plan a "Yes" with this record gives, or its problems.
+const value = async (cell: string, record: object): Promise<ActionPlan> => (await answer(cell, { ...record, kind: 'Yes' })).plan
+
+const problems = (cell: string, record: object): Promise<string[]> => refused(cell, { ...record, kind: 'Yes' })
 
 const cellOf = (plan: ActionPlan, target: string): ReadPieceCell<TriageInputs> => ({ inputs: { fixture: 'teaTable', plan, target }, lookFor: 'anything', source: 'hand-written' })
 
@@ -120,9 +125,9 @@ describe('triage', () => {
             const [{ path: target }] = planSteps(held)
             const rendered = await renderTriage(cellOf(held, target))
             expect(rendered).toContain('The plan:\nImprovise [cloth1] (unchecked): a cloth suitable for cleaning\nStep ')
-            const again = (record: unknown) => triageContract.parse(fenced(record), { input: { fixture: 'teaTable', plan: held, target }, rendered })
-            expect(again({ says: 'rub [table1] with [cloth1]' })).toMatchObject({ value: { improvised: held.improvised } })
-            expect(again({ improvise: [{ ...cloth, gloss: 'a rag' }], says: 'rub [table1] with [cloth1]' })).toMatchObject({ value: { improvised: [{ handle: 'cloth1', gloss: 'a rag' }] } })
+            const again = (record: object) => triageContract.parse(fenced({ ...record, kind: 'Yes' }), { input: { fixture: 'teaTable', plan: held, target }, rendered })
+            expect(again({ says: 'rub [table1] with [cloth1]' })).toMatchObject({ value: { plan: { improvised: held.improvised } } })
+            expect(again({ improvise: [{ ...cloth, gloss: 'a rag' }], says: 'rub [table1] with [cloth1]' })).toMatchObject({ value: { plan: { improvised: [{ handle: 'cloth1', gloss: 'a rag' }] } } })
         })
 
         it('refuses a reply with no JSON block', () => {
@@ -130,9 +135,51 @@ describe('triage', () => {
         })
     })
 
+    describe('the verdict', () => {
+        const record = { says: 'put [table1] in [cup1]', intent: '[table1] is in [cup1]', consequences: [{ says: '[cup1] breaks' }] }
+
+        it.each<[string, object, object]>([
+            ['a "Yes"', { kind: 'Yes' }, { kind: 'Yes' }],
+            ['a "Defer"', { kind: 'Defer' }, { kind: 'Defer' }],
+            ['a "No", with its reason', { kind: 'No', reason: ' [table1] is larger than [cup1]. ' }, { kind: 'No', reason: '[table1] is larger than [cup1].' }],
+            ['a kind in any case, spaces around it', { kind: ' no ', reason: 'it is larger' }, { kind: 'No', reason: 'it is larger' }],
+            ['a reason whose handles aren\'t in the scene, or bare', { kind: 'No', reason: '[shelf1] holds table1' }, { kind: 'No', reason: '[shelf1] holds table1' }],
+            ['a "Yes" with a reason, which is dropped', { kind: 'Yes', reason: 'it fits' }, { kind: 'Yes' }],
+            ['a "Defer" with a reason in no form, which is dropped', { kind: 'Defer', reason: 3 }, { kind: 'Defer' }],
+        ])('takes %s, and the record merged beside it', async (_, verdict, expected) => {
+            const plan = await value('pour', record)
+            expect(plan.steps[0].items).toContainEqual(expect.objectContaining({ kind: 'consequence', says: '[cup1] breaks', standing: 'unchecked' }))
+            expect(await answer('pour', { ...record, ...verdict })).toEqual({ ...expected, plan })
+            expect(await answer('pour', { ...verdict, ...record })).toEqual({ ...expected, plan })
+        })
+
+        it('takes a "Defer" that names no thing', async () => {
+            expect(await answer('take/twoCups', { says: 'pick up the cup', kind: 'Defer' })).toMatchObject({ kind: 'Defer', plan: { steps: [{ says: 'pick up the cup' }] } })
+        })
+
+        it.each<[string, object, string]>([
+            ['no kind', {}, 'has no string "kind"'],
+            ['a kind that isn\'t a string', { kind: true }, 'has no string "kind"'],
+            ['another kind', { kind: 'Maybe' }, 'kind "Maybe" is not one of No, Yes, Defer'],
+            ['a "No" without a reason', { kind: 'No' }, '"No" has no non-empty string "reason"'],
+            ['a "No" with a blank reason', { kind: 'No', reason: ' ' }, '"No" has no non-empty string "reason"'],
+            ['a "No" whose reason isn\'t a string', { kind: 'No', reason: ['it is larger'] }, '"No" has no non-empty string "reason"'],
+        ])('refuses %s', async (_, verdict, problem) => {
+            expect(await refused('pour', { ...record, ...verdict })).toEqual([problem])
+        })
+
+        it.each<[string, object, string[]]>([
+            ['a record without its step, whatever the verdict', { kind: 'No', reason: 'it is larger' }, ['the record restates the step: it needs "says"']],
+            ['the record\'s problems and the verdict\'s together', { kind: 'No' }, ['the record restates the step: it needs "says"', '"No" has no non-empty string "reason"']],
+            ['an unknown handle and the verdict\'s together', { says: 'wipe [table1] with [cloth1]' }, ['[cloth1] is not in the scene, and not improvised', 'has no string "kind"']],
+        ])('refuses %s', async (_, reply, found) => {
+            expect(await refused('wipe', reply)).toEqual(found)
+        })
+    })
+
     describe('the registration', () => {
         it('runs through the probe, each reply form-checked, and takes no options', async () => {
-            const invoke = jest.fn(async () => ({ success: true as const, body: fenced({ improvise: [cloth], says: 'wipe [table1] with [cloth1]' }) }))
+            const invoke = jest.fn(async () => ({ success: true as const, body: fenced({ improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Defer' }) }))
             const event = { type: 'PieceProbe' as const, piece: 'triage', cells: ['wipe', 'wipe/cloth'], instructions: 'a draft' }
             const { statusCode, body } = await handlePieceProbe(event, { invoke: invoke as never })
             expect(statusCode).toBe(200)
@@ -145,13 +192,16 @@ describe('triage', () => {
             await Promise.all(Object.values(triageCells).map(async (cell) => expect(await triage.render(cell, undefined)).toContain(`: ${planSteps(cell.inputs.plan)[0].says}\n`)))
         })
 
-        it('prints a batch\'s replies as their plans, what was improvised among them', async () => {
+        it('prints a batch\'s replies as their verdicts and plans, what was improvised among them', async () => {
             const printed = await triagePlansText([{ cell: 'wipe', lookFor: '', replies: [
-                { repeat: 1, reply: fenced({ improvise: [cloth], says: 'wipe [table1] with [cloth1]' }), problems: [] },
-                { repeat: 2, reply: fenced({ says: 'wipe [table1]' }), problems: [] },
+                { repeat: 1, reply: fenced({ improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Defer' }), problems: [] },
+                { repeat: 2, reply: fenced({ says: 'wipe [table1]', kind: 'No', reason: 'the table is dirty' }), problems: [] },
+                { repeat: 3, reply: fenced({ says: 'wipe [table1]' }), problems: [] },
             ] }])
             expect(printed).toContain('wipe [table1] with [cloth1]')
-            expect(printed).toContain('Improvise [cloth1] (unchecked): a cloth suitable for cleaning\nStep wipe-table1-cloth1')
+            expect(printed).toContain('repeat 1\nDefer\nImprovise [cloth1] (unchecked): a cloth suitable for cleaning\nStep wipe-table1-cloth1')
+            expect(printed).toContain('repeat 2\nNo: the table is dirty\nStep wipe-table1')
+            expect(printed).toContain('repeat 3\nform: has no string "kind"')
             expect(printed.match(/Improvise/g)).toHaveLength(1)
         })
     })

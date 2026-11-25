@@ -1,6 +1,6 @@
 //
 // Prints the plans a batch's replies build, for reading against its rubric: `playByPlay`'s plans, or the plans `consequences`' changes
-// merge into (`plansText`), or triage's plans and what it improvised. The piece is the response's own `piece`. From lambda/ephemera:
+// merge into (`plansText`), or triage's verdicts and plans, with what it improvised. The piece is the response's own `piece`. From lambda/ephemera:
 //
 //   npm run read-plans -- <results.json>
 //

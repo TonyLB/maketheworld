@@ -1,11 +1,12 @@
 //
 // Triage (AGENT.triage.planning.md): the first screen on a command. Given the player's raw command, as a plan's one unchecked step, and the
-// whole scene, it says the step in full. For now it is the expansion probe alone, a read piece: it asks what the step becomes and what Micro
-// improvises for what the scene lacks, with no verdict. The reply is the step record (calibration AGENT.md, "The action plan"), its
-// improvised things with it, all of it merged.
+// whole scene, it says the step in full, and answers it: "No", with its reason, "Yes", or "Defer" to a more complicated judgment. The reply is
+// the step record (calibration AGENT.md, "The action plan"), its improvised things with it, all of it merged, and beside it the verdict. For
+// now it is a read piece, its cells the expansion probe's: what the step becomes, and what Micro improvises for what the scene lacks. What code
+// makes of its answer is `triageGuard.ts`'s.
 //
 import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
-import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
+import { parseProblems, replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
 import { fixtureScene, namedHandles, planHandles } from '../imaginationPieces/imaginationScene'
 import { plansText } from '../imaginationPieces/plansText'
 import { expansionClosed, planOf, planSteps, renderPlanForGenerator, rewordingClosed, viewPlan, type ActionPlan, type MergeOptions } from '../oracleLoop/actionPlan'
@@ -19,6 +20,18 @@ export type TriageInputs = {
     /** The path of the plan's one step. */
     target: string
 }
+
+/** The kinds of answer: it can't be done, it is done as the plan says, or it is for a more complicated judgment. */
+export const TRIAGE_KINDS = ['No', 'Yes', 'Defer'] as const
+
+/** Triage's answer: its kind, with what that kind needs, and on every kind the plan its reply merged into. */
+export type TriageAnswer =
+    | { kind: 'No'; reason: string; plan: ActionPlan }
+    | { kind: 'Yes'; plan: ActionPlan }
+    | { kind: 'Defer'; plan: ActionPlan }
+
+/** An answer without its plan. */
+type TriageVerdict = { kind: 'No'; reason: string } | { kind: 'Yes' | 'Defer' }
 
 /** The authority for no kind, so everything it writes is unchecked. The rules a consequence may name are the ones the prompt shows, added per call. */
 export const TRIAGE_MERGE: MergeOptions = { author: 'triage', adds: ['steps', 'consequence', 'improvise'], restates: true, handlesAre: 'in the scene or improvised' }
@@ -51,26 +64,59 @@ export const renderTriage = async ({ inputs: { fixture, plan, target } }: ReadPi
     return [renderSceneExplicit(scene, { rules: 'conditions', full: scene }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
 }
 
+const nonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
+
 /**
- * The reply's one object, the step record, merged into the plan. A handle its texts name must be in the scene or improvised. An improvised thing
- * that no text names is no problem: it costs nothing until something reads it.
+ * The reply's verdict: its `kind`, trimmed and in any case, and on "No" its `reason`, kept as written. A `reason` on another kind is no part
+ * of that answer, so it is dropped, whatever its form.
  */
-export const triageContract: StageContract<TriageInputs, ActionPlan> = {
+const readVerdict = ({ kind, reason }: { kind?: unknown; reason?: unknown }): TriageVerdict | { problems: string[] } => {
+    if (typeof kind !== 'string') {
+        return { problems: ['has no string "kind"'] }
+    }
+    const known = TRIAGE_KINDS.find((each) => each.toLowerCase() === kind.trim().toLowerCase())
+    if (known === undefined) {
+        return { problems: [`kind "${kind}" is not one of ${TRIAGE_KINDS.join(', ')}`] }
+    }
+    if (known !== 'No') {
+        return { kind: known }
+    }
+    return nonEmptyString(reason) ? { kind: known, reason: reason.trim() } : { problems: ['"No" has no non-empty string "reason"'] }
+}
+
+/**
+ * The step record merged into the plan. A handle its texts name must be in the scene or improvised. An improvised thing that no text names is
+ * no problem: it costs nothing until something reads it.
+ */
+const mergeRecord = (record: Record<string, unknown>, { input: { plan, target }, rendered }: StageShown<TriageInputs>): { plan: ActionPlan } | { problems: string[] } => {
+    const rules = ruleTagHandles(rendered)
+    const things = [...new Set(namedHandles(rendered))].filter((handle) => !rules.includes(handle))
+    const merged = mergeStepRecord({ plan, target, record, things, rules }, TRIAGE_MERGE)
+    if ('problems' in merged) {
+        return merged
+    }
+    const known = [...things, ...(merged.plan.improvised ?? []).map(({ handle }) => handle)]
+    const unknown = planHandles(merged.plan).filter((handle) => !known.includes(handle))
+    return unknown.length > 0 ? { problems: unknown.map((handle) => `[${handle}] is not in the scene, and not improvised`) } : merged
+}
+
+/**
+ * The reply's one object: the step record, merged into the plan (`mergeRecord`), and the verdict beside it (`readVerdict`), taken off first.
+ * A problem with either refuses the reply whole. The reason's handles aren't checked, and no kind has to name any.
+ */
+export const triageContract: StageContract<TriageInputs, TriageAnswer> = {
     name: 'triage',
-    parse: (reply, { input: { plan, target }, rendered }) => {
+    parse: (reply, shown) => {
         const parsed = replyJsonObject(reply)
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const rules = ruleTagHandles(rendered)
-        const things = [...new Set(namedHandles(rendered))].filter((handle) => !rules.includes(handle))
-        const merged = mergeStepRecord({ plan, target, record: parsed.object, things, rules }, TRIAGE_MERGE)
-        if ('problems' in merged) {
-            return merged
-        }
-        const known = [...things, ...(merged.plan.improvised ?? []).map(({ handle }) => handle)]
-        const unknown = planHandles(merged.plan).filter((handle) => !known.includes(handle))
-        return unknown.length > 0 ? { problems: unknown.map((handle) => `[${handle}] is not in the scene, and not improvised`) } : { value: merged.plan }
+        const { kind, reason, ...record } = parsed.object
+        const merged = mergeRecord(record, shown)
+        const verdict = readVerdict({ kind, reason })
+        return 'problems' in merged || 'problems' in verdict
+            ? { problems: [merged, verdict].flatMap((part) => ('problems' in part ? part.problems : [])) }
+            : { value: { ...verdict, plan: merged.plan } }
     },
 }
 
@@ -134,5 +180,8 @@ export const triage: ReadPiece<TriageInputs, undefined> = {
 
 export const registeredTriage = registerPiece(triage)
 
-/** A batch's replies as their merged plans, for reading (`read-plans`). */
-export const triagePlansText = plansText(triage, triageContract, renderPlanForGenerator)
+/** An answer for reading: the verdict, then the plan. */
+const renderAnswer = (answer: TriageAnswer): string => `${answer.kind === 'No' ? `No: ${answer.reason}` : answer.kind}\n${renderPlanForGenerator(answer.plan)}`
+
+/** A batch's replies as their verdicts and merged plans, for reading (`read-plans`). */
+export const triagePlansText = plansText(triage, triageContract, renderAnswer)
