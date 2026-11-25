@@ -400,7 +400,7 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
                 throw new Error('triage merges')
             }
             const { improvise: _, ...reads } = view.reads
-            expect(hiddenRefusals({ reads }, merges, cells.slice(0, 1))).toEqual(['pour-tea, every kind confirmed, another gloss for the hidden thing: refused on the full plan only'])
+            expect(hiddenRefusals({ reads }, merges, cells.slice(0, 1))).toEqual(['pick-up-cup, every kind confirmed, another gloss for the hidden thing: refused on the full plan only'])
         })
 
         it('catches a merge that would: a possibility it can add, beside a confirmed one it can\'t see', () => {

@@ -1,17 +1,21 @@
 //
 // Triage (AGENT.triage.planning.md): the first screen on a command. Given the player's raw command, as a plan's one unchecked step, and the
 // whole scene, it says the step in full, and answers it: "No", with its reason, "Yes", or "Defer" to a more complicated judgment. The reply is
-// the step record (calibration AGENT.md, "The action plan"), its improvised things with it, all of it merged, and beside it the verdict. For
-// now it is a read piece, its cells the expansion probe's: what the step becomes, and what Micro improvises for what the scene lacks. What code
-// makes of its answer is `triageGuard.ts`'s.
+// the step record (calibration AGENT.md, "The action plan"), its improvised things with it, all of it merged, and beside it the verdict. An
+// answered piece, its cells the corpus's rows (`triageCorpus.ts`). What code makes of its answer is `triageGuard.ts`'s, and the grade keeps
+// the branch, the branch after the guard and the grounding apart.
 //
 import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
-import { parseProblems, replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
+import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
+import { replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
 import { fixtureScene, namedHandles, planHandles } from '../imaginationPieces/imaginationScene'
 import { plansText } from '../imaginationPieces/plansText'
 import { expansionClosed, planOf, planSteps, renderPlanForGenerator, rewordingClosed, viewPlan, type ActionPlan, type MergeOptions } from '../oracleLoop/actionPlan'
 import { mergeStepRecord } from '../oracleLoop/stepRecord'
-import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
+import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
+import type { PieceGrade } from '../pieceProbe/pieceAnswer'
+import { triageCorpus, type CorpusRow } from './triageCorpus'
+import { guarded, saysHandles } from './triageGuard'
 
 export type TriageInputs = {
     fixture: string
@@ -23,6 +27,7 @@ export type TriageInputs = {
 
 /** The kinds of answer: it can't be done, it is done as the plan says, or it is for a more complicated judgment. */
 export const TRIAGE_KINDS = ['No', 'Yes', 'Defer'] as const
+export type TriageKind = typeof TRIAGE_KINDS[number]
 
 /** Triage's answer: its kind, with what that kind needs, and on every kind the plan its reply merged into. */
 export type TriageAnswer =
@@ -51,7 +56,7 @@ export const planFromCommand = (command: string): ActionPlan =>
     planOf([{ step: { says: command, suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: command, standing: 'unchecked' }] }])
 
 /** The whole scene, then the plan. Throws on a target that names no step, or one closed to triage, since no redraft could fix the refusal. */
-export const renderTriage = async ({ inputs: { fixture, plan, target } }: ReadPieceCell<TriageInputs>): Promise<string> => {
+export const renderTriage = async ({ inputs: { fixture, plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): Promise<string> => {
     const step = planSteps(plan).find(({ path }) => path === target)
     if (step === undefined) {
         throw new Error(`The target "${target}" names no step of the plan`)
@@ -120,68 +125,87 @@ export const triageContract: StageContract<TriageInputs, TriageAnswer> = {
     },
 }
 
-/** The probe's form check: the contract's parse problems. */
-export const checkTriage = (reply: string, { inputs }: ReadPieceCell<TriageInputs>, rendered = ''): string[] =>
-    parseProblems(triageContract.parse(reply, { input: inputs, rendered }))
+/**
+ * The step's grounding, as the cells' `expectedAspects` have it: the handles its `says` names, sorted, then each improvised one as
+ * `improvised`, since its name is free; or `none`. It can't see a handle in the wrong role, or a word left beside its handle.
+ */
+const groundingText = (named: readonly SceneHandle[], improvised: readonly SceneHandle[]): string => {
+    const found = [...named.filter((handle) => !improvised.includes(handle)).sort(), ...named.filter((handle) => improvised.includes(handle)).map(() => 'improvised')]
+    return found.length === 0 ? 'none' : found.join(', ')
+}
 
-/** A cell: the command in a scene. The plan and its target are code's. */
-const commandCell = (fixture: string, command: string, lookFor: string, note?: string): ReadPieceCell<TriageInputs> => {
+export const groundingOf = (plan: ActionPlan): string => groundingText(saysHandles(plan), (plan.improvised ?? []).map(({ handle }) => handle))
+
+/**
+ * The probe's grade: the contract's answer, its kind as triage gave it, and beside it, tallied apart, the kind after the guard and the
+ * grounding; or the parse's problems. The guard reads the fixture's full scene.
+ */
+export const gradeTriage = async (reply: string, { inputs }: PieceCell<TriageInputs>, rendered: string): Promise<PieceGrade> => {
+    const parsed = triageContract.parse(reply, { input: inputs, rendered })
+    if ('problems' in parsed) {
+        return { malformed: parsed.problems.join('; ') }
+    }
+    const { kind, plan } = parsed.value
+    const after = guarded(parsed.value, await fixtureScene(inputs.fixture))
+    return { answer: kind, aspects: { afterGuard: after.kind, grounding: groundingOf(plan) }, plan }
+}
+
+/** The groundings a row accepts, as the grade gives them. */
+const acceptedGroundings = ({ grounded }: CorpusRow): string[] =>
+    grounded.map(({ says, improvise = [] }) => groundingText([...new Set(namedHandles(says))], improvise.map(({ handle }) => handle)))
+
+/**
+ * A row as a cell: the command as a plan, and what its branch settles. The grounding is graded on a "Yes" or a "Defer" alone (the bar, as
+ * the user agreed it), and tallied on a "No" and on an open row.
+ */
+const corpusCell = (row: CorpusRow): PieceCell<TriageInputs> => {
+    const { fixture, command, branch, from, lookFor } = row
     const plan = planFromCommand(command)
     const [{ path: target }] = planSteps(plan)
-    return { inputs: { fixture, plan, target }, lookFor, source: 'hand-written', ...(note === undefined ? {} : { note }) }
+    return {
+        inputs: { fixture, plan, target },
+        ...(branch === undefined ? {} : {
+            expected: branch.shown,
+            expectedAspects: { afterGuard: [branch.after], ...(branch.shown === 'No' ? {} : { grounding: acceptedGroundings(row) }) },
+        }),
+        lookFor,
+        source: `hand-written, from ${from}`,
+    }
 }
 
-/** The expansion probe's commands, by what has to be supplied. What each looks for is mine until the user has read it. */
-export const triageCells: Record<string, ReadPieceCell<TriageInputs>> = {
-    'pour': commandCell('teaTable', 'pour tea',
-        'says names [teapot1]; [tea2] apart, and a destination ([cup1], or none) recorded, not graded. Nothing improvised',
-        'What is supplied is in the scene. Two things are called Tea, and [cup1] already holds one.'),
-    'pour/cup': commandCell('teaTable', 'pour tea into the cup',
-        'says names [teapot1] and [cup1]; [tea2] apart. Nothing improvised',
-        'What is supplied is in the scene. playByPlay\'s cell for nearly this command named [teapot1] and left "tea", 29 of its 29 revisions.'),
-    'light/hearth': commandCell('tavern', 'light the candle',
-        'says names [candle1], and the hearth as the flame\'s source, in words or under an improvised handle glossed as the hearth. Another flame, a match or a taper improvised, is recorded: whether the hearth is used before it is the question',
-        'The room\'s gloss establishes a hearth, which is no thing with a handle, so naming it at all may take an improvised one.'),
-    'wipe/cloth': commandCell('teaTable', 'wipe the table with a cloth',
-        'says names [table1] and one improvised cloth, its gloss a cloth'),
-    'trim/sharp': commandCell('tavern', 'trim the wick of the candle with something sharp',
-        'says names [candle1] and one improvised thing, its gloss something sharp. Not [hammer1]'),
-    'cut': commandCell('tavernRope', 'cut the rope',
-        'says names [rope1] and one improvised thing for cutting; or [rope1] alone, recorded. Not [hammer1]',
-        'The user\'s example: the command implies a tool.'),
-    'trim': commandCell('tavern', 'trim the wick of the candle',
-        'as cut: [candle1], and one improvised thing for cutting; or [candle1] alone, recorded. Not [hammer1]'),
-    'light/chapel': commandCell('feature', 'light the candle',
-        'says names [candle1] and one improvised flame; or [candle1] alone, recorded',
-        'No hearth: the pair of light/hearth.'),
-    'wipe': commandCell('teaTable', 'wipe the table',
-        'says names [table1], with a cloth improvised or not: recorded, not graded. Not the hand'),
-    'take': commandCell('tavern', 'pick up the cup',
-        'says names [cup1]. Nothing improvised, a hand included'),
-    'slide': commandCell('teaTable', 'slide the saucer across the table',
-        'says names [saucer1] and [table1]. Nothing improvised'),
-    'take/twoCups': commandCell('twoCups', 'pick up the cup',
-        'the cup left in the player\'s words: neither [cup1] nor [cup2] chosen, and no third improvised'),
-}
+/** The corpus's rows, by their ids there. */
+export const triageCells: Record<string, PieceCell<TriageInputs>> = Object.fromEntries(Object.entries(triageCorpus).map(([id, row]) => [id, corpusCell(row)]))
 
 /** It takes no options: the render and its settings are the view's. */
 const parseTriageOptions = (value: unknown): undefined | string => (value === undefined ? undefined : 'triage takes no options')
 
-export const triage: ReadPiece<TriageInputs, undefined> = {
-    kind: 'read',
+/** As `playByPlay`'s, whose record its reply is with a verdict beside it. */
+export const TRIAGE_MAX_TOKENS = 1024
+
+export const triage: OraclePiece<TriageInputs, undefined> = {
     name: 'triage',
     view: TRIAGE_VIEW,
     merges: TRIAGE_MERGE,
+    answers: TRIAGE_KINDS,
+    maxTokens: TRIAGE_MAX_TOKENS,
     cells: triageCells,
-    check: checkTriage,
+    grade: gradeTriage,
     parseOptions: parseTriageOptions,
     render: renderTriage,
 }
 
 export const registeredTriage = registerPiece(triage)
 
-/** An answer for reading: the verdict, then the plan. */
-const renderAnswer = (answer: TriageAnswer): string => `${answer.kind === 'No' ? `No: ${answer.reason}` : answer.kind}\n${renderPlanForGenerator(answer.plan)}`
+/** An answer for reading: the verdict, the one after the guard where it differs, the grounding, then the plan. */
+const renderAnswer = async (answer: TriageAnswer, { fixture }: TriageInputs): Promise<string> => {
+    const after = guarded(answer, await fixtureScene(fixture))
+    return [
+        answer.kind === 'No' ? `No: ${answer.reason}` : answer.kind,
+        ...(after.kind === answer.kind ? [] : [`after the guard: ${after.kind}`]),
+        `grounding: ${groundingOf(answer.plan)}`,
+        renderPlanForGenerator(answer.plan),
+    ].join('\n')
+}
 
 /** A batch's replies as their verdicts and merged plans, for reading (`read-plans`). */
 export const triagePlansText = plansText(triage, triageContract, renderAnswer)

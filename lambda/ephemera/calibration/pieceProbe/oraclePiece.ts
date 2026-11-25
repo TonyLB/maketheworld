@@ -54,6 +54,8 @@ export type PieceCell<Inputs = unknown> = PieceCellBase<Inputs> & {
      * inputs, even where the inputs are wrong about the case. Absent for a cell whose answer is open: its calls are tallied, not graded.
      */
     expected?: string
+    /** The values accepted for each of the grade's `aspects`. One with none here is tallied, not graded. */
+    expectedAspects?: Readonly<Record<string, readonly string[]>>
     /** What a reader looks for in the parts of a reply code doesn't grade, written before the batch. Code doesn't read it. */
     lookFor?: string
 }
@@ -89,9 +91,9 @@ export type OraclePiece<Inputs = unknown, Options = unknown> = PieceBase & {
     /**
      * The piece's own grade of one reply, given its cell, the cell's rendered text and the payload's options (as a read piece's `check`
      * has them), in place of `pieceAnswer` against `answers`: for answers with parameters, a stage's contract parse, or a piece that merges,
-     * whose grade gives the merged plan beside the answer.
+     * whose grade gives the merged plan beside the answer. It may give aspects beside the answer too. Async where it needs the fixture's scene.
      */
-    grade?: (reply: string, cell: PieceCell<Inputs>, rendered: string, options: Options) => PieceGrade
+    grade?: (reply: string, cell: PieceCell<Inputs>, rendered: string, options: Options) => PieceGrade | Promise<PieceGrade>
 }
 
 /**

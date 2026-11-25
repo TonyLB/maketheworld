@@ -2,7 +2,8 @@
 // What code makes of triage's answer (AGENT.triage.planning.md), from the handles the step it restated names. It runs after the contract, so
 // the contract's value stays the answer triage gave, and the two can be read apart.
 //
-import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
+import { hostsOf, judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
+import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { namedHandles } from '../imaginationPieces/imaginationScene'
 import type { ActionPlan } from '../oracleLoop/actionPlan'
 import type { TriageAnswer } from './triage'
@@ -22,3 +23,33 @@ export const improvisedDefers = (answer: TriageAnswer): TriageAnswer => {
     const named = saysHandles(plan)
     return kind === 'Yes' && (plan.improvised ?? []).some(({ handle }) => named.includes(handle)) ? { kind: 'Defer', plan } : answer
 }
+
+/**
+ * The things the scene's securings hold, each once, in order: the ends of each securing (those the prompt's rules are minted from), except a
+ * host's end against its own direct child, since moving a host can't move its child relative to it. A securing to something the scene doesn't
+ * name as a thing has one end, its subject: a container whose contents it is secured to isn't an end.
+ */
+export const securedEnds = (scene: SceneModel): SceneHandle[] => {
+    const hosts = hostsOf(scene)
+    const hosted = (child: SceneHandle, host: SceneHandle): boolean => hosts.get(child)?.has(host) ?? false
+    return [...new Set(judgeRules(scene).flatMap(({ subject, target }) => (
+        target.kind !== 'thing' ? [subject] : [
+            ...(hosted(target.handle, subject) ? [] : [subject]),
+            ...(hosted(subject, target.handle) ? [] : [target.handle]),
+        ]
+    )))]
+}
+
+/**
+ * A "Yes" or a "No" whose step names a thing a securing holds is a "Defer" with the same plan: whether the act keeps the securing, breaks it
+ * or does away with it is the judge's. There is no walk from the handles, so a thing the step leaves out is missed, and so is a securing on
+ * something carried along. Any other answer is as it was.
+ */
+export const securingDefers = (answer: TriageAnswer, scene: SceneModel): TriageAnswer => {
+    const { kind, plan } = answer
+    const ends = securedEnds(scene)
+    return kind !== 'Defer' && saysHandles(plan).some((handle) => ends.includes(handle)) ? { kind: 'Defer', plan } : answer
+}
+
+/** The answer after the guard: both of code's rules, over the full scene. Each only makes a "Defer", so their order doesn't matter. */
+export const guarded = (answer: TriageAnswer, scene: SceneModel): TriageAnswer => securingDefers(improvisedDefers(answer), scene)

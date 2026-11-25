@@ -117,11 +117,15 @@ const PINS: Record<string, Pin[]> = {
             'R-8': 'cf1a21f5', 'R-9': '8589c11f',
         } },
     ],
-    // Not from 2026-11-22: pinned when triage's expansion probe was built, 2026-11-25.
+    // Not from 2026-11-22: pinned when triage's cells became its corpus, 2026-11-25. Eight rows are commands of its expansion probe's, whose
+    // pins they keep.
     'triage': [
         { options: undefined, hashes: {
-            'pour': '7a201487', 'pour/cup': '61a7474a', 'light/hearth': '53715ec5', 'wipe/cloth': '85a51d9e', 'trim/sharp': 'f4a99eee', 'cut': '5a293f1c',
-            'trim': 'bb3e9193', 'light/chapel': '854c0693', 'wipe': 'dd31a326', 'take': 'a94543b0', 'slide': 'a19e8f93', 'take/twoCups': 'dbdc39e0',
+            'T-1': '898c77d2', 'T-2': '1770c9c5', 'T-3': 'a19e8f93', 'T-4': '5238e0e1', 'T-5': 'db253650', 'T-6': '0faae3ef',
+            'T-7': 'dadeb7f8', 'T-8': 'f959ddba', 'T-9': 'b257f0ae', 'T-10': '61a7474a', 'T-11': '52d18167', 'T-12': '640f447e',
+            'T-13': '4a81ba61', 'T-14': '85a51d9e', 'T-15': '6a6c279b', 'T-16': '29424e40', 'T-17': 'a94543b0', 'T-18': '68d87700',
+            'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
+            'T-25': '7a201487',
         } },
     ],
 }

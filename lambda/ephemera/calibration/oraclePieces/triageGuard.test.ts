@@ -1,12 +1,15 @@
+import type { SceneEntry, SceneHandle, SceneModel, SceneRelation, SceneRelationTarget } from '../../dataSource/positions/ludicCache/sceneModel'
+import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { planSteps, type ActionPlan } from '../oracleLoop/actionPlan'
-import { planFromCommand, renderTriage, triageContract, type TriageAnswer } from './triage'
-import { improvisedDefers, saysHandles } from './triageGuard'
+import { planFromCommand, renderTriage, triageContract, type TriageAnswer, type TriageKind } from './triage'
+import { triageCorpus, type CorpusGrounding, type CorpusRow } from './triageCorpus'
+import { guarded, improvisedDefers, saysHandles, securedEnds, securingDefers } from './triageGuard'
 
 /** A reply to the command, as the contract reads it. */
 const answerTo = async (fixture: string, command: string | ActionPlan, reply: object): Promise<TriageAnswer> => {
     const plan = typeof command === 'string' ? planFromCommand(command) : command
     const inputs = { fixture, plan, target: planSteps(plan)[0].path }
-    const rendered = await renderTriage({ inputs, lookFor: 'anything', source: 'hand-written' })
+    const rendered = await renderTriage({ inputs })
     const parsed = triageContract.parse(`\`\`\`json\n${JSON.stringify(reply)}\n\`\`\``, { input: inputs, rendered })
     if ('problems' in parsed) {
         throw new Error(parsed.problems.join('; '))
@@ -73,6 +76,83 @@ describe('what code makes of triage\'s answer', () => {
         ])('%s', async (_, fixture, command, reply) => {
             const answer = await answerTo(fixture, command, reply)
             expect(improvisedDefers(answer)).toBe(answer)
+        })
+    })
+
+    describe('the things a securing holds', () => {
+        const thing = (handle: SceneHandle) => ({ kind: 'thing' as const, handle })
+        const glued = (target: SceneRelationTarget): SceneRelation => ({ kind: 'Custom', label: 'glued to', target, secured: true })
+        const entry = (handle: SceneHandle, children: SceneEntry[] = []): SceneEntry => ({ kind: 'line', handle, hostingKind: 'On', first: true, elsewhere: [], joins: [], children })
+        const handlesOf = (entries: readonly SceneEntry[]): SceneHandle[] => entries.flatMap(({ handle, children }) => [handle, ...handlesOf(children)])
+        const sceneOf = (contents: SceneEntry[], relations: Record<SceneHandle, SceneRelation[]>, held: SceneEntry[] = []): SceneModel => ({
+            room: {}, contents, concepts: [], held, exits: [],
+            things: Object.fromEntries(handlesOf([...contents, ...held]).map((handle) => [handle, { kind: 'Object', relations: relations[handle] ?? [] }])),
+        })
+        const tray = entry('tray1', [entry('cup1')])
+
+        it.each<[string, SceneModel, SceneHandle[]]>([
+            ['none, where nothing is secured', sceneOf([tray], { cup1: [{ kind: 'Custom', label: 'leaning against', target: thing('tray1'), secured: false }, { kind: 'Associated', target: thing('tray1') }] }), []],
+            ['the child alone, secured to its host', sceneOf([tray], { cup1: [glued(thing('tray1'))] }), ['cup1']],
+            ['the child alone, its host the securing\'s subject', sceneOf([tray], { tray1: [glued(thing('cup1'))] }), ['cup1']],
+            ['the child alone, in what the actor holds', sceneOf([], { cup1: [glued(thing('tray1'))] }, [tray]), ['cup1']],
+            ['both, side by side', sceneOf([entry('table1'), entry('wall1')], { table1: [{ kind: 'SecuredTo', target: thing('wall1') }] }), ['table1', 'wall1']],
+            ['both, where one is the host of the other\'s host', sceneOf([entry('table1', [tray])], { cup1: [glued(thing('table1'))] }), ['cup1', 'table1']],
+            ['the subject of one to something not shown', sceneOf([entry('cup1')], { cup1: [glued({ kind: 'notShown' })] }), ['cup1']],
+            ['the subject of one to something inside another, and not that other', sceneOf([entry('cup1'), entry('chest1')], { cup1: [glued({ kind: 'inside', handle: 'chest1' })] }), ['cup1']],
+            ['not what carries one', sceneOf([tray, entry('wall1')], { cup1: [glued(thing('wall1'))] }), ['cup1', 'wall1']],
+            ['one twice secured, once', sceneOf([tray, entry('wall1')], { cup1: [glued(thing('wall1')), glued(thing('tray1'))] }), ['cup1', 'wall1']],
+        ])('are %s', (_, scene, ends) => {
+            expect(securedEnds(scene)).toEqual(ends)
+        })
+
+        it('are those of a fixture\'s ties and bare securings, and of no other relation', async () => {
+            expect([...securedEnds(await fixtureScene('dock'))].sort()).toEqual(['barrel1', 'boat1', 'post1'])
+            expect(securedEnds(await fixtureScene('teaTable'))).toEqual(['teapot1'])
+            expect([...securedEnds(await fixtureScene('teaTableChained'))].sort()).toEqual(['table1', 'teapot1', 'wall1'])
+        })
+    })
+
+    describe('the corpus, as grounded', () => {
+        /** The rows a securing touches. */
+        const TOUCHED = ['T-9', 'T-10', 'T-11', 'T-12', 'T-13', 'T-25']
+        const groundings = Object.entries(triageCorpus).flatMap(([id, row]) => row.grounded.map((grounding): [string, string, CorpusRow, CorpusGrounding] => [id, grounding.says, row, grounding]))
+        const asKind = ({ fixture, command }: CorpusRow, { says, improvise }: CorpusGrounding, kind: TriageKind): Promise<TriageAnswer> => (
+            answerTo(fixture, command, { says, kind, ...(improvise === undefined ? {} : { improvise }), ...(kind === 'No' ? { reason: 'it can\'t be done' } : {}) })
+        )
+
+        it.each(groundings.flatMap(([id, says, row, grounding]) => (row.branch === undefined ? [] : [[id, says, row.branch, row, grounding] as const])))(
+            '%s, "%s", has its branch after the guard', async (_id, _says, { shown, after }, row, grounding) => {
+                const answer = await asKind(row, grounding, shown)
+                const outcome = guarded(answer, await fixtureScene(row.fixture))
+                expect(outcome).toEqual({ kind: after, plan: answer.plan, ...(answer.kind === 'No' && after === 'No' ? { reason: answer.reason } : {}) })
+            },
+        )
+
+        it.each(groundings)('%s, "%s": a securing it touches defers a "Yes" and a "No", and nothing else does', async (id, _says, row, grounding) => {
+            const scene = await fixtureScene(row.fixture)
+            const [yes, no, defer] = await Promise.all((['Yes', 'No', 'Defer'] as const).map((kind) => asKind(row, grounding, kind)))
+            expect(securingDefers(defer, scene)).toBe(defer)
+            if (TOUCHED.includes(id)) {
+                expect(securingDefers(yes, scene)).toEqual({ kind: 'Defer', plan: yes.plan })
+                expect(securingDefers(no, scene)).toEqual({ kind: 'Defer', plan: no.plan })
+                expect(guarded(no, scene)).toEqual({ kind: 'Defer', plan: no.plan })
+            }
+            else {
+                expect(securingDefers(yes, scene)).toBe(yes)
+                expect(securingDefers(no, scene)).toBe(no)
+            }
+        })
+
+        it('as a "Yes", an open row is deferred where its step names what it improvises, and stands where it doesn\'t', async () => {
+            const row = triageCorpus['T-21']
+            const scene = await fixtureScene(row.fixture)
+            expect(await Promise.all(row.grounded.map(async (grounding) => guarded(await asKind(row, grounding, 'Yes'), scene).kind))).toEqual(['Defer', 'Yes'])
+        })
+
+        it('holds no handle but the step\'s own, so a glued source left out of it is missed', async () => {
+            const scene = await fixtureScene('teaTable')
+            const missed = await answerTo('teaTable', 'pour tea into the cup', { says: 'pour [tea2] into [cup1]', steps: [{ says: 'lift [teapot1]' }, { says: 'tip [teapot1] over [cup1]' }], kind: 'Yes' })
+            expect(guarded(missed, scene)).toBe(missed)
         })
     })
 })
