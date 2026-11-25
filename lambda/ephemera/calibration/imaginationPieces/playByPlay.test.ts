@@ -79,6 +79,20 @@ describe('playByPlay', () => {
             await expect(renderPlayByPlay(cellOf({ plan: expanded.plan }), PLAY_BY_PLAY_OPTIONS)).rejects.toThrow(/already expanded; expand one of its sub-steps/)
         })
 
+        it('takes a target whose sub-steps are another\'s proposal, shown to be overwritten, unless one holds something confirmed', async () => {
+            const proposed = mergeStepChanges(pourPlan(), 'pour-tea2-teapot1', { changes: [{ add: 'steps', steps: [{ says: 'tip it' }, { says: 'wait' }] }] }, [], { author: 'triage', adds: ['steps'] })
+            if (!('plan' in proposed)) {
+                throw new Error(proposed.problems.join('; '))
+            }
+            expect(await renderPlayByPlay(cellOf({ plan: proposed.plan }), PLAY_BY_PLAY_OPTIONS)).toContain('  - step tip-it (unchecked): tip it')
+            // The confirmed concern is hidden from the piece, so the refusal comes before the call.
+            const held = mergeStepChanges(proposed.plan, 'wait', { changes: [{ add: 'concern', says: 'it may spill' }] }, [], { author: 'consequences' })
+            if (!('plan' in held)) {
+                throw new Error(held.problems.join('; '))
+            }
+            await expect(renderPlayByPlay(cellOf({ plan: held.plan }), PLAY_BY_PLAY_OPTIONS)).rejects.toThrow(/already expanded; expand one of its sub-steps/)
+        })
+
         it.each([
             [{ target: 'pick-up-cup1' }, /The target "pick-up-cup1" names no step of the plan/],
             [{ alsoShown: ['table1', 'wall1', 'table1'] }, /Things shown twice: table1/],

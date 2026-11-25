@@ -13,7 +13,7 @@ import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneMod
 import { ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
 import {
-    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
+    bracketChanges, expansionClosed, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
 } from '../oracleLoop/actionPlan'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
@@ -80,8 +80,9 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     if (step === undefined) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
-    // Asking for what the merge would refuse is the caller's error (mine).
-    if (isExpanded(step)) {
+    // Asking for what the merge would refuse is the caller's error (mine), and what closes it may be hidden from the piece. Unchecked
+    // sub-steps are a proposal, which the reply's overwrite.
+    if (expansionClosed(step) !== undefined) {
         throw new Error(`The target "${target}" is already expanded; expand one of its sub-steps`)
     }
     if (missing.trim() === '') {

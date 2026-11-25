@@ -582,7 +582,7 @@ describe('the action plan', () => {
                 ['the retired atomic mark', [{ mark: 'atomic', to: 'pour-tea2-teapot1' }], ['change 1: has "mark", not one of add, to, thing, says', 'change 1: "add" must be one of steps', 'change 1: has no non-empty string "says"']],
                 ['a restatement with no says', [{ ...restate, says: ' ' }], ['change 1: has no non-empty string "says"']],
                 ['a restatement with a blank intent', [{ ...restate, intent: '' }], ['change 1: "intent" is not a non-empty string']],
-                ['a restatement with no detail answered', [{ ...restate, answered: '' }], ['change 1: has no non-empty string "answered"']],
+                ['a restatement with a blank detail answered', [{ ...restate, answered: '' }], ['change 1: "answered" is not a non-empty string']],
                 ['a restatement with another key', [{ ...restate, why: 'simple' }], ['change 1: has "why", not one of restate, to, says, intent, answered']],
                 ['a restatement of another kind', [{ ...restate, restate: 'intent' }], ['change 1: "restate" must be step']],
                 ['a restatement twice in one block', [restate, restate], ['change 2: step pour-tea2-teapot1 is already restated in this block']],
@@ -599,7 +599,9 @@ describe('the action plan', () => {
             })
 
             it('takes a replacement aimed at an item of a step the block revises: the item stays, so it is replaced, under the new path when the path moves', () => {
-                const proposed = expanded(pour(), [spills], { author: 'playByPlay', adds: ['consequence'] })
+                // Built unchecked, since only the step's authority changes a confirmed one, and it isn't the consequence's.
+                const offered = planOf([{ step: { says: POUR, suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: POUR, standing: 'unchecked' }] }])
+                const proposed = expanded(offered, [spills], { author: 'playByPlay', adds: ['consequence'] })
                 const replace = { replace: 'pour-tea2-teapot1.tea2-spills-over', with: { says: '[tea2] stays in [teapot1]' } }
                 const checking: MergeOptions = { author: 'consequences', restates: true, replaces: true }
                 const kept = expanded(proposed, [{ ...restate, intent: '[tea2] is in [cup1]' }, replace], checking)
@@ -740,8 +742,14 @@ describe('the action plan', () => {
                     expect(plan.steps[0].alreadyAnswers).toEqual([restate.answered])
                 })
 
-                it('drops a repeat that gives a thing where the item gives none, the item kept as it is (r1 itself)', () => {
-                    expect(mergedBy(conceded(), [restate, { ...cannot, thing: '[table1]' }], by('playByPlay')).steps[0].items).toEqual(conceded().steps[0].items)
+                it('drops a repeat that gives a thing where the item gives none, the thing filled in on an unchecked item (r1 itself)', () => {
+                    const [intent, consequence] = conceded().steps[0].items
+                    expect(mergedBy(conceded(), [restate, { ...cannot, thing: '[table1]' }], by('playByPlay')).steps[0].items).toEqual([intent, { ...consequence, thing: 'table1' }])
+                })
+
+                it('fills no thing in on a confirmed item: a thing has no standing of its own', () => {
+                    const confirmed = mergedBy(pickUp(), [cannot], by('consequences'))
+                    expect(mergedBy(confirmed, [{ ...cannot, thing: '[table1]' }], by('playByPlay'))).toEqual(confirmed)
                 })
 
                 it('drops a repeat within one block', () => {
@@ -758,17 +766,201 @@ describe('the action plan', () => {
                     expect(planSteps(plan)[0].items.flatMap(itemPaths)).toEqual(['pick-up-table1.intent', 'pick-up-table1.table1-cannot-be', 'pick-up-table1.table-secured-to-wall'])
                 })
 
-                it.each([
-                    ['another stance', { ...cannot, rules: [{ ...chain, stance: 'causes' }] }],
-                    ['no rule', { add: 'consequence', to: 'pick-up-table1', says: '[table1] cannot be lifted' }],
-                    ['other words', { ...cannot, says: '[table1] will not lift' }],
-                ])('keeps a near copy with %s', (_, change) => {
-                    expect(mergedBy(conceded(), [change], by('playByPlay')).steps[0].items.filter(({ kind }) => kind === 'consequence')).toHaveLength(2)
+                it('keeps a near copy with other words', () => {
+                    expect(mergedBy(conceded(), [{ ...cannot, says: '[table1] will not lift' }], by('playByPlay')).steps[0].items.filter(({ kind }) => kind === 'consequence')).toHaveLength(2)
+                })
+
+                it('says nothing of a rule it leaves out', () => {
+                    expect(mergedBy(conceded(), [{ add: 'consequence', to: 'pick-up-table1', says: '[table1] cannot be lifted' }], by('playByPlay'))).toEqual(conceded())
+                })
+
+                it('adds a different stance on a rule beside the one held, for the rule cell', () => {
+                    const [, consequence] = mergedBy(conceded(), [{ ...cannot, rules: [{ ...chain, stance: 'causes' }] }], by('playByPlay')).steps[0].items
+                    expect(consequence).toMatchObject({ rules: [
+                        { path: 'pick-up-table1.table-secured-to-wall', stance: 'violation', standing: 'unchecked' },
+                        { path: 'pick-up-table1.table-secured-to-wall-2', stance: 'causes', standing: 'unchecked' },
+                    ] })
+                })
+
+                it('pools the rules of a consequence one block gives twice, in a sub-step too', () => {
+                    const glue = { rule: 'teapot-secured-to-table', stance: 'causes' }
+                    const plan = mergedBy(pickUp(), [cannot, { ...cannot, rules: [chain, glue] }, { ...oc20, steps: [oc20.steps[0], { says: 'lift it', consequences: [{ says: 'it rises', rules: [chain] }, { says: 'it rises', rules: [glue] }] }] }], by('playByPlay'))
+                    expect(planSteps(plan).flatMap(({ items }) => items.flatMap((item) => (item.kind === 'consequence' ? [[item.says, (item.rules ?? []).map(({ rule }) => rule)]] : [])))).toEqual([
+                        ['[table1] cannot be lifted', ['table-secured-to-wall', 'teapot-secured-to-table']], ['it rises', ['table-secured-to-wall', 'teapot-secured-to-table']],
+                    ])
+                    expectWellFormed('pooled', plan)
+                })
+
+                it('matches no item the same block removes or replaces', () => {
+                    const plan = mergedBy(conceded(), [{ remove: 'pick-up-table1.table1-cannot-be' }, cannot], by('consequences', { replaces: true }))
+                    expect(plan.steps[0].items.slice(1)).toMatchObject([{ path: 'pick-up-table1.table1-cannot-be', standing: 'confirmed' }])
+                })
+
+                it('gives a detail to the item on the same thing first', () => {
+                    const onTable = mergedBy(mergedBy(pickUp(), [{ ...cannot, thing: '[table1]', rules: [] }], by('playByPlay')), [{ ...cannot, thing: '[cup1]', rules: [] }], by('playByPlay'))
+                    const plan = mergedBy(onTable, [{ ...cannot, thing: '[cup1]' }], by('playByPlay'))
+                    expect(plan.steps[0].items.flatMap((item) => (item.kind === 'consequence' ? [[item.thing, (item.rules ?? []).length]] : []))).toEqual([['table1', 0], ['cup1', 1]])
                 })
 
                 it('keeps a near copy on another thing than the item\'s, when both give one', () => {
                     const onTable = mergedBy(pickUp(), [{ ...cannot, thing: '[table1]' }], by('playByPlay'))
                     expect(mergedBy(onTable, [{ ...cannot, thing: '[cup1]' }], by('playByPlay')).steps[0].items.filter(({ kind }) => kind === 'consequence')).toHaveLength(2)
+                })
+            })
+
+            describe('a detail proposed on a confirmed item (run on 2026-11-24, the two cases the rule was found from)', () => {
+                const pulls = { add: 'consequence', to: 'pick-up-table1', says: '[table1] pulls against its chain' }
+                const confirmed = () => mergedBy(pickUp(), [pulls], by('consequences'))
+
+                it('a rule proposed on a confirmed consequence: the same consequence, confirmed, holding an unchecked rule', () => {
+                    expect(mergedBy(confirmed(), [{ ...pulls, rules: [chain] }], by('triage')).steps[0].items.slice(1)).toEqual([
+                        { kind: 'consequence', path: 'pick-up-table1.table1-pulls-against', standing: 'confirmed', says: '[table1] pulls against its chain', rules: [
+                            { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'unchecked', rule: 'table-secured-to-wall', stance: 'violation' },
+                        ] },
+                    ])
+                })
+
+                it('an intent proposed on a confirmed step that has none: added unchecked, the step and its consequences as they were', () => {
+                    const bare = mergedBy(planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [] }]), [pulls], by('consequences'))
+                    const plan = mergedBy(bare, [{ restate: 'step', to: 'pick-up-table1', says: 'pick up [table1]', intent: '[table1] is up', answered: 'x' }], by('triage'))
+                    expect(plan.steps[0]).toMatchObject({ standing: 'confirmed', items: [
+                        { kind: 'intent', path: 'pick-up-table1.intent', standing: 'unchecked', says: '[table1] is up' },
+                        ...bare.steps[0].items,
+                    ] })
+                    expect(JSON.stringify(plan)).not.toContain('stale')
+                })
+            })
+
+            describe('an unchecked item never refuses a change, and only its authority alters a confirmed one (the user, 2026-11-24)', () => {
+                const PATH = 'pick-up-table1'
+                const takesAll: Partial<MergeOptions> = { adds: ['steps', 'consequence', 'possibility'] }
+                const stepOf = (standing: 'confirmed' | 'unchecked', intent: 'confirmed' | 'unchecked' = standing) =>
+                    planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'player' }, standing, items: [{ kind: 'intent', says: 'the table is up', standing: intent }] }])
+                const words = { restate: 'step', to: PATH, says: 'lift [table1]' }
+                const intent = { restate: 'step', to: PATH, says: 'pick up [table1]', intent: '[table1] is held' }
+                const steps = { add: 'steps', to: PATH, steps: [{ says: 'grip [table1]' }, { says: 'raise [table1]' }] }
+                const other = { add: 'steps', to: PATH, steps: [{ says: 'kneel' }, { says: 'raise [table1]' }] }
+                const spread = { add: 'possibility', to: PATH, kind: 'execution', says: 'the grip holds', branches: [[], []] }
+                const spread2 = { ...spread, says: 'the hold is good' }
+                const rises = { add: 'consequence', to: PATH, says: '[cup1] rises' }
+                const held = (plan: ActionPlan, change: unknown, author: MergeOptions['author']) => mergedBy(plan, [change], by(author, takesAll))
+                const standings = (plan: ActionPlan) => planSteps(plan).flatMap(({ path, standing, items }) => [[path, standing], ...items.flatMap((item) => (item.kind === 'step' ? [] : [[item.path, item.standing]]))])
+
+                // Each slot, as it is held and who writes over it: what the slot holds after, or the refusal.
+                it.each<[string, () => ActionPlan, unknown, MergeOptions['author'], unknown]>([
+                    ['words, unchecked, by a proposer', () => stepOf('unchecked'), words, 'triage', { path: 'lift-table1', says: 'lift [table1]', standing: 'unchecked' }],
+                    ['words, unchecked, by their authority', () => stepOf('unchecked'), words, 'playByPlay', { path: 'lift-table1', says: 'lift [table1]', standing: 'confirmed' }],
+                    ['words, confirmed, by a proposer', () => stepOf('confirmed'), words, 'triage', ['change 1: step pick-up-table1 is confirmed; only playByPlay changes its words']],
+                    ['words, confirmed, by their authority', () => stepOf('confirmed'), words, 'playByPlay', { path: 'lift-table1', standing: 'confirmed' }],
+                    ['words, unchecked over something confirmed, by a proposer', () => held(stepOf('unchecked'), rises, 'consequences'), words, 'triage', ['change 1: step pick-up-table1 holds something confirmed; only playByPlay changes its words']],
+                    ['an intent, unchecked, by a proposer', () => stepOf('confirmed', 'unchecked'), intent, 'triage', { standing: 'confirmed', items: [{ kind: 'intent', says: '[table1] is held', standing: 'unchecked' }] }],
+                    ['an intent, unchecked, by its authority', () => stepOf('confirmed', 'unchecked'), intent, 'playByPlay', { items: [{ says: '[table1] is held', standing: 'confirmed' }] }],
+                    ['an intent, confirmed, by a proposer', () => stepOf('confirmed'), intent, 'triage', ['change 1: intent pick-up-table1.intent is confirmed; only playByPlay changes it']],
+                    ['an intent, confirmed, as written by a proposer', () => stepOf('confirmed'), { ...intent, intent: 'the table is up' }, 'triage', { standing: 'confirmed', items: [{ says: 'the table is up', standing: 'confirmed' }] }],
+                    ['sub-steps, unchecked, by a proposer', () => held(stepOf('confirmed'), steps, 'triage'), other, 'consequences', { items: [{ kind: 'intent' }, { says: 'kneel', standing: 'unchecked' }, { says: 'raise [table1]', standing: 'unchecked' }] }],
+                    ['sub-steps, unchecked, by their authority', () => held(stepOf('confirmed'), steps, 'triage'), other, 'playByPlay', { items: [{ kind: 'intent' }, { says: 'kneel', standing: 'confirmed' }, { path: 'raise-table1', says: 'raise [table1]', standing: 'confirmed' }] }],
+                    ['sub-steps, confirmed, by a proposer', () => held(stepOf('confirmed'), steps, 'playByPlay'), other, 'triage', ['change 1: step pick-up-table1 is already expanded; expand one of its sub-steps for more detail']],
+                    ['sub-steps, confirmed, by their authority', () => held(stepOf('confirmed'), steps, 'playByPlay'), other, 'playByPlay', ['change 1: step pick-up-table1 is already expanded; expand one of its sub-steps for more detail']],
+                    ['sub-steps, unchecked over something confirmed, by their authority', () => held(held(stepOf('confirmed'), steps, 'triage'), { ...rises, to: 'raise-table1' }, 'consequences'), other, 'playByPlay', ['change 1: step pick-up-table1 is already expanded; expand one of its sub-steps for more detail']],
+                    ['a possibility, unchecked, by a proposer', () => held(stepOf('confirmed'), spread, 'triage'), spread2, 'playByPlay', { items: [{ kind: 'intent' }, { path: 'pick-up-table1.execution', says: 'the hold is good', standing: 'unchecked' }] }],
+                    ['a possibility, unchecked, by its authority', () => held(stepOf('confirmed'), spread, 'triage'), spread2, 'consequences', { items: [{ kind: 'intent' }, { path: 'pick-up-table1.execution', says: 'the hold is good', standing: 'confirmed' }] }],
+                    ['a possibility, confirmed, by a proposer', () => held(stepOf('confirmed'), spread, 'consequences'), spread2, 'triage', ['change 1: step pick-up-table1 already has an execution possibility; a step holds at most one']],
+                    ['a possibility, confirmed, by its authority', () => held(stepOf('confirmed'), spread, 'consequences'), spread2, 'consequences', ['change 1: step pick-up-table1 already has an execution possibility; a step holds at most one']],
+                ])('%s', (_, plan, change, author, expected) => {
+                    if (Array.isArray(expected)) {
+                        expect(refusedBy(plan(), [change], by(author, takesAll))).toEqual(expected)
+                        return
+                    }
+                    const after = held(plan(), change, author)
+                    expectWellFormed('slot', after)
+                    expect(after.steps[0]).toMatchObject(expected as object)
+                })
+
+                it('a proposed intent calls only proposals into question; its authority\'s, every child (the revision rule)', () => {
+                    const both = held(held(stepOf('confirmed', 'unchecked'), rises, 'consequences'), { ...cannot }, 'triage')
+                    const ruled = mergedBy(both, [{ ...rises, rules: [chain] }], by('triage'))
+                    expect(held(ruled, intent, 'triage').steps[0].items.slice(1)).toEqual([
+                        { kind: 'consequence', path: 'pick-up-table1.cup1-rises', standing: 'confirmed', says: '[cup1] rises', rules: [
+                            { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall-2', standing: 'unchecked', stale: true, rule: 'table-secured-to-wall', stance: 'violation' },
+                        ] },
+                        { kind: 'consequence', path: 'pick-up-table1.table1-cannot-be', standing: 'unchecked', stale: true, says: '[table1] cannot be lifted', rules: [
+                            { kind: 'rule', path: 'pick-up-table1.table-secured-to-wall', standing: 'unchecked', stale: true, rule: 'table-secured-to-wall', stance: 'violation' },
+                        ] },
+                    ])
+                    expect(held(both, intent, 'playByPlay').steps[0].items.slice(1)).toMatchObject([{ standing: 'unchecked', stale: true }, { standing: 'unchecked', stale: true }])
+                })
+
+                it('a missing intent is added by anyone, its authority too, and nothing is called into question', () => {
+                    const bare = held(planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'system' }, items: [] }]), rises, 'consequences')
+                    expect(held(bare, intent, 'playByPlay').steps[0].items).toEqual([{ kind: 'intent', path: 'pick-up-table1.intent', standing: 'confirmed', says: '[table1] is held' }, ...bare.steps[0].items])
+                })
+
+                it('an unchecked step restated as written is confirmed by its authority, and only by it', () => {
+                    const asWritten = { restate: 'step', to: PATH, says: 'pick up [table1]' }
+                    expect(standings(held(stepOf('unchecked'), asWritten, 'playByPlay'))).toEqual([[PATH, 'confirmed'], [`${PATH}.intent`, 'unchecked']])
+                    expect(held(stepOf('unchecked'), asWritten, 'triage')).toEqual(stepOf('unchecked'))
+                })
+
+                it('a sub-step given again in its own words is kept, its path and the claims on it too; the others leave with theirs, their paths free', () => {
+                    const proposed = held(held(held(stepOf('confirmed'), steps, 'triage'), { ...cannot, to: 'raise-table1' }, 'triage'), { ...rises, to: 'grip-table1' }, 'triage')
+                    const plan = held(proposed, { add: 'steps', to: PATH, steps: [{ says: 'Grip [table1]' }, { says: 'raise [table1]', intent: 'it is up', consequences: [{ says: '[table1] rises' }] }] }, 'playByPlay')
+                    expect(renderPlanForGenerator(plan).split('\n').slice(2)).toEqual([
+                        '  - step grip-table1: Grip [table1]',
+                        '  - step raise-table1: raise [table1]',
+                        '    - intent raise-table1.intent: it is up',
+                        '    - consequence raise-table1.table1-cannot-be (unchecked): [table1] cannot be lifted',
+                        '      - Rule (Violation) raise-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                        '    - consequence raise-table1.table1-rises (unchecked): [table1] rises',
+                    ])
+                    expectWellFormed('given again', plan)
+                })
+
+                it('unchecked sub-steps stay when their step is revised without them, stale until their authority settles them', () => {
+                    const revised = held(held(stepOf('confirmed'), steps, 'triage'), words, 'playByPlay')
+                    expect(revised.steps[0]).toMatchObject({ path: 'lift-table1', standing: 'confirmed', items: [
+                        { kind: 'intent' }, { path: 'grip-table1', standing: 'unchecked', stale: true, says: 'grip [table1]' }, { path: 'raise-table1', standing: 'unchecked', stale: true },
+                    ] })
+                    expect(renderPlanForGenerator(revised)).not.toContain('stale')
+                    const settled = held(revised, { restate: 'step', to: 'grip-table1', says: 'grip [table1]' }, 'playByPlay')
+                    expect(planSteps(settled)[1]).toEqual({ kind: 'step', path: 'grip-table1', standing: 'confirmed', says: 'grip [table1]', suppliedBy: 'system', items: [] })
+                    expect(planSteps(held(revised, { restate: 'step', to: 'grip-table1', says: 'hold [table1]' }, 'triage'))[1]).toMatchObject({ path: 'hold-table1', standing: 'unchecked', stale: true })
+                })
+
+                it('refuses a change to a sub-step of a step the same block expands', () => {
+                    const proposed = held(stepOf('confirmed'), steps, 'triage')
+                    expect(refusedBy(proposed, [other, { ...rises, to: 'grip-table1' }], by('playByPlay'))).toEqual(['change 2: to "grip-table1" is a sub-step of pick-up-table1, which this block expands'])
+                })
+
+                it('a command built unchecked: grounded and expanded by triage, then restated and re-expanded by playByPlay', () => {
+                    const raw = planOf([{ step: { says: 'pick up the table', suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: 'pick up the table', standing: 'unchecked' }] }])
+                    const grounded = mergedBy(raw, [
+                        { restate: 'step', to: 'pick-up-table', says: 'pick up [table1]', intent: '[table1] is off the floor' },
+                        { ...steps, to: 'pick-up-table' },
+                        { ...cannot, to: 'pick-up-table' },
+                    ], by('triage'))
+                    expect(renderPlanForGenerator(grounded)).toBe([
+                        'Step pick-up-table1 (unchecked): pick up [table1]',
+                        '  - intent pick-up-table1.intent (unchecked): [table1] is off the floor',
+                        '  - step grip-table1 (unchecked): grip [table1]',
+                        '  - step raise-table1 (unchecked): raise [table1]',
+                        '  - consequence pick-up-table1.table1-cannot-be (unchecked): [table1] cannot be lifted',
+                        '    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                    ].join('\n'))
+                    const played = mergedBy(grounded, [
+                        { restate: 'step', to: PATH, says: 'pick up [table1]', intent: '[table1] is off the floor', answered: 'how [table1] is held' },
+                        { add: 'steps', to: PATH, steps: [{ says: 'kneel' }, { says: 'raise [table1]' }] },
+                    ], by('playByPlay'))
+                    expect(renderPlanForGenerator(played)).toBe([
+                        'Step pick-up-table1: pick up [table1]',
+                        '  - already answers: how [table1] is held',
+                        '  - intent pick-up-table1.intent: [table1] is off the floor',
+                        '  - step kneel: kneel',
+                        '  - step raise-table1: raise [table1]',
+                        '  - consequence pick-up-table1.table1-cannot-be (unchecked): [table1] cannot be lifted',
+                        '    - Rule (Violation) pick-up-table1.table-secured-to-wall (unchecked): [table-secured-to-wall]',
+                    ].join('\n'))
+                    expect(JSON.stringify(played)).not.toContain('stale')
+                    expectWellFormed('played', played)
                 })
             })
 
@@ -815,7 +1007,7 @@ describe('the action plan', () => {
                     expectWellFormed('moved', plan)
                 })
 
-                it('keeps a possibility and a concern too, and frees no execution possibility', () => {
+                it('keeps a possibility and a concern too, the possibility a proposal from then on, so a new one overwrites it', () => {
                     const possible = { add: 'possibility', to: 'pick-up-table1', kind: 'execution', says: 'the grip holds', branches: [[], [{ says: '[table1] drops' }]] }
                     const withSpread = mergedBy(conceded(), [possible, { add: 'concern', to: 'pick-up-table1', says: 'the chain may hold' }], by('consequences', { adds: ['possibility', 'concern'] }))
                     const revised = mergedBy(withSpread, [{ ...revise, says: 'lift [table1]' }], by('playByPlay'))
@@ -823,7 +1015,9 @@ describe('the action plan', () => {
                         { kind: 'possibility', path: 'lift-table1.execution', standing: 'unchecked', stale: true, branches: [{ path: 'lift-table1.maybe' }, { path: 'lift-table1.maybe-2', items: [{ path: 'lift-table1.table1-drops' }] }] },
                         { kind: 'concern', path: 'lift-table1.chain-may-hold', standing: 'unchecked', stale: true },
                     ])
-                    expect(refusedBy(withSpread, [revise, possible], by('consequences', { adds: ['possibility'] }))).toEqual(['change 2: step pick-up-table1 already has an execution possibility; a step holds at most one'])
+                    const again = mergedBy(revised, [{ ...possible, to: 'lift-table1', says: 'the hold is good' }], by('consequences', { adds: ['possibility'] }))
+                    expect(again.steps[0].items.filter(({ kind }) => kind === 'possibility')).toMatchObject([{ path: 'lift-table1.execution', standing: 'confirmed', says: 'the hold is good' }])
+                    expect(JSON.stringify(again.steps[0].items.filter(({ kind }) => kind === 'possibility'))).not.toContain('stale')
                 })
 
                 it('leaves the mark when the reviser gives a child again: the step is its, the consequence isn\'t (the user, 2026-11-21)', () => {
@@ -865,7 +1059,8 @@ describe('the action plan', () => {
                 })
 
                 it('removes a stale child of a step the same block revises, by its old path', () => {
-                    const plan = mergedBy(conceded(), [{ restate: 'step', to: 'pick-up-table1', says: 'lift [table1]', answered: 'how' }, { remove: 'pick-up-table1.table1-cannot-be' }], checker('consequences'))
+                    const offered = planOf([{ step: { says: 'pick up [table1]', suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: 'pick up [table1]', standing: 'unchecked' }] }])
+                    const plan = mergedBy(mergedBy(offered, [cannot], by('playByPlay')), [{ restate: 'step', to: 'pick-up-table1', says: 'lift [table1]', answered: 'how' }, { remove: 'pick-up-table1.table1-cannot-be' }], checker('consequences'))
                     expect(plan.steps[0].items.flatMap(itemPaths)).toEqual(['lift-table1.intent'])
                 })
 
