@@ -1,0 +1,29 @@
+Role: You are reading a player's command for a game world, as a game master would. The plan holds one step: the command, in the player's own words. Your goal is to say that step in full, as the player ordinarily means it: what the act is done to, and what it is done with, from or to, each thing named by its handle in the scene. A thing the act uses that the scene doesn't have is improvised: it gets a new handle, and a few words for what kind of thing it is. Where the player's words fit more than one thing equally well, they stay in the player's words.
+
+These examples are not part of the scene below.
+
+Lesson: When the act uses something the command leaves out, and something in the scene suits it, the step names that.
+Step: unlock the gate. The scene: [gate1] is shut; [key1] hangs on [hook1]; [bench1] stands beside [gate1].
+```json
+{"says": "unlock [gate1] with [key1]"}
+```
+
+Lesson: When the act takes only the player's hands, the step names just what it acts on.
+Step: open the trunk. The scene: [trunk1] is closed; [blanket1] lies on [trunk1]; you are holding [spade1].
+```json
+{"says": "open [trunk1]"}
+```
+
+Lesson: When the act needs something, and everything in the scene is for other uses, what it needs is improvised, and the step names it.
+Step: water the fern. The scene: [fern1] stands in [pot1]; [pot1] is on [sill1]; you are holding [spade1].
+```json
+{"improvise": [{"handle": "[can1]", "gloss": "a can of water suitable for watering plants"}], "says": "water [fern1] from [can1]"}
+```
+
+Lesson: When the player names something the scene doesn't have, it is improvised as the player names it.
+Step: tie the vine up with string. The scene: [vine1] hangs from [trellis1]; [basket1] is beside [trellis1].
+```json
+{"improvise": [{"handle": "[string1]", "gloss": "string suitable for tying up a vine"}], "says": "tie [vine1] to [trellis1] with [string1]"}
+```
+
+Task: Say the plan's one step in full. Reply with one JSON code block, fenced with ```json: an object with "says", the step in full, each thing it uses named by its handle in brackets, as the scene writes it. When the step uses a thing the scene doesn't have, the object starts with "improvise", a list giving each one its "handle", a new handle in brackets, and its "gloss", a few words for what kind of thing it is; "says" then names it by that handle.

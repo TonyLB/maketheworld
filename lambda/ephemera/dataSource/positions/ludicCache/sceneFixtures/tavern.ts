@@ -3,7 +3,8 @@
  * back out of a subtree; the actor holds a hammer. `branchInBranch` adds a tray with a teapot and a jug, a fan inside a fan.
  *
  * `tavernDescription` is the tavern as fixture-builder choices, with the hammer as its dial: held, as in `tavern`, or on
- * the floor, registered as `tavernHammerOnFloor`, where putting the hammer on the table leaves out picking it up (JF-11).
+ * the floor, registered as `tavernHammerOnFloor`, where putting the hammer on the table leaves out picking it up (JF-11). `tavernRope`
+ * adds a rope on the table, with nothing there to cut it.
  */
 import { buildScene, type SceneDescription } from './buildScene'
 import { binding, characterId, hostGraph, member, objectId, roomId, type SceneFixture } from './worldBuilders'
@@ -18,6 +19,7 @@ const hammer = objectId('Hammer')
 const tray = objectId('Tray')
 const teapot = objectId('Teapot')
 const jug = objectId('Jug')
+const rope = objectId('Rope')
 
 const names: SceneFixture['names'] = {
     [tavern]: { shortName: 'Tavern', gloss: 'A low-beamed common room, smoky from the hearth.' },
@@ -124,4 +126,14 @@ export const tavernHammerOnFloorScene: SceneFixture = buildScene({
             { request: 'I want to put [hammer1] on [table1].', expect: 'simple', tolerate: ['contingent', 'complex'], note: 'Leaves out picking the hammer up, and rightly stays simple: nothing established demands more (JF-11).' },
         ],
     },
+})
+
+export const tavernRopeScene: SceneFixture = buildScene({
+    ...tavernScene,
+    name: 'tavernRope',
+    description: 'The tavern with a rope on the table, and nothing to cut it: the hammer held is no blade.',
+    placements: [...tavernDescription({ hammer: 'held' }).placements, { thing: rope, host: table, hostingKind: 'On' }],
+    names: { ...names, [rope]: { shortName: 'Rope', gloss: 'a coil of thick hemp rope' } },
+    questions: [{ type: 'directContents', subject: 'table1' }, { type: 'held' }],
+    judgeSets: undefined,
 })

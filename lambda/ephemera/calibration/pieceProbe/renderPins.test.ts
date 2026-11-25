@@ -117,6 +117,13 @@ const PINS: Record<string, Pin[]> = {
             'R-8': 'cf1a21f5', 'R-9': '8589c11f',
         } },
     ],
+    // Not from 2026-11-22: pinned when triage's expansion probe was built, 2026-11-25.
+    'triage': [
+        { options: undefined, hashes: {
+            'pour': '7a201487', 'pour/cup': '61a7474a', 'light/hearth': '53715ec5', 'wipe/cloth': '85a51d9e', 'trim/sharp': 'f4a99eee', 'cut': '5a293f1c',
+            'trim': 'bb3e9193', 'light/chapel': '854c0693', 'wipe': 'dd31a326', 'take': 'a94543b0', 'slide': 'a19e8f93', 'take/twoCups': 'dbdc39e0',
+        } },
+    ],
 }
 
 const registered: [string, RegisteredPiece][] = Object.entries(pieces).flatMap(([name, entry]): [string, RegisteredPiece][] => (

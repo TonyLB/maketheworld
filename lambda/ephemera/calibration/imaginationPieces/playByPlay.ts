@@ -253,4 +253,4 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
 export const registeredPlayByPlay = registerPiece(playByPlay)
 
 /** A batch's replies for reading (`read-plans`), as merged plans (`plansText`). */
-export const playByPlayPlansText = plansText(playByPlay, playByPlayContract)
+export const playByPlayPlansText = plansText(playByPlay, playByPlayContract, renderPlanForGenerator)

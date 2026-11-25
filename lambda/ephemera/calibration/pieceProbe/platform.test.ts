@@ -52,8 +52,8 @@ describe('the platform\'s holdouts (AGENT.md, "The platform\'s holdouts")', () =
         expect(Object.entries(PLATFORM_HOLDOUTS).filter(([id, parts]) => parts.length === 0 || PLATFORM_EXEMPT.includes(id))).toEqual([])
     })
 
-    it('has a piece wholly on it, so the list can empty', () => {
-        expect(registered.map(([id]) => id).filter((id) => !(id in PLATFORM_HOLDOUTS) && !PLATFORM_EXEMPT.includes(id))).toContain('playByPlay')
+    it('has pieces wholly on it, so the list can empty', () => {
+        expect(registered.map(([id]) => id).filter((id) => !(id in PLATFORM_HOLDOUTS) && !PLATFORM_EXEMPT.includes(id))).toEqual(['playByPlay', 'triage'])
     })
 
     it.each<[string, string, PlanView['reads'], MergeOptions | undefined, PlatformPart[]]>([

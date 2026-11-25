@@ -278,14 +278,14 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
     const merging = mergingOf(registered)
 
     it('has pieces that merge, so the checks below run', () => {
-        expect(merging.map(([id]) => id)).toEqual(expect.arrayContaining(['playByPlay', 'consequences']))
+        expect(merging.map(([id]) => id)).toEqual(expect.arrayContaining(['playByPlay', 'consequences', 'triage']))
     })
 
     it.each(merging)('%s has cells with a plan and a target, so the checks run over something', (_, __, ___, cells) => {
         expect(cells.flatMap(planCell)).not.toEqual([])
     })
 
-    // A proposer of every kind it can, the authority for none, as triage will be: the registry has no such piece yet.
+    // A proposer of every kind it can, the authority for none: wider than triage, which proposes no possibility or concern.
     const proposer = (author: PlanAuthor = 'triage'): MergeOptions => ({ author, adds: ['steps', 'consequence', 'possibility', 'concern'], restates: true, rules: [HIDDEN_RULE] })
     // The cells' plans, whose own steps are confirmed, and a player's raw command, built unchecked.
     const command = { target: 'pick-up-table', plan: planOf([{ step: { says: 'pick up the table', suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: 'pick up the table', standing: 'unchecked' }] }]) }
@@ -318,8 +318,8 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
             expect(mirrorProblems(view, merges)).toEqual([])
         })
 
-        it('binds the pieces that merge today: playByPlay overwrites steps and intents, consequences possibilities', () => {
-            expect(Object.fromEntries(merging.map(([id, , merges]) => [id, alterable(merges)]))).toMatchObject({ playByPlay: ['step', 'intent'], consequences: ['possibility'] })
+        it('binds the pieces that merge today: playByPlay and triage overwrite steps and intents, consequences possibilities', () => {
+            expect(Object.fromEntries(merging.map(([id, , merges]) => [id, alterable(merges)]))).toMatchObject({ playByPlay: ['step', 'intent'], consequences: ['possibility'], triage: ['step', 'intent'] })
         })
 
         it('catches a checker that can\'t see what it confirms', () => {

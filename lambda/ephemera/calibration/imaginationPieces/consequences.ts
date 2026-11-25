@@ -159,4 +159,4 @@ export const consequences: ReadPiece<ConsequencesInputs, ConsequencesOptions> = 
 export const registeredConsequences = registerPiece(consequences)
 
 /** A batch's replies for reading (`read-plans`), as merged plans (`plansText`). */
-export const consequencesPlansText = plansText(consequences, consequencesContract)
+export const consequencesPlansText = plansText(consequences, consequencesContract, renderPlanForGenerator)
