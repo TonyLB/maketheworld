@@ -211,14 +211,14 @@ export type NonRuleCellOptions = { scene?: SceneRender }
 /** How a calling piece renders the cell: its view's securing, which is also what it may know of it, and which scene render. */
 type NonRuleCellRender = { securing?: Securing; scene?: SceneRender }
 
-const prepareNonRuleCell = ({ inputs: { request, steps } }: PieceCell<NonRuleCellInputs>): { given: undefined } => {
+const prepareNonRuleCell = ({ inputs: { request, steps } }: PieceCell<NonRuleCellInputs>): Record<string, never> => {
     if (steps.length === 0) {
         throw new Error('No steps')
     }
     if (request.trim() === '') {
         throw new Error('No request')
     }
-    return { given: undefined }
+    return {}
 }
 
 const renderViewedNonRuleCell = withViewedScene(NON_RULE_CELL_VIEW.scene, (

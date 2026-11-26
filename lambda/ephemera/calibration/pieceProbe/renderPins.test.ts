@@ -16,10 +16,6 @@ const PINS: Record<string, Pin[]> = {
             'OC-1': 'ebbc4662', 'OC-6/tilted': '735d3891', 'OC-6/stays': '99fc6b02', 'OC-30/2/tipped': '9561e60e', 'OC-30/2/together': '999e11ef', 'OC-30/2/slides': 'add14926',
             'OC-19/voided': '5b992a65', 'OC-19/glued': 'fa7505ca', 'OC-20': 'e47be6cd',
         } },
-        { options: { show: 'none' }, hashes: {
-            'OC-1': 'c398e4b9', 'OC-6/tilted': 'c2be44d8', 'OC-6/stays': '4efc55ed', 'OC-30/2/tipped': '5296f783', 'OC-30/2/together': 'b1c20fc9', 'OC-30/2/slides': '191d679b',
-            'OC-19/voided': '56f391fa', 'OC-19/glued': 'fd0e4afa', 'OC-20': '49a1add7',
-        } },
         { options: { sceneRules: true }, hashes: {
             'OC-1': 'f79ad325', 'OC-6/tilted': 'ba292b86', 'OC-6/stays': '0cdce2bc', 'OC-30/2/tipped': '41b5656c', 'OC-30/2/together': 'ee33fa23', 'OC-30/2/slides': 'fea4586d',
             'OC-19/voided': '67667e2d', 'OC-19/glued': '60b1c836', 'OC-20': '16ef5c8a',

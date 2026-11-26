@@ -84,12 +84,6 @@ describe('ruleCell', () => {
             expect(text).not.toMatch(/void|in force/)
         })
 
-        it('leaves the scene out with show: none', async () => {
-            const text = await renderRuleCell(ruleCellCells['OC-1'], { ...RULE_CELL_OPTIONS, show: 'none' })
-            expect(text).not.toContain('Scene:')
-            expect(text.startsWith('Rule:\n')).toBe(true)
-        })
-
         it('adds the sub-scene\'s own Rules section with sceneRules', async () => {
             const text = await renderRuleCell(ruleCellCells['OC-1'], { ...RULE_CELL_OPTIONS, sceneRules: true })
             expect(text).toContain('\n\nRules:\n- teapot-secured-to-table: ')
@@ -124,12 +118,12 @@ describe('ruleCell', () => {
 
     describe('its options', () => {
         it('defaults to the sub-scene, and no Rules section in the scene', () => {
-            expect(ruleCell.parseOptions(undefined)).toEqual({ show: 'subScene', sceneRules: false })
-            expect(ruleCell.parseOptions({ show: 'none' })).toEqual({ show: 'none', sceneRules: false })
+            expect(ruleCell.parseOptions(undefined)).toEqual({ sceneRules: false })
+            expect(ruleCell.parseOptions({ sceneRules: true })).toEqual({ sceneRules: true })
         })
 
-        it.each([['loud'], [{ wording: 'inForce' }], [{ show: 'all' }], [{ sceneRules: 'yes' }], [{ shout: true }]])('refuses %j', (value) => {
-            expect(ruleCell.parseOptions(value)).toMatch(/^options must be \{ show\?: subScene \| none; sceneRules\?: boolean \}$/)
+        it.each([['loud'], [{ wording: 'inForce' }], [{ show: 'none' }], [{ sceneRules: 'yes' }], [{ shout: true }]])('refuses %j', (value) => {
+            expect(ruleCell.parseOptions(value)).toMatch(/^options must be \{ sceneRules\?: boolean \}$/)
         })
     })
 

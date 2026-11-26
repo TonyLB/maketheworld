@@ -60,7 +60,7 @@ export const replyHandles = ({ plan, target, things }: Pick<ConsequencesInputs, 
 }
 
 /** The cell's checks, and the sub-scene's handles: the things to describe, and the handles the view's plan names. */
-const prepareConsequences = ({ inputs: { plan, target, things } }: ReadPieceCell<ConsequencesInputs>): { handles: SceneHandle[]; given: undefined } => {
+const prepareConsequences = ({ inputs: { plan, target, things } }: ReadPieceCell<ConsequencesInputs>): { handles: SceneHandle[] } => {
     if (things.length === 0) {
         throw new Error('No things to describe')
     }
@@ -71,7 +71,7 @@ const prepareConsequences = ({ inputs: { plan, target, things } }: ReadPieceCell
     if (!planSteps(plan).some(({ path }) => path === target)) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
-    return { handles: [...things, ...planSceneHandles(viewPlan(plan, CONSEQUENCES_VIEW.plan))], given: undefined }
+    return { handles: [...things, ...planSceneHandles(viewPlan(plan, CONSEQUENCES_VIEW.plan))] }
 }
 
 export const renderConsequences = withViewedScene(CONSEQUENCES_VIEW.scene, ({ inputs: { plan, target, things } }: ReadPieceCell<ConsequencesInputs>, options: ConsequencesOptions, viewed): string => [

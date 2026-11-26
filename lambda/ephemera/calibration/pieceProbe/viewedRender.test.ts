@@ -21,13 +21,18 @@ describe('what a piece may know of the scene, before its render', () => {
         expect(() => viewScene(full, { shows: 'subScene', securing: 'shown' })).toThrow('A sub-scene needs the handles it keeps')
     })
 
-    it('runs the prep on the full scene, then hands the render the viewed scene and what the prep gave', async () => {
+    it('runs the prep on the full scene, then hands the render the viewed scene of the handles it gave', async () => {
+        const seen: number[] = []
         const render = withViewedScene(
             { shows: 'subScene', securing: 'omitted' },
-            (_cell: { inputs: { fixture: string } }, _options: undefined, viewed, given: string) => `${given}: ${Object.keys(shownScene(viewed).model.things).sort().join(', ')}; ${shownScene(viewed).rules.size} rules`,
-            (_cell, _options, full) => ({ handles: ['teapot1'], given: `${Object.keys(full.things).length} things` }),
+            (_cell: { inputs: { fixture: string } }, _options: undefined, viewed) => `${Object.keys(shownScene(viewed).model.things).sort().join(', ')}; ${shownScene(viewed).rules.size} rules`,
+            (_cell, _options, full) => {
+                seen.push(Object.keys(full.things).length)
+                return { handles: ['teapot1'] }
+            },
         )
-        expect(await render({ inputs: { fixture: 'teaTableChained' } }, undefined)).toBe('7 things: table1, teapot1; 0 rules')
+        expect(await render({ inputs: { fixture: 'teaTableChained' } }, undefined)).toBe('table1, teapot1; 0 rules')
+        expect(seen).toEqual([7])
     })
 
     it('refuses a render that shows a scene and was given none', () => {

@@ -63,7 +63,7 @@ export const planFromCommand = (command: string): ActionPlan =>
     planOf([{ step: { says: command, suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: command, standing: 'unchecked' }] }])
 
 /** The whole scene, then the plan. Throws on a target that names no step, or one closed to triage, since no redraft could fix the refusal. */
-const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): { given: undefined } => {
+const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): Record<string, never> => {
     const step = planSteps(plan).find(({ path }) => path === target)
     if (step === undefined) {
         throw new Error(`The target "${target}" names no step of the plan`)
@@ -72,7 +72,7 @@ const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs
     if (closed !== undefined) {
         throw new Error(`The target "${target}" is closed to triage: ${closed}`)
     }
-    return { given: undefined }
+    return {}
 }
 
 const renderViewedTriage = withViewedScene(TRIAGE_VIEW.scene, ({ inputs: { plan } }: Pick<PieceCell<TriageInputs>, 'inputs'>, _options: undefined, viewed): string => {

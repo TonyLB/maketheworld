@@ -74,7 +74,7 @@ export const PLAY_BY_PLAY_VIEW: PieceView = {
 }
 
 /** The cell's checks, and the sub-scene's handles: what it also shows, the handles the view's plan names, and those `missing` names. */
-const preparePlayByPlay = ({ inputs: { plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>): { handles: SceneHandle[]; given: undefined } => {
+const preparePlayByPlay = ({ inputs: { plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>): { handles: SceneHandle[] } => {
     const twice = listedTwice(alsoShown)
     if (twice.length > 0) {
         throw new Error(`Things shown twice: ${twice.join(', ')}`)
@@ -92,7 +92,7 @@ const preparePlayByPlay = ({ inputs: { plan, target, missing, alsoShown } }: Rea
         throw new Error('No detail asked for')
     }
     // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
-    return { handles: [...alsoShown, ...planSceneHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(missing)], given: undefined }
+    return { handles: [...alsoShown, ...planSceneHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(missing)] }
 }
 
 export const renderPlayByPlay = withViewedScene(PLAY_BY_PLAY_VIEW.scene, ({ inputs: { plan, target, missing } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions, viewed): string => [

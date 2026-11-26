@@ -4,7 +4,7 @@
 // known; this is the model once that is applied, and every render reads it, never the full model.
 //
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
-import { ruleHandlesOf, securingEdge, securingWords, type RuleHandles } from './sceneRules'
+import { judgeRules, ruleHandlesOf, securingEdge, securingWords, type JudgeRuleLine, type RuleHandles } from './sceneRules'
 
 /** The model a reader may know, and its rules' handles as the full model mints them, so a render of it names each rule as every other does. */
 export type ViewedSceneModel = { model: SceneModel; rules: RuleHandles }
@@ -26,3 +26,15 @@ export const filterViewedModel = ({ model, rules }: ViewedSceneModel, filter: (m
     const kept = securingEdges(filtered)
     return { model: filtered, rules: new Map([...rules].filter(([edge]) => kept.has(edge))) }
 }
+
+/**
+ * The rules of the viewed model, one by one, as `judgeRules` gives them, each with its handle as the full model minted it: so a piece
+ * that takes a single rule by its handle reads it off the scene it may know. A securing whose handle the viewed model lacks throws.
+ */
+export const viewedRules = ({ model, rules }: ViewedSceneModel): JudgeRuleLine[] => judgeRules(model).map((line) => {
+    const handle = line.target.kind === 'thing' ? rules.get(securingEdge(line.subject, line.target.handle)) : undefined
+    if (handle === undefined) {
+        throw new Error(`No rule handle given for [${line.subject}]'s securing`)
+    }
+    return { ...line, handle }
+})

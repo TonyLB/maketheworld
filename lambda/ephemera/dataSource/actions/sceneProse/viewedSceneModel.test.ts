@@ -1,9 +1,9 @@
 import { buildSceneFixture, sceneFixture } from '../../positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
 import { renderSceneExplicit, ruleTagHandles } from './renderSceneExplicit'
-import { withoutSecuring } from './sceneRules'
+import { judgeRules, withoutSecuring } from './sceneRules'
 import { subScene } from './subScene'
-import { filterViewedModel, viewedSceneModel } from './viewedSceneModel'
+import { filterViewedModel, viewedRules, viewedSceneModel } from './viewedSceneModel'
 
 const fixture = async (name: string): Promise<SceneModel> => {
     const found = sceneFixture(name)
@@ -33,5 +33,17 @@ describe('a viewed scene model', () => {
         expect(filterViewedModel(viewed, withoutSecuring).rules.size).toBe(0)
         expect([...filterViewedModel(viewed, (model) => subScene(model, ['teapot1'])).rules.values()]).toEqual(['teapot-secured-to-table'])
         expect(filterViewedModel(viewed, withoutSecuring).model).toEqual(withoutSecuring(viewed.model))
+    })
+
+    it('gives its rules one by one with the full model\'s handles, as judgeRules gives them on the full model', async () => {
+        const full = await twoGlued()
+        const viewed = filterViewedModel(viewedSceneModel(full), (model) => subScene(model, ['tea1', 'table1']))
+        expect(viewedRules(viewed)).toEqual(judgeRules(full).filter(({ handle }) => handle === 'tea1-secured-to-table1'))
+        expect(judgeRules(viewed.model).map(({ handle }) => handle)).toEqual(['tea-secured-to-table'])
+    })
+
+    it('refuses a securing whose handle it lacks', async () => {
+        const viewed = viewedSceneModel(await fixture('teaTable'))
+        expect(() => viewedRules({ ...viewed, rules: new Map() })).toThrow('No rule handle given for [teapot1]\'s securing')
     })
 })

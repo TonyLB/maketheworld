@@ -53,24 +53,23 @@ export const viewScene = (full: SceneModel, { shows, securing }: SceneKnowledge,
 }
 
 /**
- * What a piece works out before its scene is filtered: the handles its sub-scene keeps, from its inputs; and `given`, anything else it
- * reads off the full model as its input (the rule cell's rule), which its render takes beside the viewed scene. It may throw on inputs
- * that don't fit the fixture.
+ * What a piece works out before its scene is filtered: the handles its sub-scene keeps, from its inputs. It may throw on inputs that
+ * don't fit the fixture. It hands the render nothing else, so the render reads nothing past the scene it may know.
  */
-export type ScenePrep<Cell, Options, Given> = (cell: Cell, options: Options, full: SceneModel) => { handles?: readonly SceneHandle[]; given: Given }
+export type ScenePrep<Cell, Options> = (cell: Cell, options: Options, full: SceneModel) => { handles?: readonly SceneHandle[] }
 
 /**
  * A piece's render, with the scene it may know applied before it: the cell's fixture built, the prep run (where there is one), the
  * knowledge applied (`knowledgeOf`, `viewScene`), and the render handed the viewed scene model, or none where the piece shows none.
  */
-export const withViewedScene = <Cell extends { inputs: { fixture: string } }, Options, Result, Given = undefined>(
+export const withViewedScene = <Cell extends { inputs: { fixture: string } }, Options, Result>(
     view: SceneKnowledge,
-    render: (cell: Cell, options: Options, viewed: ViewedSceneModel | undefined, given: Given) => Result | Promise<Result>,
-    prepare?: ScenePrep<Cell, Options, Given>,
+    render: (cell: Cell, options: Options, viewed: ViewedSceneModel | undefined) => Result | Promise<Result>,
+    prepare?: ScenePrep<Cell, Options>,
 ) => async (cell: Cell, options: Options): Promise<Result> => {
     const full = await fixtureScene(cell.inputs.fixture)
-    const { handles, given } = prepare === undefined ? { handles: undefined, given: undefined as Given } : prepare(cell, options, full)
-    return render(cell, options, viewScene(full, knowledgeOf(view, options), handles), given)
+    const { handles } = prepare === undefined ? { handles: undefined } : prepare(cell, options, full)
+    return render(cell, options, viewScene(full, knowledgeOf(view, options), handles))
 }
 
 /** The viewed scene model, where the piece's view shows one: a render that always shows a scene asks for it this way. */
