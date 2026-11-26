@@ -150,10 +150,11 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
     }
     const prepared = rendered.map(({ id, text = '', parts }): PreparedCell => {
         const answer = byCode.get(id)
-        const { expected, lookFor } = piece.cells[id]
+        const { expected, expectedAspects, lookFor } = piece.cells[id]
         return {
             cell: id,
             ...(expected === undefined ? {} : { expected }),
+            ...(expectedAspects === undefined ? {} : { expectedAspects }),
             ...(lookFor === undefined ? {} : { lookFor }),
             rendered: text,
             ...(parts === undefined ? {} : { parts }),

@@ -209,6 +209,16 @@ Contents of the Parlour:
   - [teapot1] Teapot, on [table1], glued to [table1], secured
     - [tea2] Tea, in [teapot1]
 You are holding: nothing.`,
+    tavernRope: `The Tavern: A low-beamed common room, smoky from the hearth.
+Contents of the Tavern:
+- [table1] Table (a long oak trestle, ring-stained), in the Tavern
+  - [saucer1] Saucer (chipped white china), on [table1]
+    - [cup1] Cup (a red tin cup, fist-sized, light), on [saucer1]
+  - [candle1] Candle (a stub of tallow in a pewter dish), on [table1]
+  - [rope1] Rope (a coil of thick hemp rope), on [table1]
+You are holding:
+- [hammer1] Hammer (a claw hammer with a taped handle), held by you
+Exits: north to the Street.`,
 }
 
 /**
@@ -593,6 +603,22 @@ Contents of the Parlour:
   - [teapot1] Teapot, on [table1], glued to [table1], secured
     - [tea2] Tea, in [teapot1]
 You are holding: nothing.`,
+    tavernRope: `The Tavern: A low-beamed common room, smoky from the hearth.
+The place:
+In the Tavern there is [table1] Table (a long oak trestle, ring-stained).
+On [table1] there are [saucer1] Saucer (chipped white china), [candle1] Candle (a stub of tallow in a pewter dish) and [rope1] Rope (a coil of thick hemp rope).
+On [saucer1] there is [cup1] Cup (a red tin cup, fist-sized, light).
+You are holding [hammer1] Hammer (a claw hammer with a taped handle).
+Exits: north to the Street.
+Records:
+Contents of the Tavern:
+- [table1] Table (a long oak trestle, ring-stained), in the Tavern
+  - [saucer1] Saucer (chipped white china), on [table1]
+    - [cup1] Cup (a red tin cup, fist-sized, light), on [saucer1]
+  - [candle1] Candle (a stub of tallow in a pewter dish), on [table1]
+  - [rope1] Rope (a coil of thick hemp rope), on [table1]
+You are holding:
+- [hammer1] Hammer (a claw hammer with a taped handle), held by you`,
 }
 
 /**
@@ -665,6 +691,9 @@ export const sceneAffordanceGoldens: Record<string, string> = {
 - [teapot1] and [table1] cannot be moved while [teapot1] is glued to [table1].
 - Moving [saucer1] also moves [cup1] and [tea1].
 - Moving [cup1] also moves [tea1].`,
+    tavernRope: `Rules that apply here:
+- Moving [table1] also moves [saucer1], [cup1], [candle1] and [rope1].
+- Moving [saucer1] also moves [cup1].`,
 }
 
 /**
@@ -770,6 +799,10 @@ Example: if someone picks up [saucer1], what happens?
 Example: can [table1] be moved to the floor?
 - In the world: not yet, because it is chained to [wall1]; it has to be freed first, and then it can be moved.
 - In the records: (untie [table1] from [wall1]), then (move [table1] to the room).`,
+    tavernRope: `Worked examples, about this scene:
+Example: if someone picks up [table1], what happens?
+- In the world: [saucer1], [cup1], [candle1] and [rope1] come with it, and nothing else does.
+- In the records: (move [table1] to held). What is under it stays under it, so nothing else changes.`,
 }
 
 /**

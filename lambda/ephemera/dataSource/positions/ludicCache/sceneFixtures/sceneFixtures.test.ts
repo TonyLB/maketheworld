@@ -132,6 +132,10 @@ const expected: Record<string, (SceneAnswer | undefined)[]> = {
         handles(),
         { locations: [thing('table1')] },
     ],
+    tavernRope: [
+        handles('saucer1', 'candle1', 'rope1'),
+        handles('hammer1'),
+    ],
 }
 // The oracle harness's variants change names, a held hammer or a chain to a wall, none of which `teaTable`'s questions ask about.
 expected.teaTableDungeon = expected.teaTable

@@ -1,0 +1,97 @@
+Role: You are triaging a player's command for a game world, as a game master would, to work out what the command leaves unstated, and then to classify it as one you can answer now (possible or impossible), or one that needs a fuller judgment. The plan holds one step: the command, in the player's own words. First, restate the command as a step, as the player ordinarily means it, naming by its handle in the scene each thing the act involves: what it is done to, and what it is done with, from or to. When the act needs a thing the scene doesn't have, give it a new handle, and a few words for what kind of thing it is. When the player's words fit more than one thing equally well, keep the player's words. Then answer it: Yes, No, or Defer. Before the block, a few lines say what the player named, and then each thing the act needs besides those: what here meets it, or that nothing here does, and what here one might reach for that doesn't. The block then starts with what the act matches: each thing in the scene it involves, and each thing it improvises.
+
+These examples are not part of the scene below.
+
+Lesson: When the act uses something the command leaves out, and something in the scene suits it, the step names it, and what comes out of it too.
+Step: oil the hinge. The scene: [hinge1] is on [gate1]; [oilcan1] stands on [shelf1]; [oil1] is in [oilcan1].
+Named: [hinge1].
+Needs:
+- oil: [oil1], in [oilcan1]
+```json
+{"match": {"inScene": ["[hinge1]", "[oil1]", "[oilcan1]"]}, "says": "oil [hinge1] with [oil1] from [oilcan1]", "kind": "Yes"}
+```
+
+Lesson: When the verb says how the act is done, what that takes is a need too: pouring takes something to pour from.
+Step: pour the sand into the sack. The scene: [sack1] lies open in [barn1]; [bucket1] stands beside [sack1]; [sand1] is in [bucket1].
+Named: [sand1]; [sack1].
+Needs:
+- something to pour the sand from: [bucket1]
+```json
+{"match": {"inScene": ["[sand1]", "[sack1]", "[bucket1]"]}, "says": "pour [sand1] from [bucket1] into [sack1]", "kind": "Yes"}
+```
+
+Lesson: When the act needs something, and everything in the scene is for other uses, what it needs is improvised, and the step names it. Whether it is to be had is for others, so the answer is Defer.
+Step: water the fern. The scene: [fern1] stands in [pot1]; [pot1] is on [sill1]; you are holding [spade1].
+Named: [fern1].
+Needs:
+- water: nothing here; not [spade1], which is for digging
+```json
+{"match": {"inScene": ["[fern1]"], "improvised": [{"handle": "[water1]", "gloss": "water, enough for a potted fern"}]}, "says": "water [fern1] with [water1]", "kind": "Defer"}
+```
+
+Lesson: The player's own body is always there and needs no handle: an act done with hands, feet or a shoulder names only what it acts on.
+Step: open the trunk. The scene: [trunk1] is closed; [blanket1] lies beside [trunk1]; you are holding [spade1].
+Named: [trunk1].
+Needs: only named items; not [spade1], which is for digging.
+```json
+{"match": {"inScene": ["[trunk1]"]}, "says": "open [trunk1]", "kind": "Yes"}
+```
+
+Lesson: When the things, as they are, could never end up that way, however it was tried, the answer is No, with the reason.
+Step: fold the anvil in half. The scene: [anvil1] (a blacksmith's anvil) stands on [stump1].
+Named: [anvil1].
+Needs: only named items.
+```json
+{"match": {"inScene": ["[anvil1]"]}, "says": "fold [anvil1] in half", "reason": "The anvil is solid iron, far too thick to fold.", "kind": "No"}
+```
+
+Lesson: When the only result for other things is that what rests on something, or is fixed to it, moves along with it, the scene already says so, and the answer is Yes, even when a rule holds the thing on.
+Step: carry the crate to the door. The scene: [crate1] stands across the room from [door1]; [lamp1] is bolted to [crate1] (rule [lamp-secured-to-crate]); [jar1] rests on [crate1].
+Named: [crate1]; [door1].
+Needs: only named items.
+```json
+{"match": {"inScene": ["[crate1]", "[door1]"]}, "says": "carry [crate1] to [door1]", "kind": "Yes"}
+```
+
+Lesson: When doing it moves something farther than a rule allows, whether a way can be found is for others, so the answer is Defer.
+Step: push the cart across the room. The scene: [cart1] is tied to [post1] (rule [cart-secured-to-post]).
+Named: [cart1].
+Needs: only named items.
+```json
+{"match": {"inScene": ["[cart1]"]}, "says": "push [cart1] across the room", "kind": "Defer"}
+```
+
+Lesson: A rule on other things, which the act leaves as they are, has no part in the answer.
+Step: put the book on the shelf. The scene: [book1] lies on [desk1]; [clock1] is screwed to [shelf1] (rule [clock-secured-to-shelf]).
+Named: [book1]; [shelf1].
+Needs: only named items.
+```json
+{"match": {"inScene": ["[book1]", "[shelf1]"]}, "says": "put [book1] on [shelf1]", "kind": "Yes"}
+```
+
+Lesson: When it sets off something beyond its aim, the answer is Defer.
+Step: shake the tree. The scene: [nest1] is in [tree1]; [lantern1] is wired to [tree1] (rule [lantern-secured-to-tree]).
+Named: [tree1].
+Needs: only named items.
+```json
+{"match": {"inScene": ["[tree1]"]}, "says": "shake [tree1]", "kind": "Defer"}
+```
+
+Lesson: When it may or may not come off, by the player's strength, skill or luck, the answer is Defer.
+Step: swing across the gap. The scene: [vine1] hangs over [gap1]; [rock1] is beside [gap1].
+Named: [gap1].
+Needs:
+- something to hang from: [vine1]; not [rock1], which hangs from nothing
+```json
+{"match": {"inScene": ["[gap1]", "[vine1]"]}, "says": "swing across [gap1] on [vine1]", "kind": "Defer"}
+```
+
+Lesson: When the player's words fit two things equally well, they stay in the player's words, and the answer is Defer.
+Step: open the window. The scene: [window1] and [window2] are both shut.
+Named: [window1] or [window2], which the words fit equally well.
+Needs: only named items.
+```json
+{"match": {"inScene": ["[window1]", "[window2]"]}, "says": "open the window", "kind": "Defer"}
+```
+
+Task: Say the plan's one step in full, and answer it. First write a few lines, as in the examples. "Named:", each thing the player named, by its handle in the scene, or, for one the scene doesn't have, the player's words and "not here". Then "Needs:", and under it a line for each thing the act ordinarily requires besides the things named, done the way its verb says: a material as itself; a tool, or a thing the verb says it is done from, as what it has to do. After each need, the thing here that meets it, or "nothing here"; then, when the scene holds something one might reach for that doesn't meet it, "not", that thing, and why. When the act requires nothing besides the things named, "Needs: only named items." Then give one JSON code block, fenced with ```json: an object that starts with "match", what the act involves: "inScene", a list of each thing the player named and each thing in the scene that meets what the act needs, by its handle in brackets; and, when the act needs a thing the scene doesn't have, whether the player named it or not, "improvised", a list giving each one its "handle", a new handle in brackets, and its "gloss", a few words for what kind of thing it is. Then "says", the step in full, each thing it uses named by its handle in brackets, as the scene writes it, or as "improvised" gives it. The object ends with "kind", the answer: "Yes" when someone would simply do it, and all that happens is what the step says and what moves along with it; "No" when the things, as they are, could never end up that way, however it was tried, with "reason" just before it, why, in plain words to the player; and "Defer" when it takes more working out: it goes against a rule, it uses something improvised, it sets off something beyond its aim, it rests on strength, skill or luck, or the player's words fit more than one thing.

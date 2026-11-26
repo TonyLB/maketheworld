@@ -13,11 +13,12 @@ import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneMod
 import { ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { parseProblems, replyJsonObject, type StageContract } from '../../llm/stageContract'
 import {
-    bracketChanges, isExpanded, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
+    expansionClosed, mergeStepChanges, planOf, planSteps, renderPlanForGenerator, viewPlan, type ActionPlan, type MergeOptions, type Standing,
 } from '../oracleLoop/actionPlan'
+import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, renderScene, type ImaginationOptions } from './imaginationScene'
+import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, type ImaginationOptions } from './imaginationScene'
 import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
@@ -80,8 +81,9 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     if (step === undefined) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
-    // Asking for what the merge would refuse is the caller's error (mine).
-    if (isExpanded(step)) {
+    // Asking for what the merge would refuse is the caller's error (mine), and what closes it may be hidden from the piece. Unchecked
+    // sub-steps are a proposal, which the reply's overwrite.
+    if (expansionClosed(step) !== undefined) {
         throw new Error(`The target "${target}" is already expanded; expand one of its sub-steps`)
     }
     if (missing.trim() === '') {
@@ -89,59 +91,16 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
     }
     // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
     const viewed = viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)
-    const shown = [...new Set([...alsoShown, ...planHandles(viewed), ...namedHandles(missing)])]
+    const shown = [...new Set([...alsoShown, ...planSceneHandles(viewed), ...namedHandles(missing)])]
     const scene = await renderScene({ fixture, shown }, PLAY_BY_PLAY_VIEW.scene, options)
     return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
 }
 
-/** The record's keys: the step restated, its sub-steps, and what the step as a whole brings about. */
-const REPLY_KEYS = ['says', 'intent', 'steps', 'consequences'] as const
-
 /**
- * The reply's one object as the changes it stands for, each with the label its problems take in the reply's terms, or why it stands for
- * none. The reply gives only what the model alone can provide (the user, 2026-11-19): the step record, `{"says", "intent"?, "steps"?,
- * "consequences"?}`. Code supplies the rest of the change language, as it supplies `to`: the restatement first, with `missing` as
- * the detail it answers, then the expansion when there are `steps`, then a consequence change for each of the record's consequences. A
- * sub-step's own `consequences` ride in its entry.
- */
-export const replyChanges = (reply: Record<string, unknown>, missing: string): { changes: unknown[]; labels: string[] } | { problems: string[] } => {
-    const other = Object.keys(reply).filter((key) => key !== 'atomic' && !(REPLY_KEYS as readonly string[]).includes(key))
-    const { says, intent, steps, consequences } = reply
-    const problems = [
-        ...('atomic' in reply ? ['"atomic" is retired: give the step as "says" (and "intent"); with no "steps", the step itself is the answer'] : []),
-        ...(other.length > 0 ? [`has ${other.map((key) => `"${key}"`).join(', ')}, not one of ${REPLY_KEYS.join(', ')}`] : []),
-        ...('says' in reply ? [] : ['the record restates the step: it needs "says"']),
-        ...(consequences !== undefined && !Array.isArray(consequences) ? ['"consequences" is not a list'] : []),
-    ]
-    if (problems.length > 0) {
-        return { problems }
-    }
-    // An entry that isn't an object is passed on as it is, so the merge refuses it as a change that isn't one.
-    const added = ((consequences ?? []) as unknown[]).map((entry) => (typeof entry === 'object' && entry !== null && !Array.isArray(entry) ? { add: 'consequence', ...entry } : entry))
-    // An empty `steps` is none: the step itself is the answer (the user, 2026-11-20; batch 44's OC-1b wrote `"steps": []` 3 of 3).
-    const expansion = steps === undefined || (Array.isArray(steps) && steps.length === 0) ? [] : [{ add: 'steps', steps }]
-    return {
-        changes: [{ restate: 'step', says, ...(intent === undefined ? {} : { intent }), answered: missing }, ...expansion, ...added],
-        labels: ['', ...expansion.map(() => ''), ...added.map((_, index) => `consequence ${index + 1}: `)],
-    }
-}
-
-/**
- * A merge problem as the reply's: the restatement's and the expansion's prefixes go, since they are the record's own; a consequence
- * change's is the record's consequence. A consequence's own "add" is code's, so a problem naming it is the merge's wording for a key
- * the reply wrote.
- */
-const replyProblem = (problem: string, labels: readonly string[]): string =>
-    problem.replace(/^change (\d+): /, (prefix, index: string) => labels[Number(index) - 1] ?? prefix)
-
-/** The rule handles a plan's items hold: they name rules, not things. */
-const planRuleHandles = (plan: ActionPlan): string[] => planSteps(plan).flatMap(({ items }) => items.flatMap((item) => (item.kind === 'consequence' ? (item.rules ?? []).map(({ rule }) => rule) : [])))
-
-/**
- * The stage's contract: the reply's one object, read as changes (`replyChanges`), its bare handles bracketed, scoped to the target and
- * merged into the plan (`mergeStepChanges`), taking only the restatement, an expansion and consequences (`PLAY_BY_PLAY_MERGE`). Every
- * reply restates the step. A handle the scene doesn't hold is kept as written: a breakdown may
- * improvise an object. A consequence's rule must be one the prompt shows (`ruleTagHandles`), and a rule handle is never a thing.
+ * The stage's contract: the reply's one object, the step record (`mergeStepRecord`), with `missing` as the detail it answers, merged into
+ * the plan, taking only the restatement, an expansion and consequences (`PLAY_BY_PLAY_MERGE`). Every reply restates the step. A handle the
+ * scene doesn't hold is kept as written: a breakdown may improvise an object. A consequence's rule must be one the prompt shows
+ * (`ruleTagHandles`), and a rule handle is never a thing.
  */
 export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
     name: 'playByPlay',
@@ -150,15 +109,9 @@ export const playByPlayContract: StageContract<PlayByPlayInputs, ActionPlan> = {
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const read = replyChanges(parsed.object, missing)
-        if ('problems' in read) {
-            return read
-        }
-        const rules = ruleTagHandles(rendered)
-        const notThings = new Set([...rules, ...planRuleHandles(plan)])
-        const shown = [...new Set([...alsoShown, ...planHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(rendered)])].filter((handle) => !notThings.has(handle))
-        const merged = mergeStepChanges(plan, target, bracketChanges({ changes: read.changes }, shown), shown, { ...PLAY_BY_PLAY_MERGE, rules })
-        return 'problems' in merged ? { problems: merged.problems.map((problem) => replyProblem(problem, read.labels)) } : { value: merged.plan }
+        const things = [...alsoShown, ...planHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(rendered)]
+        const merged = mergeStepRecord({ plan, target, record: parsed.object, things, rules: ruleTagHandles(rendered), answered: missing }, PLAY_BY_PLAY_MERGE)
+        return 'problems' in merged ? merged : { value: merged.plan }
     },
 }
 
@@ -293,4 +246,4 @@ export const playByPlay: ReadPiece<PlayByPlayInputs, PlayByPlayOptions> = {
 export const registeredPlayByPlay = registerPiece(playByPlay)
 
 /** A batch's replies for reading (`read-plans`), as merged plans (`plansText`). */
-export const playByPlayPlansText = plansText(playByPlay, playByPlayContract)
+export const playByPlayPlansText = plansText(playByPlay, playByPlayContract, renderPlanForGenerator)

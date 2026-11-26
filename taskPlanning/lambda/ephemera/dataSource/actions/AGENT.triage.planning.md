@@ -1,0 +1,337 @@
+# Triage: the first screen on a command
+
+**Status (2026-11-26): step 1, the corpus and its bar, is done; step 2, the platform's extensions, is built. Step 3, triage's contract, guard and piece, is built (2026-11-25): an answered piece on its corpus, with E5 (the action plan's "Improvise" item) and E6 (a grade's aspects). Step 4, draft 1, is run as two arms (batch 1, [results](oracleLoopDrafts/triage/1.notes.md#results-2026-11-25-batch-1)); the read is mine, for review. Step 5, drafts 2 on, has run drafts 2a to 6 (2026-11-25 and 26, [the log](oracleLoopDrafts/triage/iterations.md)); draft 5 is the prompt to beat, and draft 7 is drafted. E7, an ambiguous reference in the plan, is built, and so is draft 6's `match` with the guard reading it. Rewritten 2026-11-24 to build triage wholly on the target platform ([below](#the-second-piece-on-the-platform)).** A sub-plan of the [oracle loop plan](AGENT.oracleLoop.planning.md)'s Slice 4.5. It runs before the [trial question plan](AGENT.trialQuestion.planning.md)'s step 2.5 (the user, 2026-11-24).
+
+**The idea, the user's** (2026-11-24): a triage prompt, separate from the judge. It gets just the player's command and the scene, runs only ever as the first screen, and quickly branches:
+- **"No, here is why";**
+- **"Yes, here are the handles";**
+- **"Defer to more complicated judgment, here are the handles".**
+
+The handles are the things the act **involves**, grounded, whether the player named them or not (the user, 2026-11-25; until then, the things the player named): "pour tea into cup" becomes "pour [tea2] from [teapot1] into [cup1]". The judge, by contrast, runs in the loop, on handles, a case against and perhaps evidence, and asks "do we have enough to decide?"
+
+**Why it comes first:** it is the archetypal start of the pipeline (the user). Mine, agreed:
+- its inputs aren't manufactured: a command and a scene;
+- it decides which cases reach the judge, so step 2.5's cells can be drawn from what it defers;
+- its "defer" is the next stage's real input;
+- it sits outside the loop, so the piece probe runs it with no mocks.
+
+**It is also the second piece built wholly on the platform,** after `playByPlay` (the user, 2026-11-24): see below.
+
+**What it doesn't do:** say whether Micro can ask for a consult well. That stays step 2.5's, whose middle-of-the-loop cells are still made by hand.
+
+Task plan framework: [`taskPlanning/AGENT.md`](../../../../AGENT.md), an implementation plan under the parent's pilot of the [proposed design variant](../../../../AGENT.designVariant.proposed.md). The piece is a **Prototype** whose consumer is its reader and, after it, step 2.5's cells. What it shows goes **up** to the parent's [seam ledger](AGENT.oracleLoop.planning.md#seam-ledger).
+
+## The second piece on the platform
+
+**The concern, the user's** (2026-11-24): the target is a scene render and an action plan, read through a viewpoint. With one thing on a target pattern and varied legacy code beside it, recommendations pick from both. With two or three things on it, migrating the rest is plain. So triage is built wholly on it, as a chance to pin it down. What follows is mine, agreed the same day.
+
+**The platform and a piece's settings are different things.** The platform is the structure: inputs through a view, the plan, the change language, standing, the merge. A setting is one piece's value on one of its axes (`playByPlay`'s `conditions`, `consequences`' sub-scene), chosen for that piece's job and never copied without its own reason.
+
+| | Triage on the platform |
+| --- | --- |
+| Input | A plan whose one step is the player's raw command, built by code, and the scene, both through triage's view |
+| Grounding | A restatement of that step (`says`, `intent`) |
+| Proposals | The step record, merged with author `triage`. It is no kind's authority, so what it writes is unchecked |
+| A bad block | Refused whole, as for every piece |
+| Verdict | `kind`, and `reason` on "No", beside the merge |
+| Scene | The explicit render; each axis a declared view setting ([settings](#triages-settings)) |
+
+**Where the platform falls short, it is extended** (step 2), not worked around here:
+- **E1. An answered piece that merges. Built 2026-11-24.** `merges` was a read piece's field, and the registry's checks skipped answered pieces. Now both kinds share it, and a grade gives the merged plan beside its answer ([Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe)). Every judge will need it.
+- **E2. A restatement that answers no request. Built 2026-11-24.** `PlanRestate` required `answered`, and `playByPlay`'s reply reader required `missing`. Both are optional, and the step record's reader is shared ([`stepRecord.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/stepRecord.ts)).
+- **E3. What an unchecked thing may stop, and what a proposal may change. Built 2026-11-24.** Locks were set by arrival and not by standing: a step was expanded once, an expanded step wasn't revised, a step took one `execution` possibility, a restatement ignored the standing of what it revised, and a detail proposed on a confirmed item minted a copy. The rule, agreed with the user: an unchecked item never refuses a change, and only its authority alters a confirmed one ([What standing protects](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)). It followed that the raw command is built as an unchecked step.
+- **E5. An "Improvise" item in the action plan. Built 2026-11-25** ([The action plan](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)) (the user's proposal; its shape agreed the same day). Where a step needs what should be a handle and the scene has no such object, a piece proposes improvising one. It is the kind booked on the parent ("Improvised handles in the plan", 2026-11-20).
+   - **The item:** a handle, a gloss and a standing, like the plan's other kinds, at plan level beside the steps, as the user sketched it. The gloss says the object, or type of object, the action implies: the need (the oracle types' `Slot`), where what meets it is the later authority's to say.
+   - **Standing does all its work:** a proposal is unchecked, only `improvisation`, its authority (the user, 2026-11-20), confirms it, an unchecked one never refuses a change, and a view can filter on it.
+   - **No "who named it"** (the user's question, 2026-11-25). I had carried it over from `Slot`'s `namedBy`, which is credit, and only the oracle's unbuilt pricing would read it. Naming a thing doesn't establish it. Pricing can work it out from the player's command, or add an optional field then.
+   - **A thing established with no handle,** such as the hearth in the room's description (agreed, 2026-11-25): triage improvises a handle for it like any other, and recognising that it is there is the authority's. It is improvised as an object for now. **A future refinement, the user's:** improvising it as a Feature instead.
+- **E6. A grade that keeps several things apart. Built 2026-11-25** (mine; approved by the user with the piece's plan). A probe's grade gave one answer, tallied against one `expected`, where triage has its branch, its branch after the guard and its grounding. A grade may give `aspects` beside its answer, each tallied apart against the cell's `expectedAspects`, and may be async, for the guard's scene ([Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe)). It is the probe's, not the platform's structure.
+- **E7. An ambiguous reference in the action plan. Built 2026-11-25** ([The action plan](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)) (the user's proposal, from batch 3's T-10: keeping the player's words made the judgment that two things fit, and then dropped it). `[tea1 | tea2]` in a plan's text is one reference to whichever of the things the words fit equally well. The user settled three things the same day: the bracket form, not `[tea1] or [tea2]`, since "or" may be the player's own; things that fit equally well only, for the prototype; and no improvised side, so a clean match isn't made ambiguous by what might be improvised instead. Every reader sees each side; triage's contract refuses an empty, repeated or improvised side; the guard defers a "Yes" that makes one (mine, approved), and the grounding writes it `cup1|cup2`. No prompt asks for it yet.
+- **E4, held: a securing wording for pieces that ask "can it?"** The better form may be the securing axis as a choice of rule parts, as the rule cell's `ruleParts` is, with today's values as named sets; built only if a draft shows the existing ones fall short ([TI-7](#open-decisions-implementation--plan-only)).
+
+**Departures from the platform:** each needs a reason and the user's decision, and is written here before it is built. Legacy pieces are read for evidence, never for form.
+
+| Departure | Reason | Decided |
+| --- | --- | --- |
+| None | | |
+
+### Triage's settings
+
+| Axis | Setting | Reason |
+| --- | --- | --- |
+| Plan kinds read | `step`, `intent` and `improvise` at `all`, nothing else | Its plan holds nothing else; a piece that may overwrite a kind reads it at `all` (the checker's mirror) |
+| Scene shown | `whole` | Grounding has to happen before there are handles to take a sub-scene of |
+| Render | `explicit` | The direction for every piece (the user, 2026-11-18) |
+| Securing | `conditions`, **for the first draft** | **Picked for convenience, not a long-term requirement** (the user, 2026-11-24): an existing value that has the parts triage needs, built for `playByPlay`'s job. Nothing may cite it as a precedent, and any draft may change it ([TI-7](#open-decisions-implementation--plan-only)) |
+| Scene's own Rules section | Off | It is v45's wording |
+| Merge | author `triage`, `restates`, adds `consequence`, with `rules`, `steps` and `improvise` ([what standing protects](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)); no possibilities in the first draft (the user, 2026-11-24) | |
+
+## Getting Started
+
+1. Read the parent's [Triage item](AGENT.oracleLoop.planning.md#recommended-order) (Slice 4.5), then step 2.5 of the [trial question plan](AGENT.trialQuestion.planning.md#recommended-order), which follows this plan.
+2. Read the prior art:
+   - the triage of 2026-11-04, the "judge's answer format" row of the [scene projection plan](AGENT.sceneProjection.planning.md)'s Slice 6;
+   - where it was to sit in the pipeline, [CA-6](AGENT.commandAttemptPhase.planning.md);
+   - what it grew into, [the built judge prompt (v45)](../../../../../lambda/ephemera/calibration/AGENT.md#the-built-judge-prompt-v45).
+3. Read calibration's [The action plan](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan), [Piece views](../../../../../lambda/ephemera/calibration/AGENT.md#piece-views), [Scene renders](../../../../../lambda/ephemera/calibration/AGENT.md#scene-renders), [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) and [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro). The first three are the platform.
+4. Read the code it builds on:
+   - [`imaginationPieces/playByPlay.ts`](../../../../../lambda/ephemera/calibration/imaginationPieces/playByPlay.ts), the piece on the platform: its view and contract. Its settings are its own;
+   - [`oracleLoop/stepRecord.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/stepRecord.ts), the step record's reader and merge, which takes `improvise` where the merge does; triage's contract calls it with `kind` and `reason` taken off first;
+   - [`oraclePieces/triageGuard.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triageGuard.ts), what code makes of triage's answer, which the grade calls: `saysHandles`, `improvisedDefers`, `securedEnds`, `securingDefers`, and `guarded`, both rules; and [`oraclePieces/triage.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triage.ts) and [`triageCorpus.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triageCorpus.ts), the piece and its cells;
+   - [`oracleLoop/actionPlan.ts`](../../../../../lambda/ephemera/calibration/oracleLoop/actionPlan.ts): `planOf`, `viewPlan`, `mergeStepChanges`, `AUTHORITY`, `MergeOptions`;
+   - [`pieceProbe/oraclePiece.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/oraclePiece.ts): what a piece registers, an answered piece's `grade`, a cell's `expected` and `lookFor`;
+   - the registry's checks, [`pieceViews.test.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/pieceViews.test.ts) and [`platform.test.ts`](../../../../../lambda/ephemera/calibration/pieceProbe/platform.test.ts), [the holdouts](../../../../../lambda/ephemera/calibration/AGENT.md#the-platforms-holdouts) list's;
+   - [`sceneProse/sceneRules.ts`](../../../../../lambda/ephemera/dataSource/actions/sceneProse/sceneRules.ts): `judgeRules` and `hostsOf`, which the guard reads (`hostsOf` only to tell a host's end of a securing);
+   - [`sceneModel.ts`](../../../../../lambda/ephemera/dataSource/positions/ludicCache/sceneModel.ts) and the [scene fixtures](../../../../../lambda/ephemera/dataSource/positions/ludicCache/sceneFixtures/).
+   - **For evidence only:** [`sceneReading.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/sceneReading.ts) and the trial's stages.
+5. Read the [corpus](AGENT.oracleLoop.corpus.planning.md)'s cases that step 1 cites, for their expected outcomes.
+6. Testing doc: [`lambda/ephemera/AGENT.md`](../../../../../lambda/ephemera/AGENT.md); if commands conflict, follow it. From `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`. Both pass before any edit.
+
+## What is inherited as settled
+
+| Premise | Consequence here | Whose |
+| --- | --- | --- |
+| Triage and the judge are separate prompts | No consult and no round state here. Its plan is the command's one step, built by code | The user's, 2026-11-24 |
+| It is built on the platform | Above; a departure is listed and decided | The user's, 2026-11-24 |
+| The handles are the things the act is done to, with, from or to, named or not | Triage grounds them in the step it restates, so an involved thing left out is a grounding error. Bystanders and knock-on effects stay proposals. A thing the scene doesn't have is improvised (TI-3) | The user's, 2026-11-25, amending theirs of 2026-11-24 ("the things the player named"); the bound mine, agreed |
+| It asks for no follow-on | "Defer" is its follow-on | Mine, agreed 2026-11-24 |
+| Code guards its "yes" | Where a securing touches the attempt, "yes" becomes "defer". A needless defer costs only calls | Mine, agreed 2026-11-24. What it reads, and "No" as well: [TI-2](#open-decisions-implementation--plan-only), 2026-11-25 |
+| Hiding the securing (mine, agreed earlier the same day) | **Reopened by the user:** it was carried over from `trialAgainst`, whose reason doesn't hold here. [TI-7](#open-decisions-implementation--plan-only) | Reopened, 2026-11-24 |
+| Errors don't cost the same (JP-13, the parent's [settled premises](AGENT.oracleLoop.planning.md#what-is-inherited-as-settled)) | A wrong "yes" has no recovery. A wrong "no" is recalcitrance (note 19). A needless defer costs calls | Principle, the user's; its use here mine |
+| Micro is the target | No Lite arm unless the user asks | The user's |
+| The explicit render | The scene, with no reading guide | The user's, 2026-11-17 and 18 |
+
+## Recommended order
+
+Pending work uses `[ ]` and completed work uses `[X]`; mark nested lines `[X]` as they are done.
+
+1. [X] **The corpus, for the user's review,** before any contract or prompt work. The draft is [below](#the-corpus), all mine.
+   - [X] The user's read of each expected branch and grounding (2026-11-24: "looks good"). T-13, T-14, T-16, T-20 and T-24 settled at the branch proposed; T-15 and T-21, each proposed with two, kept open (tallied, not graded)
+   - [X] The scenes checked against the explicit render, which throws on a join or a spread thing: all five render under `conditions`, and hold every grounded handle (2026-11-24, a local script)
+   - [X] The bar ([below](#the-bar)) agreed (the user, 2026-11-24)
+2. [X] **The platform's extensions,** in the platform, before any triage code, each tested with no LLM call and every other piece's render pins unchanged.
+   - [X] **E1: an answered piece that merges.** `merges` shared by both kinds of piece; a grade that gives the answer and the merged plan; the mirror and hidden-refusal checks run over answered pieces too
+      - No answered piece merges yet, so a toy one shows that the checks see it. **For step 3:** the checks run over cells whose inputs hold a `plan` and a `target`, and a merging piece with none now fails, so triage's cells hold the plan code builds from the command, not the command alone (mine)
+   - [X] **E2: a restatement with no request answered.** `answered` optional on `PlanRestate`; the step record's reader shared by `playByPlay` and triage, `missing` optional in it
+      - `playByPlay`'s refusal of the retired `atomic` stayed in its contract; retired in step 3 (2026-11-25)
+   - [X] **E3: what an unchecked thing may stop** ([what standing protects](../../../../../lambda/ephemera/calibration/AGENT.md#the-action-plan)), in the platform: sub-steps from a piece that isn't their authority, the `execution` possibility, a restatement that reads standing, and details on a confirmed item. The invariant checked over the registry; tests for the two cases run on 2026-11-24
+      - **The choices building it needed** (mine; the user approved them with the slice's plan, 2026-11-24): a proposal that would change a confirmed slot refuses the block; a proposal calls only proposals into question; a sub-step given again in its own words is kept, with its claims; unchecked sub-steps stay, stale, when their step is revised without them; the step's authority confirms an unchecked step by restating it as written; a missing intent is added by anyone and revises nothing; a `thing` is filled in on an unchecked consequence; a new possibility overwrites an unchecked one; a change closed by something hidden is refused before the call
+      - **What moved:** no kept batch's merges (60 to 63, and the composition run, read again through `read-plans` and `read-chains`), and no render pin. Two merge rules of `playByPlay`'s: the missing intent, and the filled-in `thing`
+      - **Found, not fixed:** a block can't change a sub-step of a step it expands (refused, since the sub-step may leave); no piece does
+   - [X] **`triage` as a `PlanAuthor`,** the authority for no kind
+   - [X] **The holdouts list** ([the platform's holdouts](../../../../../lambda/ephemera/calibration/AGENT.md#the-platforms-holdouts))**:** the registered pieces not yet on the platform, by what each lacks (the explicit render, a plan read, the change language without `concern`), which takes in the list the explicit render had of its own. A test over the registry fails on a piece missing from it and on a listed piece that has moved, so it only shrinks. `sceneReading`, a probe of the render with nothing to plan, is exempt by name. `playByPlay` has no entry
+   - [X] Calibration `AGENT.md` updated as each part lands
+3. [X] **Triage's contract, guard and piece, in code,** shaped by where they will join and not wired in.
+   - [X] **The expansion probe** (the user, 2026-11-25: try prompts, rather than decide beforehand what triage may supply; the design mine, taken): what a command's step becomes, and what Micro improvises for what the scene lacks. [Notes and rubric](oracleLoopDrafts/triage/0.notes.md). No verdict, no guard; `improvise` is checked and returned, and none of it merged (it is since E5)
+      - [X] The piece, `triage`, as a read piece on the platform ([`triage.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triage.ts)): its view, the command as a plan, its twelve commands, and a contract that takes `improvise` off the step record. With it, the `tavernRope` fixture. `read-plans` prints its replies
+      - [X] Drafts 0a and 0b, the rubric and the payloads, for the user's review
+      - [X] 0a and 0b, run and read ([results](oracleLoopDrafts/triage/0.notes.md#results-2026-11-25-0a-and-0b)). The user: capable of improvising relevant parts, and to be tuned to improvise only when necessary. Mine: 0a improvises needlessly (hands), 0b takes an unsuitable thing the scene has (the hammer)
+      - [X] 0c and 0d, each from 0b, for improvising only when necessary: drafted and not run
+      - [X] With the user: E5's shape (2026-11-25)
+      - [X] With the user: [TI-3](#open-decisions-implementation--plan-only), the hearth, and the probe closed here (2026-11-25). It was for capability; 0c and 0d are tuning, unrun, and are step 4's material
+   - [X] **E5, in the platform** ([above](#the-second-piece-on-the-platform)): the kind, its authority, its reading in a view, the merge, the render, and the handles a merge takes. No LLM call, and every render pin unchanged
+      - **The choices building it needed** (mine; the user approved them with the slice's plan, 2026-11-25): the handle is the id; the gloss is a slot, so one handle has one gloss and the later proposal's stands; given as written it is confirmed by `improvisation` alone, with no `replace` or `remove`; a handle the scene or a rule has is refused, case ignored; one no step names stays; it renders first, as `Improvise [cloth1] (unchecked): …`; a sub-scene leaves out one the piece's view shows, and throws on one it hides
+      - **Brought forward from the contract** (approved with them): triage's contract merges `improvise`, so its own checks and its `TriageOutput` went. `kind` and `reason` stay there
+      - **What moved:** no kept batch's merges (60 to 63, and the composition run). The probe's 0a and 0b pass and fail as they did, with the same steps, and the six things improvised in the passing replies are now in their plans
+      - **Left to others:** the agent, rejecting one, and `playByPlay` flagging its own (the parent's); which reading of it `playByPlay`'s view takes, when a plan holding one first reaches it
+   - [X] **Retire `atomic` from `playByPlay`'s contract** (the user, 2026-11-24; done 2026-11-25): its own message went, and the key is refused as any unknown key is, so the contract hands its reply straight to `mergeStepRecord`. A confirmed step with no sub-steps replaces it, answering the questions in its `alreadyAnswers`. A different question may still break that step down, which is a strength of the plan for collaboration and not an edge case. With it: the two tests of the retired key went, calibration's "Refused" line changed, and a test runs a step that was its own answer, broken down for another question (mine, approved)
+   - [X] **The contract** ([TI-1](#open-decisions-implementation--plan-only); built 2026-11-25): the step record with `kind`, and `reason` on "No"; merged by the platform, its `improvise` already (E5). Code refuses a handle neither in the scene nor improvised (built with the probe)
+      - **The choices building it needed** (mine; the user approved them with the slice's plan, 2026-11-25): `kind` is read trimmed and in any case; a dropped `reason` is dropped whatever its form; a "No"'s is trimmed, its handles neither bracketed nor checked (TI-4 has what it says); the record's problems and the verdict's are given together, and either refuses the reply whole; where `kind` stands in the object isn't read; the answer holds no list of handles, which code reads out of the restated `says` where it needs them; a "Yes" or "Defer" that names no handle passes
+      - **What moved:** no kept batch's merges (60 to 63, and the composition run) and no render pin. The probe's kept replies have no `kind`, so each now has that problem, and with one put in, their plans are as before. 0c and 0d would fail the same way
+      - **Still a read piece,** with the probe's cells: the last item of this step makes it answered
+   - [X] **An improvised thing defers a "Yes"** (TI-3; built 2026-11-25, [`triageGuard.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triageGuard.ts)), in code beside the guard: a "Yes" whose restated `says` names an improvised thing becomes a "Defer" with the same plan. Only things `says` names count. A "No" is untouched
+      - **The choices building it needed** (mine; the user approved them with the slice's plan, 2026-11-25): a function after the contract, so the contract's value stays Micro's own answer, which the bar reads too; a file of its own, which the guard joins; the result is a `TriageAnswer`, with no note of why code deferred, since the kind before and after tells them apart; it reads the plan's own step and not the target's path, which a rewording mints afresh; an improvised thing of any standing counts; `read-plans` still prints Micro's own verdict
+      - **What moved:** nothing. Only its tests call it until the piece's grade does
+      - **A "Yes" whose `says` names no handle stands** (the user, 2026-11-25): an act may involve no thing. I had recommended deferring it, since the guard has nothing to read there. What follows (mine): a wrong "Yes" on T-24, the cup left in the player's words, is triage's to avoid and is graded as one, and a "Yes" left ungrounded elsewhere is graded as a grounding error
+   - [X] **The guard** (built 2026-11-25, [`triageGuard.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triageGuard.ts)): pure, over the full scene (with its securing) and the handles in the restated `says`, with no walk from them ([TI-2](#open-decisions-implementation--plan-only)). It turns a "Yes" or a "No" into a "Defer" with the same plan. Tested on every corpus row as grounded, with no LLM call, and on T-10 with its source left out, which it misses
+      - **The choices building it needed** (mine; the user approved them with the slice's plan, 2026-11-25): the edges come from `judgeRules`, which applies `securingWords` and which the prompt's rule tags are minted from; a securing to something inside a thing in the scene counts at its subject alone; a "No" that is deferred loses its reason, which the contract's value keeps; `guarded` is both of code's rules, and is what "after the guard" means; the corpus rows are in the test file until the piece's cells take them
+      - **What moved:** nothing. Every row came out as the corpus has it, the open ones on each branch or grounding. Only its tests call it until the piece's grade does
+   - [X] **The piece** (built 2026-11-25): `triage`, registered as an answered piece, its view, its cells, and a grade that keeps branch and grounding apart (E6, [above](#the-second-piece-on-the-platform)). The view's comment, and its calibration entry, say that `conditions` is a first setting picked for convenience. No entry on the holdouts list
+      - **The choices building it needed** (mine; the user approved them with the slice's plan, 2026-11-25): the answer graded is Micro's own branch, against the corpus's Shown column; the branch after the guard, and the grounding, are aspects; grounding is an exact set of the handles in `says`, an improvised one's name left out, so roles and leftover words are read by hand and a handle added counts as wrong for a reader to judge; it is graded on settled "Yes" and "Defer" rows alone, and tallied on T-5 to T-8, T-15 and T-21; the cells' ids are the corpus's; the output cap is `playByPlay`'s; the bar isn't computed; TI-6's count of words in `says` is left to draft 1
+      - **The probe's cells went:** it is closed, and eight of its twelve commands are corpus rows. `cut`, `trim`, `light/chapel` and `wipe` are no cells now; the `tavernRope` fixture stays. `read-plans` on 0a and 0b says "not a triage cell", and `810430b05` reads them
+      - **What moved:** no prompt. The eight shared commands keep their hashes under their new ids, every other piece's pins are unchanged, and kept batches (60 to 63, and the composition run) read as before
+      - **The look-fors** are from the corpus's Why column; reviewed by the user, with the corpus as it stands in code, T-26 and T-27 included (2026-11-25)
+4. [ ] **Draft 1,** in `oracleLoopDrafts/triage/`, its rubric written first. It starts from the expansion probe's 0b, with 0c, 0d and the [mechanisms](oracleLoopDrafts/triage/0.notes.md#results-2026-11-25-0a-and-0b) as material: a hand improvised as what the act is "done with", an unsuitable thing taken because the scene has it, [tea2] unnamed, the two-cups line not kept.
+   - [ ] **Improvising only when necessary** (the user, 2026-11-25): whether the act takes a thing at all, and whether something here suits
+   - [X] A cell for a suitable tool the scene holds and the command implies, and its pair: T-26, "smash the saucer" in `tavern`, and T-27, "cut the rope" in `tavernRope`, both "Defer" (the user, 2026-11-25). The saucer and not the cup, which is tin
+   - [X] The draft, 1a and 1b ([notes](oracleLoopDrafts/triage/1.notes.md)), its text approved by the user with the slice's plan (2026-11-25)
+      - **The choices in it** (mine, approved with it): 0c's examples and 0d's line both, since neither was run; `steps` asked for only where the method is unsaid; the verdict last, with `reason` just before it on "No"; no line asking what stands in the way; what fills an unstated part (TI-3's last clause) not asked about
+      - **TI-6's measure,** in code: `added`, the words in `says` that are no handle, none of the player's and no joining word, a third aspect of the grade, tallied and never graded
+   - [X] The rubric, written before the batch; run on it the same day
+   - [X] Batch 1 (2026-11-25), every cell once (27 since T-27, two payloads an arm), as two arms from the same base: the whole record (1a), and `says` and the verdict alone (1b), to measure what the outlet protects
+   - [X] The read (2026-11-25, mine, for review; [results](oracleLoopDrafts/triage/1.notes.md#results-2026-11-25-batch-1)): each failure's mechanism, branch and grounding apart; whether a wrong "No" took a securing as permanent, for want of the voiding part; and [whether it is going better than v45](#is-it-going-better-than-v45)
+5. [ ] **Drafts 2 on,** one change each, every draft its own line here. **A checkpoint with the user after draft 5**: go on, split grounding from branching, or stop.
+   - [X] **Draft 2a** ([notes](oracleLoopDrafts/triage/2.notes.md)), from 1b: a slot in the line for a thing in the scene that doesn't bear on the act, "Not for this:" (the user's diagnosis, 2026-11-25: with no such slot, the held hammer fills `Here`; the name the user's concern, against "Set aside", a physical act). Run 2026-11-25 (batch 2, [results](oracleLoopDrafts/triage/2.notes.md#results-2026-11-25-batch-2)): the hammer stays in `Here`, with its unsuitability written there; 1 of 4 tool rows improvised, nothing by the bar set in advance. Repeated with 1b the same day: on the tools no better than 1b; steadily, grounding better (28 of 42 against 21), T-7 and T-23 right, T-20 a wrong "Yes" after the guard. Whether 2a or 1b is the base is the user's
+   - [X] **Draft 3** ([notes](oracleLoopDrafts/triage/3.notes.md)): 2a close-read by the user, six fixes of wording at once, so a new base run against 1b and 2a and not one change. 2b ("Not for this" between `Needs` and `Here`) follows from it if it holds. Re-read 2026-11-25: on T-10, Micro did what the prompt said, read literally; the row asked for a judgment the prompt rules out (the user). Run once 2026-11-25: tools improvised (4 of 5), 2a's T-23 and [tea2] lost. Repeated: doesn't hold as a base (the material named as itself loses its part); improvising 6 of 10 holds
+   - [X] **E7, an ambiguous reference** (built 2026-11-25, [above](#the-second-piece-on-the-platform)): the form, the contract's check, the guard's third rule, the grounding, and T-10, T-24 and T-25's rows. Batches 1 to 3 re-graded under the new rows: no count moves, since no reply yet makes one
+   - [X] **Draft 4** ([notes](oracleLoopDrafts/triage/4.notes.md)), from 3: a need is what the act takes done the way its verb says, so "pour" takes something to pour from (the user's third point, 2026-11-25; approved 2026-11-26), with a pouring example. Run twice 2026-11-26: the pours fixed (T-10 right both times), but the need spread to things the command names (T-8's cup swapped for a box) and to "hammer" (T-7's "No" lost); counts below draft 3's
+   - [X] **Draft 5** ([notes](oracleLoopDrafts/triage/5.notes.md)), from 4: the user's reframing (2026-11-26). The Role works out what the command leaves unstated, then classifies; `Needs` is besides the things the player named ("only named items"); `Here` names the named things too. Run twice 2026-11-26: a better base than 4 (T-7, T-8 "No" again, shown 18 and 15); costs: a named thing the scene lacks handled in `Here` but not improvised (refused), hands back in `Needs`, and the step not following `Here`
+   - [X] **Draft 6** ([notes](oracleLoopDrafts/triage/6.notes.md)), from 5 (the user's option, 2026-11-26): `Here` moved out of the prose into the block, as `match: {inScene, improvised}`. `inScene` isn't persisted in the plan, and the guard reads it (the user); the improvised and ambiguity rules read it too (mine, approved). Built 2026-11-26: the contract, the guard, a tallied `matched` aspect; batches 3 to 5 re-graded, unchanged. Run twice 2026-11-26: doesn't hold. With `Here` gone, `Not for this` sets aside what suits and it is improvised (all four "No" rows to "Defer"); draft 5 stays the prompt to beat; the code stands
+   - [X] **Draft 7** ([notes](oracleLoopDrafts/triage/7.notes.md)), from 6 (the user, 2026-11-26): `Here` back in the prose, split in two. `Named:` comes first, the player's things by handle or "not here". Then each need on its own line, ending in what meets it or "nothing here", with "not [x], which …" for what doesn't suit, in place of a global `Not for this`. `match` is kept. Run twice 2026-11-26: the judgment held (T-5 to T-8 "No" 8 of 8, the cup kept, no hand a need, `matched` the best yet), the form didn't: every reply a Markdown document, each "No"'s reason after the block, so all 8 refused
+   - [X] **The checkpoint after draft 5,** held with the user after draft 7 (2026-11-26), at a pause where the open problems are of form, so a cold read can pick it up. [Below](#the-checkpoint-2026-11-26).
+   - [ ] **Draft 8** (booked by the user, 2026-11-26, as draft 7; renumbered when the line's restructuring took 7): the character in `Needs`, "only the character" or "the character and …", so the actor has a slot of their own and "a hand" isn't needed (draft 5's T-2, T-9, T-12). **Before it, ask the user:** should the acting character be added to the scene render, to help the prompt reason about their presence?
+   - [ ] **Then** (proposed): the alternation in the prompt, for "keep the player's words"
+6. [ ] **The confirm:** the kept draft at three repeats, against the bar.
+7. [ ] **Hand back** ([When it finishes](#when-it-finishes)): what triage defers becomes the list step 2.5's cells are drawn from.
+   - [ ] **What the second piece showed:** what fitted the platform, what had to be extended, and what moving the next piece off the holdouts list takes
+
+### The checkpoint (2026-11-26)
+
+Held after draft 7, not draft 5: it was missed at draft 5 (mine), and the user chose to hold it here. Every run is graded under the corpus as it now stands (E7's rows), so a few counts differ slightly from those in the drafts' own notes.
+
+| Draft | Right as shown, of 25 | After the guard | Grounding, of 21 | Malformed | Wrong "Yes" after the guard | Wrong "No" | Needless defers, of 12 | Triage's own defers, of 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1a | 14 | 17 | 8 | 1 | 3 | 2 | 2 | 3 |
+| 1b | 16, 15 | 20, 19 | 9, 12 | 0, 0 | 2, 2 | 1, 2 | 3, 3 | 3, 3 |
+| 2a | 16, 18 | 21, 21 | 13, 15 | 0, 0 | 3, 3 | 0, 0 | 1, 1 | 1, 3 |
+| 3 | 17, 14 | 20, 18 | 13, 13 | 0, 1 | 2, 3 | 2, 2 | 1, 1 | 3, 2 |
+| 4 | 13, 13 | 15, 14 | 13, 11 | 1, 2 | 3, 3 | 2, 2 | 4, 3 | 3, 3 |
+| 5 | 18, 15 | 19, 17 | 10, 12 | 3, 4 | 3, 4 | 0, 0 | 1, 0 | 4, 3 |
+| 6 | 14, 16 | 14, 16 | 12, 11 | 4, 3 | 1, 1 | 0, 0 | 6, 6 | 6, 7 |
+| 7 | 10, 12 | 14, 15 | 9, 14 | 6, 4 | 4, 4 | 0, 1 | 1, 1 | 2, 3 |
+
+"Triage's own defers" are T-9 to T-12, T-16, T-20, T-25 and T-26 answered "Defer" as shown. "Needless" is a "Defer" on a "Yes" or "No" row.
+
+**Against [the bar](#the-bar):** no draft has met "no wrong Yes after the guard" (the fewest is draft 6's 1, by over-deferring). Grounding peaks at 15 of 21 (2a). "No wrong No" is met by 2a, 5 and 6. The needless-defer limit (3 of 12) is met by every draft but 4 and 6. "At least one own defer" is met by all.
+
+**[Is it going better than v45?](#is-it-going-better-than-v45)**
+- **Did the render do the work?** For the "No"s, mostly. Their reasons are sizes, and draft 7's cite the render's glosses ("a small round tea table", "the long trestle"). The securing defers cite the glue and the chain by the rule's own line (drafts 4 and 5). Its risks showed too: T-12's chain taken as permanent (draft 4), and "can be moved as usual" never clearly pulling.
+- **Is "Defer" chosen before the guard?** Yes, every draft, from 1 to 7 of the 8 rows that are triage's own. The 2026-11-04 triage's 0 of 12 hasn't recurred.
+- **Is it accreting?** Yes, in the plan's sense. Draft 4 fixed the pours and lost T-7 and T-8. Draft 5 restored them. Draft 6 fixed the refusals and lost all four "No" rows. Draft 7 restored them, and lost the form. Each grounding fix has moved the branch, by one route: **the branch is read off the grounding's scaffolding** ("improvised", "nothing needed") rather than off the act.
+
+**The options** (go on, split grounding from branching, or stop):
+- **The user's prior** is against a split: a second call on every command that isn't deterministic is a latency cost, so any split is to be built for speed.
+- **A split would run the two calls in parallel** (mine, taken up by the user): the branch judges whether the act as the player means it could happen; the grounding says what it takes; the guard joins them. A "No" stands (TI-3: T-7's improvised hammer doesn't make the table fit), unless a securing touches the act; a "Defer" stands; a "Yes" goes through the guard on the grounding's handles. Wall time is the slower call, not the sum.
+- **For speed:** short outputs (the branch call a `kind` first under a small cap, a decider in effect, a literal one if Bedrock offers one; the grounding call the block alone); prompt caching, which works on Micro (the user's experience), on each call's instructions and the room's scene.
+- **What a split has to handle:** the two calls may disagree on how the act is done (T-22: the branch assumes a knife, the grounding takes the hammer), and the branch, without the grounding, may give "No" for a missing tool (draft 5's T-7 did, once). **The user's alternative:** both prompts may read a scene lens that presents the scene as a non-exhaustive list of what is in the room.
+
+**Proposed next, mine, open:** (1) the probe records latency and output tokens per call, so the cost is a number either way; (2) a branch-only arm on the corpus, graded on the branch and through the combination; (3) whether a non-exhaustive scene lens is worth building, which is discussed next. Draft 7's form fix (the reply's bounds) is held until these are decided.
+
+## The corpus
+
+Mine, reviewed by the user (2026-11-24), from the oracle loop's cases where one is cited, with the request in a player's raw words. **Grounded** is the step restated; on a "No" it is tallied and not barred. **Shown** is the branch that is right given what triage is shown. The securing is shown ([TI-7](#open-decisions-implementation--plan-only)). **After the guard** is the outcome in the pipeline, given the grounding shown, worked out by hand from the fixtures, and checked by the guard's tests since it was built (2026-11-25; every row as written). T-10's grounding was revised, and T-25 to T-27 added, with the user (2026-11-25). A handle in *italics* is improvised (TI-3, the same day), its name free. **Open** marks a row with two branches, tallied and not graded. The rows are in code as the piece's cells ([`triageCorpus.ts`](../../../../../lambda/ephemera/calibration/oraclePieces/triageCorpus.ts)), so a revision changes both.
+
+| Row | Scene | Command | Grounded | Shown | After the guard | Why, and from |
+| --- | --- | --- | --- | --- | --- | --- |
+| T-1 | `teaTable` | pick up the cup | pick up [cup1] | yes | yes | OC-2 |
+| T-2 | `teaTable` | pick up the table | pick up [table1] | yes | yes | OC-1; [table1] is the glue's host end, which doesn't count |
+| T-3 | `teaTable` | slide the saucer across the table | slide [saucer1] across [table1] | yes | yes | OC-4; as T-2 |
+| T-4 | `teaTable` | put the cup on the table | put [cup1] on [table1] | yes | yes | A near miss of T-5; as T-2 |
+| T-5 | `teaTable` | put the table in the cup | put [table1] in [cup1] | no | no | OC-3: the size, not that the cup is on the table |
+| T-6 | `teaTableCupOnFloor` | put the table in the cup | put [table1] in [cup1] | no | no | OC-11 |
+| T-7 | `teaTableCupOnFloor` | hammer the table into the cup | hammer [table1] into [cup1] | no | no | OC-18: the size; the absent hammer is beside the point |
+| T-8 | `tavern` | put the table in the cup | put [table1] in [cup1] | no | no | The long trestle, so one "no" outside the parlour |
+| T-9 | `teaTable` | pick up the teapot | pick up [teapot1] | defer | defer | OC-5: its "no" is the judge's |
+| T-10 | `teaTable` | pour tea into the cup | pour [tea2] from [teapot1] into [cup1]; or pour [tea1 \| tea2] into [cup1] (the user, 2026-11-25: "tea" fits both by the words alone) | defer | defer, only if `says` names [teapot1] | The user's example; OC-6. The player doesn't name the source, so it measures whether triage does |
+| T-11 | `teaTable` | pour tea from the teapot | pour [tea2] from [teapot1] | defer | defer | OC-6 |
+| T-12 | `teaTableChained` | pick up the table | pick up [table1] | defer | defer | OC-20 |
+| T-13 | `teaTable` | pry the teapot off the table with a screwdriver | pry [teapot1] off [table1] with *[screwdriver1]* | defer | defer | OC-8: the tool is improvised |
+| T-14 | `teaTable` | wipe the table with a cloth | wipe [table1] with *[cloth1]* | defer | defer | OC-7, OC-15. Whether an improvised tool is fine is a price, which triage doesn't set |
+| T-15 | `teaTable` | wipe the table with the cloth I'm holding | wipe [table1] with the cloth I'm holding | **open:** defer, or no | defer, or no | OC-17: the scene states the player holds nothing |
+| T-16 | `teaTable` | tip the table | tip [table1] | defer | defer | A plain act, and what is on it slides |
+| T-17 | `tavern` | pick up the cup | pick up [cup1] | yes | yes | OC-10 |
+| T-18 | `tavern` | pick up the candle | pick up [candle1] | yes | yes | OC-10 |
+| T-19 | `tavern` | put the hammer on the table | put [hammer1] on [table1] | yes | yes | OC-10, held |
+| T-20 | `tavern` | pick up the table | pick up [table1] | defer | defer | OC-9 (JF-2): a feat |
+| T-21 | `tavern` | light the candle | light [candle1] from *[hearth1]*, or [candle1] alone | **open:** yes, or defer | defer where `says` names the hearth, else as shown | OC-22: the hearth is in the room's gloss, with no handle, so naming it improvises one, as an object for now. A needless defer, accepted (2026-11-25) |
+| T-22 | `tavern` | trim the wick of the candle with something sharp | trim the wick of [candle1] with *[blade1]* | defer | defer | OC-21: improvised as its type |
+| T-23 | `twoCups` | pick up the china cup | pick up [cup2] | yes | yes | The gloss settles which |
+| T-24 | `twoCups` | pick up the cup | pick up [cup1 \| cup2] (the user, 2026-11-25; it was the cup left in words) | defer | defer | OC-32's kind: two readings, and a guess is a wrong "yes" |
+| T-25 | `teaTable` | pour tea | pour [tea2] from [teapot1]; **destination open:** into [cup1], or unstated; or pour [tea1 \| tea2] (2026-11-25) | defer | defer | The user's (2026-11-25). The source follows from which tea is meant; [cup1] already holds tea. The destination is tallied and not graded |
+| T-26 | `tavern` | smash the saucer | smash [saucer1] with [hammer1] | defer | defer | Added with the user (2026-11-25), the pair of T-27: a tool the command implies, held and suitable. [cup1] is on the saucer |
+| T-27 | `tavernRope` | cut the rope | cut [rope1] with *[blade1]* | defer | defer | Added with the user (2026-11-25), the expansion probe's: a tool the command implies, and the one held doesn't suit |
+
+**Left out, until the user says otherwise:** gibberish and questions (OC-23, OC-26, OC-27), which production classifies before a command reaches here (unchecked for this path); and things the scene doesn't have at all ("pick up the sword"), since what is unstated isn't absent.
+
+**What the corpus is short of** (mine): defers whose reason is neither a securing nor an improvised thing. T-16, T-20 and T-26 are the only three. T-9 to T-12 and T-25 are triage's own too, now the securing is shown. **And of securings on things carried along** (a tray whose cup is chained to the wall): it has no row, and the guard doesn't catch one.
+
+## The bar
+
+Mine, agreed by the user as written (2026-11-24). Graded at three repeats on the rows with a settled branch:
+- **no wrong "yes"** after the guard, and none before it where the reason isn't a securing;
+- **no wrong "no"**, and every "no" for a true reason (read by hand: a right "no" for a wrong reason is what the player would read);
+- **grounding right in every "yes" and "defer"**, read apart from the branch (since 2026-11-25, an involved thing left out is wrong, and T-10's [teapot1] is the case);
+- **needless defers at most one in four** of the rows whose shown branch is "yes" or "no". Without a limit, always deferring would pass;
+- **at least one right defer** that is triage's own, before the guard.
+
+**Two clauses read with the securing shown** (the user, 2026-11-24): the last was "that isn't the guard's", written for a triage that couldn't see the glue; and the needless-defer limit covers 12 rows, not 16, since T-9 to T-12 are "Defer" as shown.
+
+## Risks
+
+- **It becomes another v45** (agreed as a risk by the user, 2026-11-24). The bar is uneven on purpose, and the checkpoint after draft 5 is a decision with the user, not a verdict on five drafts. **The user's hope:** v45's lessons plus what came later, the explicit render above all, give better leverage. It is to be evaluated as the drafts go: [Is it going better than v45?](#is-it-going-better-than-v45)
+- **Micro never defers.** In the 2026-11-04 triage's first batch `complex` fired 0 of 12, and the teapot came back `impossible`. With the securing hidden the glue's defers would be the guard's alone; shown, Micro may call the teapot "No" again, which the guard turns to "Defer" ([TI-2](#open-decisions-implementation--plan-only)).
+- **The guard depends on the grounding** (mine, accepted with TI-2, 2026-11-25). A triage that never thinks of the teapot is likelier to say "Yes", and then the guard doesn't fire. The miss is graded, and T-10 measures it.
+- **Two judgments in one call,** grounding and branching, where the oracle's drafts found one per call is what Micro can do. The first draft asks for grounding first, and the two are graded apart. If one spoils the other, they split.
+- **Absence drains toward "nothing stops it"** on the explicit render (the ruling's guards), which here is a wrong "yes".
+- **The reply looks like `playByPlay`'s,** plus a verdict, so Micro may spend the call on the method. The record's slots beyond `says` are optional, and arm 1b shows what they cost.
+
+### Is it going better than v45?
+
+The hope is the user's. This reading of it and the signs are mine, proposed.
+
+| Leverage | What has been measured | What it leaves open here |
+| --- | --- | --- |
+| The explicit render | Scene-reading questions 8 of 8, against the guide's 6 of 8, and 4 of 4 on both confirmed questions (batches 17 to 20). The ruling on it, 9 of 10 (batch 22), then 21 of 21 on its bar's cells (batch 23a), sizes compared 9 of 9 | **The ruling was handed the question that decides.** Triage has to think of it: on questions `against` wrote, the ruling got 7 of 10 (batch 27). The render didn't help the verdict, whose every answer was as before (batch 24). Its ordinary default settled stability questions toward "allows" (batch 26), so it may **work against "defer"**, and toward a wrong "yes" |
+| The guard | v45's 2 wrong `simple`s on `teaTable` (of 21) both name the glued [teapot1] | The guard is code, so what it catches is no evidence about the prompt's branching. It does rest on the grounding: an involved thing left out of `says` is out of its reach |
+| Three branches, and thoughts given a place in the step record | The problems list in the play-by-play: OC-6 from 0 to 3 of 3 (its draft 8), the thoughts back in the method without it (drafts 9 and 18). v45 had six labels and eight lines | Not measured for a judgment. Grounding and branching still share a call |
+| [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro) | Observed one lesson at a time | Each draft's notes name the lessons it leans on, so a failed one is noticed |
+
+**At each read,** the draft's notes answer:
+- **Did the render do the work?** For each branch, whether the reply's reason comes from a thing's own line, from common sense, or from neither. Right branches with reasons from neither are luck.
+- **Is "defer" ever chosen,** before the guard? 0 of 12 was the 2026-11-04 triage's first sign.
+- **Is it accreting?** v45's pattern in this plan's terms: a draft that adds a line or a test for one row, or fixes one row and loses another that had passed. One is ordinary. Two drafts running is raised with the user then, without waiting for the checkpoint.
+
+**At the checkpoint after draft 5,** these answers are set out draft by draft, beside the tally.
+
+## Open decisions (implementation --- plan only)
+
+Plan-only: decisions we are making in order to implement the next step(s). Not copied into package `AGENT.concepts.md`. All mine unless marked.
+
+| ID | Decision | Blocks | Status |
+| --- | --- | --- | --- |
+| TI-1 | **The reply:** the step record (`says`, `intent`?, `steps`?, `consequences`?) with `kind: 'No' \| 'Yes' \| 'Defer'`, and `reason` on "No". A union on `kind`, with what each kind needs (the user's, 2026-11-24). The record in every branch, so that the thoughts that would distort `says` have somewhere to go (the user's: proposals as plan changes, on every branch). Superseded on the way, mine: a bare `command`, `concerns`, a cut-down `Proposals`, proposals refused apart from the answer. **Mine:** a reply missing its own kind's field is malformed, and `reason` on another kind is dropped. **Built** (2026-11-25), with the choices under step 3's item; a draft may still change the reply, as its one change | Step 3 | **Settled** (2026-11-25; direction 2026-11-24) |
+| TI-2 | **What the guard reads.** The handles in the restated `says`, and no walk from them. The user's reframing (2026-11-25): the question wasn't how far the guard reaches, but whether it is applied to the step once triage has revised it, "pour tea" as "pour [tea2] from [teapot1] into [cup1]", in place of a walk to an arbitrary depth. **Touched** (mine, agreed): a handle at any end of a securing, except a host's end against its own direct child, since moving a host can't move its child relative to it (CA-6). **"No" too** (mine, agreed): a touched "No" also becomes "Defer", against the 2026-11-04 triage's `impossible` teapot; T-5 to T-8 are untouched, and stay "No". **Why no walk:** it takes a thing's host to be part of the act, right for a pour and wrong for a spoon; no depth suits every case; and a missed thing shows in `says`, where it can be graded. On the corpus it gives what the walk gave (the hosted end only) on every row, if T-10's `says` names the source. Counting the host's end too would make T-2 to T-4 needless defers, the whole of the bar's allowance, and defer T-5 to T-7. **Superseded** (mine): the named things and their direct hosts, at either end (A) or the hosted end only (B). **Built** (2026-11-25), with the choices under step 3's item. **Amended 2026-11-26 (the user):** the guard also reads what the block's `match` found, beside `says`, so a step left in words doesn't blind it. | Step 3 | **Settled** (2026-11-25) |
+| TI-3 | **A name that fits two things, or none.** **Two or more, equally well:** named as an ambiguous reference, `[cup1 \| cup2]` (E7, the user, 2026-11-25), with "Defer" (T-24), and nothing improvised; until then, left in the player's words. **None:** triage improvises a handle (the user's proposal, 2026-11-25; E5), whether the player named the thing ("with a cloth") or the act implies it ("cut rope", `cutter1`). The [expansion probe](oracleLoopDrafts/triage/0.notes.md#results-2026-11-25-0a-and-0b) found Micro supplies both alike. **The limits** (mine, agreed 2026-11-25): a "Yes" whose `says` names an improvised thing becomes a "Defer", in code, and a "No" is untouched (T-7's hammer; **built** 2026-11-25, and a "Yes" naming no handle stands, the user, the same day); never for an ambiguity; never against a stated fact (T-15). Withdrawn, mine: only what the command names, which contradicted "from [teapot1]". **Still proposed, mine:** a part the command leaves out is filled in only where it has one sensible reading; T-25's destination is the case | Step 1 | **Settled** (2026-11-25), but for the last clause and T-15's branch, which stay open |
+| TI-4 | **What "No" says,** as JF-5 leaves it: one floor, whose sentence the player can answer. Triage's reason as it stands, or reworded elsewhere. Draft 1 asks for it in plain words to the player, with no handles, as it stands (mine, approved for that draft) | Step 4 | Open, until the replies are read |
+| TI-5 | **The first action plan:** the command as the plan's one step, built by code and restated by triage | | **Settled** by the platform (2026-11-24): it is triage's input, and its reply merged |
+| TI-6 | **The outlet's contents:** possibilities left out of the first draft, as `playByPlay`'s record has no slot for them (the user, 2026-11-24). **`rules` on consequences are asked for** (2026-11-24), the securing being shown with its handles. They are an outlet, to keep the main result (`says` and `kind`) clean, and are read that way: an overfilled slot isn't a failure, and the reply's violations are unchecked proposals for the rule cell. **To watch, mine:** earlier outlets protected a method; none has protected a verdict, and a violation written before `kind` might push it to "No". **Measured:** words in `says` that are neither a handle, the player's, nor the words joining a thing triage adds ("from [teapot1]"; since 2026-11-25), checked by code (`added`, built 2026-11-25); and arm 1b | Step 4 | **Direction** (the user, 2026-11-24) |
+| TI-7 | **The view's initial securing** (the user's framing, 2026-11-24: triage has a tunable view of its inputs, so the question is only how it is first set). A draft may change it, as one change. Two things move with it: whether the reply may offer `rules` (the reply side asks only for what the view supports), and the branch right on T-9 to T-12, so hiding the securing later would reopen those rows. The user's objection to hiding it, 2026-11-24. I had carried the omission over from `trialAgainst`, which missed the size in 3 of 3 size cells with it shown and found it in 3 of 3 with it omitted. That piece is asked for what blocks, so the strongest block crowds out the rest, and there the rule cell judged the securing in its own call (the user, 2026-11-14, TR-L2); nothing but the guard stands in for it here. **Mine: show it,** so the proposals don't rest on a scene with its glue missing, and T-9 to T-12 become triage's own. **The wording is open** (E4): `shown` gives no rule handles, and on the chain says "cannot be moved apart", near a verdict; `conditions` gives handles and a test, but was built for a piece "asked what an action brings about, never whether it can" (the user's diagnosis, 2026-11-19), and on the chain says "Short of that, [table1] can be moved as usual", which pulls T-12 toward "Yes". On the glue `shown` states no "cannot", and `conditions` adds only the tag and the test. **Where each value came from** (the user's concern about anchoring, 2026-11-24): `conditions` was added for `playByPlay` alone (2026-11-19, for the concession cell's methods bent round the chain, batches 41 and 42); `shown`'s pair wording, `actionRule`, was a temporary branch for the judge's 2026-11-04 batches; `omitted` was for `trialAgainst`. None is neutral, so the choice is made from triage's job, by the user's rule that each piece shows only the parts of a rule it uses (2026-11-10): the **fact**; the **handle**, to name a violation; the **test** of violation; the **carry**, for its proposals. Open, the **voiding** part, which no value shows in a scene, and which T-13's pry may need. `conditions` is those four, plus, on an unhosted pair, "Short of that, [x] can be moved as usual". **The initial setting is `conditions`, for convenience** (the user, 2026-11-24). **Flagged for the reads** (the user): the voiding part is never the difference between "Defer" and "Yes", but could be between "No" and "Defer" ("not impossible, because the condition could be voided"). So each wrong "No" on a touched securing (T-9 to T-13) is read for whether the reply treated the securing as permanent. T-12 is read for the "as usual" line too. A third wording, for pieces that ask "can it?" (the handle and the test, without the "as usual" line), only if a draft shows it's needed | Step 3 | **Direction**: the framing and the initial value (the user, 2026-11-24). The bar's two clauses read with the user the same day |
+| TI-9 | **The standing of a grounded step.** On the platform, a step's authority is `playByPlay`, so triage's restatement is unchecked until `playByPlay` restates it. Mine, agreed: leave it so, since it is the platform's answer, and the judge's view decides what it reads | Step 3 | **Settled** (2026-11-25), as built. `playByPlay` confirming an unchecked step by restating it as written is built (E3, 2026-11-24) |
+| TI-10 | **What a revision does to `alreadyAnswers`** (found 2026-11-24; booked as open by the user). A step answering "how it is held", revised from "lift it" to "drag it", still lists that answer, unmarked, where its other children are made unchecked and stale. The list is the trial judge's evidence for not asking again, so a stale entry could suppress a question whose answer has gone. No test or doc covers it | None in this plan | Open |
+
+## How we work
+
+- The parent's [How we work](AGENT.oracleLoop.planning.md#how-we-work) holds. The user deploys and runs each batch, at most 24 calls a payload; I write the payload and give its full path, and results go to a file read with `jq`.
+- One repeat to explore, three to confirm. One change per draft, with a rubric written before each batch, and every reply read.
+- Drafts and notes live in `oracleLoopDrafts/triage/`, as `N.txt` and `N.notes.md`, with an `iterations.md`. Problems are `TI-P`, library entries `TI-L`.
+- A cell's expected branch, grounding and look-for are mine until the user has reviewed them, and only the user revises them after that.
+- No bare `TI-n` in code or tests. The user commits.
+
+## Verification
+
+- **Each build:** from `lambda/ephemera/`, `npm run test -- --watchAll=false </dev/null` and `npx tsc --noEmit </dev/null`, no output. Every other piece's render pins unchanged.
+- **The extensions:** tested with no LLM call; the holdouts test fails when a piece is added off the platform or left listed after moving.
+- **The guard:** its tests run every corpus row with no LLM call.
+- **A batch:** its form check, its tally, then every reply against its rubric.
+- **Links:** every relative link and anchor in this plan and the parent resolves.
+
+## Progress
+
+| Step | State |
+| --- | --- |
+| 1. The corpus | Done 2026-11-24: rows and bar reviewed by the user, scenes checked |
+| 2. The platform's extensions | Built 2026-11-24: E1, E2, E3, the `triage` author and the holdouts list. No prompt changed, and no kept batch's merge or render pin moved |
+| 3. The contract, the guard and the piece | Built 2026-11-25: the expansion probe, E5 and E6, `atomic` retired, the contract with its verdict, code's two rules, every corpus row as written, and the answered piece |
+| 4. Draft 1 | Run 2026-11-25 (batch 1); read, mine, for review. After the guard 17 and 20 of 25; grounding 8 and 9 of 21; hands fixed, suiting not. Draft 2's change is the user's |
+| 5. Drafts 2 on | Drafts 2a to 6 run, each twice (2026-11-25 and 26); draft 5 the prompt to beat; E7 and the `match` built; draft 7 drafted |
+| 6. The confirm | Not started |
+| 7. Hand back | Not started |
+
+## When it finishes
+
+- **The trial question plan's step 2.5** gets the list of what triage defers, with their plans as triage merged them, to draw its cells from.
+- **The extensions and the holdouts list** are documented in calibration as they land (step 2); the list's remaining entries are the parent's, under its item on the judging pieces reading the plan.
+- **The piece and the guard,** if kept, go in calibration's [Piece probe](../../../../../lambda/ephemera/calibration/AGENT.md#piece-probe) docs, and what the drafts showed about Micro goes to [Writing prompts for Nova Micro](../../../../../lambda/ephemera/calibration/AGENT.md#writing-prompts-for-nova-micro).
+- **TI-10,** if still open, goes to the parent plan, as a question about the action plan.
+- **The parent's** Triage item is checked, with a seam-ledger entry; CA-6 gets a note if its placement changes.
+- **A sweep for inbound links,** then this plan is deleted.

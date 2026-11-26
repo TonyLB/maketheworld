@@ -1,15 +1,18 @@
 //
 // Prints the plans a batch's replies build, for reading against its rubric: `playByPlay`'s plans, or the plans `consequences`' changes
-// merge into (`plansText`). The piece is the response's own `piece`. From lambda/ephemera:
+// merge into (`plansText`), or triage's verdicts, groundings and plans, with what it improvised. The piece is the response's own `piece`. From lambda/ephemera:
 //
 //   npm run read-plans -- <results.json>
 //
 import { readFileSync } from 'fs'
-import type { ReadGroup } from '../pieceProbe/readPiece'
 import { consequencesPlansText } from './consequences'
 import { playByPlayPlansText } from './playByPlay'
+import type { PlansRead } from './plansText'
+import { triagePlansText } from '../oraclePieces/triage'
 
-const PLANS_TEXT: Record<string, (groups: readonly ReadGroup[], options?: unknown) => Promise<string>> = { playByPlay: playByPlayPlansText, consequences: consequencesPlansText }
+const PLANS_TEXT: Record<string, (read: PlansRead, options?: unknown) => Promise<string>> = {
+    playByPlay: playByPlayPlansText, consequences: consequencesPlansText, triage: triagePlansText,
+}
 
 const [resultsPath] = process.argv.slice(2)
 if (!resultsPath) {
@@ -25,7 +28,7 @@ if (text === undefined) {
     process.exit(1)
 }
 if (!Array.isArray(body.read)) {
-    console.error(`${resultsPath}: no "read" groups`)
+    console.error(`${resultsPath}: no "read"`)
     process.exit(1)
 }
 // Each cell is rendered with the batch's own options, so the contract reads the prompt the batch was shown. Building a fixture's scene

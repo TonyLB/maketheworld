@@ -1,3 +1,6 @@
+import { replyJsonObject } from '../../llm/stageContract'
+import { planOf, planSteps, type MergeOptions } from '../oracleLoop/actionPlan'
+import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
 import { handlePieceProbe } from './handlePieceProbe'
 import { joinParts, registerFamily, registerPiece, type PieceView, type RegistryEntry } from './oraclePiece'
@@ -138,6 +141,53 @@ describe('handlePieceProbe', () => {
         expect(result.summary).toEqual({ calls: 0, right: 0, wrong: 0, malformed: 0, errors: 0, byCode: 1, ungraded: 0 })
     })
 
+    describe('a piece whose grade gives aspects', () => {
+        /** A toy whose reply is `answer/size/colour`. Its size is graded where a cell accepts sizes, and its colour never is. */
+        const ASPECTED = registerPiece<{ word: string }, undefined>({
+            name: 'aspected',
+            view: TEST_VIEW,
+            answers: ['yes', 'no'],
+            cells: {
+                A: { inputs: { word: 'apple' }, expected: 'yes', expectedAspects: { size: ['small', 'middling'] }, source: 'hand-written' },
+                O: { inputs: { word: 'open' }, source: 'hand-written' },
+            },
+            parseOptions: () => undefined,
+            render: async ({ inputs: { word } }) => `Word: ${word}`,
+            grade: async (reply) => {
+                const [answer, size, colour] = (await Promise.resolve(reply)).split('/')
+                return size === undefined ? { malformed: 'no size' } : { answer, aspects: { size, ...(colour === undefined ? {} : { colour }) } }
+            },
+        })
+        const ask = async (replies: string[], cells = ['A']) => {
+            let next = 0
+            const invoke = invokeReplying(() => replies[next++])
+            return body(await handlePieceProbe({ type: 'PieceProbe', piece: 'aspected', cells, instructions: INSTRUCTIONS, repeats: replies.length / cells.length }, { invoke, pieces: { aspected: ASPECTED } }))
+        }
+
+        it('tallies each apart from the answer: against any value the cell accepts, or ungraded where it accepts none', async () => {
+            const result = await ask(['yes/small/red', 'no/middling/red', 'yes/large/green', 'nothing'])
+            expect(result.cells[0]).toMatchObject({ n: 4, right: 2, wrong: 1, malformed: 1, answers: { yes: 2, no: 1 } })
+            expect(result.cells[0].aspects).toEqual({
+                size: { expected: ['small', 'middling'], right: 2, wrong: 1, given: { small: 1, middling: 1, large: 1 } },
+                colour: { right: 0, wrong: 0, given: { red: 2, green: 1 } },
+            })
+            expect(result.summary).toMatchObject({ right: 2, wrong: 1, malformed: 1, ungraded: 0, aspects: { size: { right: 2, wrong: 1, ungraded: 0 }, colour: { right: 0, wrong: 0, ungraded: 3 } } })
+            expect(result.read.map(({ grade }: { grade: unknown }) => grade)).toContainEqual({ answer: 'yes', aspects: { size: 'small', colour: 'red' } })
+        })
+
+        it('sums each over the cells, and lists one a cell accepts though no reply gave it', async () => {
+            const both = await ask(['yes/small', 'yes/small'], ['A', 'O'])
+            expect(both.summary.aspects).toEqual({ size: { right: 1, wrong: 0, ungraded: 1 } })
+            expect(both.cells[1].aspects).toEqual({ size: { right: 0, wrong: 0, given: { small: 1 } } })
+            expect((await ask(['nothing'])).cells[0].aspects).toEqual({ size: { expected: ['small', 'middling'], right: 0, wrong: 0, given: {} } })
+        })
+
+        it('gives no such key for a piece without any', async () => {
+            const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', cells: ['A'], instructions: INSTRUCTIONS }, { invoke: invokeReplying(() => 'Answer: yes'), pieces }))
+            expect('aspects' in result.cells[0] || 'aspects' in result.summary).toBe(false)
+        })
+    })
+
     describe('a piece with its own grade', () => {
         /** A toy whose grade gives the reply's word and its length, so an answer carries a parameter; a cell with no expected answer is open. */
         const GRADED = registerPiece<{ word: string }, undefined>({
@@ -234,6 +284,51 @@ describe('handlePieceProbe', () => {
     it('says when no piece is registered', async () => {
         const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', instructions: INSTRUCTIONS }, { pieces: {} })
         expect(body(response).error).toBe('piece must be one of: (none registered)')
+    })
+
+    describe('an answered piece that merges', () => {
+        const MERGE: MergeOptions = { author: 'triage', adds: [], restates: true }
+        /** An answered piece that merges: its reply is the step record with a verdict beside it, taken off before the record is merged. */
+        const TOY_MERGES = registerPiece<{ word: string }, undefined>({
+            name: 'toyMerges',
+            view: TEST_VIEW,
+            merges: MERGE,
+            answers: ['yes', 'no'],
+            cells: {
+                A: { inputs: { word: 'apple' }, expected: 'yes', source: 'hand-written' },
+                B: { inputs: { word: 'brick' }, source: 'hand-written' },
+            },
+            grade: (reply, { inputs: { word } }) => {
+                const parsed = replyJsonObject(reply)
+                if ('malformed' in parsed) {
+                    return parsed
+                }
+                const { kind, ...record } = parsed.object
+                const plan = planOf([{ step: { says: `eat ${word}`, suppliedBy: 'player' }, standing: 'unchecked', items: [] }])
+                const merged = mergeStepRecord({ plan, target: planSteps(plan)[0].path, record, things: [word], rules: [] }, MERGE)
+                return 'problems' in merged ? { malformed: merged.problems.join('; ') } : { answer: String(kind), plan: merged.plan }
+            },
+            parseOptions: () => undefined,
+            render: async ({ inputs: { word } }) => `Word: ${word}`,
+        })
+        const fenced = (value: unknown): string => `\`\`\`json\n${JSON.stringify(value)}\n\`\`\``
+        const ask = async (replies: string[]) => {
+            let next = 0
+            const invoke = invokeReplying(() => replies[next++])
+            return body(await handlePieceProbe({ type: 'PieceProbe', piece: 'toyMerges', cells: ['A'], instructions: INSTRUCTIONS, repeats: replies.length }, { invoke, pieces: { toyMerges: TOY_MERGES } }))
+        }
+
+        it('is tallied on its answer, its merged plan carried to the read beside it', async () => {
+            const result = await ask([fenced({ kind: 'yes', says: 'eat apple' })])
+            expect(result.cells[0]).toMatchObject({ n: 1, right: 1, wrong: 0, malformed: 0, answers: { yes: 1 } })
+            expect(result.read[0].grade).toMatchObject({ answer: 'yes', plan: { steps: [{ says: 'eat [apple]', standing: 'unchecked' }] } })
+        })
+
+        it('is malformed where its block doesn\'t merge, whatever it answered', async () => {
+            const result = await ask([fenced({ kind: 'yes', says: 'eat apple', steps: [{ says: 'bite it' }, { says: 'chew it' }] })])
+            expect(result.cells[0]).toMatchObject({ n: 1, right: 0, wrong: 0, malformed: 1, answers: {} })
+            expect(Object.keys(result.read[0].grade)).toEqual(['malformed'])
+        })
     })
 
     describe('a read piece', () => {

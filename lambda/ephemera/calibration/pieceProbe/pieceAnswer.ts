@@ -6,8 +6,14 @@
 //
 import { splitMarkdownReasoningAndJson } from '../../llm/splitMarkdownReasoningAndJson'
 import { isNotAnObject, jsonObject } from '../../llm/stageContract'
+import type { ActionPlan } from '../oracleLoop/actionPlan'
 
-export type PieceGrade = { answer: string } | { malformed: string }
+/**
+ * One reply's grade: its answer, and, for a piece that merges, the plan its reply merged into, for the reader; or why it gives none. A reply
+ * whose block the merge refuses is malformed, whatever it answers: a bad block is refused whole. `aspects` are other readings of the reply, by
+ * name, each tallied apart from the answer against the cell's `expectedAspects`.
+ */
+export type PieceGrade = { answer: string; aspects?: Readonly<Record<string, string>>; plan?: ActionPlan } | { malformed: string }
 
 const inSet = (word: string, answers: readonly string[]): PieceGrade => (
     answers.includes(word) ? { answer: word } : { malformed: `"${word}" is not one of ${answers.join(', ')}` }
