@@ -3,7 +3,7 @@ import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import { planSteps, type ActionPlan } from '../oracleLoop/actionPlan'
 import { planFromCommand, renderTriage, triageContract, type TriageAnswer, type TriageKind } from './triage'
 import { triageCorpus, type CorpusGrounding, type CorpusRow } from './triageCorpus'
-import { ambiguityDefers, guarded, improvisedDefers, saysHandles, securedEnds, securingDefers } from './triageGuard'
+import { ambiguityDefers, guarded, improvisedDefers, involvedHandles, saysHandles, securedEnds, securingDefers } from './triageGuard'
 
 /** A reply to the command, as the contract reads it. */
 const answerTo = async (fixture: string, command: string | ActionPlan, reply: object): Promise<TriageAnswer> => {
@@ -76,6 +76,35 @@ describe('what code makes of triage\'s answer', () => {
         ])('%s', async (_, fixture, command, reply) => {
             const answer = await answerTo(fixture, command, reply)
             expect(improvisedDefers(answer)).toBe(answer)
+        })
+    })
+
+    describe('what the match found, read beside the step', () => {
+        it('is the step\'s handles, then the match\'s, each once', async () => {
+            const answer = await answerTo('teaTable', 'pour tea', { match: { inScene: ['[teapot1]', '[tea2]', '[cup1 | saucer1]'] }, says: 'pour [tea2]', kind: 'Defer' })
+            expect(involvedHandles(answer)).toEqual(['tea2', 'teapot1', 'cup1', 'saucer1'])
+        })
+
+        it.each<[string, string, string, object]>([
+            ['a glued teapot the step leaves in words', 'teaTable', 'pick up the teapot', { match: { inScene: ['[teapot1]'] }, says: 'pick up the teapot', kind: 'Yes' }],
+            ['a glued teapot\'s pour, the step naming no handle', 'teaTable', 'pour tea into the cup', { match: { inScene: ['[tea2]', '[teapot1]', '[cup1]'] }, says: 'pour tea into the cup', kind: 'Yes' }],
+            ['a chained table, and a "No"', 'teaTableChained', 'pick up the table', { match: { inScene: ['[table1]'] }, says: 'pick up the table', kind: 'No', reason: 'it is chained' }],
+        ])('lets the securing rule see %s', async (_, fixture, command, reply) => {
+            const answer = await answerTo(fixture, command, reply)
+            expect(saysHandles(answer.plan)).toEqual([])
+            expect(guarded(answer, await fixtureScene(fixture))).toEqual({ kind: 'Defer', plan: answer.plan, involved: answer.involved })
+        })
+
+        it('defers a "Yes" whose match improvises a thing its step leaves out, or makes an ambiguous reference', async () => {
+            const improvised = await answerTo('teaTable', 'wipe the table', { match: { inScene: ['[table1]'], improvised: [cloth] }, says: 'wipe [table1]', kind: 'Yes' })
+            expect(improvisedDefers(improvised)).toEqual({ kind: 'Defer', plan: improvised.plan, involved: improvised.involved })
+            const ambiguous = await answerTo('twoCups', 'pick up the cup', { match: { inScene: ['[cup1 | cup2]'] }, says: 'pick up the cup', kind: 'Yes' })
+            expect(ambiguityDefers(ambiguous)).toEqual({ kind: 'Defer', plan: ambiguous.plan, involved: ambiguous.involved })
+        })
+
+        it('leaves an answer whose match finds nothing the rules read as it was', async () => {
+            const answer = await answerTo('twoCups', 'pick up the cup', { match: { inScene: ['[cup2]'] }, says: 'pick up the cup', kind: 'Yes' })
+            expect(guarded(answer, await fixtureScene('twoCups'))).toBe(answer)
         })
     })
 

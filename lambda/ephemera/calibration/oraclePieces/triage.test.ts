@@ -131,6 +131,43 @@ describe('triage', () => {
             expect(await problems('take/twoCups', record)).toEqual(found)
         })
 
+        describe('the match', () => {
+            it('is taken off before the merge: what it found goes beside the plan, and its improvised things into it', async () => {
+                const found = await answer('wipe/cloth', { match: { inScene: ['[table1]'], improvised: [cloth] }, says: 'wipe [table1] with [cloth1]', kind: 'Yes' })
+                expect(found.involved).toEqual(['[table1]', '[cloth1]'])
+                expect(found.plan.improvised).toEqual([{ handle: 'cloth1', gloss: 'a cloth suitable for cleaning', standing: 'unchecked' }])
+                expect(JSON.stringify(found.plan)).not.toContain('inScene')
+            })
+
+            it('takes handles with or without brackets, an ambiguous one, and an empty match', async () => {
+                expect((await answer('take/twoCups', { match: { inScene: ['cup1', ' [table1] ', '[cup1 | cup2]'] }, says: 'pick up the cup', kind: 'Defer' })).involved)
+                    .toEqual(['[cup1]', '[table1]', '[cup1 | cup2]'])
+                expect((await answer('take/twoCups', { match: {}, says: 'pick up the cup', kind: 'Defer' })).involved).toEqual([])
+            })
+
+            it('leaves an answer with no match as it was, with nothing involved', async () => {
+                expect(await answer('take', { says: 'pick up [cup1]', kind: 'Yes' })).not.toHaveProperty('involved')
+            })
+
+            it.each<[string, unknown, string[]]>([
+                ['not an object', ['[cup1]'], ['"match" is not an object']],
+                ['another key', { inScene: [], here: [] }, ['"match" has "here", not one of inScene, improvised']],
+                ['an inScene that is no list', { inScene: '[cup1]' }, ['"inScene" is not a list']],
+                ['an entry that is no string', { inScene: ['[cup1]', 3, ' '] }, ['inScene entry 2 is not a non-empty string', 'inScene entry 3 is not a non-empty string']],
+                ['a handle not in the scene', { inScene: ['[cup3]'] }, ['inScene: [cup3] is not in the scene']],
+                ['a side not in the scene', { inScene: ['[cup1 | cup3]'] }, ['inScene: [cup3] is not in the scene']],
+                ['an improvised thing', { inScene: ['[cup3]'], improvised: [{ handle: 'cup3', gloss: 'a third cup' }] }, ['inScene: [cup3] is improvised, and "inScene" holds what the scene has']],
+                ['an ambiguous entry naming a side twice', { inScene: ['[cup1 | cup1]'] }, ['inScene: [cup1 | cup1] names [cup1] twice']],
+            ])('refuses %s', async (_, match, found) => {
+                expect(await problems('take/twoCups', { match, says: 'pick up the cup' })).toEqual(found)
+            })
+
+            it('refuses improvised things given both in the match and beside it, and its improvised things\' own problems', async () => {
+                expect(await problems('wipe/cloth', { match: { improvised: [cloth] }, improvise: [cloth], says: 'wipe [table1] with [cloth1]' })).toEqual(['"improvise" is given both in "match" and beside it'])
+                expect(await problems('wipe/cloth', { match: { improvised: [{ handle: 'cloth1' }] }, says: 'wipe [table1] with [cloth1]' })).toEqual(['improvised thing 1: has no non-empty string "gloss"'])
+            })
+        })
+
         it.each<[string, unknown, string]>([
             ['a thing the scene has', [{ handle: '[cup1]', gloss: 'a cup' }], 'improvised thing 1: [cup1] is in the scene already'],
             ['the same handle twice', [cloth, { ...cloth, gloss: 'another cloth' }], 'improvised thing 2: [cloth1] is improvised twice'],
@@ -211,15 +248,17 @@ describe('triage', () => {
         const grade = async (command: string, reply: object) => gradeTriage(fenced(reply), commands[command], await renderTriage(commands[command]))
 
         it.each<[string, string, object, string, object]>([
-            ['a plain "Yes"', 'take', { says: 'pick up [cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Yes', grounding: 'cup1', added: 'none' }],
-            ['a "Yes" the guard defers, its answer triage\'s own', 'pour', { says: 'pour [tea2] from [teapot1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'tea2, teapot1', added: 'none' }],
-            ['a "Yes" an improvised thing defers, its handle\'s name left out', 'wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'table1, improvised', added: 'none' }],
-            ['two improvised things', 'wipe/cloth', { improvise: [cloth, { handle: 'bowl1', gloss: 'a bowl of water' }], says: 'wipe [table1] with [cloth1] and [bowl1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'table1, improvised, improvised', added: 'none' }],
-            ['handles in any order, each once, and none but the step\'s own', 'pour', { says: 'lift [teapot1] and pour [tea2] from [teapot1] into [cup1]', intent: 'no more tea in [saucer1]', steps: [{ says: 'lift [table1]' }, { says: 'tip [teapot1]' }], kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea2, teapot1', added: 'lift' }],
-            ['a step that names nothing', 'take/twoCups', { says: 'pick up the cup', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'none', added: 'none' }],
-            ['a "Yes" an ambiguous reference defers, its sides sorted as one', 'take/twoCups', { says: 'pick up [cup2 | cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'cup1|cup2', added: 'none' }],
-            ['an ambiguous reference among plain ones', 'pour', { says: 'pour [tea2 | tea1] into [cup1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea1|tea2', added: 'none' }],
-            ['a "No"', 'wipe', { says: 'wipe [table1]', kind: 'No', reason: 'it is dry' }, 'No', { afterGuard: 'No', grounding: 'table1', added: 'none' }],
+            ['a plain "Yes"', 'take', { says: 'pick up [cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Yes', grounding: 'cup1', matched: 'absent', added: 'none' }],
+            ['a "Yes" the guard defers, its answer triage\'s own', 'pour', { says: 'pour [tea2] from [teapot1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'tea2, teapot1', matched: 'absent', added: 'none' }],
+            ['a "Yes" an improvised thing defers, its handle\'s name left out', 'wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'table1, improvised', matched: 'absent', added: 'none' }],
+            ['two improvised things', 'wipe/cloth', { improvise: [cloth, { handle: 'bowl1', gloss: 'a bowl of water' }], says: 'wipe [table1] with [cloth1] and [bowl1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'table1, improvised, improvised', matched: 'absent', added: 'none' }],
+            ['handles in any order, each once, and none but the step\'s own', 'pour', { says: 'lift [teapot1] and pour [tea2] from [teapot1] into [cup1]', intent: 'no more tea in [saucer1]', steps: [{ says: 'lift [table1]' }, { says: 'tip [teapot1]' }], kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea2, teapot1', matched: 'absent', added: 'lift' }],
+            ['a step that names nothing', 'take/twoCups', { says: 'pick up the cup', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'none', matched: 'absent', added: 'none' }],
+            ['a "Yes" an ambiguous reference defers, its sides sorted as one', 'take/twoCups', { says: 'pick up [cup2 | cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'cup1|cup2', matched: 'absent', added: 'none' }],
+            ['an ambiguous reference among plain ones', 'pour', { says: 'pour [tea2 | tea1] into [cup1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea1|tea2', matched: 'absent', added: 'none' }],
+            ['a "No"', 'wipe', { says: 'wipe [table1]', kind: 'No', reason: 'it is dry' }, 'No', { afterGuard: 'No', grounding: 'table1', matched: 'absent', added: 'none' }],
+            ['a match beside a step left in words, its guard reading the match', 'pour', { match: { inScene: ['[tea2]', 'teapot1'] }, says: 'pour tea', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'none', matched: 'tea2, teapot1', added: 'none' }],
+            ['a match with an improvised thing', 'wipe/cloth', { match: { inScene: ['[table1]'], improvised: [cloth] }, says: 'wipe [table1] with [cloth1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'table1, improvised', matched: 'table1, improvised', added: 'none' }],
         ])('keeps the answer, the branch after the guard, the grounding and the words added apart: %s', async (_, command, reply, kind, aspects) => {
             const graded = await grade(command, reply)
             expect(graded).toEqual({ answer: kind, aspects, plan: (await answer(command, reply)).plan })

@@ -29,11 +29,17 @@ export type TriageInputs = {
 export const TRIAGE_KINDS = ['No', 'Yes', 'Defer'] as const
 export type TriageKind = typeof TRIAGE_KINDS[number]
 
-/** Triage's answer: its kind, with what that kind needs, and on every kind the plan its reply merged into. */
+/**
+ * The things the reply's `match` says the act involves, each as a bracketed reference (`[cup1]`, `[cup1 | cup2]`): what it found in the scene,
+ * then what it improvised. Beside the plan, never in it (the user, 2026-11-26), for the guard to read. Absent where the reply gave no `match`.
+ */
+type Involved = { involved?: readonly string[] }
+
+/** Triage's answer: its kind, with what that kind needs, and on every kind the plan its reply merged into, and what its match found. */
 export type TriageAnswer =
-    | { kind: 'No'; reason: string; plan: ActionPlan }
-    | { kind: 'Yes'; plan: ActionPlan }
-    | { kind: 'Defer'; plan: ActionPlan }
+    | ({ kind: 'No'; reason: string; plan: ActionPlan } & Involved)
+    | ({ kind: 'Yes'; plan: ActionPlan } & Involved)
+    | ({ kind: 'Defer'; plan: ActionPlan } & Involved)
 
 /** An answer without its plan. */
 type TriageVerdict = { kind: 'No'; reason: string } | { kind: 'Yes' | 'Defer' }
@@ -89,13 +95,56 @@ const readVerdict = ({ kind, reason }: { kind?: unknown; reason?: unknown }): Tr
     return nonEmptyString(reason) ? { kind: known, reason: reason.trim() } : { problems: ['"No" has no non-empty string "reason"'] }
 }
 
+/** The scene's things, as the prompt shows them: every handle it names but its rules'. */
+const shownThings = (rendered: string): SceneHandle[] => {
+    const rules = ruleTagHandles(rendered)
+    return [...new Set(namedHandles(rendered))].filter((handle) => !rules.includes(handle))
+}
+
+/** A handle as written, its brackets taken off, or undefined for what is no string. */
+const bareHandle = (value: unknown): string | undefined => (typeof value === 'string' ? value.trim().replace(/^\[(.*)\]$/, '$1').trim() : undefined)
+
+/** A reply's `match`, read: its `inScene` entries, each bracketed, and its `improvised` list as written, for the merge to read as `improvise`. */
+type MatchRead = { inScene: string[]; improvised?: unknown }
+
+/**
+ * The block's `match`, `{"inScene": [...], "improvised": [...]}`, read apart from the record: an object with no other key, `inScene` a list of
+ * strings, each a handle or an ambiguous reference, with or without its brackets. Both are optional.
+ */
+const readMatch = (match: unknown): MatchRead | { problems: string[] } => {
+    if (typeof match !== 'object' || match === null || Array.isArray(match)) {
+        return { problems: ['"match" is not an object'] }
+    }
+    const { inScene = [], improvised, ...rest } = match as Record<string, unknown>
+    const problems = Object.keys(rest).map((key) => `"match" has "${key}", not one of inScene, improvised`)
+    if (!Array.isArray(inScene)) {
+        return { problems: [...problems, '"inScene" is not a list'] }
+    }
+    const entries = inScene.map((entry, index) => (typeof entry === 'string' && entry.trim() !== '' ? `[${bareHandle(entry)}]` : index))
+    const notStrings = entries.filter((entry): entry is number => typeof entry === 'number').map((index) => `inScene entry ${index + 1} is not a non-empty string`)
+    return problems.length + notStrings.length > 0 ? { problems: [...problems, ...notStrings] } : { inScene: entries as string[], improvised }
+}
+
+/**
+ * What is wrong with a match's `inScene` once the plan is merged: a side not among the scene's things, a side improvised, since `inScene` holds
+ * what the scene has, and an ambiguous entry's own faults (`ambiguityProblems`).
+ */
+const inSceneProblems = (inScene: readonly string[], things: readonly SceneHandle[], improvised: readonly SceneHandle[]): string[] => inScene.flatMap((entry) => {
+    const sides = bracketedReferences(entry)[0] ?? []
+    return [
+        ...sides.filter((side) => side !== '' && improvised.includes(side)).map((side) => `inScene: [${side}] is improvised, and "inScene" holds what the scene has`),
+        ...sides.filter((side) => side !== '' && !improvised.includes(side) && !things.includes(side)).map((side) => `inScene: [${side}] is not in the scene`),
+        ...ambiguityProblems(entry, []).map((problem) => `inScene: ${problem}`),
+    ]
+})
+
 /**
  * The step record merged into the plan. A handle its texts name must be in the scene or improvised, and an ambiguous reference must be well
  * formed (`ambiguityProblems`). An improvised thing that no text names is no problem: it costs nothing until something reads it.
  */
 const mergeRecord = (record: Record<string, unknown>, { input: { plan, target }, rendered }: StageShown<TriageInputs>): { plan: ActionPlan } | { problems: string[] } => {
     const rules = ruleTagHandles(rendered)
-    const things = [...new Set(namedHandles(rendered))].filter((handle) => !rules.includes(handle))
+    const things = shownThings(rendered)
     const merged = mergeStepRecord({ plan, target, record, things, rules }, TRIAGE_MERGE)
     if ('problems' in merged) {
         return merged
@@ -110,8 +159,37 @@ const mergeRecord = (record: Record<string, unknown>, { input: { plan, target },
 }
 
 /**
- * The reply's one object: the step record, merged into the plan (`mergeRecord`), and the verdict beside it (`readVerdict`), taken off first.
- * A problem with either refuses the reply whole. The reason's handles aren't checked, and no kind has to name any.
+ * The match and the record together: the match's `improvised` merged as the record's `improvise` (refused where both are given), and then its
+ * `inScene` checked against the scene and the merged plan's improvised things. With no match, the record alone, and nothing involved.
+ */
+const mergeWithMatch = (record: Record<string, unknown>, match: unknown, shown: StageShown<TriageInputs>): { plan: ActionPlan; involved?: string[] } | { problems: string[] } => {
+    if (match === undefined) {
+        return mergeRecord(record, shown)
+    }
+    const read = readMatch(match)
+    if ('problems' in read) {
+        return read
+    }
+    if (read.improvised !== undefined && record.improvise !== undefined) {
+        return { problems: ['"improvise" is given both in "match" and beside it'] }
+    }
+    const merged = mergeRecord(read.improvised === undefined ? record : { ...record, improvise: read.improvised }, shown)
+    if ('problems' in merged) {
+        return merged
+    }
+    const improvised = (merged.plan.improvised ?? []).map(({ handle }) => handle)
+    const problems = inSceneProblems(read.inScene, shownThings(shown.rendered), improvised)
+    if (problems.length > 0) {
+        return { problems }
+    }
+    const own = Array.isArray(read.improvised) ? read.improvised.map((entry) => bareHandle((entry as { handle?: unknown } | null)?.handle)).filter((handle): handle is string => handle !== undefined) : []
+    return { plan: merged.plan, involved: [...new Set([...read.inScene, ...own.map((handle) => `[${handle}]`)])] }
+}
+
+/**
+ * The reply's one object: the step record, merged into the plan (`mergeRecord`), the verdict beside it (`readVerdict`) and the match before
+ * it (`readMatch`), both taken off first. A problem with any refuses the reply whole. The reason's handles aren't checked, and no kind has to
+ * name any.
  */
 export const triageContract: StageContract<TriageInputs, TriageAnswer> = {
     name: 'triage',
@@ -120,12 +198,12 @@ export const triageContract: StageContract<TriageInputs, TriageAnswer> = {
         if ('malformed' in parsed) {
             return { problems: [parsed.malformed] }
         }
-        const { kind, reason, ...record } = parsed.object
-        const merged = mergeRecord(record, shown)
+        const { kind, reason, match, ...record } = parsed.object
+        const merged = mergeWithMatch(record, match, shown)
         const verdict = readVerdict({ kind, reason })
         return 'problems' in merged || 'problems' in verdict
             ? { problems: [merged, verdict].flatMap((part) => ('problems' in part ? part.problems : [])) }
-            : { value: { ...verdict, plan: merged.plan } }
+            : { value: { ...verdict, plan: merged.plan, ...(merged.involved === undefined ? {} : { involved: merged.involved }) } }
     },
 }
 
@@ -141,6 +219,9 @@ const groundingText = (texts: readonly string[], improvised: readonly SceneHandl
 }
 
 export const groundingOf = (plan: ActionPlan): string => groundingText(plan.steps.map(({ says }) => says), (plan.improvised ?? []).map(({ handle }) => handle))
+
+/** What the match found, in the grounding's form, so the two can be read side by side; or `absent`, where the reply gave no match. */
+export const matchedOf = ({ plan, involved }: TriageAnswer): string => (involved === undefined ? 'absent' : groundingText(involved, (plan.improvised ?? []).map(({ handle }) => handle)))
 
 /** The words that join a thing to a step, or lead into one: what a step may hold beside its handles and the player's own words. */
 const JOINING_WORDS: ReadonlySet<string> = new Set([
@@ -163,8 +244,9 @@ export const addedWords = (plan: ActionPlan, command: string): string => {
 const commandOf = ({ plan }: TriageInputs): string => plan.steps.map(({ says }) => says).join(' ')
 
 /**
- * The probe's grade: the contract's answer, its kind as triage gave it, and beside it, tallied apart, the kind after the guard, the grounding
- * and the words added to the player's (which no cell expects, so they are never graded); or the parse's problems. The guard reads the fixture's full scene.
+ * The probe's grade: the contract's answer, its kind as triage gave it, and beside it, tallied apart, the kind after the guard, the grounding,
+ * what the match found and the words added to the player's (the last two no cell expects, so they are never graded); or the parse's
+ * problems. The guard reads the fixture's full scene.
  */
 export const gradeTriage = async (reply: string, { inputs }: PieceCell<TriageInputs>, rendered: string): Promise<PieceGrade> => {
     const parsed = triageContract.parse(reply, { input: inputs, rendered })
@@ -173,7 +255,7 @@ export const gradeTriage = async (reply: string, { inputs }: PieceCell<TriageInp
     }
     const { kind, plan } = parsed.value
     const after = guarded(parsed.value, await fixtureScene(inputs.fixture))
-    return { answer: kind, aspects: { afterGuard: after.kind, grounding: groundingOf(plan), added: addedWords(plan, commandOf(inputs)) }, plan }
+    return { answer: kind, aspects: { afterGuard: after.kind, grounding: groundingOf(plan), matched: matchedOf(parsed.value), added: addedWords(plan, commandOf(inputs)) }, plan }
 }
 
 /** The groundings a row accepts, as the grade gives them. */
@@ -230,6 +312,7 @@ const renderAnswer = async (answer: TriageAnswer, inputs: TriageInputs): Promise
         answer.kind === 'No' ? `No: ${answer.reason}` : answer.kind,
         ...(after.kind === answer.kind ? [] : [`after the guard: ${after.kind}`]),
         `grounding: ${groundingOf(answer.plan)}`,
+        ...(answer.involved === undefined ? [] : [`matched: ${matchedOf(answer)}`]),
         ...(added === 'none' ? [] : [`added: ${added}`]),
         renderPlanForGenerator(answer.plan),
     ].join('\n')

@@ -15,22 +15,31 @@ import type { TriageAnswer } from './triage'
 export const saysHandles = ({ steps }: ActionPlan): SceneHandle[] => [...new Set(steps.flatMap(({ says }) => namedHandles(says)))]
 
 /**
- * A "Yes" whose step names an improvised thing is a "Defer" with the same plan: whether that thing is to be had is a price, which triage
+ * The things the act involves, as triage's answer claims them: the handles its step names, and then those its match found (`involved`),
+ * each once. Every rule below reads them, so a step that keeps the player's words still shows the guard what its match found (the user, 2026-11-26).
+ */
+export const involvedHandles = ({ plan, involved = [] }: TriageAnswer): SceneHandle[] => [...new Set([...saysHandles(plan), ...involved.flatMap(namedHandles)])]
+
+/** The answer deferred, its plan and what it involves kept, and a "No"'s reason dropped. */
+const deferred = ({ plan, involved }: TriageAnswer): TriageAnswer => ({ kind: 'Defer', plan, ...(involved === undefined ? {} : { involved }) })
+
+/**
+ * A "Yes" whose step or match names an improvised thing (`involvedHandles`) is a "Defer" with the same plan: whether that thing is to be had is a price, which triage
  * doesn't set. Any other answer is as it was, a "Yes" that names nothing among them (the user, 2026-11-25).
  */
 export const improvisedDefers = (answer: TriageAnswer): TriageAnswer => {
     const { kind, plan } = answer
-    const named = saysHandles(plan)
-    return kind === 'Yes' && (plan.improvised ?? []).some(({ handle }) => named.includes(handle)) ? { kind: 'Defer', plan } : answer
+    const named = involvedHandles(answer)
+    return kind === 'Yes' && (plan.improvised ?? []).some(({ handle }) => named.includes(handle)) ? deferred(answer) : answer
 }
 
 /**
- * A "Yes" whose step makes an ambiguous reference, `[cup1 | cup2]`, is a "Defer" with the same plan: which thing the player means is the
+ * A "Yes" whose step or match makes an ambiguous reference, `[cup1 | cup2]`, is a "Defer" with the same plan: which thing the player means is the
  * judge's to settle. A "No" stands, since it can hold whichever thing is meant. Any other answer is as it was.
  */
 export const ambiguityDefers = (answer: TriageAnswer): TriageAnswer => {
-    const { kind, plan } = answer
-    return kind === 'Yes' && plan.steps.some(({ says }) => ambiguousReferences(says).length > 0) ? { kind: 'Defer', plan } : answer
+    const { kind, plan, involved = [] } = answer
+    return kind === 'Yes' && [...plan.steps.map(({ says }) => says), ...involved].some((text) => ambiguousReferences(text).length > 0) ? deferred(answer) : answer
 }
 
 /**
@@ -50,14 +59,13 @@ export const securedEnds = (scene: SceneModel): SceneHandle[] => {
 }
 
 /**
- * A "Yes" or a "No" whose step names a thing a securing holds is a "Defer" with the same plan: whether the act keeps the securing, breaks it
- * or does away with it is the judge's. There is no walk from the handles, so a thing the step leaves out is missed, and so is a securing on
+ * A "Yes" or a "No" whose step or match names a thing a securing holds is a "Defer" with the same plan: whether the act keeps the securing, breaks it
+ * or does away with it is the judge's. There is no walk from the handles, so a thing both leave out is missed, and so is a securing on
  * something carried along. Any other answer is as it was.
  */
 export const securingDefers = (answer: TriageAnswer, scene: SceneModel): TriageAnswer => {
-    const { kind, plan } = answer
     const ends = securedEnds(scene)
-    return kind !== 'Defer' && saysHandles(plan).some((handle) => ends.includes(handle)) ? { kind: 'Defer', plan } : answer
+    return answer.kind !== 'Defer' && involvedHandles(answer).some((handle) => ends.includes(handle)) ? deferred(answer) : answer
 }
 
 /** The answer after the guard: all three of code's rules, over the full scene. Each only makes a "Defer", so their order doesn't matter. */
