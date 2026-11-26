@@ -14,7 +14,8 @@ import {
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderViewedScene, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { plansText } from './plansText'
 
 export type ConsequencesInputs = {
@@ -58,7 +59,8 @@ export const replyHandles = ({ plan, target, things }: Pick<ConsequencesInputs, 
     return [...new Set([...things, ...own.flatMap(namedHandles)])]
 }
 
-export const renderConsequences = async ({ inputs: { fixture, plan, target, things } }: ReadPieceCell<ConsequencesInputs>, options: ConsequencesOptions): Promise<string> => {
+/** The cell's checks, and the sub-scene's handles: the things to describe, and the handles the view's plan names. */
+const prepareConsequences = ({ inputs: { plan, target, things } }: ReadPieceCell<ConsequencesInputs>): { handles: SceneHandle[]; given: undefined } => {
     if (things.length === 0) {
         throw new Error('No things to describe')
     }
@@ -69,10 +71,15 @@ export const renderConsequences = async ({ inputs: { fixture, plan, target, thin
     if (!planSteps(plan).some(({ path }) => path === target)) {
         throw new Error(`The target "${target}" names no step of the plan`)
     }
-    const viewed = viewPlan(plan, CONSEQUENCES_VIEW.plan)
-    const scene = await renderScene({ fixture, shown: [...things, ...planSceneHandles(viewed)] }, CONSEQUENCES_VIEW.scene, options)
-    return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step to expand: ${target}`, thingsLine(things, options)].join('\n\n')
+    return { handles: [...things, ...planSceneHandles(viewPlan(plan, CONSEQUENCES_VIEW.plan))], given: undefined }
 }
+
+export const renderConsequences = withViewedScene(CONSEQUENCES_VIEW.scene, ({ inputs: { plan, target, things } }: ReadPieceCell<ConsequencesInputs>, options: ConsequencesOptions, viewed): string => [
+    ...renderViewedScene(shownScene(viewed), CONSEQUENCES_VIEW.scene, options),
+    `The plan:\n${renderPlanForGenerator(viewPlan(plan, CONSEQUENCES_VIEW.plan))}`,
+    `The step to expand: ${target}`,
+    thingsLine(things, options),
+].join('\n\n'), prepareConsequences)
 
 /**
  * The stage's contract: the reply's block, its bare handles bracketed, scoped to the target and merged into the plan (`mergeStepChanges`),

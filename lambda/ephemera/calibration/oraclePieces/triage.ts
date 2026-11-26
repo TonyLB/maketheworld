@@ -6,7 +6,6 @@
 // the branch, the branch after the guard and the grounding apart.
 //
 import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
-import { viewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
 import { ambiguityProblems, bracketedReferences, fixtureScene, namedHandles, planHandles, planTexts } from '../imaginationPieces/imaginationScene'
@@ -15,6 +14,7 @@ import { expansionClosed, planOf, planSteps, renderPlanForGenerator, rewordingCl
 import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { triageCorpus, type CorpusRow } from './triageCorpus'
 import { guarded } from './triageGuard'
 
@@ -63,7 +63,7 @@ export const planFromCommand = (command: string): ActionPlan =>
     planOf([{ step: { says: command, suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: command, standing: 'unchecked' }] }])
 
 /** The whole scene, then the plan. Throws on a target that names no step, or one closed to triage, since no redraft could fix the refusal. */
-export const renderTriage = async ({ inputs: { fixture, plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): Promise<string> => {
+const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): { given: undefined } => {
     const step = planSteps(plan).find(({ path }) => path === target)
     if (step === undefined) {
         throw new Error(`The target "${target}" names no step of the plan`)
@@ -72,9 +72,15 @@ export const renderTriage = async ({ inputs: { fixture, plan, target } }: Pick<P
     if (closed !== undefined) {
         throw new Error(`The target "${target}" is closed to triage: ${closed}`)
     }
-    const { model, rules } = viewedSceneModel(await fixtureScene(fixture))
-    return [renderSceneExplicit(model, { rules: 'conditions', ruleHandles: rules }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+    return { given: undefined }
 }
+
+const renderViewedTriage = withViewedScene(TRIAGE_VIEW.scene, ({ inputs: { plan } }: Pick<PieceCell<TriageInputs>, 'inputs'>, _options: undefined, viewed): string => {
+    const { model, rules } = shownScene(viewed)
+    return [renderSceneExplicit(model, { rules: 'conditions', ruleHandles: rules }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+}, prepareTriage)
+
+export const renderTriage = (cell: Pick<PieceCell<TriageInputs>, 'inputs'>): Promise<string> => renderViewedTriage(cell, undefined)
 
 const nonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
 

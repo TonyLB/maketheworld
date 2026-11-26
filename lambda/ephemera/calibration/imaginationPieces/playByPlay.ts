@@ -18,7 +18,8 @@ import {
 import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, type ImaginationOptions } from './imaginationScene'
+import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderViewedScene, type ImaginationOptions } from './imaginationScene'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
@@ -72,7 +73,8 @@ export const PLAY_BY_PLAY_VIEW: PieceView = {
     scene: { shows: 'subScene', securing: 'conditions', sceneRules: false },
 }
 
-export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
+/** The cell's checks, and the sub-scene's handles: what it also shows, the handles the view's plan names, and those `missing` names. */
+const preparePlayByPlay = ({ inputs: { plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>): { handles: SceneHandle[]; given: undefined } => {
     const twice = listedTwice(alsoShown)
     if (twice.length > 0) {
         throw new Error(`Things shown twice: ${twice.join(', ')}`)
@@ -90,11 +92,14 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
         throw new Error('No detail asked for')
     }
     // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
-    const viewed = viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)
-    const shown = [...new Set([...alsoShown, ...planSceneHandles(viewed), ...namedHandles(missing)])]
-    const scene = await renderScene({ fixture, shown }, PLAY_BY_PLAY_VIEW.scene, options)
-    return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
+    return { handles: [...alsoShown, ...planSceneHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(missing)], given: undefined }
 }
+
+export const renderPlayByPlay = withViewedScene(PLAY_BY_PLAY_VIEW.scene, ({ inputs: { plan, target, missing } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions, viewed): string => [
+    ...renderViewedScene(shownScene(viewed), PLAY_BY_PLAY_VIEW.scene, options),
+    `The plan:\n${renderPlanForGenerator(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan))}`,
+    `The step asked about: ${target}\nThe detail asked for: ${missing}`,
+].join('\n\n'), preparePlayByPlay)
 
 /**
  * The stage's contract: the reply's one object, the step record (`mergeStepRecord`), with `missing` as the detail it answers, merged into

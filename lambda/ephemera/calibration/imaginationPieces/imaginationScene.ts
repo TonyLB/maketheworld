@@ -4,12 +4,9 @@
 //
 import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
-import { subScene } from '../../dataSource/actions/sceneProse/subScene'
-import { filterViewedModel, viewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
+import type { ViewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
-import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
-import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
+import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { itemTexts, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { isSceneRender, SCENE_RENDERS, type SceneRender, type SceneView } from '../pieceProbe/sceneRenders'
@@ -38,10 +35,7 @@ export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value
     return scene === undefined ? {} : { scene }
 }
 
-export const fixtureScene = async (name: string): Promise<SceneModel> => {
-    const fixture = sceneFixture(name)
-    return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
-}
+export { fixtureScene } from '../pieceProbe/viewedRender'
 
 /**
  * The references a text makes in brackets, in order, each as the handles it may be: one, or for an ambiguous reference, `[tea1 | tea2]`, each
@@ -88,25 +82,17 @@ export const planSceneHandles = (viewed: ActionPlan): SceneHandle[] => {
 export const listedTwice = (handles: readonly SceneHandle[]): SceneHandle[] => [...new Set(handles.filter((handle, index) => handles.indexOf(handle) !== index))]
 
 /**
- * The scene's parts, the sub-scene of the shown things heading to `End of scene.`: the judge render's Fiction and Graph, or with
- * `scene: 'explicit'` the explicit render (`renderSceneExplicit`), its securings stated as the view has them: in the render's own wording
- * (`shown`), or tagged with their rule handles, minted on the full model (`viewedSceneModel`), and stated as their conditions and carries (`conditions`), which the judge
- * render doesn't take. With `omitted`, the securing is left out of either (`withoutSecuring`). A shown handle not in the fixture's scene
- * throws (`subScene`).
+ * The scene's parts, the viewed scene model heading to `End of scene.`: the judge render's Fiction and Graph, or with `scene: 'explicit'`
+ * the explicit render (`renderSceneExplicit`), its securings stated as the view has them: in the render's own wording (`shown`), or tagged
+ * with their rule handles, minted on the full model (`viewedSceneModel`), and stated as their conditions and carries (`conditions`), which
+ * the judge render doesn't take. What the piece may know (the sub-scene, an omitted securing) is applied before this, by `withViewedScene`.
  */
-export const renderScene = async (
-    { fixture, shown }: { fixture: string; shown: readonly SceneHandle[] },
-    { securing }: Pick<SceneView, 'securing'>,
-    { scene = 'judge' }: ImaginationOptions,
-): Promise<string[]> => {
-    const viewed = viewedSceneModel(await fixtureScene(fixture))
-    const known = securing === 'omitted' ? filterViewedModel(viewed, withoutSecuring) : viewed
-    const { model: sub, rules } = filterViewedModel(known, (model) => subScene(model, [...new Set(shown)]))
+export const renderViewedScene = ({ model, rules }: ViewedSceneModel, { securing }: Pick<SceneView, 'securing'>, { scene = 'judge' }: ImaginationOptions): string[] => {
     if (scene === 'explicit') {
-        return [renderSceneExplicit(sub, securing === 'conditions' ? { rules: 'conditions', ruleHandles: rules } : {})]
+        return [renderSceneExplicit(model, securing === 'conditions' ? { rules: 'conditions', ruleHandles: rules } : {})]
     }
-    const sections = judgeSceneSections(sub)
-    return [`Scene: ${heading(sub)}`, sections.fiction, sections.graph, 'End of scene.']
+    const sections = judgeSceneSections(model)
+    return [`Scene: ${heading(model)}`, sections.fiction, sections.graph, 'End of scene.']
 }
 
 /**

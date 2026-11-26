@@ -5,13 +5,13 @@
 // action the cell sees is one the rule is in force for, and the rule is shown as its fact and its enforcing rubric only (user, 2026-11-10).
 //
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
-import { subScene } from '../../dataSource/actions/sceneProse/subScene'
+import { judgeRules, type JudgeRuleLine } from '../../dataSource/actions/sceneProse/sceneRules'
+import type { ViewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
-import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import type { SceneView } from '../pieceProbe/sceneRenders'
+import { withViewedScene } from '../pieceProbe/viewedRender'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /** An action of the plan, and what the play-by-play says each of the rule's things does in it, keyed by the rule's ends exactly. */
@@ -68,17 +68,16 @@ const parseRuleCellOptions = (value: unknown): RuleCellOptions | string => {
     return { show: show as RuleCellOptions['show'], sceneRules }
 }
 
-const fixtureScene = async (name: string): Promise<SceneModel> => {
-    const fixture = sceneFixture(name)
-    return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
-}
 
 const sameHandles = (one: readonly string[], other: readonly string[]): boolean => (
     one.length === other.length && one.every((handle) => other.includes(handle))
 )
 
-export const renderRuleCell = async ({ inputs }: PieceCell<RuleCellInputs>, { show, sceneRules }: RuleCellOptions): Promise<string> => {
-    const full = await fixtureScene(inputs.fixture)
+/**
+ * The cell's rule, read off the full model as its input (the rule's handle, parts and ends, as `judgeRules` gives them), with the checks
+ * that the cell fits it; and the sub-scene's handles, the rule's ends.
+ */
+const prepareRuleCell = ({ inputs }: PieceCell<RuleCellInputs>, _options: RuleCellOptions, full: SceneModel): { handles: readonly SceneHandle[]; given: JudgeRuleLine } => {
     const rules = judgeRules(full)
     const rule = rules.find(({ handle }) => handle === inputs.rule)
     if (rule === undefined) {
@@ -92,10 +91,14 @@ export const renderRuleCell = async ({ inputs }: PieceCell<RuleCellInputs>, { sh
     if (offEnds !== -1) {
         throw new Error(`Action ${offEnds + 1}'s motions name ${Object.keys(actions[offEnds].motions).join(', ')}; expected the rule's things: ${rule.ends.join(', ')}`)
     }
-    const scene = (): string => {
-        const sections = judgeSceneSections(subScene(full, rule.ends))
+    return { handles: rule.ends, given: rule }
+}
+
+export const renderRuleCell = withViewedScene(RULE_CELL_SCENE, ({ inputs }: PieceCell<RuleCellInputs>, { sceneRules }: RuleCellOptions, viewed, rule: JudgeRuleLine): string => {
+    const scene = ({ model }: ViewedSceneModel): string => {
+        const sections = judgeSceneSections(model)
         return [
-            `Scene: ${heading(full)}`,
+            `Scene: ${heading(model)}`,
             sections.fiction,
             sections.graph,
             ...(sceneRules && sections.rules !== undefined ? [sections.rules] : []),
@@ -110,8 +113,8 @@ export const renderRuleCell = async ({ inputs }: PieceCell<RuleCellInputs>, { sh
             ...rule.ends.map((handle) => `- [${handle}]: ${motions[handle]}`),
         ].join('\n')),
     ]
-    return [...(show === 'none' ? [] : [scene()]), ...cell].join('\n\n')
-}
+    return [...(viewed === undefined ? [] : [scene(viewed)]), ...cell].join('\n\n')
+}, prepareRuleCell)
 
 const stays = 'stays where it is'
 const pickUpTable = 'pick up [table1]'

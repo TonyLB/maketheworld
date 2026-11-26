@@ -8,15 +8,14 @@
 //
 import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
-import { filterViewedModel, viewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
-import { caseActions, fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
+import { caseActions, namedHandles } from '../imaginationPieces/imaginationScene'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import { replyJsonObject } from '../../llm/stageContract'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
 import { isSceneRender, SCENE_RENDERS, type SceneRender, type Securing } from '../pieceProbe/sceneRenders'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /**
@@ -209,18 +208,25 @@ export type NonRuleCellOptions = { scene?: SceneRender }
  * explicit render's securings, which no piece on these inputs declares yet. With `scene: 'explicit'`, the scene is the explicit render
  * (`renderSceneExplicit`) in place of the Fiction and the Graph (the ruling).
  */
-export const renderNonRuleCell = async (
-    { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
-    { securing = NON_RULE_CELL_VIEW.scene.securing, scene: sceneRender = 'judge' }: { securing?: Securing; scene?: SceneRender } = {},
-): Promise<string> => {
+/** How a calling piece renders the cell: its view's securing, which is also what it may know of it, and which scene render. */
+type NonRuleCellRender = { securing?: Securing; scene?: SceneRender }
+
+const prepareNonRuleCell = ({ inputs: { request, steps } }: PieceCell<NonRuleCellInputs>): { given: undefined } => {
     if (steps.length === 0) {
         throw new Error('No steps')
     }
     if (request.trim() === '') {
         throw new Error('No request')
     }
-    const viewed = viewedSceneModel(await fixtureScene(fixture))
-    const { model: full, rules } = securing === 'omitted' ? filterViewedModel(viewed, withoutSecuring) : viewed
+    return { given: undefined }
+}
+
+const renderViewedNonRuleCell = withViewedScene(NON_RULE_CELL_VIEW.scene, (
+    { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
+    { securing = NON_RULE_CELL_VIEW.scene.securing, scene: sceneRender = 'judge' }: NonRuleCellRender,
+    viewed,
+): string => {
+    const { model: full, rules } = shownScene(viewed)
     const all = quotables(steps, true)
     const unknown = [...new Set([request, ...all.map(({ says }) => says)].flatMap(namedHandles))].filter((handle) => full.things[handle] === undefined)
     if (unknown.length > 0) {
@@ -244,7 +250,9 @@ export const renderNonRuleCell = async (
             ...steps.flatMap(({ says, role, consequences = [] }) => [`- (${role}) ${says}`, ...consequences.map((line) => `  - (consequence) ${line}`)]),
         ].join('\n'),
     ].join('\n\n')
-}
+}, prepareNonRuleCell)
+
+export const renderNonRuleCell = (cell: PieceCell<NonRuleCellInputs>, options: NonRuleCellRender = {}): Promise<string> => renderViewedNonRuleCell(cell, options)
 
 /** No options, or `{ scene: 'judge' | 'explicit' }`. */
 export const parseNonRuleCellOptions = (value: unknown): NonRuleCellOptions | string => {

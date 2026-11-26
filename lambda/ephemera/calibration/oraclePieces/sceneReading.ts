@@ -9,9 +9,9 @@
 //
 import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { renderSceneJudge } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
-import { fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
+import { namedHandles } from '../imaginationPieces/imaginationScene'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { nonRuleCellCells } from './nonRuleCell'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
@@ -43,16 +43,15 @@ export const parseSceneReadingOptions = (value: unknown): SceneReadingOptions | 
 export const SCENE_READING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
 
 /** The scene in the named render, the securing as the view states it, then the question. Throws on a question naming a thing not in the scene. */
-export const renderSceneReading = async ({ inputs: { fixture, question } }: PieceCell<SceneReadingInputs>, { render }: SceneReadingOptions): Promise<string> => {
-    const full = await fixtureScene(fixture)
-    const scene = SCENE_READING_VIEW.scene.securing === 'omitted' ? withoutSecuring(full) : full
+export const renderSceneReading = withViewedScene(SCENE_READING_VIEW.scene, ({ inputs: { fixture, question } }: PieceCell<SceneReadingInputs>, { render }: SceneReadingOptions, viewed): string => {
+    const { model: scene } = shownScene(viewed)
     const unknown = namedHandles(question).filter((handle) => scene.things[handle] === undefined)
     if (unknown.length > 0) {
         throw new Error(`The question names ${unknown.join(', ')}, not in ${fixture}'s scene`)
     }
     const rendered = render === 'explicit' ? renderSceneExplicit(scene) : renderSceneJudge(scene)
     return `${rendered}\n\n${QUESTION_LINE}${question}`
-}
+})
 
 /** A cell on a trial case's scene: its fixture read from the case, so the scene is the trial's by construction. */
 const asked = (id: string, trialCase: string, question: string, expected: typeof SCENE_READING_ANSWERS[number], lookFor: string): [string, PieceCell<SceneReadingInputs>] => [id, {
