@@ -1,8 +1,8 @@
 //
 // What a piece may know of the scene, applied before its render (AGENT.sceneModelFilters.planning.md, step 3): the fixture's full scene
 // model, its rule handles minted on it, then the knowledge the piece's view declares (the securing known or omitted; the whole scene, a
-// sub-scene, or none), each a filter of the model. A piece's render is built by `withViewedScene`, so the part that words the scene is
-// handed the viewed scene model and never builds the full one. A leaf module, as `sceneRenders.ts` is.
+// sub-scene, or none), each a filter of the model. A piece's render is built by `withViewedScene`, so the part that words the scene, one of
+// the piece's named renderers (`sceneRenders.ts`), is handed the viewed scene model and never builds the full one. A leaf module, as `sceneRenders.ts` is.
 //
 import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { subScene } from '../../dataSource/actions/sceneProse/subScene'
@@ -17,14 +17,11 @@ export const fixtureScene = async (name: string): Promise<SceneModel> => {
     return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
 }
 
-/** The view's axes that say what a piece may know of the scene. Of `securing`, only `omitted` is knowledge; the rest is wording (step 4). */
-export type SceneKnowledge = Pick<SceneView, 'shows' | 'securing'>
-
 /**
  * The knowledge a call reads: the view's, each axis overridden by a payload option of the same axis where it gives a known value (`show`
  * for `shows`, `securing`), as the registry's option-drift check pairs them. An option on any other axis is no part of it.
  */
-export const knowledgeOf = (view: SceneKnowledge, options: unknown): SceneKnowledge => {
+export const knowledgeOf = (view: SceneView, options: unknown): SceneView => {
     const { show, securing } = (typeof options === 'object' && options !== null ? options : {}) as { show?: unknown; securing?: unknown }
     return {
         shows: (SCENE_SHOWS as readonly unknown[]).includes(show) ? show as SceneShows : view.shows,
@@ -37,7 +34,7 @@ export const knowledgeOf = (view: SceneKnowledge, options: unknown): SceneKnowle
  * the given handles (`subScene`, which throws on one not in the scene), the whole, or none. A sub-scene with no handles given is the
  * caller's error.
  */
-export const viewScene = (full: SceneModel, { shows, securing }: SceneKnowledge, handles?: readonly SceneHandle[]): ViewedSceneModel | undefined => {
+export const viewScene = (full: SceneModel, { shows, securing }: SceneView, handles?: readonly SceneHandle[]): ViewedSceneModel | undefined => {
     if (shows === 'none') {
         return undefined
     }
@@ -63,7 +60,7 @@ export type ScenePrep<Cell, Options> = (cell: Cell, options: Options, full: Scen
  * knowledge applied (`knowledgeOf`, `viewScene`), and the render handed the viewed scene model, or none where the piece shows none.
  */
 export const withViewedScene = <Cell extends { inputs: { fixture: string } }, Options, Result>(
-    view: SceneKnowledge,
+    view: SceneView,
     render: (cell: Cell, options: Options, viewed: ViewedSceneModel | undefined) => Result | Promise<Result>,
     prepare?: ScenePrep<Cell, Options>,
 ) => async (cell: Cell, options: Options): Promise<Result> => {

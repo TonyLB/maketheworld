@@ -14,7 +14,8 @@ import {
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderViewedScene, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, thingsLine, type ImaginationOptions } from './imaginationScene'
+import { JUDGE_OR_EXPLICIT, sceneRendererOf, type JudgeOrExplicit, type SceneWording } from '../pieceProbe/sceneRenders'
 import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { plansText } from './plansText'
 
@@ -33,18 +34,24 @@ export type ConsequencesInputs = {
 
 export type ConsequencesOptions = ImaginationOptions
 
-/** The explicit render by default (the kept draft runs explicit, so the default flips; calibration's AGENT.md, "Scene renders"). */
-export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { scene: 'explicit' }
+/**
+ * The consequences' wording: the judge render's Fiction and Graph, or the explicit render, each securing in the render's own wording
+ * (`actionRule`'s impossibility, or the hosted carry line), since it names no rule. The explicit render by default (the kept draft runs
+ * explicit, so the default flips; calibration's AGENT.md, "Scene renders").
+ */
+export const CONSEQUENCES_WORDING = { default: 'explicit', arms: JUDGE_OR_EXPLICIT } as const satisfies SceneWording<JudgeOrExplicit>
+
+export const CONSEQUENCES_OPTIONS: ConsequencesOptions = { scene: CONSEQUENCES_WORDING.default }
 
 export const parseConsequencesOptions = imaginationOptionsParser(CONSEQUENCES_OPTIONS)
 
 /**
  * The plan as it reads today, every kind at `all` (calibration AGENT.md, "Piece views"; to revisit when its cells hold unchecked items, booked under the oracle loop plan's Piece views item): dormant, since its cells hold no
  * unchecked or rule items. Additive, it confirms nothing, so the checker's mirror doesn't bind it to `all`; revise mode, once built, is a
- * registration of its own with its own view. The scene: the sub-scene of the things to describe and the plan's handles, each securing in
- * the render's own wording (`actionRule`'s impossibility, or the hosted carry line), since it names no rule.
+ * registration of its own with its own view. The scene: the sub-scene of the things to describe and the plan's handles, its securing
+ * known, in the consequences' wording (`CONSEQUENCES_WORDING`).
  */
-export const CONSEQUENCES_VIEW: PieceView = { plan: WHOLE_PLAN_VIEW, scene: { shows: 'subScene', securing: 'shown', sceneRules: false } }
+export const CONSEQUENCES_VIEW: PieceView = { plan: WHOLE_PLAN_VIEW, scene: { shows: 'subScene', securing: 'known' }, wording: CONSEQUENCES_WORDING }
 
 /** What its block may hold: the sub-item kinds, against the listed things and the step's own handles. */
 export const CONSEQUENCES_MERGE: MergeOptions = { author: 'consequences', handlesAre: 'a listed thing or named by the step' }
@@ -75,10 +82,10 @@ const prepareConsequences = ({ inputs: { plan, target, things } }: ReadPieceCell
 }
 
 export const renderConsequences = withViewedScene(CONSEQUENCES_VIEW.scene, ({ inputs: { plan, target, things } }: ReadPieceCell<ConsequencesInputs>, options: ConsequencesOptions, viewed): string => [
-    ...renderViewedScene(shownScene(viewed), CONSEQUENCES_VIEW.scene, options),
+    sceneRendererOf(CONSEQUENCES_WORDING, options.scene)(shownScene(viewed)),
     `The plan:\n${renderPlanForGenerator(viewPlan(plan, CONSEQUENCES_VIEW.plan))}`,
     `The step to expand: ${target}`,
-    thingsLine(things, options),
+    thingsLine(things, { scene: options.scene ?? CONSEQUENCES_WORDING.default }),
 ].join('\n\n'), prepareConsequences)
 
 /**

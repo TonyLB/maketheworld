@@ -77,7 +77,7 @@ describe('the trial\'s verdict stage', () => {
                 expect(parseVerdictOptions(EXPLICIT)).toEqual(EXPLICIT)
                 expect(parseVerdictOptions({ upstream: 'lifted', scene: 'judge' })).toEqual({ upstream: 'lifted', scene: 'judge' })
                 expect(parseVerdictOptions({ upstream: 'lifted', scene: 'sections' })).toBe('the verdict\'s scene must be one of judge, explicit')
-                expect(parseVerdictOptions({ upstream: 'lifted', securing: 'shown' })).toMatch(/^options must be/)
+                expect(parseVerdictOptions({ upstream: 'lifted', securing: 'known' })).toMatch(/^options must be/)
                 expect(parseVerdictOptions(undefined)).toMatch(/^options must be/)
             })
 

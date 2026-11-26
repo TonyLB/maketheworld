@@ -12,8 +12,8 @@
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import { matchQuote, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
-import type { SceneRender, Securing } from '../../pieceProbe/sceneRenders'
+import { matchQuote, NON_RULE_CELL_WORDING, normalizeStep, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
+import type { JudgeOrExplicit, Securing } from '../../pieceProbe/sceneRenders'
 import { parseRebuttal, type ParsedRebuttal } from './rebuttalSentence'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRebuttalReply } from './trialCases'
 import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
@@ -158,9 +158,9 @@ export const checkTrialRebuttal = (reply: string, cell: ReadPieceCell<TrialRebut
 
 /**
  * The rebuttal's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, since the rule cell
- * judges the securing.
+ * judges the securing, in the non-rule cell's wording.
  */
-export const TRIAL_REBUTTAL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+export const TRIAL_REBUTTAL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted' }, wording: NON_RULE_CELL_WORDING }
 
 /**
  * The non-rule cell's render with the securing as the calling stage's view states it (the rebuttal's when absent), the question, and the
@@ -171,7 +171,7 @@ export const TRIAL_REBUTTAL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { sho
 export const renderArguedParts = async (
     cell: { inputs: NonRuleCellInputs; source: string },
     against: TrialArgument,
-    { securing = TRIAL_REBUTTAL_VIEW.scene.securing, scene = 'judge' }: { securing?: Securing; scene?: SceneRender } = {},
+    { securing = TRIAL_REBUTTAL_VIEW.scene.securing, scene = 'judge' }: { securing?: Securing; scene?: JudgeOrExplicit } = {},
 ): Promise<{ scene: string; question: string; argument: string }> => {
     const { inputs: { steps } } = cell
     if (!isNonEmptyString(against.argument)) {

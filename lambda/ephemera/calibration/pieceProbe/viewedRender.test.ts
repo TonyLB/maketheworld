@@ -2,7 +2,7 @@ import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { fixtureScene, knowledgeOf, shownScene, viewScene, withViewedScene } from './viewedRender'
 
 describe('what a piece may know of the scene, before its render', () => {
-    const view = { shows: 'whole', securing: 'shown' } as const
+    const view = { shows: 'whole', securing: 'known' } as const
 
     it.each<[string, unknown, ReturnType<typeof knowledgeOf>]>([
         ['the view\'s, with no options', undefined, view],
@@ -16,9 +16,9 @@ describe('what a piece may know of the scene, before its render', () => {
         const full = await fixtureScene('teaTableChained')
         expect(viewScene(full, view)?.model).toBe(full)
         expect(viewScene(full, { shows: 'whole', securing: 'omitted' })?.model).toEqual(withoutSecuring(full))
-        expect(Object.keys(viewScene(full, { shows: 'subScene', securing: 'shown' }, ['teapot1'])?.model.things ?? {}).sort()).toEqual(['table1', 'teapot1'])
-        expect(viewScene(full, { shows: 'none', securing: 'shown' })).toBeUndefined()
-        expect(() => viewScene(full, { shows: 'subScene', securing: 'shown' })).toThrow('A sub-scene needs the handles it keeps')
+        expect(Object.keys(viewScene(full, { shows: 'subScene', securing: 'known' }, ['teapot1'])?.model.things ?? {}).sort()).toEqual(['table1', 'teapot1'])
+        expect(viewScene(full, { shows: 'none', securing: 'known' })).toBeUndefined()
+        expect(() => viewScene(full, { shows: 'subScene', securing: 'known' })).toThrow('A sub-scene needs the handles it keeps')
     })
 
     it('runs the prep on the full scene, then hands the render the viewed scene of the handles it gave', async () => {

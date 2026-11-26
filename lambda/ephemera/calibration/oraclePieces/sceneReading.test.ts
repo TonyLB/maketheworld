@@ -34,33 +34,34 @@ describe('the scene reading piece', () => {
     })
 
     describe('the options', () => {
-        it('name the render, with no default', () => {
-            expect(parseSceneReadingOptions({ render: 'sections' })).toEqual({ render: 'sections' })
-            expect(parseSceneReadingOptions({ render: 'explicit' })).toEqual({ render: 'explicit' })
+        it('name the scene\'s arm, with no default', () => {
+            expect(parseSceneReadingOptions({ scene: 'judge' })).toEqual({ scene: 'judge' })
+            expect(parseSceneReadingOptions({ scene: 'explicit' })).toEqual({ scene: 'explicit' })
             expect(typeof parseSceneReadingOptions(undefined)).toBe('string')
             expect(typeof parseSceneReadingOptions({})).toBe('string')
-            expect(typeof parseSceneReadingOptions({ render: 'D' })).toBe('string')
-            expect(typeof parseSceneReadingOptions({ render: 'explicit', securing: 'shown' })).toBe('string')
+            expect(typeof parseSceneReadingOptions({ scene: 'D' })).toBe('string')
+            expect(typeof parseSceneReadingOptions({ render: 'sections' })).toBe('string')
+            expect(typeof parseSceneReadingOptions({ scene: 'explicit', securing: 'known' })).toBe('string')
         })
     })
 
     describe('the render', () => {
-        it('`sections` is the trial\'s scene byte for byte, the securing omitted, then the question', async () => {
+        it('`judge` is the trial\'s scene byte for byte, the securing omitted, then the question', async () => {
             const trial = await renderNonRuleCell(nonRuleCellCells['OC-30/h7'], { securing: 'omitted' })
             const scene = trial.slice(0, trial.indexOf('End of scene.') + 'End of scene.'.length)
             const cell = sceneReadingCells['R-5']
-            expect(await renderSceneReading(cell, { render: 'sections' })).toBe(`${scene}\n\nThe question: ${cell.inputs.question}`)
+            expect(await renderSceneReading(cell, { scene: 'judge' })).toBe(`${scene}\n\nThe question: ${cell.inputs.question}`)
         })
 
         it('`explicit` is the explicit render of the scene after `withoutSecuring`, then the question', async () => {
             const scene = withoutSecuring(await fixtureScene('teaTableCupOnFloor'))
-            const text = await renderSceneReading(r1, { render: 'explicit' })
+            const text = await renderSceneReading(r1, { scene: 'explicit' })
             expect(text).toBe(`${renderSceneExplicit(scene)}\n\nThe question: Could [table1] fit inside [cup1]?`)
             expect(text).not.toContain('glued')
         })
 
         it('throws on a question naming a thing not in the scene', async () => {
-            await expect(renderSceneReading({ ...r1, inputs: { ...r1.inputs, question: 'Is [chair1] here?' } }, { render: 'explicit' })).rejects.toThrow('names chair1')
+            await expect(renderSceneReading({ ...r1, inputs: { ...r1.inputs, question: 'Is [chair1] here?' } }, { scene: 'explicit' })).rejects.toThrow('names chair1')
         })
     })
 
@@ -77,12 +78,12 @@ describe('the scene reading piece', () => {
             const question = prompt.slice(prompt.lastIndexOf('The question: '))
             return { success: true as const, body: fence({ answer: /stay|fit|\[teapot1\] come/.test(question) ? 'no' : 'yes' }) }
         })
-        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'sceneReading', instructions: 'Answer it.', options: { render: 'explicit' }, repeats: 1 }, { invoke, pieces })
+        const response = await handlePieceProbe({ type: 'PieceProbe', piece: 'sceneReading', instructions: 'Answer it.', options: { scene: 'explicit' }, repeats: 1 }, { invoke, pieces })
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(8)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 400)).toBe(true)
         const result = JSON.parse(response.body)
-        expect(result).toMatchObject({ piece: 'sceneReading', options: { render: 'explicit' } })
+        expect(result).toMatchObject({ piece: 'sceneReading', options: { scene: 'explicit' } })
         expect(result.summary).toMatchObject({ calls: 8, right: 8, wrong: 0, malformed: 0 })
     })
 

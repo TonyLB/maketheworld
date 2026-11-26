@@ -11,8 +11,8 @@ import { parseProblems, replyJsonObject, type StageContract } from '../../../llm
 import { joinParts, registerPiece, type OraclePiece, type PieceCell, type PieceView, type RenderedParts } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
 import { parseUpstreamOptions, pickPaired, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import type { NonRuleCellInputs } from '../nonRuleCell'
-import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
+import { NON_RULE_CELL_WORDING, type NonRuleCellInputs } from '../nonRuleCell'
+import { armsOf, isArmOf, type JudgeOrExplicit } from '../../pieceProbe/sceneRenders'
 import { fitsCurrentContract, renderArguedParts } from './rebuttal'
 import { arguedAsRebutted, TRIAL_VERDICTS, trialCases, type TrialArgument, type TrialRebuttalReply, type TrialVerdict } from './trialCases'
 import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
@@ -47,11 +47,11 @@ export const verdictContract: StageContract<TrialVerdictInput, TrialVerdict> = {
     },
 }
 
-/** The verdict's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the rebuttal's. */
-export const TRIAL_VERDICT_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+/** The verdict's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, in the non-rule cell's wording, as the rebuttal's. */
+export const TRIAL_VERDICT_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted' }, wording: NON_RULE_CELL_WORDING }
 
 /** The verdict's options: the upstream source, and which render the scene takes, the judge render when absent (step 1.5's retest). */
-export type TrialVerdictOptions = UpstreamOptions & { scene?: SceneRender }
+export type TrialVerdictOptions = UpstreamOptions & { scene?: JudgeOrExplicit }
 
 /** `{ upstream: 'golden' | 'lifted', scene?: 'judge' | 'explicit' }`. */
 export const parseVerdictOptions = (value: unknown): TrialVerdictOptions | string => {
@@ -59,8 +59,8 @@ export const parseVerdictOptions = (value: unknown): TrialVerdictOptions | strin
         return parseUpstreamOptions(value)
     }
     const { scene, ...rest } = value as Record<string, unknown>
-    if (scene !== undefined && !isSceneRender(scene)) {
-        return `the verdict's scene must be one of ${SCENE_RENDERS.join(', ')}`
+    if (scene !== undefined && !isArmOf(NON_RULE_CELL_WORDING, scene)) {
+        return `the verdict's scene must be one of ${armsOf(NON_RULE_CELL_WORDING).join(', ')}`
     }
     const upstream = parseUpstreamOptions(rest)
     return typeof upstream === 'string' || scene === undefined ? upstream : { ...upstream, scene }

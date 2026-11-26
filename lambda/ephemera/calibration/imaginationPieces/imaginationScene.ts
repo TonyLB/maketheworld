@@ -1,35 +1,30 @@
 //
-// What the imagination's pieces render in common (AGENT.imagination.planning.md, step 1.5): the fixture's sub-scene, as the piece's view
-// states its securing, the `scene` option, and the handles a plan names. Both pieces are reducers on the action plan, replying in its change language.
+// What the imagination's pieces render in common (AGENT.imagination.planning.md, step 1.5): the `scene` option, over the judge and
+// explicit arms, and the handles a plan names. Both pieces are reducers on the action plan, replying in its change language.
 //
-import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
-import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import type { ViewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
-import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { itemTexts, type ActionPlan } from '../oracleLoop/actionPlan'
 import { oracleCases } from '../oracleLoop/oracleCases'
-import { isSceneRender, SCENE_RENDERS, type SceneRender, type SceneView } from '../pieceProbe/sceneRenders'
+import { isArmOf, JUDGE_OR_EXPLICIT, sceneOptionShape, type JudgeOrExplicit } from '../pieceProbe/sceneRenders'
 
 /**
- * The imagination's options: which render the sub-scene takes, an experiment arm (calibration AGENT.md, "Scene renders"), the judge
- * render's Fiction and Graph when absent. How the securing is stated is the piece's view (`SceneView`'s `securing`;
- * calibration AGENT.md, "Piece views"), not an option. The `rules` option it replaces (retired 2026-11-22, the user) also took
+ * The imagination's options: which of the piece's named renderers the sub-scene takes, an experiment arm (calibration AGENT.md, "Scene
+ * renders"), its wording's default when absent. How each arm words a securing is the arm's own (calibration AGENT.md, "Piece views"). The `rules` option it replaces (retired 2026-11-22, the user) also took
  * `consequence` (each rule's fact and what it does, after the judge's Graph) and `handles` (batches 35 to 40), which no live arm used.
  */
-export type ImaginationOptions = { scene?: SceneRender }
+export type ImaginationOptions = { scene?: JudgeOrExplicit }
 
 /** `{ scene?: 'judge' | 'explicit' }`, over a piece's default: with no options, or no `scene`, the default's. */
 export const imaginationOptionsParser = (defaults: ImaginationOptions) => (value: unknown): ImaginationOptions | string => {
     if (value === undefined) {
         return defaults
     }
-    const shape = `options must be { scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    const shape = `options must be { scene?: ${sceneOptionShape({ arms: JUDGE_OR_EXPLICIT })} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
     const { scene = defaults.scene, ...rest } = value as Record<string, unknown>
-    if (Object.keys(rest).length > 0 || (scene !== undefined && !isSceneRender(scene))) {
+    if (Object.keys(rest).length > 0 || (scene !== undefined && !isArmOf({ arms: JUDGE_OR_EXPLICIT }, scene))) {
         return shape
     }
     return scene === undefined ? {} : { scene }
@@ -80,20 +75,6 @@ export const planSceneHandles = (viewed: ActionPlan): SceneHandle[] => {
 
 /** The handles listed more than once, each once. */
 export const listedTwice = (handles: readonly SceneHandle[]): SceneHandle[] => [...new Set(handles.filter((handle, index) => handles.indexOf(handle) !== index))]
-
-/**
- * The scene's parts, the viewed scene model heading to `End of scene.`: the judge render's Fiction and Graph, or with `scene: 'explicit'`
- * the explicit render (`renderSceneExplicit`), its securings stated as the view has them: in the render's own wording (`shown`), or tagged
- * with their rule handles, minted on the full model (`viewedSceneModel`), and stated as their conditions and carries (`conditions`), which
- * the judge render doesn't take. What the piece may know (the sub-scene, an omitted securing) is applied before this, by `withViewedScene`.
- */
-export const renderViewedScene = ({ model, rules }: ViewedSceneModel, { securing }: Pick<SceneView, 'securing'>, { scene = 'judge' }: ImaginationOptions): string[] => {
-    if (scene === 'explicit') {
-        return [renderSceneExplicit(model, securing === 'conditions' ? { rules: 'conditions', ruleHandles: rules } : {})]
-    }
-    const sections = judgeSceneSections(model)
-    return [`Scene: ${heading(model)}`, sections.fiction, sections.graph, 'End of scene.']
-}
 
 /**
  * The things to describe. Under the explicit render the line is `The things to describe:`, since the render's own per-thing section is

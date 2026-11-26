@@ -6,7 +6,7 @@ import { handlePieceProbe } from './handlePieceProbe'
 import { joinParts, registerFamily, registerPiece, type PieceView, type RegistryEntry } from './oraclePiece'
 
 /** The test pieces' view: no plan, and no scene, since they render a word. */
-const TEST_VIEW: PieceView = { plan: { reads: {} }, scene: { shows: 'none', securing: 'shown', sceneRules: false } }
+const TEST_VIEW: PieceView = { plan: { reads: {} }, scene: { shows: 'none', securing: 'known' } }
 
 /** A toy piece: a cell's inputs are a word, rendered as a line; an empty word is answered `no` by code. */
 const TOY = registerPiece<{ word: string }, { shout: boolean }>({

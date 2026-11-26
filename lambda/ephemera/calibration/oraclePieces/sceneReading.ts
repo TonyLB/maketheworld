@@ -2,55 +2,53 @@
 // Scene reading (AGENT.trialQuestion.planning.md, step 0; the explicit render is the user's idea, 2026-11-16): an answered piece that asks
 // one yes-or-no question of a scene alone, with no request, no steps and nothing argued. It compares two renders of the same scene, the
 // securing removed (`withoutSecuring`) in both, as the trial shows it:
-// - `sections`, the judge render the trial uses today (`renderSceneJudge`), read with a Reading the scene guide in the draft;
+// - `judge`, the judge render the trial uses today, read with a Reading the scene guide in the draft (named `sections` until 2026-11-26);
 // - `explicit`, the explicit render (`renderSceneExplicit`), with no guide.
 // The two arms are two payloads with different drafts, so the option has no default. Each cell's scene is a trial case's, and its question
 // is aimed at one of the trial's misses (QS-5). Code grades the reply's `answer` against the cell's expected one.
 //
-import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
-import { renderSceneJudge } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { namedHandles } from '../imaginationPieces/imaginationScene'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
+import { isArmOf, JUDGE_OR_EXPLICIT, sceneOptionShape, sceneRendererOf, type JudgeOrExplicit, type SceneWording } from '../pieceProbe/sceneRenders'
 import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { nonRuleCellCells } from './nonRuleCell'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 export type SceneReadingInputs = { fixture: string; question: string }
 
-export const SCENE_READING_RENDERS = ['sections', 'explicit'] as const
-export type SceneReadingRender = typeof SCENE_READING_RENDERS[number]
-export type SceneReadingOptions = { render: SceneReadingRender }
+/** The scene reading's wording: the two renders it compares, with no default, since each arm is a payload with its own draft. */
+export const SCENE_READING_WORDING = { arms: JUDGE_OR_EXPLICIT } as const satisfies SceneWording<JudgeOrExplicit>
+
+export type SceneReadingOptions = { scene: JudgeOrExplicit }
 
 export const SCENE_READING_ANSWERS = ['yes', 'no'] as const
 
 const QUESTION_LINE = 'The question: '
 
 export const parseSceneReadingOptions = (value: unknown): SceneReadingOptions | string => {
-    const shape = `sceneReading's options must be { render: ${SCENE_READING_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    const shape = `sceneReading's options must be { scene: ${sceneOptionShape(SCENE_READING_WORDING)} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
-    const { render, ...rest } = value as Record<string, unknown>
-    return Object.keys(rest).length === 0 && (SCENE_READING_RENDERS as readonly unknown[]).includes(render)
-        ? { render: render as SceneReadingRender }
-        : shape
+    const { scene, ...rest } = value as Record<string, unknown>
+    return Object.keys(rest).length === 0 && isArmOf(SCENE_READING_WORDING, scene) ? { scene } : shape
 }
 
 /**
  * The scene reading's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the trial
- * shows it. Which render it takes is the arm the piece compares (`render`), with no default.
+ * shows it. Which render it takes is the arm the piece compares (`scene`), with no default.
  */
-export const SCENE_READING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+export const SCENE_READING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted' }, wording: SCENE_READING_WORDING }
 
 /** The scene in the named render, the securing as the view states it, then the question. Throws on a question naming a thing not in the scene. */
-export const renderSceneReading = withViewedScene(SCENE_READING_VIEW.scene, ({ inputs: { fixture, question } }: PieceCell<SceneReadingInputs>, { render }: SceneReadingOptions, viewed): string => {
-    const { model: scene } = shownScene(viewed)
+export const renderSceneReading = withViewedScene(SCENE_READING_VIEW.scene, ({ inputs: { fixture, question } }: PieceCell<SceneReadingInputs>, { scene: arm }: SceneReadingOptions, viewed): string => {
+    const shown = shownScene(viewed)
+    const { model: scene } = shown
     const unknown = namedHandles(question).filter((handle) => scene.things[handle] === undefined)
     if (unknown.length > 0) {
         throw new Error(`The question names ${unknown.join(', ')}, not in ${fixture}'s scene`)
     }
-    const rendered = render === 'explicit' ? renderSceneExplicit(scene) : renderSceneJudge(scene)
-    return `${rendered}\n\n${QUESTION_LINE}${question}`
+    return `${sceneRendererOf(SCENE_READING_WORDING, arm)(shown)}\n\n${QUESTION_LINE}${question}`
 })
 
 /** A cell on a trial case's scene: its fixture read from the case, so the scene is the trial's by construction. */

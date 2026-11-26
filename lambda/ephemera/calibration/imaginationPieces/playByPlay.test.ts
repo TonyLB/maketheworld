@@ -5,6 +5,7 @@ import { pieces } from '../pieceProbe/pieces'
 import { parseProblems } from '../../llm/stageContract'
 import { mergeStepChanges, planOf, planSteps, renderPlanForGenerator, type ActionPlan, type MergeOptions } from '../oracleLoop/actionPlan'
 import { textHash } from '../textHash'
+import { taggedExplicitScene } from '../pieceProbe/sceneRenders'
 import { fixtureScene, planHandles } from './imaginationScene'
 import {
     PLAY_BY_PLAY_MERGE, PLAY_BY_PLAY_OPTIONS, checkPlayByPlay, playByPlay, playByPlayCells, playByPlayContract, playByPlayPlans, playByPlayPlansText,
@@ -111,11 +112,12 @@ describe('playByPlay', () => {
     })
 
     describe('its options', () => {
-        it('defaults to the explicit render, and takes the judge render as an arm; the securing\'s wording is its view\'s, not an option', () => {
+        it('defaults to the explicit render, and takes the judge render as an arm; the securing\'s wording is its arm\'s, not an option', () => {
             expect(playByPlay.parseOptions(undefined)).toEqual({ scene: 'explicit' })
             expect(playByPlay.parseOptions({})).toEqual({ scene: 'explicit' })
             expect(playByPlay.parseOptions({ scene: 'judge' })).toEqual({ scene: 'judge' })
-            expect(playByPlay.view.scene.securing).toBe('conditions')
+            expect(playByPlay.view.scene.securing).toBe('known')
+            expect(playByPlay.view.wording?.arms.explicit).toBe(taggedExplicitScene)
         })
 
         it('pins the cells\' inputs hashes on the default (the view from 2026-11-21, OC-20/concession and OC-20/proposed rendering as OC-20 since their proposals are hidden; batches until then ran them on 20982627, 27983e17; OC-20/proposed new 2026-11-20; the label "The step asked about:" from draft 25; batch 47 ran 38feccd3, f901398c, a0d0b486, 3ee72b31, f7943193, e6c6d43b, 64eca640 on "The step to expand:"; OC-6/command\'s intent unchecked after batch 46, which ran it confirmed on 8fe8f0b8; the target as its path again after batch 45, which ran the target as text on a982a629, 73ad380a, 56f6e5bc, 81f6c0de, 9b9b0cce, 81abbb23, 576fcfdc; OC-6/command new with the step record; rules: conditions from step 2; batches 35 to 40 ran 5d7de0bb, b40d7083, d7e1d475, cd2cd21f, eec99d53, a401a721 on rules: handles; batch 34 ran 500b35a7, 58d72024, b8f4b846, 048eb091, df87eec6 without them)', async () => {

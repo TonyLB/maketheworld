@@ -10,8 +10,9 @@
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../../pieceProbe/pieceAnswer'
+import type { SceneWording } from '../../pieceProbe/sceneRenders'
 import { parseUpstreamOptions, pickStageInput, type StageInput, type UpstreamOptions } from '../../pieceProbe/stageInput'
-import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
+import { matchQuote, NON_RULE_CELL_WORDING, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
 import { fitsCurrentContract } from './rebuttal'
 import { rulingOutcome, TRIAL_OUTCOMES, TRIAL_RULINGS, trialCases, type TrialArgument, type TrialCase, type TrialOutcome, type TrialRuling } from './trialCases'
 import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
@@ -61,16 +62,19 @@ export const ruledQuestion = (cell: PieceCell<TrialRulingInputs>, { upstream }: 
     return { question: against.question as string, blocking: against.blocking as TrialRuling }
 }
 
+/** The ruling's wording: the non-rule cell's explicit arm, fixed. */
+export const TRIAL_RULING_WORDING = { default: 'explicit', arms: { explicit: NON_RULE_CELL_WORDING.arms.explicit } } as const satisfies SceneWording<'explicit'>
+
 /**
  * The ruling's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with the securing omitted, as the case against's
- * question was asked of it.
+ * question was asked of it, in the explicit render alone (`TRIAL_RULING_WORDING`).
  */
-export const TRIAL_RULING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted', sceneRules: false } }
+export const TRIAL_RULING_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'omitted' }, wording: TRIAL_RULING_WORDING }
 
 /** The non-rule cell's render in the explicit scene, the securing as the view states it, then the question. Nothing argued is shown. */
 export const renderTrialRuling = async (cell: PieceCell<TrialRulingInputs>, options: UpstreamOptions): Promise<string> => {
     const { question } = ruledQuestion(cell, options)
-    const scene = await renderNonRuleCell(cell, { securing: TRIAL_RULING_VIEW.scene.securing, scene: 'explicit' })
+    const scene = await renderNonRuleCell(cell, { securing: TRIAL_RULING_VIEW.scene.securing, scene: TRIAL_RULING_WORDING.default })
     return `${scene}\n\n${QUESTION_LINE}${question}`
 }
 
