@@ -1,7 +1,9 @@
 //
-// A scene model as a reader may know it (AGENT.sceneModelFilters.planning.md): the model after the filters that decide what a reader may
+// A scene model as a reader may know it (calibration AGENT.md, "Piece views"): the model after the filters that decide what a reader may
 // know (`withoutSecuring`, `subScene`), with the rule handles minted on the full model before any of them. A view declares what may be
-// known; this is the model once that is applied, and every render reads it, never the full model.
+// known; this is the model once that is applied, and every render reads it, never the full model. The handles ride beside the model, not
+// as an optional field on a secured relation, because `SceneModel` is production's (`ludicCache`) and only calibration reads rule
+// handles yet (2026-11-26).
 //
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
 import { judgeRules, ruleHandlesOf, securingEdge, securingWords, type JudgeRuleLine, type RuleHandles } from './sceneRules'

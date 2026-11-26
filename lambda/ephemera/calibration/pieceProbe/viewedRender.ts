@@ -1,5 +1,5 @@
 //
-// What a piece may know of the scene, applied before its render (AGENT.sceneModelFilters.planning.md, step 3): the fixture's full scene
+// What a piece may know of the scene, applied before its render (calibration AGENT.md, "Piece views"): the fixture's full scene
 // model, its rule handles minted on it, then the knowledge the piece's view declares (the securing known or omitted; the whole scene, a
 // sub-scene, or none), each a filter of the model. A piece's render is built by `withViewedScene`, so the part that words the scene, one of
 // the piece's named renderers (`sceneRenders.ts`), is handed the viewed scene model and never builds the full one. A leaf module, as `sceneRenders.ts` is.
