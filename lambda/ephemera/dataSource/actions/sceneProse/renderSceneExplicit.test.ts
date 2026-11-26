@@ -5,7 +5,7 @@
 import { buildSceneFixture, sceneFixture } from '../../positions/ludicCache/sceneFixtures'
 import type { SceneModel } from '../../positions/ludicCache/sceneModel'
 import { renderSceneExplicit, ruleTagHandles } from './renderSceneExplicit'
-import { judgeRules, withoutSecuring } from './sceneRules'
+import { judgeRules, ruleHandlesOf, withoutSecuring } from './sceneRules'
 import { subScene } from './subScene'
 
 const TEA_TABLE_OMITTED = [
@@ -125,7 +125,7 @@ describe('the explicit scene render', () => {
     describe("with rules: 'handles'", () => {
         it('tags each securing\'s fact with its rule\'s handle, and changes nothing else', async () => {
             const scene = await fixture('teaTableChained')
-            const tagged = renderSceneExplicit(scene, { rules: 'handles' })
+            const tagged = renderSceneExplicit(scene, { rules: 'handles', ruleHandles: ruleHandlesOf(scene) })
             expect(tagged).toBe(CHAINED_SHOWN
                 .replace('[table1] is chained to [wall1]. [table1] and', '[table1] is chained to [wall1] (rule [table-secured-to-wall]). [table1] and')
                 .replace('[teapot1] is glued to [table1], so', '[teapot1] is glued to [table1] (rule [teapot-secured-to-table]), so'))
@@ -142,13 +142,19 @@ describe('the explicit scene render', () => {
             }
             const sub = subScene(full, ['tea1', 'table1'])
             expect(judgeRules(sub).map(({ handle }) => handle)).toContain('tea-secured-to-table')
-            expect(ruleTagHandles(renderSceneExplicit(sub, { rules: 'handles', full }))).toContain('tea1-secured-to-table1')
+            expect(ruleTagHandles(renderSceneExplicit(sub, { rules: 'handles', ruleHandles: ruleHandlesOf(full) }))).toContain('tea1-secured-to-table1')
+            expect(ruleTagHandles(renderSceneExplicit(sub, { rules: 'handles', ruleHandles: ruleHandlesOf(sub) }))).toContain('tea-secured-to-table')
+        })
+
+        it('refuses a securing whose rule handle it wasn\'t given', async () => {
+            const scene = await fixture('teaTableChained')
+            expect(() => renderSceneExplicit(scene, { rules: 'handles', ruleHandles: new Map() })).toThrow('No rule handle given for [')
         })
 
         it('has no form yet for a securing to something other than a thing', async () => {
             const scene = await fixture('teaTable')
             const boat = { ...scene, things: { ...scene.things, table1: { ...scene.things.table1, relations: [{ kind: 'SecuredTo' as const, target: { kind: 'notShown' as const } }] } } }
-            expect(() => renderSceneExplicit(boat, { rules: 'handles' })).toThrow('no rule handle yet')
+            expect(() => renderSceneExplicit(boat, { rules: 'handles', ruleHandles: ruleHandlesOf(boat) })).toThrow('no rule handle yet')
             expect(() => renderSceneExplicit(boat)).not.toThrow()
         })
     })
@@ -156,7 +162,7 @@ describe('the explicit scene render', () => {
     describe("with rules: 'conditions'", () => {
         it('tags each securing and states its condition, with the relation as its measure; a pair takes a carry line with slack in place of the action rule', async () => {
             const scene = await fixture('teaTableChained')
-            expect(renderSceneExplicit(scene, { rules: 'conditions' })).toBe(CHAINED_SHOWN
+            expect(renderSceneExplicit(scene, { rules: 'conditions', ruleHandles: ruleHandlesOf(scene) })).toBe(CHAINED_SHOWN
                 .replace(
                     '[table1] is chained to [wall1]. [table1] and [wall1] cannot be moved apart until they are freed. They can still be moved together.',
                     '[table1] is chained to [wall1] (rule [table-secured-to-wall]). If an action moves [table1] farther from [wall1] than being chained to it allows, that is a violation of the rule. Short of that, [table1] can be moved as usual, and when [wall1] moves, [table1] goes with it.',

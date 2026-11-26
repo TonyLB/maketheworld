@@ -241,6 +241,21 @@ export const judgeRules = (scene: SceneModel, wording: JudgeRulesWording = 'v45'
     })
 }
 
+/** A securing's edge, its subject and the thing it is secured to: the key its rule's handle is found by. */
+export const securingEdge = (subject: SceneHandle, target: SceneHandle): string => `${subject} > ${target}`
+
+/** A scene's rule handles, by securing edge (`securingEdge`). */
+export type RuleHandles = ReadonlyMap<string, string>
+
+/**
+ * The scene's rule handles by securing edge, as `judgeRules` mints them on it. Minted on the full scene, before any filter, they hold for
+ * every scene filtered from it: `judgeRules` gives a rule the short handle from its ends' stems only where no other rule in the same scene
+ * shares it, so minting on a sub-scene could give another handle. A securing to something other than a thing has no entry.
+ */
+export const ruleHandlesOf = (scene: SceneModel): RuleHandles => new Map(judgeRules(scene).flatMap(({ subject, target, handle }) => (
+    target.kind === 'thing' ? [[securingEdge(subject, target.handle), handle] as const] : []
+)))
+
 export const judgeRulesLines = (scene: SceneModel, wording: JudgeRulesWording = 'v45'): string[] => {
     const lines = judgeRules(scene, wording).map(({ handle, sentence }) => `- ${handle}: ${sentence}`)
     return lines.length === 0 ? [] : ['Rules:', ...lines]

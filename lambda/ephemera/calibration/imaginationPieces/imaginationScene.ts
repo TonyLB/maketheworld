@@ -6,6 +6,7 @@ import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderS
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
 import { subScene } from '../../dataSource/actions/sceneProse/subScene'
+import { filterViewedModel, viewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
@@ -89,7 +90,7 @@ export const listedTwice = (handles: readonly SceneHandle[]): SceneHandle[] => [
 /**
  * The scene's parts, the sub-scene of the shown things heading to `End of scene.`: the judge render's Fiction and Graph, or with
  * `scene: 'explicit'` the explicit render (`renderSceneExplicit`), its securings stated as the view has them: in the render's own wording
- * (`shown`), or tagged with their full-scene rule handles and stated as their conditions and carries (`conditions`), which the judge
+ * (`shown`), or tagged with their rule handles, minted on the full model (`viewedSceneModel`), and stated as their conditions and carries (`conditions`), which the judge
  * render doesn't take. With `omitted`, the securing is left out of either (`withoutSecuring`). A shown handle not in the fixture's scene
  * throws (`subScene`).
  */
@@ -98,14 +99,14 @@ export const renderScene = async (
     { securing }: Pick<SceneView, 'securing'>,
     { scene = 'judge' }: ImaginationOptions,
 ): Promise<string[]> => {
-    const fixtureFull = await fixtureScene(fixture)
-    const full = securing === 'omitted' ? withoutSecuring(fixtureFull) : fixtureFull
-    const sub = subScene(full, [...new Set(shown)])
+    const viewed = viewedSceneModel(await fixtureScene(fixture))
+    const known = securing === 'omitted' ? filterViewedModel(viewed, withoutSecuring) : viewed
+    const { model: sub, rules } = filterViewedModel(known, (model) => subScene(model, [...new Set(shown)]))
     if (scene === 'explicit') {
-        return [renderSceneExplicit(sub, { rules: securing === 'conditions' ? 'conditions' : 'none', full })]
+        return [renderSceneExplicit(sub, securing === 'conditions' ? { rules: 'conditions', ruleHandles: rules } : {})]
     }
     const sections = judgeSceneSections(sub)
-    return [`Scene: ${heading(full)}`, sections.fiction, sections.graph, 'End of scene.']
+    return [`Scene: ${heading(sub)}`, sections.fiction, sections.graph, 'End of scene.']
 }
 
 /**

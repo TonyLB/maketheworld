@@ -6,6 +6,7 @@
 // the branch, the branch after the guard and the grounding apart.
 //
 import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
+import { viewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
 import { ambiguityProblems, bracketedReferences, fixtureScene, namedHandles, planHandles, planTexts } from '../imaginationPieces/imaginationScene'
@@ -71,8 +72,8 @@ export const renderTriage = async ({ inputs: { fixture, plan, target } }: Pick<P
     if (closed !== undefined) {
         throw new Error(`The target "${target}" is closed to triage: ${closed}`)
     }
-    const scene = await fixtureScene(fixture)
-    return [renderSceneExplicit(scene, { rules: 'conditions', full: scene }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+    const { model, rules } = viewedSceneModel(await fixtureScene(fixture))
+    return [renderSceneExplicit(model, { rules: 'conditions', ruleHandles: rules }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
 }
 
 const nonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''

@@ -9,6 +9,7 @@
 import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
 import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
+import { filterViewedModel, viewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
 import { caseActions, fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
 import { oracleCases } from '../oracleLoop/oracleCases'
@@ -218,8 +219,8 @@ export const renderNonRuleCell = async (
     if (request.trim() === '') {
         throw new Error('No request')
     }
-    const scene = await fixtureScene(fixture)
-    const full = securing === 'omitted' ? withoutSecuring(scene) : scene
+    const viewed = viewedSceneModel(await fixtureScene(fixture))
+    const { model: full, rules } = securing === 'omitted' ? filterViewedModel(viewed, withoutSecuring) : viewed
     const all = quotables(steps, true)
     const unknown = [...new Set([request, ...all.map(({ says }) => says)].flatMap(namedHandles))].filter((handle) => full.things[handle] === undefined)
     if (unknown.length > 0) {
@@ -234,7 +235,7 @@ export const renderNonRuleCell = async (
         const { fiction, graph } = judgeSceneSections(full)
         return [`Scene: ${heading(full)}`, fiction, graph, 'End of scene.'].join('\n\n')
     }
-    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full, { rules: securing === 'conditions' ? 'conditions' : 'none', full: scene }) : judged()
+    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full, securing === 'conditions' ? { rules: 'conditions', ruleHandles: rules } : {}) : judged()
     return [
         sceneBlock,
         `The player's request: ${request}`,
