@@ -16,11 +16,7 @@ const PINS: Record<string, Pin[]> = {
             'OC-1': 'ebbc4662', 'OC-6/tilted': '735d3891', 'OC-6/stays': '99fc6b02', 'OC-30/2/tipped': '9561e60e', 'OC-30/2/together': '999e11ef', 'OC-30/2/slides': 'add14926',
             'OC-19/voided': '5b992a65', 'OC-19/glued': 'fa7505ca', 'OC-20': 'e47be6cd',
         } },
-        { options: { show: 'none' }, hashes: {
-            'OC-1': 'c398e4b9', 'OC-6/tilted': 'c2be44d8', 'OC-6/stays': '4efc55ed', 'OC-30/2/tipped': '5296f783', 'OC-30/2/together': 'b1c20fc9', 'OC-30/2/slides': '191d679b',
-            'OC-19/voided': '56f391fa', 'OC-19/glued': 'fd0e4afa', 'OC-20': '49a1add7',
-        } },
-        { options: { sceneRules: true }, hashes: {
+        { options: { scene: 'judgeRules' }, hashes: {
             'OC-1': 'f79ad325', 'OC-6/tilted': 'ba292b86', 'OC-6/stays': '0cdce2bc', 'OC-30/2/tipped': '41b5656c', 'OC-30/2/together': 'ee33fa23', 'OC-30/2/slides': 'fea4586d',
             'OC-19/voided': '67667e2d', 'OC-19/glued': '60b1c836', 'OC-20': '16ef5c8a',
         } },
@@ -68,7 +64,7 @@ const PINS: Record<string, Pin[]> = {
             'OC-11': 'dd44f7a3', 'OC-18': 'c5cc8c32', 'OC-3': '2c87ce0b', 'OC-1': 'f87a3dbe', 'OC-2': '4e64c3a2', 'OC-20': 'ce09dbbf',
             'OC-6': 'e0b2344a', 'OC-30/h5': '0ce4c4e3', 'OC-30/h7': '75731acb', 'OC-30/h10': 'a3e913ac', 'OC-9': '177d4442',
         } },
-        { options: { securing: 'shown', scene: 'explicit' }, hashes: {
+        { options: { securing: 'known', scene: 'explicit' }, hashes: {
             'OC-11': '082f340d', 'OC-18': '49f413d8', 'OC-3': 'b5dc3eca', 'OC-1': 'ebd7dd76', 'OC-2': 'cbd55f39', 'OC-20': 'dd950e89',
             'OC-6': '8b233f25', 'OC-30/h5': 'f083fcc2', 'OC-30/h7': '93d47acb', 'OC-30/h10': 'ba555576', 'OC-9': 'f973c3f5',
         } },
@@ -108,11 +104,11 @@ const PINS: Record<string, Pin[]> = {
         } },
     ],
     'sceneReading': [
-        { options: { render: 'sections' }, hashes: {
+        { options: { scene: 'judge' }, hashes: {
             'R-1': 'f1e13bc7', 'R-3': 'ad0206fa', 'R-4': '4c69997e', 'R-5': '976af083', 'R-6': '838628ab', 'R-7': '794d9e27',
             'R-8': '056ccd09', 'R-9': 'c4cb11ad',
         } },
-        { options: { render: 'explicit' }, hashes: {
+        { options: { scene: 'explicit' }, hashes: {
             'R-1': '4d38d66f', 'R-3': '55bef4a3', 'R-4': '8659db52', 'R-5': '3cb2f5c4', 'R-6': 'de89e6ce', 'R-7': '9698e364',
             'R-8': 'cf1a21f5', 'R-9': '8589c11f',
         } },

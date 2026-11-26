@@ -65,7 +65,7 @@ describe('the platform\'s holdouts (AGENT.md, "The platform\'s holdouts")', () =
         ['a piece that writes concern, by the merge\'s default', '\nThe things:\n- a table', { step: 'all' }, { author: 'triage' }, ['change language']],
     ])('computes what %s lacks', async (_, text, reads, merges, parts) => {
         const piece = registerPiece({
-            name: 'toy', view: { plan: { reads }, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }, ...(merges === undefined ? {} : { merges }),
+            name: 'toy', view: { plan: { reads }, scene: { shows: 'whole', securing: 'known' } }, ...(merges === undefined ? {} : { merges }),
             answers: ['yes'], cells: { A: { inputs: {}, source: 'hand-written' } }, parseOptions: () => undefined, render: async () => text,
         })
         expect(await lacking(piece)).toEqual(parts)

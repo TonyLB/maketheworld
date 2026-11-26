@@ -18,7 +18,9 @@ import {
 import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../pieceProbe/oraclePiece'
 import { piecePart, requested } from '../pieceProbe/piecePart'
-import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, renderScene, type ImaginationOptions } from './imaginationScene'
+import { caseActions, caseSource, imaginationOptionsParser, listedTwice, namedHandles, planHandles, planSceneHandles, type ImaginationOptions } from './imaginationScene'
+import { judgeScene, sceneRendererOf, taggedExplicitScene, type JudgeOrExplicit, type SceneWording } from '../pieceProbe/sceneRenders'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { plansText } from './plansText'
 
 export { namedHandles } from './imaginationScene'
@@ -45,10 +47,14 @@ export type PlayByPlayInputs = {
 export type PlayByPlayOptions = ImaginationOptions
 
 /**
- * The explicit render by default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene
- * renders").
+ * The play-by-play's wording: the judge render's Fiction and Graph, or the explicit render with its securings tagged with their rule
+ * handles, so a reply can name a rule, and each stated as its condition and carry (the user's diagnosis, 2026-11-19), in place of
+ * `actionRule`'s impossibility, which the concession cell's failures took as confirming "cannot be lifted". The explicit render by
+ * default: draft 16, the kept draft, runs explicit (batch 31), so the default flips (calibration AGENT.md, "Scene renders").
  */
-export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { scene: 'explicit' }
+export const PLAY_BY_PLAY_WORDING = { default: 'explicit', arms: { judge: judgeScene, explicit: taggedExplicitScene } } as const satisfies SceneWording<JudgeOrExplicit>
+
+export const PLAY_BY_PLAY_OPTIONS: PlayByPlayOptions = { scene: PLAY_BY_PLAY_WORDING.default }
 
 /**
  * What the play-by-play's block may hold: the step's restatement, an expansion, and the consequences it brings about, so `concern` is
@@ -62,17 +68,17 @@ export const PLAY_BY_PLAY_MERGE: MergeOptions = { author: 'playByPlay', adds: ['
  * piece that restates; what happens only once confirmed, so no proposal, its own included, is read back as fact (§3); and confirmed rule
  * items whose stance is `causes` or `voids` (step 2's amendment), since they explain a confirmed consequence, a fact, where a `violation`
  * is a verdict on the method, which the request's `missing` carries when a step comes back for one. No concerns, which it has no use
- * for. The scene, which carries the rules themselves, is the sub-scene of the things shown and the viewed plan's handles, its securings
- * tagged with their rule handles, so a reply can name a rule, and each stated as its condition and carry (`conditions`; the user's
- * diagnosis, 2026-11-19), in place of `actionRule`'s impossibility, which the concession cell's failures took as confirming "cannot be
- * lifted".
+ * for. The scene, which carries the rules themselves, is the sub-scene of the things shown and the viewed plan's handles, its securing
+ * known, in the play-by-play's wording (`PLAY_BY_PLAY_WORDING`).
  */
 export const PLAY_BY_PLAY_VIEW: PieceView = {
     plan: { reads: { step: 'all', intent: 'all', consequence: 'authoritative', possibility: 'authoritative', rule: { reading: 'authoritative', stances: ['causes', 'voids'] } } },
-    scene: { shows: 'subScene', securing: 'conditions', sceneRules: false },
+    scene: { shows: 'subScene', securing: 'known' },
+    wording: PLAY_BY_PLAY_WORDING,
 }
 
-export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions): Promise<string> => {
+/** The cell's checks, and the sub-scene's handles: what it also shows, the handles the view's plan names, and those `missing` names. */
+const preparePlayByPlay = ({ inputs: { plan, target, missing, alsoShown } }: ReadPieceCell<PlayByPlayInputs>): { handles: SceneHandle[] } => {
     const twice = listedTwice(alsoShown)
     if (twice.length > 0) {
         throw new Error(`Things shown twice: ${twice.join(', ')}`)
@@ -90,11 +96,14 @@ export const renderPlayByPlay = async ({ inputs: { fixture, plan, target, missin
         throw new Error('No detail asked for')
     }
     // The view's plan, so a hidden proposal neither shows nor widens the scene by the handles it names.
-    const viewed = viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)
-    const shown = [...new Set([...alsoShown, ...planSceneHandles(viewed), ...namedHandles(missing)])]
-    const scene = await renderScene({ fixture, shown }, PLAY_BY_PLAY_VIEW.scene, options)
-    return [...scene, `The plan:\n${renderPlanForGenerator(viewed)}`, `The step asked about: ${target}\nThe detail asked for: ${missing}`].join('\n\n')
+    return { handles: [...alsoShown, ...planSceneHandles(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan)), ...namedHandles(missing)] }
 }
+
+export const renderPlayByPlay = withViewedScene(PLAY_BY_PLAY_VIEW.scene, ({ inputs: { plan, target, missing } }: ReadPieceCell<PlayByPlayInputs>, options: PlayByPlayOptions, viewed): string => [
+    sceneRendererOf(PLAY_BY_PLAY_WORDING, options.scene)(shownScene(viewed)),
+    `The plan:\n${renderPlanForGenerator(viewPlan(plan, PLAY_BY_PLAY_VIEW.plan))}`,
+    `The step asked about: ${target}\nThe detail asked for: ${missing}`,
+].join('\n\n'), preparePlayByPlay)
 
 /**
  * The stage's contract: the reply's one object, the step record (`mergeStepRecord`), with `missing` as the detail it answers, merged into

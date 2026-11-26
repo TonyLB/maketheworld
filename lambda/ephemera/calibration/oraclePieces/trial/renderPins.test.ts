@@ -55,7 +55,7 @@ describe('the trial\'s renders, pinned to its batches', () => {
     afterEach(() => jest.restoreAllMocks())
 
     it('against, the securing shown, renders as batch 1', async () => {
-        expect(await hashes(trialAgainst.cells, trialAgainst.render, { securing: 'shown' })).toEqual(AGAINST_SHOWN)
+        expect(await hashes(trialAgainst.cells, trialAgainst.render, { securing: 'known' })).toEqual(AGAINST_SHOWN)
     })
 
     it('against, the securing omitted, renders as batch 2', async () => {

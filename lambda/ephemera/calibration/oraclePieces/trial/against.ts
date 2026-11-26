@@ -9,8 +9,8 @@
 //
 import { registerPiece, type PieceView, type ReadPiece, type ReadPieceCell } from '../../pieceProbe/oraclePiece'
 import { parseProblems, replyJsonObject, type StageContract } from '../../../llm/stageContract'
-import { matchQuote, quotables, renderNonRuleCell, type NonRuleCellInputs, type SecuringShown } from '../nonRuleCell'
-import { isSceneRender, SCENE_RENDERS, type SceneRender } from '../../pieceProbe/sceneRenders'
+import { matchQuote, NON_RULE_CELL_WORDING, quotables, renderNonRuleCell, type NonRuleCellInputs } from '../nonRuleCell'
+import { isArmOf, sceneOptionShape, SECURINGS, type JudgeOrExplicit, type Securing } from '../../pieceProbe/sceneRenders'
 import { TRIAL_RULINGS, trialCases, type TrialArgument, type TrialRuling } from './trialCases'
 import { NO_PLAN_VIEW } from '../../oracleLoop/actionPlan'
 
@@ -49,30 +49,30 @@ export const checkTrialAgainst = (reply: string, cell: ReadPieceCell<NonRuleCell
     parseProblems(againstContract.parse(reply, { input: cell.inputs, rendered }))
 )
 
-export type TrialAgainstOptions = { securing: SecuringShown; scene?: SceneRender }
+export type TrialAgainstOptions = { securing: Securing; scene?: JudgeOrExplicit }
 
 /**
- * The case against's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with its securing as rendered, today's
- * default. The trial's kept setting is `omitted` (the user, 2026-11-14), but the default stays, since flipping it would move the default's
+ * The case against's view (calibration AGENT.md, "Piece views"): no plan, and the whole scene with its securing known, today's
+ * default, in the non-rule cell's wording. The trial's kept setting is `omitted` (the user, 2026-11-14), but the default stays, since flipping it would move the default's
  * inputs hashes: a behaviour change, booked under the oracle loop plan's Piece views item for the trial's next redraft.
  */
-export const TRIAL_AGAINST_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }
+export const TRIAL_AGAINST_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'known' }, wording: NON_RULE_CELL_WORDING }
 
 /**
- * The stage's options, `stage` aside (the harness takes it). `securing`, an arm over the view's: `shown`, or `omitted`, the scene without its securing (the user, 2026-11-14: defensible because the rule cell,
+ * The stage's options, `stage` aside (the harness takes it). `securing`, a knowledge arm over the view's: `known` (named `shown` until 2026-11-26), or `omitted`, the scene without its securing (the user, 2026-11-14: defensible because the rule cell,
  * a piece of its own, judges the securing; batch 1 argued the glue in 9 of 11). `scene`: the judge render when absent, or `explicit`
  * (AGENT.trialQuestion.planning.md, step 2), which swaps only the scene block.
  */
 export const parseTrialAgainstOptions = (value: unknown): TrialAgainstOptions | string => {
-    const shape = `options must be { securing?: 'shown' | 'omitted', scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    const shape = `options must be { securing?: ${SECURINGS.map((securing) => `'${securing}'`).join(' | ')}, scene?: ${sceneOptionShape(NON_RULE_CELL_WORDING)} }`
     if (value !== undefined && (typeof value !== 'object' || value === null || Array.isArray(value))) {
         return shape
     }
     const { securing = TRIAL_AGAINST_VIEW.scene.securing, scene, ...rest } = (value ?? {}) as Record<string, unknown>
-    if (Object.keys(rest).length > 0 || (securing !== 'shown' && securing !== 'omitted') || (scene !== undefined && !isSceneRender(scene))) {
+    if (Object.keys(rest).length > 0 || !(SECURINGS as readonly unknown[]).includes(securing) || (scene !== undefined && !isArmOf(NON_RULE_CELL_WORDING, scene))) {
         return shape
     }
-    return scene === undefined ? { securing } : { securing, scene }
+    return scene === undefined ? { securing: securing as Securing } : { securing: securing as Securing, scene }
 }
 
 /** The trial's cells, each with the non-rule cell's inputs, source and note, and what a reader expects the best argument to be. */

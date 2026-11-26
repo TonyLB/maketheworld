@@ -1,39 +1,79 @@
 //
-// Which render a piece's scene takes, shared by the oracle's pieces and the imagination's (calibration AGENT.md, "Scene renders"): a leaf
-// module, since `nonRuleCell.ts` imports from `imaginationScene.ts`.
+// What a piece may know of the scene, and the renderers that word it, shared by the oracle's pieces and the imagination's (calibration
+// AGENT.md, "Piece views" and "Scene renders"). What it may know is a filter on the scene model, applied before its render
+// (`viewedRender.ts`); how the scene is worded is a renderer of the viewed scene model, one of the piece's named arms. A leaf module, since
+// `nonRuleCell.ts` imports from `imaginationScene.ts`.
 //
-/** The judge render, Fiction and Graph (the default), or the explicit render (AGENT.trialQuestion.planning.md, step 0). */
-export const SCENE_RENDERS = ['judge', 'explicit'] as const
-export type SceneRender = typeof SCENE_RENDERS[number]
+import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
+import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
+import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
+import type { ViewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 
-export const isSceneRender = (value: unknown): value is SceneRender => (SCENE_RENDERS as readonly unknown[]).includes(value)
-
-/** How much of the scene a piece shows: all of it, the sub-scene of the things the piece's render names, or none. */
+/** How much of the scene a piece may know: all of it, the sub-scene of the things the piece's inputs name, or none. */
 export const SCENE_SHOWS = ['whole', 'subScene', 'none'] as const
 export type SceneShows = typeof SCENE_SHOWS[number]
 
-/**
- * How a piece's scene states each securing: `shown`, in the render's own wording; `omitted` (`withoutSecuring`), since the rule cell
- * judges it; or `conditions`, each securing tagged with its rule's handle and stated as its condition and carry, which tags the explicit
- * render's securings, so under the judge render it is the judge's own wording.
- */
-export const SECURINGS = ['shown', 'omitted', 'conditions'] as const
+/** Whether a piece may know the scene's securing: `known`, or `omitted` (`withoutSecuring`), since the rule cell judges it. */
+export const SECURINGS = ['known', 'omitted'] as const
 export type Securing = typeof SECURINGS[number]
 
-/** A rule's parts, as `judgeRules` gives them, that a piece's own Rule section can show. */
-export const RULE_PARTS = ['fact', 'enforcing', 'voiding', 'consequence'] as const
-export type RulePart = typeof RULE_PARTS[number]
-
 /**
- * A piece's view of the scene (calibration AGENT.md, "Piece views"): its declared setting on each axis. An option is an experiment arm
- * that overrides one axis, its default the view's value; which render the scene takes (`scene`, `SCENE_RENDERS`) is an arm, not the view,
- * while the explicit render becomes every piece's default (`PLATFORM_HOLDOUTS`).
+ * A piece's view of the scene (calibration AGENT.md, "Piece views"): what it may know of it, each axis a filter of the scene model. An
+ * option on the same axis (`show`, `securing`) is a knowledge arm that overrides it.
  */
 export type SceneView = {
     shows: SceneShows
     securing: Securing
-    /** Whether the scene's own Rules section, in the built judge's `v45` wording, is shown. */
-    sceneRules: boolean
-    /** The parts of a rule the piece's own Rule section shows, for a piece that has one (the rule cell). */
-    ruleParts?: readonly RulePart[]
 }
+
+/** A scene's wording: the scene block, its heading to `End of scene.`, from the viewed scene model alone. */
+export type SceneRenderer = (viewed: ViewedSceneModel) => string
+
+/** The judge render's heading, Fiction and Graph, with no Rules section. */
+export const judgeScene: SceneRenderer = ({ model }) => {
+    const { fiction, graph } = judgeSceneSections(model)
+    return [`Scene: ${heading(model)}`, fiction, graph, 'End of scene.'].join('\n\n')
+}
+
+/** The judge render with the scene's own Rules section, in the built judge's `v45` wording, where the scene has a securing. */
+export const judgeSceneWithRules: SceneRenderer = ({ model }) => {
+    const { fiction, graph, rules } = judgeSceneSections(model)
+    return [`Scene: ${heading(model)}`, fiction, graph, ...(rules === undefined ? [] : [rules]), 'End of scene.'].join('\n\n')
+}
+
+/** The explicit render (`renderSceneExplicit`), each securing in its own wording. */
+export const explicitScene: SceneRenderer = ({ model }) => renderSceneExplicit(model)
+
+/**
+ * The explicit render with each securing tagged with its rule's handle, minted on the full model (`viewedSceneModel`), and stated as its
+ * condition and carry.
+ */
+export const taggedExplicitScene: SceneRenderer = ({ model, rules }) => renderSceneExplicit(model, { rules: 'conditions', ruleHandles: rules })
+
+/**
+ * A piece's wording of the scene: its named arms, each a renderer, chosen by the payload's `scene` option, and the arm taken when the
+ * option is absent. A piece with no default has every payload name one.
+ */
+export type SceneWording<Arm extends string = string> = { default?: Arm; arms: Readonly<Record<Arm, SceneRenderer>> }
+
+/** The arms a wording names, in order. */
+export const armsOf = <Arm extends string>({ arms }: SceneWording<Arm>): Arm[] => Object.keys(arms) as Arm[]
+
+/** Whether a value names one of a wording's arms. */
+export const isArmOf = <Arm extends string>(wording: SceneWording<Arm>, value: unknown): value is Arm => (armsOf(wording) as unknown[]).includes(value)
+
+/** The `scene` option's shape over a wording's arms, for a parse's refusal. */
+export const sceneOptionShape = (wording: SceneWording): string => armsOf(wording).map((arm) => `'${arm}'`).join(' | ')
+
+/** The renderer an option names, or the wording's default. Throws where neither names an arm. */
+export const sceneRendererOf = <Arm extends string>(wording: SceneWording<Arm>, arm?: Arm): SceneRenderer => {
+    const chosen = arm ?? wording.default
+    if (chosen === undefined || !isArmOf(wording, chosen)) {
+        throw new Error(`No scene render named ${chosen === undefined ? 'and no default' : `"${chosen}"`}`)
+    }
+    return wording.arms[chosen]
+}
+
+/** The two arms most pieces take: the judge render's Fiction and Graph, and the explicit render, each securing in its own wording. */
+export const JUDGE_OR_EXPLICIT = { judge: judgeScene, explicit: explicitScene } as const
+export type JudgeOrExplicit = keyof typeof JUDGE_OR_EXPLICIT

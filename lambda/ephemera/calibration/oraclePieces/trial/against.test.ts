@@ -12,7 +12,7 @@ const fence = (json: unknown): string => ['The cup is on the floor.', '', '```js
 const POUR = '[teapot1] pours [tea2] into [cup1]'
 const check = (json: unknown) => checkTrialAgainst(fence(json), h7)
 const Q = 'Is [cup1] still under the spout?'
-const SHAPE = "options must be { securing?: 'shown' | 'omitted', scene?: 'judge' | 'explicit' }"
+const SHAPE = "options must be { securing?: 'known' | 'omitted', scene?: 'judge' | 'explicit' }"
 
 describe('the trial\'s against stage', () => {
     beforeEach(() => {
@@ -26,7 +26,7 @@ describe('the trial\'s against stage', () => {
             expect(Object.keys(trialAgainstCells)).toEqual(Object.keys(nonRuleCellCells))
             for (const [id, cell] of Object.entries(trialAgainstCells)) {
                 expect(cell.inputs).toBe(nonRuleCellCells[id].inputs)
-                expect(await trialAgainst.render(cell, { securing: 'shown' })).toBe(await renderNonRuleCell(nonRuleCellCells[id]))
+                expect(await trialAgainst.render(cell, { securing: 'known' })).toBe(await renderNonRuleCell(nonRuleCellCells[id]))
             }
         })
 
@@ -69,11 +69,11 @@ describe('the trial\'s against stage', () => {
 
     describe('its options', () => {
         it.each([
-            [undefined, { securing: 'shown' }],
-            [{}, { securing: 'shown' }],
+            [undefined, { securing: 'known' }],
+            [{}, { securing: 'known' }],
             [{ securing: 'omitted' }, { securing: 'omitted' }],
             [{ securing: 'omitted', scene: 'explicit' }, { securing: 'omitted', scene: 'explicit' }],
-            [{ scene: 'judge' }, { securing: 'shown', scene: 'judge' }],
+            [{ scene: 'judge' }, { securing: 'known', scene: 'judge' }],
             [{ securing: 'hidden' }, SHAPE],
             [{ securing: 'omitted', scene: 'prose' }, SHAPE],
             [{ securing: 'omitted', formats: ['D'] }, SHAPE],
@@ -86,7 +86,7 @@ describe('the trial\'s against stage', () => {
             ['OC-1', ['glued']],
             ['OC-20', ['chained', 'glued']],
         ])('leaves %s\'s securing out of the scene with securing omitted, and only that', async (id, words) => {
-            const shown = await trialAgainst.render(trialAgainstCells[id], { securing: 'shown' })
+            const shown = await trialAgainst.render(trialAgainstCells[id], { securing: 'known' })
             const omitted = await trialAgainst.render(trialAgainstCells[id], { securing: 'omitted' })
             // The fiction's securing sentences go, and each graph row loses its securing clause.
             const stripped = shown
@@ -114,7 +114,7 @@ describe('the trial\'s against stage', () => {
 
         it('renders a scene with no securing the same either way', async () => {
             const cell = trialAgainstCells['OC-9']
-            expect(await trialAgainst.render(cell, { securing: 'omitted' })).toBe(await trialAgainst.render(cell, { securing: 'shown' }))
+            expect(await trialAgainst.render(cell, { securing: 'omitted' })).toBe(await trialAgainst.render(cell, { securing: 'known' }))
         })
     })
 
@@ -129,7 +129,7 @@ describe('the trial\'s against stage', () => {
         expect(response.statusCode).toBe(200)
         expect(invoke).toHaveBeenCalledTimes(11)
         expect(invoke.mock.calls.every(([{ maxTokens }]) => maxTokens === 400)).toBe(true)
-        expect(JSON.parse(response.body)).toMatchObject({ piece: 'trial', stage: 'against', options: { securing: 'shown' }, summary: { calls: 11, formFails: 0, errors: 0 } })
+        expect(JSON.parse(response.body)).toMatchObject({ piece: 'trial', stage: 'against', options: { securing: 'known' }, summary: { calls: 11, formFails: 0, errors: 0 } })
     })
 
     it('refuses the upstream option, since it is the first stage', async () => {

@@ -6,16 +6,13 @@
 // blame) or `needs detail` of the action or of its consequences, each with what it establishes. Code matches each quote, so the piece
 // never gives a number, applies the first-non-works rule, and grades by a canonical answer string.
 //
-import { renderSceneExplicit } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
-import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { withoutSecuring } from '../../dataSource/actions/sceneProse/sceneRules'
-import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
-import { caseActions, fixtureScene, namedHandles } from '../imaginationPieces/imaginationScene'
+import { caseActions, namedHandles } from '../imaginationPieces/imaginationScene'
 import { oracleCases } from '../oracleLoop/oracleCases'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import { replyJsonObject } from '../../llm/stageContract'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
-import { isSceneRender, SCENE_RENDERS, type SceneRender, type Securing } from '../pieceProbe/sceneRenders'
+import { isArmOf, JUDGE_OR_EXPLICIT, sceneOptionShape, sceneRendererOf, type JudgeOrExplicit, type Securing, type SceneWording } from '../pieceProbe/sceneRenders'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /**
@@ -189,37 +186,46 @@ export const gradeNonRuleCell = (reply: string, { inputs: { steps } }: PieceCell
         : { answer: `needs detail of ${(stop as { of: string }).of} ${first + 1}` }
 }
 
-/** The securing as a payload option can name it, where a piece takes it as an arm: as the scene has it, or left out (`withoutSecuring`). */
-export type SecuringShown = Extract<Securing, 'shown' | 'omitted'>
+/**
+ * The non-rule cell's wording, which every piece on its inputs takes: the judge render's Fiction and Graph with no Rules section (NR-6),
+ * since securing is the rule cell's, by default; or the explicit render (AGENT.trialQuestion.planning.md, step 1.5; the ruling's), each
+ * securing in the render's own wording.
+ */
+export const NON_RULE_CELL_WORDING = { default: 'judge', arms: JUDGE_OR_EXPLICIT } as const satisfies SceneWording<JudgeOrExplicit>
+
+/** The non-rule cell's view (calibration AGENT.md, "Piece views"): no plan (the bridge state), and the whole scene, its securing known. */
+export const NON_RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'known' }, wording: NON_RULE_CELL_WORDING }
+
+/** The non-rule cell's options: which of its wording's arms the scene takes, the judge render when absent. */
+export type NonRuleCellOptions = { scene?: JudgeOrExplicit }
 
 /**
- * The non-rule cell's view (calibration AGENT.md, "Piece views"): no plan (the bridge state), and the whole scene with its securing in
- * the render's own wording and no Rules section (NR-6), since securing is the rule cell's.
+ * How a calling piece renders the cell: what it may know of the securing, the non-rule cell's when absent (`omitted`, the trial's case
+ * against, rebuttal, verdict and ruling, leaves the scene's securing out as well), and which of the wording's arms the scene takes.
  */
-export const NON_RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: { shows: 'whole', securing: 'shown', sceneRules: false } }
+type NonRuleCellRender = { securing?: Securing; scene?: JudgeOrExplicit }
 
-/** The non-rule cell's options: which render the scene takes (AGENT.trialQuestion.planning.md, step 1.5), the judge render when absent. */
-export type NonRuleCellOptions = { scene?: SceneRender }
-
-/**
- * The whole scene with no Rules section (NR-6), the request in its own section, then each step with its role, unnumbered, and its
- * consequence lines indented under it. The securing as the calling piece's view states it, the non-rule cell's when absent: with
- * `omitted`, the scene's securing is left out as well (the trial's case against, rebuttal, verdict and ruling); `conditions` tags the
- * explicit render's securings, which no piece on these inputs declares yet. With `scene: 'explicit'`, the scene is the explicit render
- * (`renderSceneExplicit`) in place of the Fiction and the Graph (the ruling).
- */
-export const renderNonRuleCell = async (
-    { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
-    { securing = NON_RULE_CELL_VIEW.scene.securing, scene: sceneRender = 'judge' }: { securing?: Securing; scene?: SceneRender } = {},
-): Promise<string> => {
+const prepareNonRuleCell = ({ inputs: { request, steps } }: PieceCell<NonRuleCellInputs>): Record<string, never> => {
     if (steps.length === 0) {
         throw new Error('No steps')
     }
     if (request.trim() === '') {
         throw new Error('No request')
     }
-    const scene = await fixtureScene(fixture)
-    const full = securing === 'omitted' ? withoutSecuring(scene) : scene
+    return {}
+}
+
+/**
+ * The scene in the wording's arm, the request in its own section, then each step with its role, unnumbered, and its consequence lines
+ * indented under it. What may be known of the securing is applied before it (`withViewedScene`, from the option of that axis).
+ */
+const renderViewedNonRuleCell = withViewedScene(NON_RULE_CELL_VIEW.scene, (
+    { inputs: { fixture, request, steps } }: PieceCell<NonRuleCellInputs>,
+    { scene: arm }: NonRuleCellRender,
+    viewed,
+): string => {
+    const shown = shownScene(viewed)
+    const { model: full } = shown
     const all = quotables(steps, true)
     const unknown = [...new Set([request, ...all.map(({ says }) => says)].flatMap(namedHandles))].filter((handle) => full.things[handle] === undefined)
     if (unknown.length > 0) {
@@ -230,32 +236,29 @@ export const renderNonRuleCell = async (
     if (twice.length > 0) {
         throw new Error(`Lines a quote can't tell apart: ${twice.map(({ says }) => says).join('; ')}`)
     }
-    const judged = (): string => {
-        const { fiction, graph } = judgeSceneSections(full)
-        return [`Scene: ${heading(full)}`, fiction, graph, 'End of scene.'].join('\n\n')
-    }
-    const sceneBlock = sceneRender === 'explicit' ? renderSceneExplicit(full, { rules: securing === 'conditions' ? 'conditions' : 'none', full: scene }) : judged()
     return [
-        sceneBlock,
+        sceneRendererOf(NON_RULE_CELL_WORDING, arm)(shown),
         `The player's request: ${request}`,
         [
             'The steps, in order:',
             ...steps.flatMap(({ says, role, consequences = [] }) => [`- (${role}) ${says}`, ...consequences.map((line) => `  - (consequence) ${line}`)]),
         ].join('\n'),
     ].join('\n\n')
-}
+}, prepareNonRuleCell)
+
+export const renderNonRuleCell = (cell: PieceCell<NonRuleCellInputs>, options: NonRuleCellRender = {}): Promise<string> => renderViewedNonRuleCell(cell, options)
 
 /** No options, or `{ scene: 'judge' | 'explicit' }`. */
 export const parseNonRuleCellOptions = (value: unknown): NonRuleCellOptions | string => {
     if (value === undefined) {
         return {}
     }
-    const shape = `nonRuleCell's options must be { scene?: ${SCENE_RENDERS.map((render) => `'${render}'`).join(' | ')} }`
+    const shape = `nonRuleCell's options must be { scene?: ${sceneOptionShape(NON_RULE_CELL_WORDING)} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
     const { scene, ...rest } = value as Record<string, unknown>
-    return Object.keys(rest).length === 0 && (scene === undefined || isSceneRender(scene)) ? (scene === undefined ? {} : { scene }) : shape
+    return Object.keys(rest).length === 0 && (scene === undefined || isArmOf(NON_RULE_CELL_WORDING, scene)) ? (scene === undefined ? {} : { scene }) : shape
 }
 
 const intended = (says: string): NonRuleStep => ({ says, role: 'intended' })

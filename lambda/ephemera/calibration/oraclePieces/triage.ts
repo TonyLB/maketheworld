@@ -5,7 +5,7 @@
 // answered piece, its cells the corpus's rows (`triageCorpus.ts`). What code makes of its answer is `triageGuard.ts`'s, and the grade keeps
 // the branch, the branch after the guard and the grounding apart.
 //
-import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
+import { ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
 import { ambiguityProblems, bracketedReferences, fixtureScene, namedHandles, planHandles, planTexts } from '../imaginationPieces/imaginationScene'
@@ -14,6 +14,8 @@ import { expansionClosed, planOf, planSteps, renderPlanForGenerator, rewordingCl
 import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
+import { sceneRendererOf, taggedExplicitScene, type SceneWording } from '../pieceProbe/sceneRenders'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { triageCorpus, type CorpusRow } from './triageCorpus'
 import { guarded } from './triageGuard'
 
@@ -48,13 +50,20 @@ type TriageVerdict = { kind: 'No'; reason: string } | { kind: 'Yes' | 'Defer' }
 export const TRIAGE_MERGE: MergeOptions = { author: 'triage', adds: ['steps', 'consequence', 'improvise'], restates: true, handlesAre: 'in the scene or improvised' }
 
 /**
+ * Triage's wording: the explicit render, its securings tagged with their rule handles and stated as their conditions and carries, a first
+ * setting picked for convenience (the user, 2026-11-24), an existing render with the parts triage needs: no precedent, and any draft may
+ * change it.
+ */
+export const TRIAGE_WORDING = { default: 'explicit', arms: { explicit: taggedExplicitScene } } as const satisfies SceneWording<'explicit'>
+
+/**
  * The step and its intent at `all`, which are all its plan holds, and what is improvised, which it may overwrite (the checker's mirror); and the
- * whole scene, since grounding comes before there are handles to take a sub-scene of. `conditions` is a first setting picked for convenience (the user, 2026-11-24), an existing value with the parts
- * triage needs: no precedent, and any draft may change it.
+ * whole scene, its securing known, since grounding comes before there are handles to take a sub-scene of.
  */
 export const TRIAGE_VIEW: PieceView = {
     plan: { reads: { step: 'all', intent: 'all', improvise: 'all' } },
-    scene: { shows: 'whole', securing: 'conditions', sceneRules: false },
+    scene: { shows: 'whole', securing: 'known' },
+    wording: TRIAGE_WORDING,
 }
 
 /** The player's command as a plan's one step, unchecked, its intent its own text. */
@@ -62,7 +71,7 @@ export const planFromCommand = (command: string): ActionPlan =>
     planOf([{ step: { says: command, suppliedBy: 'player' }, standing: 'unchecked', items: [{ kind: 'intent', says: command, standing: 'unchecked' }] }])
 
 /** The whole scene, then the plan. Throws on a target that names no step, or one closed to triage, since no redraft could fix the refusal. */
-export const renderTriage = async ({ inputs: { fixture, plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): Promise<string> => {
+const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs>, 'inputs'>): Record<string, never> => {
     const step = planSteps(plan).find(({ path }) => path === target)
     if (step === undefined) {
         throw new Error(`The target "${target}" names no step of the plan`)
@@ -71,9 +80,14 @@ export const renderTriage = async ({ inputs: { fixture, plan, target } }: Pick<P
     if (closed !== undefined) {
         throw new Error(`The target "${target}" is closed to triage: ${closed}`)
     }
-    const scene = await fixtureScene(fixture)
-    return [renderSceneExplicit(scene, { rules: 'conditions', full: scene }), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+    return {}
 }
+
+const renderViewedTriage = withViewedScene(TRIAGE_VIEW.scene, ({ inputs: { plan } }: Pick<PieceCell<TriageInputs>, 'inputs'>, _options: undefined, viewed): string => {
+    return [sceneRendererOf(TRIAGE_WORDING)(shownScene(viewed)), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+}, prepareTriage)
+
+export const renderTriage = (cell: Pick<PieceCell<TriageInputs>, 'inputs'>): Promise<string> => renderViewedTriage(cell, undefined)
 
 const nonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.trim() !== ''
 

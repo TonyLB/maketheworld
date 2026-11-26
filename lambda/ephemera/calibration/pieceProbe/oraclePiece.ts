@@ -7,14 +7,14 @@
 import type { MergeOptions, PlanView } from '../oracleLoop/actionPlan'
 import type { PieceGrade } from './pieceAnswer'
 import type { PiecePart } from './piecePart'
-import type { SceneView } from './sceneRenders'
+import type { SceneView, SceneWording } from './sceneRenders'
 
 /**
  * A piece's view (calibration AGENT.md, "Piece views"): what of the shared state its inputs show. The plan side: the plan kinds
- * it reads, each at `all` or `authoritative`. The scene side (that plan's step 3): how much of the scene, how the securing is stated,
- * whether the scene's Rules section is shown, and a rule's parts where the piece has a Rule section of its own.
+ * it reads, each at `all` or `authoritative`. The scene side: how much of the scene it may know, and whether its securing; and, for a
+ * piece that shows a scene, its wording, the named renderers of the scene it may know.
  */
-export type PieceView = { plan: PlanView; scene: SceneView }
+export type PieceView = { plan: PlanView; scene: SceneView; wording?: SceneWording }
 
 /**
  * How a payload's prompt reaches the model (AGENT.trialQuestion.planning.md, step 0.5): `user`, the instructions and the render in one

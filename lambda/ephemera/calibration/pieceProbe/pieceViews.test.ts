@@ -1,6 +1,8 @@
 //
 // The checks over the registry that a piece's view keeps (calibration AGENT.md, "Piece views"): each view names only known kinds and
-// readings, and known scene settings, which its render keeps and its default options agree with; the checker's mirror (a piece whose merge
+// readings, and known scene settings, which its render keeps and its default options agree with, and a wording exactly when it shows a
+// scene; each render built on the harness (`withViewedScene`), reading no full scene of its own, its scene block its chosen arm of the
+// view's filter of the fixture, with the text search for securing words kept beside it as a backstop; the checker's mirror (a piece whose merge
 // can alter an unchecked item of a kind reads that kind at `all`); the hidden-refusal invariant (a piece's merge never refuses a block on
 // account of anything its view hides); and the merge's own (an unchecked item never refuses a change, and only its authority alters a
 // confirmed one). Each check is a function, run over the registry and over a piece or a merge built to break it, so a check that can't fail
@@ -10,11 +12,42 @@ import {
     AUTHORITY, expansionClosed, mergeStepChanges, planOf, planSteps, REPLACEABLE, rewordingClosed, RULE_STANCES, STEP_ITEM_KINDS, viewPlan,
     type ActionPlan, type AuthoredKind, type MergeOptions, type PlanAuthor, type PlanView, type StepItem, type StepNode,
 } from '../oracleLoop/actionPlan'
+import { isDeepStrictEqual } from 'util'
 import { securingWords } from '../../dataSource/actions/sceneProse/sceneRules'
+import { viewedSceneModel, type ViewedSceneModel } from '../../dataSource/actions/sceneProse/viewedSceneModel'
+import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
-import { registerPiece, type RegisteredPiece } from './oraclePiece'
+import { registerPiece, type PieceView, type RegisteredPiece } from './oraclePiece'
 import { pieces } from './pieces'
-import { RULE_PARTS, SCENE_SHOWS, SECURINGS, type SceneView } from './sceneRenders'
+import {
+    explicitScene, isArmOf, JUDGE_OR_EXPLICIT, judgeScene, SCENE_SHOWS, sceneRendererOf, SECURINGS, type SceneView, type SceneWording,
+} from './sceneRenders'
+import { shownScene, viewScene, withViewedScene } from './viewedRender'
+
+/** What the harness handed a render: the knowledge it applied, the prep's handles, and the viewed scene model. */
+type Handed = { knowledge: SceneView; handles?: readonly SceneHandle[]; viewed?: ViewedSceneModel }
+const mockHanded: Handed[] = []
+
+// The harness passed through, so the structural check sees what each render was handed; and `fixtureScene` counted. The harness calls
+// its own copy, inside its module, so it is never counted: a call counted during a render is the render's own read of the full scene.
+// The check counts calls during a render, and doesn't refuse a module that calls `fixtureScene`, because a piece's grade and its answer
+// reader may read the full scene: triage's do, for the guard, which judges a reply against everything the scene holds. Only the render
+// is held to the scene its view may know.
+jest.mock('./viewedRender', () => {
+    const actual = jest.requireActual<typeof import('./viewedRender')>('./viewedRender')
+    const recording: typeof actual.withViewedScene = (view, render, prepare) => {
+        let handles: readonly SceneHandle[] | undefined
+        return actual.withViewedScene(view, (cell, options, viewed) => {
+            mockHanded.push({ knowledge: actual.knowledgeOf(view, options), handles, viewed })
+            return render(cell, options, viewed)
+        }, prepare === undefined ? undefined : (cell, options, full) => {
+            const prepared = prepare(cell, options, full)
+            handles = prepared.handles
+            return prepared
+        })
+    }
+    return { ...actual, fixtureScene: jest.fn(actual.fixtureScene), withViewedScene: recording }
+})
 
 const registered: [string, RegisteredPiece][] = Object.entries(pieces).flatMap(([name, entry]): [string, RegisteredPiece][] => (
     entry.kind === 'family' ? Object.entries(entry.stages).map(([stage, piece]): [string, RegisteredPiece] => [`${name}/${stage}`, piece]) : [[name, entry]]
@@ -210,12 +243,10 @@ const standingBreaches = (merges: MergeOptions, cells: readonly unknown[], merge
 const refusedBare = (plan: ActionPlan, target: string, change: unknown, merges: MergeOptions, merge: Merge): boolean =>
     'problems' in merge(plan, target, { changes: [change] }, ['hidden1'], merges)
 
-/** A scene view's problems as declared: an axis off its known values, or a Rule section of no part or an unknown one. */
-const sceneDeclarationProblems = ({ shows, securing, sceneRules, ruleParts }: SceneView): string[] => [
+/** A scene view's problems as declared: an axis off its known values. */
+const sceneDeclarationProblems = ({ shows, securing }: SceneView): string[] => [
     ...((SCENE_SHOWS as readonly unknown[]).includes(shows) ? [] : [`shows "${String(shows)}"`]),
-    ...((SECURINGS as readonly unknown[]).includes(securing) ? [] : [`states the securing "${String(securing)}"`]),
-    ...(typeof sceneRules === 'boolean' ? [] : [`sceneRules "${String(sceneRules)}"`]),
-    ...(ruleParts === undefined ? [] : ruleParts.length === 0 ? ['a Rule section of no part'] : ruleParts.filter((part) => !(RULE_PARTS as readonly unknown[]).includes(part)).map((part) => `a rule part "${String(part)}"`)),
+    ...((SECURINGS as readonly unknown[]).includes(securing) ? [] : [`knows the securing as "${String(securing)}"`]),
 ]
 
 /** One cell as rendered: the scene block (the text to the first `End of scene.`, or none), and the words of its fixture's securings. */
@@ -223,7 +254,7 @@ type RenderedScene = { cell: string; block?: string; securings: string[] }
 
 /** Options for the pieces whose payloads must name some: a source every cell has, and the render `sceneReading` compares. */
 const NAMED_OPTIONS: Record<string, unknown> = {
-    'trial/rebuttal': { upstream: 'lifted' }, 'trial/verdict': { upstream: 'lifted' }, 'trial/ruling': { upstream: 'lifted' }, sceneReading: { render: 'explicit' },
+    'trial/rebuttal': { upstream: 'lifted' }, 'trial/verdict': { upstream: 'lifted' }, 'trial/ruling': { upstream: 'lifted' }, sceneReading: { scene: 'explicit' },
 }
 
 /** Each cell of a piece rendered under its default options (or the minimum a payload names). */
@@ -245,30 +276,118 @@ const renderedScenes = async (id: string, piece: RegisteredPiece): Promise<Rende
 
 /**
  * Whether the render keeps the scene view: a scene block exactly when the view shows one; no securing's words in it when the view
- * omits the securing, and some cell's naming one when it doesn't; the scene's Rules section exactly as the view has it.
+ * omits the securing, and some cell's naming one when it doesn't.
  */
-const renderedSceneProblems = ({ shows, securing, sceneRules }: SceneView, scenes: readonly RenderedScene[]): string[] => {
+const renderedSceneProblems = ({ shows, securing }: SceneView, scenes: readonly RenderedScene[]): string[] => {
     const blocks = scenes.flatMap(({ cell, block, securings }) => (block === undefined ? [] : [{ cell, block, securings }]))
     const named = blocks.flatMap(({ cell, block, securings }) => securings.filter((words) => block.includes(words)).map((words) => ({ cell, words })))
     const secured = blocks.some(({ securings }) => securings.length > 0)
-    const withRules = blocks.filter(({ block }) => /(^|\n)Rules:\n/.test(block)).map(({ cell }) => cell)
     return [
         ...scenes.filter(({ block }) => (block === undefined) !== (shows === 'none')).map(({ cell }) => `${cell}: ${shows === 'none' ? 'shows a scene with none declared' : 'shows no scene'}`),
         ...(securing === 'omitted' ? named.map(({ cell, words }) => `${cell}: states "${words}" with the securing omitted`) : []),
         ...(securing !== 'omitted' && secured && named.length === 0 ? [`no cell states a securing, declared ${securing}`] : []),
-        ...(sceneRules ? (blocks.length > 0 && withRules.length === 0 ? ['no cell shows the Rules section it declares'] : []) : withRules.map((cell) => `${cell}: shows a Rules section with none declared`)),
     ]
 }
 
-/** The options that are arms over a scene axis, parsed as a payload gets them by default, against the view's value on that axis. */
-const optionDrift = ({ shows, securing, sceneRules }: SceneView, options: unknown): string[] => {
+/**
+ * The options that are arms, parsed as a payload gets them by default: over a scene axis, against the view's value on that axis; and the
+ * wording's arm, one of its arms and its default where it has one, or named where it has none.
+ */
+const optionDrift = ({ scene: { shows, securing }, wording }: PieceView, options: unknown): string[] => {
     const named = (typeof options === 'object' && options !== null ? options : {}) as Record<string, unknown>
+    const scene = (): string[] => {
+        if (!('scene' in named)) {
+            return wording === undefined || wording.default !== undefined ? [] : ['names no scene arm, and its wording has no default']
+        }
+        if (wording === undefined) {
+            return [`defaults scene to "${String(named.scene)}", and has no wording`]
+        }
+        if (!isArmOf(wording, named.scene)) {
+            return [`defaults scene to "${String(named.scene)}", not one of its arms (${Object.keys(wording.arms).join(', ')})`]
+        }
+        return wording.default === undefined || named.scene === wording.default ? [] : [`defaults scene to "${String(named.scene)}", the wording ${wording.default}`]
+    }
     return [
         ...('show' in named && named.show !== shows ? [`defaults show to "${String(named.show)}", the view ${shows}`] : []),
         ...('securing' in named && named.securing !== securing ? [`defaults securing to "${String(named.securing)}", the view ${securing}`] : []),
-        ...('sceneRules' in named && named.sceneRules !== sceneRules ? [`defaults sceneRules to ${String(named.sceneRules)}, the view ${String(sceneRules)}`] : []),
+        ...scene(),
     ]
 }
+
+/** A view's wording as declared: present exactly when it shows a scene, with a default, where it has one, among its arms. */
+const wordingProblems = ({ scene: { shows }, wording }: PieceView): string[] => [
+    ...(shows === 'none' && wording !== undefined ? ['has a wording, and shows no scene'] : []),
+    ...(shows !== 'none' && wording === undefined ? ['shows a scene, and has no wording'] : []),
+    ...(wording === undefined || Object.keys(wording.arms).length > 0 ? [] : ['has a wording of no arms']),
+    ...(wording?.default === undefined || isArmOf(wording, wording.default) ? [] : [`defaults to "${String(wording.default)}", not one of its arms`]),
+]
+
+const END_OF_SCENE = 'End of scene.'
+
+/** The arm a render takes: its options' `scene`, or its wording's default. */
+const armOf = (wording: SceneWording, options: unknown): string | undefined => {
+    const { scene } = (typeof options === 'object' && options !== null ? options : {}) as { scene?: unknown }
+    return typeof scene === 'string' ? scene : wording.default
+}
+
+const ownFixtureReads = fixtureScene as jest.MockedFunction<typeof fixtureScene>
+
+/** Whether a securing is among a model's relations. */
+const holdsSecuring = ({ things }: SceneModel): boolean => Object.values(things).some(({ relations }) => relations.some((relation) => securingWords(relation) !== undefined))
+
+/**
+ * One render's problems against its view, from what the harness handed it: the render read no full scene of its own and went through the
+ * harness once; the knowledge applied is the view's; the model handed is the view's filter of the fixture, with no securing where the
+ * securing is omitted; and the scene block, to `End of scene.`, is the chosen arm of the wording applied to that model, unchanged.
+ */
+const renderProblems = (cell: string, text: string, handed: readonly Handed[], ownReads: number, full: SceneModel, { scene: declared, wording }: PieceView, options: unknown): string[] => {
+    const own = ownReads === 0 ? [] : [`${cell}: reads the full scene itself (fixtureScene)`]
+    if (handed.length !== 1) {
+        return [...own, `${cell}: rendered through the harness ${handed.length} times, where once is expected`]
+    }
+    const [{ knowledge, handles, viewed }] = handed
+    const end = text.indexOf(END_OF_SCENE)
+    const block = end === -1 ? undefined : text.slice(0, end + END_OF_SCENE.length)
+    const arm = wording === undefined ? undefined : armOf(wording, options)
+    const expected = viewed === undefined || wording === undefined ? undefined : sceneRendererOf(wording, arm)(viewed)
+    return [
+        ...own,
+        ...(isDeepStrictEqual(knowledge, declared) ? [] : [`${cell}: knew ${knowledge.shows}/${knowledge.securing}, the view ${declared.shows}/${declared.securing}`]),
+        ...(isDeepStrictEqual(viewed, viewScene(full, knowledge, handles)) ? [] : [`${cell}: handed a scene other than its knowledge's filter of the fixture`]),
+        ...(declared.securing === 'omitted' && viewed !== undefined && holdsSecuring(viewed.model) ? [`${cell}: handed a securing, with the securing omitted`] : []),
+        ...(viewed !== undefined && wording === undefined ? [`${cell}: handed a scene, with no wording`] : []),
+        ...(block === expected ? [] : [`${cell}: its scene block isn't its ${arm === undefined ? 'wording' : `"${arm}" arm`} of the scene it was handed`]),
+    ]
+}
+
+/** Each cell of a piece rendered in turn under its default options (or the minimum a payload names), against its view. */
+const structuralProblems = async (id: string, piece: RegisteredPiece): Promise<string[]> => {
+    const options = piece.parseOptions(NAMED_OPTIONS[id])
+    if (typeof options === 'string') {
+        throw new Error(options)
+    }
+    const render = piece.render as (cell: unknown, options: unknown) => Promise<string>
+    return Object.entries(piece.cells).reduce<Promise<string[]>>(async (sofar, [cell, value]) => {
+        const problems = await sofar
+        mockHanded.length = 0
+        ownFixtureReads.mockClear()
+        const text = await render(value, options)
+        const handed = [...mockHanded]
+        const ownReads = ownFixtureReads.mock.calls.length
+        const full = await fixtureScene((value.inputs as { fixture: string }).fixture)
+        return [...problems, ...renderProblems(cell, text, handed, ownReads, full, piece.view, options)]
+    }, Promise.resolve([]))
+}
+
+/** A piece of one cell on the tea table, rendered as given, to break a check with. */
+const toyPiece = (view: PieceView, render: (cell: { inputs: { fixture: string } }, options: unknown) => Promise<string>): RegisteredPiece => registerPiece({
+    name: 'toyScene',
+    view,
+    answers: ['yes'],
+    cells: { one: { inputs: { fixture: 'teaTable' }, source: 'hand-written' } },
+    parseOptions: () => undefined,
+    render,
+})
 
 describe('piece views over the registry (calibration AGENT.md, "Piece views")', () => {
     it.each(registered)('%s declares a view of known kinds and readings', (_, piece) => {
@@ -307,7 +426,7 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
         const answered = registerPiece({
             name: 'toyAnswered',
             // It restates, but reads the intent confirmed only, and adds possibilities it can't see.
-            view: { plan: { reads: { step: 'all', intent: 'authoritative' } }, scene: { shows: 'none', securing: 'shown', sceneRules: false } },
+            view: { plan: { reads: { step: 'all', intent: 'authoritative' } }, scene: { shows: 'none', securing: 'known' } },
             merges: { author: 'triage', adds: ['possibility'], restates: true },
             answers: ['yes', 'no'],
             cells: { command: { inputs: command, source: 'hand-written' } },
@@ -435,9 +554,7 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
         })
 
         it('catches a scene view declared wrong', () => {
-            expect(sceneDeclarationProblems({ shows: 'some', securing: 'hinted', sceneRules: 'yes', ruleParts: ['fact', 'gist'] } as unknown as SceneView))
-                .toEqual(['shows "some"', 'states the securing "hinted"', 'sceneRules "yes"', 'a rule part "gist"'])
-            expect(sceneDeclarationProblems({ shows: 'whole', securing: 'shown', sceneRules: false, ruleParts: [] })).toEqual(['a Rule section of no part'])
+            expect(sceneDeclarationProblems({ shows: 'some', securing: 'conditions' } as unknown as SceneView)).toEqual(['shows "some"', 'knows the securing as "conditions"'])
         })
 
         it.each(registered)('%s renders as its scene view declares', async (id, registeredPiece) => {
@@ -445,34 +562,78 @@ describe('piece views over the registry (calibration AGENT.md, "Piece views")', 
         })
 
         it('has pieces on each side of the securing, so the render check bites both ways', () => {
-            expect(registered.map(([, { view }]) => view.scene.securing)).toEqual(expect.arrayContaining(['shown', 'omitted', 'conditions']))
+            expect(registered.map(([, { view }]) => view.scene.securing)).toEqual(expect.arrayContaining(['known', 'omitted']))
         })
 
         it('catches a render that doesn\'t keep its view: a securing stated where it is omitted, or one never stated where it is shown', async () => {
             const against = await renderedScenes('trial/against', piece('trial/against'))
             expect(renderedSceneProblems({ ...piece('trial/against').view.scene, securing: 'omitted' }, against)).toEqual(expect.arrayContaining(['OC-1: states "glued to" with the securing omitted']))
             const rebuttal = await renderedScenes('trial/rebuttal', piece('trial/rebuttal'))
-            expect(renderedSceneProblems({ ...piece('trial/rebuttal').view.scene, securing: 'shown' }, rebuttal)).toEqual(['no cell states a securing, declared shown'])
+            expect(renderedSceneProblems({ ...piece('trial/rebuttal').view.scene, securing: 'known' }, rebuttal)).toEqual(['no cell states a securing, declared known'])
         })
 
-        it('catches a Rules section or a scene the view doesn\'t declare', async () => {
-            const ruleCell = piece('ruleCell')
-            const withRules = await Promise.all(Object.entries(ruleCell.cells).map(async ([cell, value]): Promise<RenderedScene> => {
-                const options = ruleCell.parseOptions({ sceneRules: true })
-                const text = await (ruleCell.render as (cell: unknown, options: unknown) => Promise<string>)(value, options)
-                return { cell, block: text.slice(0, text.indexOf('End of scene.')), securings: [] }
-            }))
-            expect(renderedSceneProblems(ruleCell.view.scene, withRules)).toEqual(expect.arrayContaining(['OC-1: shows a Rules section with none declared']))
-            expect(renderedSceneProblems({ ...ruleCell.view.scene, shows: 'none' }, withRules.slice(0, 1))).toEqual(['OC-1: shows a scene with none declared', 'OC-1: shows a Rules section with none declared'])
+        it('catches a scene the view doesn\'t declare', async () => {
+            const ruleCell = await renderedScenes('ruleCell', piece('ruleCell'))
+            expect(renderedSceneProblems({ ...piece('ruleCell').view.scene, shows: 'none' }, ruleCell.slice(0, 1))).toEqual(['OC-1: shows a scene with none declared'])
         })
 
         it.each(registered)('%s takes its default options from its view', (id, registeredPiece) => {
-            expect(optionDrift(registeredPiece.view.scene, registeredPiece.parseOptions(NAMED_OPTIONS[id]))).toEqual([])
+            expect(optionDrift(registeredPiece.view, registeredPiece.parseOptions(NAMED_OPTIONS[id]))).toEqual([])
         })
 
         it('catches a default option off its view', () => {
-            expect(optionDrift(piece('ruleCell').view.scene, { show: 'none', sceneRules: true })).toEqual(['defaults show to "none", the view subScene', 'defaults sceneRules to true, the view false'])
-            expect(optionDrift(piece('trial/against').view.scene, { securing: 'omitted' })).toEqual(['defaults securing to "omitted", the view shown'])
+            expect(optionDrift(piece('ruleCell').view, { show: 'none' })).toEqual(['defaults show to "none", the view subScene'])
+            expect(optionDrift(piece('trial/against').view, { securing: 'omitted' })).toEqual(['defaults securing to "omitted", the view known'])
+        })
+
+        it('catches a default scene arm off its wording', () => {
+            expect(optionDrift(piece('ruleCell').view, { scene: 'judgeRules' })).toEqual(['defaults scene to "judgeRules", the wording judge'])
+            expect(optionDrift(piece('ruleCell').view, { scene: 'explicit' })).toEqual(['defaults scene to "explicit", not one of its arms (judge, judgeRules)'])
+            expect(optionDrift(piece('sceneReading').view, {})).toEqual(['names no scene arm, and its wording has no default'])
+            expect(optionDrift({ ...piece('ruleCell').view, wording: undefined }, { scene: 'judge' })).toEqual(['defaults scene to "judge", and has no wording'])
+        })
+
+        it.each(registered)('%s has a wording exactly when it shows a scene', (_, registeredPiece) => {
+            expect(wordingProblems(registeredPiece.view)).toEqual([])
+        })
+
+        it('catches a wording declared wrong', () => {
+            const { view } = piece('ruleCell')
+            expect(wordingProblems({ ...view, wording: undefined })).toEqual(['shows a scene, and has no wording'])
+            expect(wordingProblems({ ...view, scene: { ...view.scene, shows: 'none' } })).toEqual(['has a wording, and shows no scene'])
+            expect(wordingProblems({ ...view, wording: { default: 'explicit', arms: {} } })).toEqual(['has a wording of no arms', 'defaults to "explicit", not one of its arms'])
+        })
+
+        it.each(registered)('%s renders on the harness: its view\'s filter of the fixture, worded by its chosen arm', async (id, registeredPiece) => {
+            expect(await structuralProblems(id, registeredPiece)).toEqual([])
+        })
+
+        describe('catches a render off the harness', () => {
+            const WHOLE: PieceView = { plan: piece('trial/against').view.plan, scene: { shows: 'whole', securing: 'known' }, wording: { default: 'judge', arms: JUDGE_OR_EXPLICIT } }
+
+            it('that reads the full scene itself', async () => {
+                const reads = toyPiece(WHOLE, withViewedScene(WHOLE.scene, async (cell, _: unknown, viewed) => {
+                    await fixtureScene(cell.inputs.fixture)
+                    return judgeScene(shownScene(viewed))
+                }))
+                expect(await structuralProblems('toyScene', reads)).toEqual(['one: reads the full scene itself (fixtureScene)'])
+            })
+
+            it('that skips the harness', async () => {
+                const skips = toyPiece(WHOLE, async (cell) => judgeScene(viewedSceneModel(await fixtureScene(cell.inputs.fixture))))
+                expect(await structuralProblems('toyScene', skips)).toEqual(['one: reads the full scene itself (fixtureScene)', 'one: rendered through the harness 0 times, where once is expected'])
+            })
+
+            it('that words the scene by an arm other than its own', async () => {
+                const offArm = toyPiece(WHOLE, withViewedScene(WHOLE.scene, (_: unknown, __: unknown, viewed) => explicitScene(shownScene(viewed))))
+                expect(await structuralProblems('toyScene', offArm)).toEqual(['one: its scene block isn\'t its "judge" arm of the scene it was handed'])
+            })
+
+            it('that knows more than its view declares', async () => {
+                const omitted: PieceView = { ...WHOLE, scene: { ...WHOLE.scene, securing: 'omitted' } }
+                const knows = toyPiece(omitted, withViewedScene(WHOLE.scene, (_: unknown, __: unknown, viewed) => judgeScene(shownScene(viewed))))
+                expect(await structuralProblems('toyScene', knows)).toEqual(['one: knew whole/known, the view whole/omitted', 'one: handed a securing, with the securing omitted'])
+            })
         })
     })
 })

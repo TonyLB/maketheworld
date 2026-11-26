@@ -4,14 +4,12 @@
 // computes the window, the actions before the one that voids the rule, and answers an empty window `allows` without a call. So every
 // action the cell sees is one the rule is in force for, and the rule is shown as its fact and its enforcing rubric only (user, 2026-11-10).
 //
-import { judgeSceneSections } from '../../dataSource/actions/sceneProse/renderSceneJudge'
-import { judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
-import { subScene } from '../../dataSource/actions/sceneProse/subScene'
-import { heading } from '../../dataSource/actions/sceneProse/sceneWording'
-import { buildSceneFixture, sceneFixture } from '../../dataSource/positions/ludicCache/sceneFixtures'
+import { judgeRules, type JudgeRuleLine, type JudgeRuleParts } from '../../dataSource/actions/sceneProse/sceneRules'
+import { viewedRules } from '../../dataSource/actions/sceneProse/viewedSceneModel'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
-import type { SceneView } from '../pieceProbe/sceneRenders'
+import { isArmOf, judgeScene, judgeSceneWithRules, sceneOptionShape, sceneRendererOf, type SceneView, type SceneWording } from '../pieceProbe/sceneRenders'
+import { shownScene, withViewedScene } from '../pieceProbe/viewedRender'
 import { NO_PLAN_VIEW } from '../oracleLoop/actionPlan'
 
 /** An action of the plan, and what the play-by-play says each of the rule's things does in it, keyed by the rule's ends exactly. */
@@ -26,27 +24,27 @@ export type RuleCellInputs = {
     voidedAt?: number
 }
 
-export type RuleCellOptions = {
-    /** The rule's things' sub-scene (user), or no scene, for comparison. */
-    show: 'subScene' | 'none'
-    /** The sub-scene's own Rules section, in the built judge's `v45` wording; off by default (user: the cell doesn't judge rules that interact). */
-    sceneRules: boolean
-}
-
 /**
- * The rule cell's scene (calibration AGENT.md, "Piece views"): the sub-scene of the rule's two things, its securing in the judge's own
- * wording, no Rules section (the user: the cell doesn't judge rules that interact), and its own Rule section showing the rule's fact and
- * enforcing rubric only ("each piece shows only the part it uses", the user, 2026-11-10).
+ * The rule cell's wording: the judge render's Fiction and Graph, its securing in the judge's own wording, by default with no Rules section
+ * (the user: the cell doesn't judge rules that interact), or `judgeRules`, with the sub-scene's own Rules section in the built judge's
+ * `v45` wording (named `sceneRules: true` until 2026-11-26).
  */
-const RULE_CELL_SCENE = { shows: 'subScene', securing: 'shown', sceneRules: false, ruleParts: ['fact', 'enforcing'] } as const satisfies SceneView
+export const RULE_CELL_WORDING = { default: 'judge', arms: { judge: judgeScene, judgeRules: judgeSceneWithRules } } as const satisfies SceneWording<'judge' | 'judgeRules'>
+type RuleCellScene = keyof typeof RULE_CELL_WORDING.arms
 
-/** The rule cell's view: no plan (the bridge state), and its scene. */
-export const RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: RULE_CELL_SCENE }
+export type RuleCellOptions = { scene: RuleCellScene }
+
+/** The rule cell's scene (calibration AGENT.md, "Piece views"): the sub-scene of the rule's two things, its securing known. */
+const RULE_CELL_SCENE = { shows: 'subScene', securing: 'known' } as const satisfies SceneView
+
+/** The rule cell's view: no plan (the bridge state), its scene, and its wording. */
+export const RULE_CELL_VIEW: PieceView = { plan: NO_PLAN_VIEW, scene: RULE_CELL_SCENE, wording: RULE_CELL_WORDING }
+
+/** The rule's parts its own Rule section shows: the fact and the enforcing rubric only ("each piece shows only the part it uses", the user, 2026-11-10). */
+export const RULE_CELL_RULE_PARTS: readonly (keyof JudgeRuleParts)[] = ['fact', 'enforcing']
 
 /** The view's settings, each an arm a payload may override for comparison. */
-export const RULE_CELL_OPTIONS: RuleCellOptions = { show: RULE_CELL_SCENE.shows, sceneRules: RULE_CELL_SCENE.sceneRules }
-
-const SHOWS: readonly RuleCellOptions['show'][] = ['subScene', 'none']
+export const RULE_CELL_OPTIONS: RuleCellOptions = { scene: RULE_CELL_WORDING.default }
 
 /** The actions the rule is in force for: those before the voiding one, or all of them. */
 export const ruleCellWindow = ({ actions, voidedAt }: RuleCellInputs): readonly RuleCellAction[] => (
@@ -57,28 +55,27 @@ const parseRuleCellOptions = (value: unknown): RuleCellOptions | string => {
     if (value === undefined) {
         return RULE_CELL_OPTIONS
     }
-    const shape = `options must be { show?: ${SHOWS.join(' | ')}; sceneRules?: boolean }`
+    const shape = `options must be { scene?: ${sceneOptionShape(RULE_CELL_WORDING)} }`
     if (typeof value !== 'object' || value === null || Array.isArray(value)) {
         return shape
     }
-    const { show = RULE_CELL_OPTIONS.show, sceneRules = RULE_CELL_OPTIONS.sceneRules, ...rest } = value as Record<string, unknown>
-    if (Object.keys(rest).length > 0 || !(SHOWS as readonly unknown[]).includes(show) || typeof sceneRules !== 'boolean') {
+    const { scene = RULE_CELL_OPTIONS.scene, ...rest } = value as Record<string, unknown>
+    if (Object.keys(rest).length > 0 || !isArmOf(RULE_CELL_WORDING, scene)) {
         return shape
     }
-    return { show: show as RuleCellOptions['show'], sceneRules }
+    return { scene }
 }
 
-const fixtureScene = async (name: string): Promise<SceneModel> => {
-    const fixture = sceneFixture(name)
-    return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
-}
 
 const sameHandles = (one: readonly string[], other: readonly string[]): boolean => (
     one.length === other.length && one.every((handle) => other.includes(handle))
 )
 
-export const renderRuleCell = async ({ inputs }: PieceCell<RuleCellInputs>, { show, sceneRules }: RuleCellOptions): Promise<string> => {
-    const full = await fixtureScene(inputs.fixture)
+/**
+ * The checks that the cell fits its fixture (its rule is one of the scene's, as `judgeRules` names it, and each action's motions name
+ * its two things), and the sub-scene's handles, the rule's ends: so the sub-scene holds both ends and the securing between them.
+ */
+const prepareRuleCell = ({ inputs }: PieceCell<RuleCellInputs>, _options: RuleCellOptions, full: SceneModel): { handles: readonly SceneHandle[] } => {
     const rules = judgeRules(full)
     const rule = rules.find(({ handle }) => handle === inputs.rule)
     if (rule === undefined) {
@@ -92,26 +89,32 @@ export const renderRuleCell = async ({ inputs }: PieceCell<RuleCellInputs>, { sh
     if (offEnds !== -1) {
         throw new Error(`Action ${offEnds + 1}'s motions name ${Object.keys(actions[offEnds].motions).join(', ')}; expected the rule's things: ${rule.ends.join(', ')}`)
     }
-    const scene = (): string => {
-        const sections = judgeSceneSections(subScene(full, rule.ends))
-        return [
-            `Scene: ${heading(full)}`,
-            sections.fiction,
-            sections.graph,
-            ...(sceneRules && sections.rules !== undefined ? [sections.rules] : []),
-            'End of scene.',
-        ].join('\n\n')
+    return { handles: rule.ends }
+}
+
+/** The cell's rule, read off the scene it may know, with its handle as the full model mints it; the prep has checked that it is there. */
+const cellRule = (rules: readonly JudgeRuleLine[], handle: string): JudgeRuleLine => {
+    const rule = rules.find((line) => line.handle === handle)
+    if (rule === undefined) {
+        throw new Error(`Rule ${handle} is not in the viewed scene`)
     }
+    return rule
+}
+
+export const renderRuleCell = withViewedScene(RULE_CELL_SCENE, ({ inputs }: PieceCell<RuleCellInputs>, { scene: arm }: RuleCellOptions, viewed): string => {
+    const shown = shownScene(viewed)
+    const rule = cellRule(viewedRules(shown), inputs.rule)
+    const scene = sceneRendererOf(RULE_CELL_WORDING, arm)(shown)
     const cell = [
-        ['Rule:', `- ${rule.handle}: ${(RULE_CELL_VIEW.scene.ruleParts ?? []).map((part) => rule.parts[part]).join(' ')}`].join('\n'),
+        ['Rule:', `- ${rule.handle}: ${RULE_CELL_RULE_PARTS.map((part) => rule.parts[part]).join(' ')}`].join('\n'),
         `The rule's things: ${rule.ends.map((handle) => `[${handle}]`).join(', ')}`,
         ...ruleCellWindow(inputs).map(({ says, motions }, index) => [
             `Action ${index + 1}: ${says}`,
             ...rule.ends.map((handle) => `- [${handle}]: ${motions[handle]}`),
         ].join('\n')),
     ]
-    return [...(show === 'none' ? [] : [scene()]), ...cell].join('\n\n')
-}
+    return [scene, ...cell].join('\n\n')
+}, prepareRuleCell)
 
 const stays = 'stays where it is'
 const pickUpTable = 'pick up [table1]'
