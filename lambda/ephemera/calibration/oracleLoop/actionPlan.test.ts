@@ -32,6 +32,7 @@ describe('the action plan', () => {
             ['whole words only', 'cup10 and cup1s and mycup1 and cup1', '[cup10] and cup1s and mycup1 and [cup1]'],
             ['punctuation around', '(cup1), saucer1; table1!', '([cup1]), [saucer1]; [table1]!'],
             ['nothing to repair', 'the tea spills', 'the tea spills'],
+            ['an ambiguous reference left, every side', 'lift [cup1 | table1 | saucer1] from table1', 'lift [cup1 | table1 | saucer1] from [table1]'],
         ])('%s', (_, text, repaired) => {
             expect(bracketHandles(text, handles)).toBe(repaired)
         })

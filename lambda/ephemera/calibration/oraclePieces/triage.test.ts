@@ -2,7 +2,7 @@ import { planOf, planSteps, type ActionPlan } from '../oracleLoop/actionPlan'
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import type { PieceCell } from '../pieceProbe/oraclePiece'
 import { handlePieceProbe, PIECE_PROBE_CALL_CAP } from '../pieceProbe/handlePieceProbe'
-import { gradeTriage, groundingOf, planFromCommand, renderTriage, triage, triageCells, triageContract, triagePlansText, type TriageAnswer, type TriageInputs } from './triage'
+import { addedWords, gradeTriage, groundingOf, planFromCommand, renderTriage, triage, triageCells, triageContract, triagePlansText, type TriageAnswer, type TriageInputs } from './triage'
 import { triageCorpus } from './triageCorpus'
 
 const fenced = (value: unknown): string => `The tea has to come from somewhere.\n\n\`\`\`json\n${JSON.stringify(value)}\n\`\`\``
@@ -115,6 +115,22 @@ describe('triage', () => {
             expect(await problems('pour', { says: 'pour [tea2] past [teapot-secured-to-table]' })).toEqual(['[teapot-secured-to-table] is not in the scene, and not improvised'])
         })
 
+        it('takes an ambiguous reference to things in the scene, as written, its bare handles beside it bracketed', async () => {
+            expect(planSteps(await value('take/twoCups', { says: 'pick up [cup1 | cup2]' }))[0].says).toBe('pick up [cup1 | cup2]')
+            expect(planSteps(await value('take/twoCups', { says: 'put [cup1|cup2] on table1' }))[0].says).toBe('put [cup1|cup2] on [table1]')
+        })
+
+        it.each<[string, object, string[]]>([
+            ['a side not in the scene', { says: 'pick up [cup1 | cup3]' }, ['[cup3] is not in the scene, and not improvised']],
+            ['an empty side', { says: 'pick up [cup1 | ]' }, ['[cup1 | ] has an empty side']],
+            ['a side named twice', { says: 'pick up [cup1 | cup1]' }, ['[cup1 | cup1] names [cup1] twice']],
+            ['an improvised side', { improvise: [{ handle: 'cup3', gloss: 'a third cup' }], says: 'pick up [cup1 | cup3]' },
+                ['[cup1 | cup3]: [cup3] is improvised, and an ambiguous reference holds only things in the scene']],
+            ['one in a sub-step as well', { says: 'pick up [cup1 | cup2]', steps: [{ says: 'reach for [cup2 | cup2]' }, { says: 'lift it' }] }, ['[cup2 | cup2] names [cup2] twice']],
+        ])('refuses an ambiguous reference with %s', async (_, record, found) => {
+            expect(await problems('take/twoCups', record)).toEqual(found)
+        })
+
         it.each<[string, unknown, string]>([
             ['a thing the scene has', [{ handle: '[cup1]', gloss: 'a cup' }], 'improvised thing 1: [cup1] is in the scene already'],
             ['the same handle twice', [cloth, { ...cloth, gloss: 'another cloth' }], 'improvised thing 2: [cloth1] is improvised twice'],
@@ -195,16 +211,35 @@ describe('triage', () => {
         const grade = async (command: string, reply: object) => gradeTriage(fenced(reply), commands[command], await renderTriage(commands[command]))
 
         it.each<[string, string, object, string, object]>([
-            ['a plain "Yes"', 'take', { says: 'pick up [cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Yes', grounding: 'cup1' }],
-            ['a "Yes" the guard defers, its answer triage\'s own', 'pour', { says: 'pour [tea2] from [teapot1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'tea2, teapot1' }],
-            ['a "Yes" an improvised thing defers, its handle\'s name left out', 'wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'table1, improvised' }],
-            ['two improvised things', 'wipe/cloth', { improvise: [cloth, { handle: 'bowl1', gloss: 'a bowl of water' }], says: 'wipe [table1] with [cloth1] and [bowl1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'table1, improvised, improvised' }],
-            ['handles in any order, each once, and none but the step\'s own', 'pour', { says: 'lift [teapot1] and pour [tea2] from [teapot1] into [cup1]', intent: 'no more tea in [saucer1]', steps: [{ says: 'lift [table1]' }, { says: 'tip [teapot1]' }], kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea2, teapot1' }],
-            ['a step that names nothing', 'take/twoCups', { says: 'pick up the cup', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'none' }],
-            ['a "No"', 'wipe', { says: 'wipe [table1]', kind: 'No', reason: 'it is dry' }, 'No', { afterGuard: 'No', grounding: 'table1' }],
-        ])('keeps the answer, the branch after the guard and the grounding apart: %s', async (_, command, reply, kind, aspects) => {
+            ['a plain "Yes"', 'take', { says: 'pick up [cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Yes', grounding: 'cup1', added: 'none' }],
+            ['a "Yes" the guard defers, its answer triage\'s own', 'pour', { says: 'pour [tea2] from [teapot1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'tea2, teapot1', added: 'none' }],
+            ['a "Yes" an improvised thing defers, its handle\'s name left out', 'wipe/cloth', { improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'table1, improvised', added: 'none' }],
+            ['two improvised things', 'wipe/cloth', { improvise: [cloth, { handle: 'bowl1', gloss: 'a bowl of water' }], says: 'wipe [table1] with [cloth1] and [bowl1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'table1, improvised, improvised', added: 'none' }],
+            ['handles in any order, each once, and none but the step\'s own', 'pour', { says: 'lift [teapot1] and pour [tea2] from [teapot1] into [cup1]', intent: 'no more tea in [saucer1]', steps: [{ says: 'lift [table1]' }, { says: 'tip [teapot1]' }], kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea2, teapot1', added: 'lift' }],
+            ['a step that names nothing', 'take/twoCups', { says: 'pick up the cup', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'none', added: 'none' }],
+            ['a "Yes" an ambiguous reference defers, its sides sorted as one', 'take/twoCups', { says: 'pick up [cup2 | cup1]', kind: 'Yes' }, 'Yes', { afterGuard: 'Defer', grounding: 'cup1|cup2', added: 'none' }],
+            ['an ambiguous reference among plain ones', 'pour', { says: 'pour [tea2 | tea1] into [cup1]', kind: 'Defer' }, 'Defer', { afterGuard: 'Defer', grounding: 'cup1, tea1|tea2', added: 'none' }],
+            ['a "No"', 'wipe', { says: 'wipe [table1]', kind: 'No', reason: 'it is dry' }, 'No', { afterGuard: 'No', grounding: 'table1', added: 'none' }],
+        ])('keeps the answer, the branch after the guard, the grounding and the words added apart: %s', async (_, command, reply, kind, aspects) => {
             const graded = await grade(command, reply)
             expect(graded).toEqual({ answer: kind, aspects, plan: (await answer(command, reply)).plan })
+        })
+
+        it.each<[string, string, string, string]>([
+            ['none, where the step is the player\'s words with their things named', 'wipe', 'wipe [table1]', 'none'],
+            ['none of a thing\'s handle, nor of the words that join one', 'pour', 'pour tea from [teapot1] into [cup1] on [saucer1]', 'none'],
+            ['the words of a method, each once and in order', 'pour', 'carefully tip [teapot1] and carefully pour [tea2]', 'carefully tip'],
+            ['a place named in words', 'take', 'pick up the cup beside the candle', 'beside candle'],
+            ['none of the player\'s words in another case', 'pour', 'Pour Tea.', 'none'],
+            ['a thing\'s name in words, where the player didn\'t give it', 'pour', 'pour tea from the teapot', 'teapot'],
+        ])('reads the words added to the player\'s: %s', async (_, command, says, words) => {
+            expect(addedWords(await value(command, { says }), commands[command].inputs.plan.steps[0].says)).toBe(words)
+            expect(await grade(command, { says, kind: 'Defer' })).toMatchObject({ aspects: { added: words } })
+        })
+
+        it('reads no word of an improvised thing\'s handle, its gloss, or the rest of the record', async () => {
+            const record = { improvise: [cloth], says: 'wipe [table1] with [cloth1]', intent: 'a gleaming surface', steps: [{ says: 'fold [cloth1]' }, { says: 'rub [table1]' }], consequences: [{ says: 'dust flies' }] }
+            expect(await grade('wipe', { ...record, kind: 'Defer' })).toMatchObject({ aspects: { added: 'none' } })
         })
 
         it('is malformed where the contract refuses the reply, with every problem', async () => {
@@ -219,7 +254,7 @@ describe('triage', () => {
 
     describe('the cells', () => {
         it('are the corpus\'s rows, all in scenes they render in, each saying what to look for', async () => {
-            expect(Object.keys(triageCells)).toEqual(Array.from({ length: 25 }, (_, index) => `T-${index + 1}`))
+            expect(Object.keys(triageCells)).toEqual(Array.from({ length: 27 }, (_, index) => `T-${index + 1}`))
             await Promise.all(Object.entries(triageCells).map(async ([id, cell]) => {
                 expect(await triage.render(cell, undefined)).toContain(`(unchecked): ${triageCorpus[id].command}\n`)
                 expect(cell.lookFor).toBeTruthy()
@@ -229,8 +264,11 @@ describe('triage', () => {
         it('are graded on the row\'s branches, and on its grounding on a "Yes" or a "Defer" alone', () => {
             expect(triageCells['T-1']).toMatchObject({ expected: 'Yes', expectedAspects: { afterGuard: ['Yes'], grounding: ['cup1'] } })
             expect(triageCells['T-13']).toMatchObject({ expected: 'Defer', expectedAspects: { afterGuard: ['Defer'], grounding: ['table1, teapot1, improvised'] } })
-            expect(triageCells['T-24'].expectedAspects?.grounding).toEqual(['none'])
-            expect(triageCells['T-25'].expectedAspects?.grounding).toEqual(['cup1, tea2, teapot1', 'tea2, teapot1'])
+            expect(triageCells['T-10'].expectedAspects?.grounding).toEqual(['cup1, tea2, teapot1', 'cup1, tea1|tea2'])
+            expect(triageCells['T-24'].expectedAspects?.grounding).toEqual(['cup1|cup2'])
+            expect(triageCells['T-25'].expectedAspects?.grounding).toEqual(['cup1, tea2, teapot1', 'tea2, teapot1', 'tea1|tea2'])
+            expect(triageCells['T-26'].expectedAspects?.grounding).toEqual(['hammer1, saucer1'])
+            expect(triageCells['T-27'].expectedAspects?.grounding).toEqual(['rope1, improvised'])
             expect(triageCells['T-5']).toMatchObject({ expected: 'No', expectedAspects: { afterGuard: ['No'] } })
             expect(Object.entries(triageCells).filter(([, { expectedAspects }]) => expectedAspects?.grounding === undefined).map(([id]) => id)).toEqual(['T-5', 'T-6', 'T-7', 'T-8', 'T-15', 'T-21'])
             expect(Object.entries(triageCells).filter(([, { expected, expectedAspects }]) => expected === undefined || expectedAspects === undefined).map(([id]) => id)).toEqual(['T-15', 'T-21'])
@@ -238,7 +276,7 @@ describe('triage', () => {
 
         it('hold the branches as the corpus counts them', () => {
             const count = (kind: string) => Object.values(triageCells).filter(({ expected }) => expected === kind).length
-            expect({ Yes: count('Yes'), No: count('No'), Defer: count('Defer') }).toEqual({ Yes: 8, No: 4, Defer: 11 })
+            expect({ Yes: count('Yes'), No: count('No'), Defer: count('Defer') }).toEqual({ Yes: 8, No: 4, Defer: 13 })
         })
 
         it('grades every row right on its own grounding and branch', async () => {
@@ -264,10 +302,10 @@ describe('triage', () => {
         }
 
         it('runs through the probe in two payloads, each within the cap, and takes no options', async () => {
-            const halves = [ids.slice(0, 13), ids.slice(13)]
+            const halves = [ids.slice(0, 14), ids.slice(14)]
             const runs = await Promise.all(halves.map((cells) => run({ cells }, { says: 'wait', kind: 'Defer' })))
             expect(runs.map(({ statusCode }) => statusCode)).toEqual([200, 200])
-            expect(runs.map(({ result }) => result.summary.calls)).toEqual([13, 12])
+            expect(runs.map(({ result }) => result.summary.calls)).toEqual([14, 13])
             expect(ids.length).toBeGreaterThan(PIECE_PROBE_CALL_CAP)
             expect((await run({}, { says: 'wait', kind: 'Defer' })).statusCode).toBe(400)
             expect((await run({ cells: ['T-1'], options: { scene: 'judge' } }, { says: 'wait', kind: 'Defer' })).statusCode).toBe(400)
@@ -276,8 +314,8 @@ describe('triage', () => {
         it('is tallied on its branch, with what is kept apart from it beside it, and its plan carried to the read', async () => {
             const { result } = await run({ cells: ['T-9', 'T-15'] }, { says: 'pick up [teapot1]', kind: 'No', reason: 'it is glued' })
             expect(result.cells[0]).toMatchObject({ cell: 'T-9', expected: 'Defer', right: 0, wrong: 1, answers: { No: 1 }, aspects: { afterGuard: { right: 1, wrong: 0 }, grounding: { right: 1, wrong: 0 } } })
-            expect(result.cells[1]).toMatchObject({ cell: 'T-15', right: 0, wrong: 0, aspects: { afterGuard: { right: 0, wrong: 0, given: { Defer: 1 } }, grounding: { given: { teapot1: 1 } } } })
-            expect(result.summary).toMatchObject({ calls: 2, wrong: 1, ungraded: 1, aspects: { afterGuard: { right: 1, wrong: 0, ungraded: 1 }, grounding: { right: 1, wrong: 0, ungraded: 1 } } })
+            expect(result.cells[1]).toMatchObject({ cell: 'T-15', right: 0, wrong: 0, aspects: { afterGuard: { right: 0, wrong: 0, given: { Defer: 1 } }, grounding: { given: { teapot1: 1 } }, added: { given: { 'pick up': 1 } } } })
+            expect(result.summary).toMatchObject({ calls: 2, wrong: 1, ungraded: 1, aspects: { afterGuard: { right: 1, wrong: 0, ungraded: 1 }, grounding: { right: 1, wrong: 0, ungraded: 1 }, added: { right: 0, wrong: 0, ungraded: 2 } } })
             expect(result.read[0].grade.plan.steps[0].says).toBe('pick up [teapot1]')
         })
 
@@ -290,17 +328,19 @@ describe('triage', () => {
             const printed = await triagePlansText([
                 { cell: 'T-14', repeat: 1, answer: fenced({ improvise: [cloth], says: 'wipe [table1] with [cloth1]', kind: 'Yes' }) },
                 { cell: 'T-1', repeat: 1, answer: fenced({ says: 'pick up [cup1]', kind: 'Yes' }) },
+                { cell: 'T-1', repeat: 2, answer: fenced({ says: 'gently pick up [cup1]', kind: 'Yes' }) },
                 { cell: 'T-14', repeat: 2, answer: fenced({ says: 'wipe [table1]', kind: 'No', reason: 'the table is dirty' }) },
                 { cell: 'T-14', repeat: 3, answer: fenced({ says: 'wipe [table1]' }) },
                 { cell: 'T-14', repeat: 4, error: 'throttled' },
                 { cell: 'pour', repeat: 1, answer: fenced({ says: 'pour tea', kind: 'Yes' }) },
             ])
-            expect(printed.split('\n').filter((line) => line.startsWith('##'))).toEqual(['## T-14, repeat 1', '## T-14, repeat 2', '## T-14, repeat 3', '## T-14, repeat 4', '## T-1, repeat 1', '## pour, repeat 1'])
+            expect(printed.split('\n').filter((line) => line.startsWith('##'))).toEqual(['## T-14, repeat 1', '## T-14, repeat 2', '## T-14, repeat 3', '## T-14, repeat 4', '## T-1, repeat 1', '## T-1, repeat 2', '## pour, repeat 1'])
             expect(printed).toContain('T-14, repeat 1\nYes\nafter the guard: Defer\ngrounding: table1, improvised\nImprovise [cloth1] (unchecked): a cloth suitable for cleaning\nStep wipe-table1-cloth1')
             expect(printed).toContain('T-14, repeat 2\nNo: the table is dirty\ngrounding: table1\nStep wipe-table1')
             expect(printed).toContain('T-14, repeat 3\nform: has no string "kind"')
             expect(printed).toContain('T-14, repeat 4\nerror: throttled')
             expect(printed).toContain('T-1, repeat 1\nYes\ngrounding: cup1\nStep pick-up-cup1')
+            expect(printed).toContain('T-1, repeat 2\nYes\ngrounding: cup1\nadded: gently\nStep ')
             expect(printed).toContain('pour, repeat 1\nnot a triage cell')
         })
     })

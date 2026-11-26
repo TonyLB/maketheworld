@@ -309,7 +309,9 @@ export const bracketHandles = (text: string, handles: readonly SceneHandle[]): s
         return text
     }
     const canonical = new Map(handles.map((handle) => [handle.toLowerCase(), handle]))
-    return text.replace(new RegExp(`(?<![\\[\\w])(${escaped.join('|')})(?![\\]\\w])`, 'gi'), (match) => `[${canonical.get(match.toLowerCase()) ?? match}]`)
+    const bare = new RegExp(`(?<![\\[\\w])(${escaped.join('|')})(?![\\]\\w])`, 'gi')
+    // Only outside brackets: an ambiguous reference's middle side, `[a | b | c]`, is a handle with no bracket of its own beside it.
+    return text.split(/(\[[^\]]*\])/).map((part, index) => (index % 2 === 1 ? part : part.replace(bare, (match) => `[${canonical.get(match.toLowerCase()) ?? match}]`))).join('')
 }
 
 /** ` (unchecked)` after an unchecked item's path (R1, the first render candidate tried); a confirmed item has no tag and reads as fact. */

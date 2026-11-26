@@ -4,7 +4,7 @@
 //
 import { hostsOf, judgeRules } from '../../dataSource/actions/sceneProse/sceneRules'
 import type { SceneHandle, SceneModel } from '../../dataSource/positions/ludicCache/sceneModel'
-import { namedHandles } from '../imaginationPieces/imaginationScene'
+import { ambiguousReferences, namedHandles } from '../imaginationPieces/imaginationScene'
 import type { ActionPlan } from '../oracleLoop/actionPlan'
 import type { TriageAnswer } from './triage'
 
@@ -22,6 +22,15 @@ export const improvisedDefers = (answer: TriageAnswer): TriageAnswer => {
     const { kind, plan } = answer
     const named = saysHandles(plan)
     return kind === 'Yes' && (plan.improvised ?? []).some(({ handle }) => named.includes(handle)) ? { kind: 'Defer', plan } : answer
+}
+
+/**
+ * A "Yes" whose step makes an ambiguous reference, `[cup1 | cup2]`, is a "Defer" with the same plan: which thing the player means is the
+ * judge's to settle. A "No" stands, since it can hold whichever thing is meant. Any other answer is as it was.
+ */
+export const ambiguityDefers = (answer: TriageAnswer): TriageAnswer => {
+    const { kind, plan } = answer
+    return kind === 'Yes' && plan.steps.some(({ says }) => ambiguousReferences(says).length > 0) ? { kind: 'Defer', plan } : answer
 }
 
 /**
@@ -51,5 +60,5 @@ export const securingDefers = (answer: TriageAnswer, scene: SceneModel): TriageA
     return kind !== 'Defer' && saysHandles(plan).some((handle) => ends.includes(handle)) ? { kind: 'Defer', plan } : answer
 }
 
-/** The answer after the guard: both of code's rules, over the full scene. Each only makes a "Defer", so their order doesn't matter. */
-export const guarded = (answer: TriageAnswer, scene: SceneModel): TriageAnswer => securingDefers(improvisedDefers(answer), scene)
+/** The answer after the guard: all three of code's rules, over the full scene. Each only makes a "Defer", so their order doesn't matter. */
+export const guarded = (answer: TriageAnswer, scene: SceneModel): TriageAnswer => securingDefers(ambiguityDefers(improvisedDefers(answer)), scene)

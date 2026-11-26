@@ -42,12 +42,37 @@ export const fixtureScene = async (name: string): Promise<SceneModel> => {
     return (await buildSceneFixture(fixture)).scene({ exits: fixture.exits }).scene
 }
 
-/** The handles a text names in brackets, in order. */
-export const namedHandles = (text: string): SceneHandle[] => [...text.matchAll(/\[([^\]]+)\]/g)].map(([, handle]) => handle)
+/**
+ * The references a text makes in brackets, in order, each as the handles it may be: one, or for an ambiguous reference, `[tea1 | tea2]`, each
+ * thing the player's words fit equally well, trimmed, in the order written. A side left empty is kept, for `ambiguityProblems` to name.
+ */
+export const bracketedReferences = (text: string): SceneHandle[][] =>
+    [...text.matchAll(/\[([^\]]+)\]/g)].map(([, inner]) => (inner.includes('|') ? inner.split('|').map((side) => side.trim()) : [inner]))
+
+/** The ambiguous references a text makes, each as its sides. */
+export const ambiguousReferences = (text: string): SceneHandle[][] => bracketedReferences(text).filter((sides) => sides.length > 1)
+
+/** The handles a text names in brackets, in order: every side of an ambiguous reference, so every reader sees each candidate. */
+export const namedHandles = (text: string): SceneHandle[] => bracketedReferences(text).flat().filter((handle) => handle !== '')
+
+/**
+ * What is wrong with a text's ambiguous references, each in the reply's terms: a side left empty, one named twice, or one improvised, since an
+ * ambiguous reference holds only things in the scene (the user, 2026-11-25). Whether its sides are in the scene is the caller's check.
+ */
+export const ambiguityProblems = (text: string, improvised: readonly SceneHandle[]): string[] => ambiguousReferences(text).flatMap((sides) => {
+    const written = `[${sides.join(' | ')}]`
+    return [
+        ...(sides.includes('') ? [`${written} has an empty side`] : []),
+        ...[...new Set(sides.filter((side, index) => side !== '' && sides.indexOf(side) !== index))].map((side) => `${written} names [${side}] twice`),
+        ...[...new Set(sides.filter((side) => improvised.includes(side)))].map((side) => `${written}: [${side}] is improvised, and an ambiguous reference holds only things in the scene`),
+    ]
+})
+
+/** A plan's texts, its sub-steps' included, in order. */
+export const planTexts = ({ steps }: ActionPlan): string[] => steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)])
 
 /** The handles a plan's text names, its sub-steps' included, each once, in order. */
-export const planHandles = ({ steps }: ActionPlan): SceneHandle[] =>
-    [...new Set(steps.flatMap(({ says, items }) => [says, ...items.flatMap(itemTexts)]).flatMap(namedHandles))]
+export const planHandles = (plan: ActionPlan): SceneHandle[] => [...new Set(planTexts(plan).flatMap(namedHandles))]
 
 /**
  * The handles a viewed plan's text names that are the scene's to show: all but those the view shows as improvised, which the plan describes

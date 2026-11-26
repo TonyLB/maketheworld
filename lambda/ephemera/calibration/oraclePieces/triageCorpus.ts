@@ -1,7 +1,7 @@
 //
 // Triage's corpus (AGENT.triage.planning.md, "The corpus"), as data: each command in its scene, how its step should be grounded, the branch
 // right given what triage is shown, and the branch after the guard. A row with no branch is open between two, so it is tallied and not
-// graded. The branches and groundings were reviewed by the user, who alone revises them; what each looks for is mine until the user has read it.
+// graded. The rows and what each looks for were reviewed by the user, who alone revises them (2026-11-25).
 //
 import type { ImproviseEntry } from '../oracleLoop/actionPlan'
 import type { TriageKind } from './triage'
@@ -43,8 +43,8 @@ export const triageCorpus: Readonly<Record<string, CorpusRow>> = {
         lookFor: 'The reason is the size of the long trestle' },
     'T-9': { fixture: 'teaTable', command: 'pick up the teapot', grounded: [{ says: 'pick up [teapot1]' }], branch: same('Defer'), from: 'OC-5',
         lookFor: 'Its "No" is the judge\'s. On a "No", whether the glue was taken as permanent' },
-    'T-10': { fixture: 'teaTable', command: 'pour tea into the cup', grounded: [{ says: 'pour [tea2] from [teapot1] into [cup1]' }], branch: same('Defer'), from: 'OC-6',
-        lookFor: 'Whether the source, which the player doesn\'t name, is in `says`: without it the guard misses the pour' },
+    'T-10': { fixture: 'teaTable', command: 'pour tea into the cup', grounded: [{ says: 'pour [tea2] from [teapot1] into [cup1]' }, { says: 'pour [tea1 | tea2] into [cup1]' }], branch: same('Defer'), from: 'OC-6',
+        lookFor: 'Whether the source, which the player doesn\'t name, is in `says`: without it the guard misses the pour. "Tea" fits both teas by the words alone, so both may be named (the user, 2026-11-25)' },
     'T-11': { fixture: 'teaTable', command: 'pour tea from the teapot', grounded: [{ says: 'pour [tea2] from [teapot1]' }], branch: same('Defer'), from: 'OC-6',
         lookFor: 'Which tea is named; on a "No", whether the glue was taken as permanent' },
     'T-12': { fixture: 'teaTableChained', command: 'pick up the table', grounded: [{ says: 'pick up [table1]' }], branch: same('Defer'), from: 'OC-20',
@@ -75,8 +75,13 @@ export const triageCorpus: Readonly<Record<string, CorpusRow>> = {
         lookFor: 'One improvised thing, its gloss something sharp. Not [hammer1]' },
     'T-23': { fixture: 'twoCups', command: 'pick up the china cup', grounded: [{ says: 'pick up [cup2]' }], branch: same('Yes'), from: 'OC-32\'s kind',
         lookFor: 'The gloss settles which cup' },
-    'T-24': { fixture: 'twoCups', command: 'pick up the cup', grounded: [{ says: 'pick up the cup' }], branch: same('Defer'), from: 'OC-32\'s kind',
-        lookFor: 'The cup left in the player\'s words, neither cup chosen and no third improvised' },
-    'T-25': { fixture: 'teaTable', command: 'pour tea', grounded: [{ says: 'pour [tea2] from [teapot1] into [cup1]' }, { says: 'pour [tea2] from [teapot1]' }], branch: same('Defer'), from: 'the user\'s',
+    'T-24': { fixture: 'twoCups', command: 'pick up the cup', grounded: [{ says: 'pick up [cup1 | cup2]' }], branch: same('Defer'), from: 'OC-32\'s kind',
+        lookFor: 'Both cups named, neither chosen and no third improvised (the user, 2026-11-25: it was the cup left in the player\'s words)' },
+    'T-25': { fixture: 'teaTable', command: 'pour tea', grounded: [{ says: 'pour [tea2] from [teapot1] into [cup1]' }, { says: 'pour [tea2] from [teapot1]' }, { says: 'pour [tea1 | tea2]' }], branch: same('Defer'), from: 'the user\'s',
         lookFor: 'The source follows from which tea is meant. The destination is open: into [cup1], which holds tea already, or unstated' },
+    'T-26': { fixture: 'tavern', command: 'smash the saucer', grounded: [{ says: 'smash [saucer1] with [hammer1]' }], branch: same('Defer'), from: 'the pair of T-27',
+        lookFor: 'A tool the command implies, held and suitable: nothing improvised. [cup1] is on the saucer' },
+    'T-27': { fixture: 'tavernRope', command: 'cut the rope',
+        grounded: [{ says: 'cut [rope1] with [blade1]', improvise: [{ handle: 'blade1', gloss: 'something for cutting rope' }] }], branch: same('Defer'), from: 'the expansion probe\'s, the user\'s example',
+        lookFor: 'A tool the command implies, and the one held doesn\'t suit: one thing for cutting improvised, and not [hammer1]' },
 }

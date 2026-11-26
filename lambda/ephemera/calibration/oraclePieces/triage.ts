@@ -8,14 +8,14 @@
 import { renderSceneExplicit, ruleTagHandles } from '../../dataSource/actions/sceneProse/renderSceneExplicit'
 import type { SceneHandle } from '../../dataSource/positions/ludicCache/sceneModel'
 import { replyJsonObject, type StageContract, type StageShown } from '../../llm/stageContract'
-import { fixtureScene, namedHandles, planHandles } from '../imaginationPieces/imaginationScene'
+import { ambiguityProblems, bracketedReferences, fixtureScene, namedHandles, planHandles, planTexts } from '../imaginationPieces/imaginationScene'
 import { plansText } from '../imaginationPieces/plansText'
 import { expansionClosed, planOf, planSteps, renderPlanForGenerator, rewordingClosed, viewPlan, type ActionPlan, type MergeOptions } from '../oracleLoop/actionPlan'
 import { mergeStepRecord } from '../oracleLoop/stepRecord'
 import { registerPiece, type OraclePiece, type PieceCell, type PieceView } from '../pieceProbe/oraclePiece'
 import type { PieceGrade } from '../pieceProbe/pieceAnswer'
 import { triageCorpus, type CorpusRow } from './triageCorpus'
-import { guarded, saysHandles } from './triageGuard'
+import { guarded } from './triageGuard'
 
 export type TriageInputs = {
     fixture: string
@@ -90,8 +90,8 @@ const readVerdict = ({ kind, reason }: { kind?: unknown; reason?: unknown }): Tr
 }
 
 /**
- * The step record merged into the plan. A handle its texts name must be in the scene or improvised. An improvised thing that no text names is
- * no problem: it costs nothing until something reads it.
+ * The step record merged into the plan. A handle its texts name must be in the scene or improvised, and an ambiguous reference must be well
+ * formed (`ambiguityProblems`). An improvised thing that no text names is no problem: it costs nothing until something reads it.
  */
 const mergeRecord = (record: Record<string, unknown>, { input: { plan, target }, rendered }: StageShown<TriageInputs>): { plan: ActionPlan } | { problems: string[] } => {
     const rules = ruleTagHandles(rendered)
@@ -100,9 +100,13 @@ const mergeRecord = (record: Record<string, unknown>, { input: { plan, target },
     if ('problems' in merged) {
         return merged
     }
-    const known = [...things, ...(merged.plan.improvised ?? []).map(({ handle }) => handle)]
-    const unknown = planHandles(merged.plan).filter((handle) => !known.includes(handle))
-    return unknown.length > 0 ? { problems: unknown.map((handle) => `[${handle}] is not in the scene, and not improvised`) } : merged
+    const improvised = (merged.plan.improvised ?? []).map(({ handle }) => handle)
+    const known = [...things, ...improvised]
+    const problems = [
+        ...planHandles(merged.plan).filter((handle) => !known.includes(handle)).map((handle) => `[${handle}] is not in the scene, and not improvised`),
+        ...planTexts(merged.plan).flatMap((text) => ambiguityProblems(text, improvised)),
+    ]
+    return problems.length > 0 ? { problems } : merged
 }
 
 /**
@@ -126,19 +130,41 @@ export const triageContract: StageContract<TriageInputs, TriageAnswer> = {
 }
 
 /**
- * The step's grounding, as the cells' `expectedAspects` have it: the handles its `says` names, sorted, then each improvised one as
- * `improvised`, since its name is free; or `none`. It can't see a handle in the wrong role, or a word left beside its handle.
+ * The step's grounding, as the cells' `expectedAspects` have it: the references its `says` makes, each once, sorted, an ambiguous one as its
+ * sides sorted and joined, `cup1|cup2`; then each improvised one as `improvised`, since its name is free; or `none`. It can't see a handle in
+ * the wrong role, or a word left beside its handle.
  */
-const groundingText = (named: readonly SceneHandle[], improvised: readonly SceneHandle[]): string => {
-    const found = [...named.filter((handle) => !improvised.includes(handle)).sort(), ...named.filter((handle) => improvised.includes(handle)).map(() => 'improvised')]
+const groundingText = (texts: readonly string[], improvised: readonly SceneHandle[]): string => {
+    const references = [...new Set(texts.flatMap(bracketedReferences).map((sides) => [...sides].sort().join('|')))]
+    const found = [...references.filter((reference) => !improvised.includes(reference)).sort(), ...references.filter((reference) => improvised.includes(reference)).map(() => 'improvised')]
     return found.length === 0 ? 'none' : found.join(', ')
 }
 
-export const groundingOf = (plan: ActionPlan): string => groundingText(saysHandles(plan), (plan.improvised ?? []).map(({ handle }) => handle))
+export const groundingOf = (plan: ActionPlan): string => groundingText(plan.steps.map(({ says }) => says), (plan.improvised ?? []).map(({ handle }) => handle))
+
+/** The words that join a thing to a step, or lead into one: what a step may hold beside its handles and the player's own words. */
+const JOINING_WORDS: ReadonlySet<string> = new Set([
+    'a', 'an', 'the', 'and', 'at', 'by', 'from', 'in', 'into', 'of', 'off', 'on', 'onto', 'out', 'over', 'across', 'to', 'using', 'with',
+])
+
+const wordsOf = (text: string): string[] => text.toLowerCase().match(/[\p{L}\p{N}'’]+/gu) ?? []
 
 /**
- * The probe's grade: the contract's answer, its kind as triage gave it, and beside it, tallied apart, the kind after the guard and the
- * grounding; or the parse's problems. The guard reads the fixture's full scene.
+ * The words the plan's step adds to the player's, each once, in order: none of its handles, none of the command's words, and no joining word;
+ * or `none`. What they are is thoughts of how the step is done, or of what stands in its way, that went into the step.
+ */
+export const addedWords = (plan: ActionPlan, command: string): string => {
+    const given = new Set(wordsOf(command))
+    const added = plan.steps.flatMap(({ says }) => wordsOf(says.replace(/\[[^\]]*\]/g, ' '))).filter((word) => !given.has(word) && !JOINING_WORDS.has(word))
+    return added.length === 0 ? 'none' : [...new Set(added)].join(' ')
+}
+
+/** The player's command, as the input plan's one step has it. */
+const commandOf = ({ plan }: TriageInputs): string => plan.steps.map(({ says }) => says).join(' ')
+
+/**
+ * The probe's grade: the contract's answer, its kind as triage gave it, and beside it, tallied apart, the kind after the guard, the grounding
+ * and the words added to the player's (which no cell expects, so they are never graded); or the parse's problems. The guard reads the fixture's full scene.
  */
 export const gradeTriage = async (reply: string, { inputs }: PieceCell<TriageInputs>, rendered: string): Promise<PieceGrade> => {
     const parsed = triageContract.parse(reply, { input: inputs, rendered })
@@ -147,12 +173,12 @@ export const gradeTriage = async (reply: string, { inputs }: PieceCell<TriageInp
     }
     const { kind, plan } = parsed.value
     const after = guarded(parsed.value, await fixtureScene(inputs.fixture))
-    return { answer: kind, aspects: { afterGuard: after.kind, grounding: groundingOf(plan) }, plan }
+    return { answer: kind, aspects: { afterGuard: after.kind, grounding: groundingOf(plan), added: addedWords(plan, commandOf(inputs)) }, plan }
 }
 
 /** The groundings a row accepts, as the grade gives them. */
 const acceptedGroundings = ({ grounded }: CorpusRow): string[] =>
-    grounded.map(({ says, improvise = [] }) => groundingText([...new Set(namedHandles(says))], improvise.map(({ handle }) => handle)))
+    grounded.map(({ says, improvise = [] }) => groundingText([says], improvise.map(({ handle }) => handle)))
 
 /**
  * A row as a cell: the command as a plan, and what its branch settles. The grounding is graded on a "Yes" or a "Defer" alone (the bar, as
@@ -196,13 +222,15 @@ export const triage: OraclePiece<TriageInputs, undefined> = {
 
 export const registeredTriage = registerPiece(triage)
 
-/** An answer for reading: the verdict, the one after the guard where it differs, the grounding, then the plan. */
-const renderAnswer = async (answer: TriageAnswer, { fixture }: TriageInputs): Promise<string> => {
-    const after = guarded(answer, await fixtureScene(fixture))
+/** An answer for reading: the verdict, the one after the guard where it differs, the grounding, the words added to the player's where there are any, then the plan. */
+const renderAnswer = async (answer: TriageAnswer, inputs: TriageInputs): Promise<string> => {
+    const after = guarded(answer, await fixtureScene(inputs.fixture))
+    const added = addedWords(answer.plan, commandOf(inputs))
     return [
         answer.kind === 'No' ? `No: ${answer.reason}` : answer.kind,
         ...(after.kind === answer.kind ? [] : [`after the guard: ${after.kind}`]),
         `grounding: ${groundingOf(answer.plan)}`,
+        ...(added === 'none' ? [] : [`added: ${added}`]),
         renderPlanForGenerator(answer.plan),
     ].join('\n')
 }
