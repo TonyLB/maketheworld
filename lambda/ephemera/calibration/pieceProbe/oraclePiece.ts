@@ -47,13 +47,17 @@ type PieceCellBase<Inputs> = {
     note?: string
 }
 
+/** What a cell may expect: one answer, or a list of those accepted (`acceptsAnswer`). A piece takes the list only by declaring it. */
+export type CellExpected = string | readonly string[]
+
 /** One case an answered piece is graded on: its inputs, and the answer it should give. */
-export type PieceCell<Inputs = unknown> = PieceCellBase<Inputs> & {
+export type PieceCell<Inputs = unknown, Expected extends CellExpected = string> = PieceCellBase<Inputs> & {
     /**
-     * The answer as the piece's grade gives it: one of its `answers`, or its own canonical form where it has a `grade`. Graded given the
-     * inputs, even where the inputs are wrong about the case. Absent for a cell whose answer is open: its calls are tallied, not graded.
+     * The answer as the piece's grade gives it: one of its `answers`, or its own canonical form where it has a `grade`; or a list of the
+     * answers accepted, where more than one is right (a grounding with a part open), any of which grades right. Graded given the inputs,
+     * even where the inputs are wrong about the case. Absent for a cell whose answer is open: its calls are tallied, not graded.
      */
-    expected?: string
+    expected?: Expected
     /** The values accepted for each of the grade's `aspects`. One with none here is tallied, not graded. */
     expectedAspects?: Readonly<Record<string, readonly string[]>>
     /** What a reader looks for in the parts of a reply code doesn't grade, written before the batch. Code doesn't read it. */
@@ -75,25 +79,25 @@ type PieceBase = {
 }
 
 /** An answered piece: a closed answer set, and an expected answer per cell. */
-export type OraclePiece<Inputs = unknown, Options = unknown> = PieceBase & {
+export type OraclePiece<Inputs = unknown, Options = unknown, Expected extends CellExpected = string> = PieceBase & {
     kind?: 'answered'
     /** The closed answer set a reply's `Answer:` line is read against. */
     answers: readonly string[]
-    cells: Record<string, PieceCell<Inputs>>
+    cells: Record<string, PieceCell<Inputs, Expected>>
     /** Checks the event's `options` (absent as `undefined`), giving the piece's options or a refusal. */
     parseOptions: (value: unknown) => Options | string
     /** The prompt text after the instructions. Async, so it can build a fixture's scene. */
-    render: (cell: PieceCell<Inputs>, options: Options) => Promise<string>
+    render: (cell: PieceCell<Inputs, Expected>, options: Options) => Promise<string>
     /** The render as its two parts, built in code, for `delivery: 'system'`. Where present, `render` is `joinParts` of these, byte for byte. */
-    renderParts?: (cell: PieceCell<Inputs>, options: Options) => Promise<RenderedParts>
+    renderParts?: (cell: PieceCell<Inputs, Expected>, options: Options) => Promise<RenderedParts>
     /** An answer code gives without a call, such as for an empty window; `undefined` when the cell needs a call. */
-    byCode?: (cell: PieceCell<Inputs>) => string | undefined
+    byCode?: (cell: PieceCell<Inputs, Expected>) => string | undefined
     /**
      * The piece's own grade of one reply, given its cell, the cell's rendered text and the payload's options (as a read piece's `check`
      * has them), in place of `pieceAnswer` against `answers`: for answers with parameters, a stage's contract parse, or a piece that merges,
      * whose grade gives the merged plan beside the answer. It may give aspects beside the answer too. Async where it needs the fixture's scene.
      */
-    grade?: (reply: string, cell: PieceCell<Inputs>, rendered: string, options: Options) => PieceGrade | Promise<PieceGrade>
+    grade?: (reply: string, cell: PieceCell<Inputs, Expected>, rendered: string, options: Options) => PieceGrade | Promise<PieceGrade>
 }
 
 /**
@@ -114,7 +118,7 @@ export type ReadPiece<Inputs = unknown, Options = unknown> = PieceBase & {
 }
 
 /** A registered piece, answered or read. */
-export type RegisteredPiece = OraclePiece | ReadPiece
+export type RegisteredPiece = OraclePiece<unknown, unknown, CellExpected> | ReadPiece
 
 /**
  * A family of pieces under one name (the trial, AGENT.nonRuleCell.planning.md, Slice A; the user's idea, 2026-11-16): stages that share
@@ -130,8 +134,8 @@ export type RegistryEntry = RegisteredPiece | PieceFamily
 export const registerFamily = (name: string, stages: Record<string, RegisteredPiece>): PieceFamily => ({ kind: 'family', name, stages })
 
 /** Erases a piece's own types for the registry, which only passes a piece's cells and options back to that same piece. */
-export function registerPiece<Inputs, Options>(piece: OraclePiece<Inputs, Options>): OraclePiece
+export function registerPiece<Inputs, Options, Expected extends CellExpected = string>(piece: OraclePiece<Inputs, Options, Expected>): OraclePiece<unknown, unknown, CellExpected>
 export function registerPiece<Inputs, Options>(piece: ReadPiece<Inputs, Options>): ReadPiece
-export function registerPiece(piece: OraclePiece<any, any> | ReadPiece<any, any>): RegisteredPiece {
+export function registerPiece(piece: OraclePiece<any, any, any> | ReadPiece<any, any>): RegisteredPiece {
     return piece as unknown as RegisteredPiece
 }

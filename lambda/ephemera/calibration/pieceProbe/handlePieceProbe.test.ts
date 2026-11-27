@@ -113,6 +113,24 @@ const promptOf = (invoke: ReturnType<typeof invokeReplying>, call: number): stri
 const body = (response: { body: string }) => JSON.parse(response.body)
 
 describe('handlePieceProbe', () => {
+    it('grades an answer right against any of a cell\'s accepted answers, where it lists them', async () => {
+        const listed = registerPiece<{ word: string }, undefined, readonly string[]>({
+            name: 'listed',
+            view: TEST_VIEW,
+            answers: [],
+            cells: { A: { inputs: { word: 'apple' }, expected: ['red', 'green'], source: 'hand-written' } },
+            grade: (reply) => ({ answer: reply.trim() }),
+            parseOptions: (value) => (value === undefined ? undefined : 'no options'),
+            render: async ({ inputs: { word } }) => `Word: ${word}`,
+        })
+        const replies = ['red', 'green', 'blue']
+        let next = 0
+        const invoke = invokeReplying(() => replies[next++])
+        const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'listed', cells: ['A'], instructions: INSTRUCTIONS, repeats: 3 }, { invoke, pieces: { listed } }))
+        expect(result.cells[0]).toMatchObject({ cell: 'A', expected: ['red', 'green'], right: 2, wrong: 1, answers: { red: 1, green: 1, blue: 1 } })
+        expect(result.summary).toMatchObject({ calls: 3, right: 2, wrong: 1, ungraded: 0 })
+    })
+
     it('renders each called cell after the instructions, and tallies right, wrong and malformed against its expected answer', async () => {
         const replies = ['Answer: yes', 'Answer: no', 'It is.']
         let next = 0

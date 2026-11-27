@@ -36,10 +36,25 @@ describe('the split, graded from two batches', () => {
             wrongNo: { n: 0 },
             needlessDefers: { n: 1, of: 4, cells: ['T-2'] },
             ownDefers: { n: 0, of: 0 },
-            groundingRight: { n: 3, of: 3 },
+            groundingRight: { n: 4, of: 4 },
             disagreements: { n: 2, of: 4, cells: ['T-5', 'T-2'] },
         })
         expect(combinedText(pairs).split('\n')[0]).toBe('T-9, repeat 1 [Defer, alone Yes]: branch Yes; grounding teapot1 (its own kind Yes); after the guard Defer')
+    })
+
+    it('reads a grounding-alone batch by its own contract and render: no kind of its own, so no disagreement, and the guard on its plan', async () => {
+        const pairs = await combineTriage(
+            [call('T-9', { kind: 'Yes' }), call('T-28', { kind: 'Yes' })],
+            [call('T-9', { match: { inScene: ['[teapot1]'] }, says: 'pick up [teapot1]' }), call('T-28', { says: 'stir [coffee1] in [mug1] with [spoon1]' })],
+            'triageGrounding',
+        )
+        expect(pairs.map(({ cell, after }) => [cell, after])).toEqual([['T-9', 'Defer'], ['T-28', 'Yes']])
+        expect(combinedSummary(pairs)).toMatchObject({ groundingRefused: { n: 0 }, groundingRight: { n: 1, of: 2, cells: ['T-9'] }, disagreements: { n: 0, of: 0 } })
+        expect(combinedText(pairs).split('\n')[1]).toBe('T-28, repeat 1 [Yes]: branch Yes; grounding coffee1, mug1, spoon1; after the guard Yes')
+        const asTriage = await combineTriage([call('T-9', { kind: 'Yes' })], [call('T-9', { says: 'pick up [teapot1]' })], 'triageGrounding')
+        expect(asTriage[0].grounding).not.toHaveProperty('problems')
+        const verdictLeaked = await combineTriage([call('T-9', { kind: 'Yes' })], [call('T-9', { says: 'pick up [teapot1]', kind: 'Yes' })], 'triageGrounding')
+        expect(verdictLeaked[0].grounding).toEqual({ problems: [expect.stringContaining('"kind"')] })
     })
 
     it('grades the branch alone where it differs from the branch as shown, and prints both', async () => {

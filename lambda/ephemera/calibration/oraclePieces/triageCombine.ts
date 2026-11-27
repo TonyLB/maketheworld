@@ -1,22 +1,28 @@
 //
 // The split, graded from two batches (AGENT.triage.planning.md, step 5, the branch-only arm): each call of the branch alone
-// (`triageBranch.ts`) paired by cell and repeat with a call of a whole triage reply, read for its grounding only, its own kind set aside.
+// (`triageBranch.ts`) paired by cell and repeat with a grounding call: the grounding alone (`triageGrounding.ts`), or a whole triage reply,
+// read for its grounding only, its own kind set aside.
 // The guard (`triageGuard.ts`) runs on the branch's kind and the grounding's plan and match, as a split would join them. It reads the saved
 // responses, so no call is made again; each cell is rendered as the batch was, since the contract reads the prompt it was shown.
 //
 import { fixtureScene } from '../imaginationPieces/imaginationScene'
 import type { PieceCall } from '../pieceProbe/runPieceProbe'
-import { groundingOf, renderTriage, triageCells, triageContract, type TriageAnswer, type TriageKind, type TriageVerdict } from './triage'
+import { acceptedGroundings, groundingOf, renderTriage, triageCells, triageContract, type TriageAnswer, type TriageKind, type TriageVerdict } from './triage'
 import { triageBranchContract } from './triageBranch'
+import { renderTriageGrounding, triageGroundingContract, type TriageGrounding } from './triageGrounding'
 import { triageCorpus } from './triageCorpus'
 import { guarded } from './triageGuard'
+
+/** The piece a grounding call is from: the grounding alone, or a whole triage reply, whose own kind is set aside. */
+export type GroundingPiece = 'triage' | 'triageGrounding'
 
 /** One pair: the branch's verdict and the grounding call's answer, or why either has none, and what the guard made of the two. */
 export type CombinedPair = {
     cell: string
     repeat: number
     branch: TriageVerdict | { problems: string[] }
-    grounding: TriageAnswer | { problems: string[] }
+    /** The grounding's plan and match; a whole triage reply's carries its own kind too. */
+    grounding: TriageAnswer | TriageGrounding | { problems: string[] }
     /** The guard's kind on the branch's verdict and the grounding's plan; absent where either has none. */
     after?: TriageKind
 }
@@ -29,11 +35,17 @@ const verdictOf = (reply: string | undefined, error: string | undefined, read: (
     return 'value' in parsed ? parsed.value : parsed
 }
 
+/** How a grounding call of each piece is read: as its own batch rendered it, by its own contract. */
+const GROUNDING_READ: Record<GroundingPiece, { render: typeof renderTriage; parse: (reply: string, shown: Parameters<typeof triageContract.parse>[1]) => { value: TriageAnswer | TriageGrounding } | { problems: string[] } }> = {
+    triage: { render: renderTriage, parse: (reply, shown) => triageContract.parse(reply, shown) },
+    triageGrounding: { render: renderTriageGrounding, parse: (reply, shown) => triageGroundingContract.parse(reply, shown) },
+}
+
 /**
  * Every branch call, with the grounding call of the same cell and repeat (or a problem, where there is none), and the guard's kind on the
  * two. A grounding call with no branch call beside it is left out.
  */
-export const combineTriage = async (branchCalls: readonly PieceCall[], groundingCalls: readonly PieceCall[]): Promise<CombinedPair[]> => Promise.all(
+export const combineTriage = async (branchCalls: readonly PieceCall[], groundingCalls: readonly PieceCall[], groundingPiece: GroundingPiece = 'triage'): Promise<CombinedPair[]> => Promise.all(
     branchCalls.map(async ({ cell, repeat, answer, error }): Promise<CombinedPair> => {
         const known = triageCells[cell]
         if (known === undefined) {
@@ -43,11 +55,13 @@ export const combineTriage = async (branchCalls: readonly PieceCall[], grounding
         const shown = { input: known.inputs, rendered }
         const branch = verdictOf(answer, error, (reply) => triageBranchContract.parse(reply, shown))
         const partner = groundingCalls.find((call) => call.cell === cell && call.repeat === repeat)
+        const read = GROUNDING_READ[groundingPiece]
+        const groundingShown = { input: known.inputs, rendered: groundingPiece === 'triage' ? rendered : await read.render(known) }
         const grounding = partner === undefined
             ? { problems: ['no grounding call of this cell and repeat'] }
             : partner.answer === undefined
                 ? { problems: [`error: ${partner.error ?? 'no reply'}`] }
-                : ((parsed) => ('value' in parsed ? parsed.value : parsed))(triageContract.parse(partner.answer, shown))
+                : ((parsed) => ('value' in parsed ? parsed.value : parsed))(read.parse(partner.answer, groundingShown))
         if ('problems' in branch || 'problems' in grounding) {
             return { cell, repeat, branch, grounding }
         }
@@ -57,14 +71,14 @@ export const combineTriage = async (branchCalls: readonly PieceCall[], grounding
 )
 
 /**
- * A row's settled kinds and groundings, as triage's cells have them, and the branch alone (the corpus's `alone`, or else as shown); open rows
+ * A row's settled kinds, as triage's cells have them, and the branch alone (the corpus's `alone`, or else as shown); open rows
  * have none.
  */
-const settled = (cell: string): { shown: TriageKind; after: TriageKind; alone: TriageKind; groundings?: readonly string[] } | undefined => {
+const settled = (cell: string): { shown: TriageKind; after: TriageKind; alone: TriageKind } | undefined => {
     const { expected, expectedAspects } = triageCells[cell] ?? {}
     const after = expectedAspects?.afterGuard?.[0]
     return expected === undefined || after === undefined ? undefined : {
-        shown: expected as TriageKind, after: after as TriageKind, alone: triageCorpus[cell]?.branch?.alone ?? expected as TriageKind, groundings: expectedAspects?.grounding,
+        shown: expected as TriageKind, after: after as TriageKind, alone: triageCorpus[cell]?.branch?.alone ?? expected as TriageKind,
     }
 }
 
@@ -74,7 +88,7 @@ const settled = (cell: string): { shown: TriageKind; after: TriageKind; alone: T
  */
 export const ownDefer = (cell: string): boolean => settled(cell)?.alone === 'Defer'
 
-const kindOf = (part: TriageVerdict | TriageAnswer | { problems: string[] }): TriageKind | undefined => ('problems' in part ? undefined : part.kind)
+const kindOf = (part: TriageVerdict | TriageAnswer | TriageGrounding | { problems: string[] }): TriageKind | undefined => ('problems' in part || !('kind' in part) ? undefined : part.kind)
 
 /** A count over the pairs it applies to, and the cells it fell on, each as often as it did. */
 export type CombinedCount = { n: number; of: number; cells: string[] }
@@ -88,8 +102,8 @@ const count = (pairs: readonly CombinedPair[], applies: (pair: CombinedPair) => 
 /**
  * The bar's counts on the combination: the branch right alone (its graded answer) and as shown (a single call's answer, for comparison), the
  * guard's kind right, a wrong "Yes" after the guard, a wrong "No", the needless defers (a "Defer" where the branch alone is "Yes" or "No")
- * and the branch's own defers, each over the settled rows it applies to; the grounding right on a "Yes" or "Defer" row; the replies refused on
- * either side; and where the branch and the grounding call's own kind disagree.
+ * and the branch's own defers, each over the settled rows it applies to; the grounding right, on every row, as the grounding arm grades it
+ * (the user, 2026-11-27); the replies refused on either side; and, for a whole triage reply, where the branch and its own kind disagree.
  */
 export const combinedSummary = (pairs: readonly CombinedPair[]) => {
     const isSettled = ({ cell }: CombinedPair) => settled(cell) !== undefined
@@ -105,20 +119,22 @@ export const combinedSummary = (pairs: readonly CombinedPair[]) => {
         wrongNo: count(pairs, isSettled, (pair) => branchKind(pair) === 'No' && settled(pair.cell)?.alone !== 'No'),
         needlessDefers: count(pairs, ({ cell }) => settled(cell)?.alone === 'Yes' || settled(cell)?.alone === 'No', (pair) => branchKind(pair) === 'Defer'),
         ownDefers: count(pairs, ({ cell }) => ownDefer(cell), (pair) => branchKind(pair) === 'Defer'),
-        groundingRight: count(pairs, ({ cell }) => settled(cell) !== undefined && settled(cell)?.shown !== 'No', ({ cell, grounding }) => (
-            !('problems' in grounding) && (settled(cell)?.groundings ?? []).includes(groundingOf(grounding.plan))
+        groundingRight: count(pairs, ({ cell }) => triageCorpus[cell] !== undefined, ({ cell, grounding }) => (
+            !('problems' in grounding) && acceptedGroundings(triageCorpus[cell]).includes(groundingOf(grounding.plan))
         )),
-        disagreements: count(pairs, ({ branch, grounding }) => !('problems' in branch) && !('problems' in grounding), (pair) => branchKind(pair) !== kindOf(pair.grounding)),
+        disagreements: count(pairs, ({ branch, grounding }) => !('problems' in branch) && kindOf(grounding) !== undefined, (pair) => branchKind(pair) !== kindOf(pair.grounding)),
     }
 }
 
-const kindText = (part: TriageVerdict | TriageAnswer | { problems: string[] }): string => ('problems' in part ? `refused (${part.problems.join('; ')})` : part.kind === 'No' ? `No: ${part.reason}` : part.kind)
+const kindText = (part: TriageVerdict | { problems: string[] }): string => ('problems' in part ? `refused (${part.problems.join('; ')})` : part.kind === 'No' ? `No: ${part.reason}` : part.kind)
 
 /** The pairs for reading, one line each: the row's kinds, the branch, the grounding with its own kind, and the guard's kind on the two. */
 export const combinedText = (pairs: readonly CombinedPair[]): string => pairs.map(({ cell, repeat, branch, grounding, after }) => {
     const row = settled(cell)
     const expected = row === undefined ? 'open' : [row.shown, ...(row.alone === row.shown ? [] : [`alone ${row.alone}`]), ...(row.after === row.shown ? [] : [`after the guard ${row.after}`])].join(', ')
-    const groundingText = 'problems' in grounding ? kindText(grounding) : `${groundingOf(grounding.plan)} (its own kind ${grounding.kind})`
+    const groundingText = 'problems' in grounding
+        ? `refused (${grounding.problems.join('; ')})`
+        : `${groundingOf(grounding.plan)}${'kind' in grounding ? ` (its own kind ${grounding.kind})` : ''}`
     return `${cell}, repeat ${repeat} [${expected}]: branch ${kindText(branch)}; grounding ${groundingText}; after the guard ${after ?? '-'}`
 }).join('\n')
 

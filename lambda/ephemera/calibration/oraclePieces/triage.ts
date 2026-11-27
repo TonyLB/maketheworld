@@ -84,13 +84,13 @@ const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs
 }
 
 /**
- * Triage's render on a wording: the whole scene in the arm its options name (or the wording's default), then `The plan:`. Triage's branch
- * alone (`triageBranch.ts`) takes it on a wording of its own.
+ * Triage's render on a wording: the scene its view shows, in the arm its options name (or the wording's default), then `The plan:`. Triage's
+ * branch alone (`triageBranch.ts`) takes it on a wording of its own, and its grounding alone (`triageGrounding.ts`) on a view of its own.
  */
-export const triageRenderOn = <Arm extends string>(wording: SceneWording<Arm>) => withViewedScene(TRIAGE_VIEW.scene, (
+export const triageRenderOn = <Arm extends string>(wording: SceneWording<Arm>, view: Pick<PieceView, 'scene' | 'plan'> = TRIAGE_VIEW) => withViewedScene(view.scene, (
     { inputs: { plan } }: Pick<PieceCell<TriageInputs>, 'inputs'>, options: { scene?: Arm } | undefined, viewed,
 ): string => (
-    [sceneRendererOf(wording, options?.scene)(shownScene(viewed)), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+    [sceneRendererOf(wording, options?.scene)(shownScene(viewed)), `The plan:\n${renderPlanForGenerator(viewPlan(plan, view.plan))}`].join('\n\n')
 ), prepareTriage)
 
 const renderViewedTriage = triageRenderOn(TRIAGE_WORDING)
@@ -184,7 +184,7 @@ const mergeRecord = (record: Record<string, unknown>, { input: { plan, target },
  * The match and the record together: the match's `improvised` merged as the record's `improvise` (refused where both are given), and then its
  * `inScene` checked against the scene and the merged plan's improvised things. With no match, the record alone, and nothing involved.
  */
-const mergeWithMatch = (record: Record<string, unknown>, match: unknown, shown: StageShown<TriageInputs>): { plan: ActionPlan; involved?: string[] } | { problems: string[] } => {
+export const mergeWithMatch = (record: Record<string, unknown>, match: unknown, shown: StageShown<TriageInputs>): { plan: ActionPlan; involved?: string[] } | { problems: string[] } => {
     if (match === undefined) {
         return mergeRecord(record, shown)
     }
@@ -243,7 +243,7 @@ const groundingText = (texts: readonly string[], improvised: readonly SceneHandl
 export const groundingOf = (plan: ActionPlan): string => groundingText(plan.steps.map(({ says }) => says), (plan.improvised ?? []).map(({ handle }) => handle))
 
 /** What the match found, in the grounding's form, so the two can be read side by side; or `absent`, where the reply gave no match. */
-export const matchedOf = ({ plan, involved }: TriageAnswer): string => (involved === undefined ? 'absent' : groundingText(involved, (plan.improvised ?? []).map(({ handle }) => handle)))
+export const matchedOf = ({ plan, involved }: { plan: ActionPlan; involved?: readonly string[] }): string => (involved === undefined ? 'absent' : groundingText(involved, (plan.improvised ?? []).map(({ handle }) => handle)))
 
 /** The words that join a thing to a step, or lead into one: what a step may hold beside its handles and the player's own words. */
 const JOINING_WORDS: ReadonlySet<string> = new Set([
@@ -263,7 +263,7 @@ export const addedWords = (plan: ActionPlan, command: string): string => {
 }
 
 /** The player's command, as the input plan's one step has it. */
-const commandOf = ({ plan }: TriageInputs): string => plan.steps.map(({ says }) => says).join(' ')
+export const commandOf = ({ plan }: TriageInputs): string => plan.steps.map(({ says }) => says).join(' ')
 
 /**
  * The probe's grade: the contract's answer, its kind as triage gave it, and beside it, tallied apart, the kind after the guard, the grounding,
@@ -281,7 +281,7 @@ export const gradeTriage = async (reply: string, { inputs }: PieceCell<TriageInp
 }
 
 /** The groundings a row accepts, as the grade gives them. */
-const acceptedGroundings = ({ grounded }: CorpusRow): string[] =>
+export const acceptedGroundings = ({ grounded }: CorpusRow): string[] =>
     grounded.map(({ says, improvise = [] }) => groundingText([says], improvise.map(({ handle }) => handle)))
 
 /**

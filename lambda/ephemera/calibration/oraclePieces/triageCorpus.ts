@@ -94,4 +94,9 @@ export const triageCorpus: Readonly<Record<string, CorpusRow>> = {
     'T-27': { fixture: 'tavernRope', command: 'cut the rope',
         grounded: [{ says: 'cut [rope1] with [blade1]', improvise: [{ handle: 'blade1', gloss: 'something for cutting rope' }] }], branch: guardsDefer, from: 'the expansion probe\'s, the user\'s example',
         lookFor: 'A tool the command implies, and the one held doesn\'t suit: one thing for cutting improvised, and not [hammer1]' },
+    // A material worked where it lies, and its pair, a material moved by its container: the same scene, only the verb differs (the user, 2026-11-27).
+    'T-28': { fixture: 'sideboard', command: 'stir the coffee', grounded: [{ says: 'stir [coffee1] with [spoon1]' }], branch: same('Yes'), from: 'the user\'s, the bury of G1\'s examples',
+        lookFor: 'The coffee stirred where it lies: [mug1], its place, and [box1], the spoon\'s, aren\'t part of the act. The spoon meets the need, and a fork or a knife could stir too, so the near miss is all three joined, [fork1 | knife1 | spoon1], as though the player\'s words fit them equally well' },
+    'T-29': { fixture: 'sideboard', command: 'pour the coffee into the cup', grounded: [{ says: 'pour [coffee1] from [mug1] into [cup1]' }], branch: same('Yes'), from: 'the pair of T-28',
+        lookFor: 'The coffee is poured by tipping its container, so [mug1] is named. Nothing is ambiguous, unlike the tea table\'s pours. [cup1] already holds [tea1], as T-25\'s does' },
 }
