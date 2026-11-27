@@ -35,8 +35,10 @@ const verdictOf = (reply: string | undefined, error: string | undefined, read: (
     return 'value' in parsed ? parsed.value : parsed
 }
 
+type GroundingRead = { render: typeof renderTriage; parse: (reply: string, shown: Parameters<typeof triageContract.parse>[1]) => { value: TriageAnswer | TriageGrounding } | { problems: string[] } }
+
 /** How a grounding call of each piece is read: as its own batch rendered it, by its own contract. */
-const GROUNDING_READ: Record<GroundingPiece, { render: typeof renderTriage; parse: (reply: string, shown: Parameters<typeof triageContract.parse>[1]) => { value: TriageAnswer | TriageGrounding } | { problems: string[] } }> = {
+const GROUNDING_READ: Record<GroundingPiece, GroundingRead> = {
     triage: { render: renderTriage, parse: (reply, shown) => triageContract.parse(reply, shown) },
     triageGrounding: { render: renderTriageGrounding, parse: (reply, shown) => triageGroundingContract.parse(reply, shown) },
 }

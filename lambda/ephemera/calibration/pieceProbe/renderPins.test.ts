@@ -12,6 +12,15 @@ type Pin = { options: unknown; hashes: Record<string, string> }
 
 // Not from 2026-11-22: pinned when triage's cells became its corpus, 2026-11-25. Nine rows are commands of its expansion probe's, whose pins
 // they keep. Its branch-only arm renders the same inputs on its default wording, so it keeps the same pins.
+// triageGrounding's own view, from 2026-11-27: the scene without its securing, in the explicit render. The cells with no securing keep triage's pins.
+const TRIAGE_GROUNDING_PINS: Record<string, string> = {
+    'T-1': 'c63ac521', 'T-2': '5c909626', 'T-3': 'f6e600f2', 'T-4': '15ddbc30', 'T-5': 'd441b61e', 'T-6': '574998a1',
+    'T-7': 'ddda992e', 'T-8': 'f959ddba', 'T-9': '5d8ea1bf', 'T-10': '03cad431', 'T-11': 'c00c1031', 'T-12': '8c2c7619',
+    'T-13': 'f4983ae8', 'T-14': '82782ad0', 'T-15': 'ed0bf3c7', 'T-16': '8b946f9d', 'T-17': 'a94543b0', 'T-18': '68d87700',
+    'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
+    'T-25': '9235c877', 'T-26': 'b01739a0', 'T-27': '5a293f1c', 'T-28': '6c24e6b8', 'T-29': 'af0836bb',
+}
+
 const TRIAGE_PINS: Pin[] = [
     { options: undefined, hashes: {
         'T-1': '898c77d2', 'T-2': '1770c9c5', 'T-3': 'a19e8f93', 'T-4': '5238e0e1', 'T-5': 'db253650', 'T-6': '0faae3ef',
@@ -126,14 +135,7 @@ const PINS: Record<string, Pin[]> = {
         } },
     ],
     'triage': TRIAGE_PINS,
-    // Its own view, from 2026-11-27: the scene without its securing, in the explicit render. The cells with no securing keep triage's pins.
-    'triageGrounding': [{ options: undefined, hashes: {
-        'T-1': 'c63ac521', 'T-2': '5c909626', 'T-3': 'f6e600f2', 'T-4': '15ddbc30', 'T-5': 'd441b61e', 'T-6': '574998a1',
-        'T-7': 'ddda992e', 'T-8': 'f959ddba', 'T-9': '5d8ea1bf', 'T-10': '03cad431', 'T-11': 'c00c1031', 'T-12': '8c2c7619',
-        'T-13': 'f4983ae8', 'T-14': '82782ad0', 'T-15': 'ed0bf3c7', 'T-16': '8b946f9d', 'T-17': 'a94543b0', 'T-18': '68d87700',
-        'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
-        'T-25': '9235c877', 'T-26': 'b01739a0', 'T-27': '5a293f1c', 'T-28': '6c24e6b8', 'T-29': 'af0836bb',
-    } }],
+    'triageGrounding': [{ options: undefined, hashes: TRIAGE_GROUNDING_PINS }],
     // Its own wording's `carry` arm, from 2026-11-26: each securing as what it lets things do. The cells with no securing keep triage's pins.
     'triageBranch': [...TRIAGE_PINS, { options: { scene: 'carry' }, hashes: {
         'T-1': '6ef0a4d8', 'T-2': 'fca1518b', 'T-3': 'abae1d26', 'T-4': '3d5f6bc1', 'T-5': 'b7ec2a9f', 'T-6': '4859d6fa',

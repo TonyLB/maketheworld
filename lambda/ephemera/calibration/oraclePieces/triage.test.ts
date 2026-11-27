@@ -151,7 +151,9 @@ describe('triage', () => {
 
             it.each<[string, unknown, string[]]>([
                 ['not an object', ['[cup1]'], ['"match" is not an object']],
-                ['another key', { inScene: [], here: [] }, ['"match" has "here", not one of inScene, improvised']],
+                ['another key', { inScene: [], here: [] }, ['"match" has "here", not one of inScene, improvised, assumes']],
+                ['an assumes that is no list of strings', { inScene: ['[cup1]'], assumes: ['it has room', ' '] }, ['"assumes" is not a list of non-empty strings']],
+                ['an assumes that is no list', { inScene: ['[cup1]'], assumes: 'it has room' }, ['"assumes" is not a list of non-empty strings']],
                 ['an inScene that is no list', { inScene: '[cup1]' }, ['"inScene" is not a list']],
                 ['an entry that is no string', { inScene: ['[cup1]', 3, ' '] }, ['inScene entry 2 is not a non-empty string', 'inScene entry 3 is not a non-empty string']],
                 ['a handle not in the scene', { inScene: ['[cup3]'] }, ['inScene: [cup3] is not in the scene']],

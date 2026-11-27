@@ -45,7 +45,7 @@ describe('the split, graded from two batches', () => {
     it('reads a grounding-alone batch by its own contract and render: no kind of its own, so no disagreement, and the guard on its plan', async () => {
         const pairs = await combineTriage(
             [call('T-9', { kind: 'Yes' }), call('T-28', { kind: 'Yes' })],
-            [call('T-9', { match: { inScene: ['[teapot1]'] }, says: 'pick up [teapot1]' }), call('T-28', { says: 'stir [coffee1] in [mug1] with [spoon1]' })],
+            [call('T-9', { matched: ['[teapot1]'], says: 'pick up [teapot1]' }), call('T-28', { says: 'stir [coffee1] in [mug1] with [spoon1]' })],
             'triageGrounding',
         )
         expect(pairs.map(({ cell, after }) => [cell, after])).toEqual([['T-9', 'Defer'], ['T-28', 'Yes']])

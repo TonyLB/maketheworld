@@ -126,25 +126,33 @@ const shownThings = (rendered: string): SceneHandle[] => {
 /** A handle as written, its brackets taken off, or undefined for what is no string. */
 const bareHandle = (value: unknown): string | undefined => (typeof value === 'string' ? value.trim().replace(/^\[(.*)\]$/, '$1').trim() : undefined)
 
-/** A reply's `match`, read: its `inScene` entries, each bracketed, and its `improvised` list as written, for the merge to read as `improvise`. */
-type MatchRead = { inScene: string[]; improvised?: unknown }
+/**
+ * A reply's `match`, read: its `inScene` entries, each bracketed, its `improvised` list as written, for the merge to read as `improvise`, and
+ * what it `assumes`, each trimmed (triage's grounding arm, G3; the user, 2026-11-27): what must hold, beyond what the scene says, for a thing
+ * here to meet a need. Read and carried; nothing yet acts on it.
+ */
+type MatchRead = { inScene: string[]; improvised?: unknown; assumes: string[] }
 
 /**
- * The block's `match`, `{"inScene": [...], "improvised": [...]}`, read apart from the record: an object with no other key, `inScene` a list of
- * strings, each a handle or an ambiguous reference, with or without its brackets. Both are optional.
+ * The block's `match`, `{"inScene": [...], "improvised": [...], "assumes": [...]}`, read apart from the record: an object with no other key,
+ * `inScene` a list of strings, each a handle or an ambiguous reference, with or without its brackets, and `assumes` a list of non-empty
+ * strings. All are optional.
  */
 const readMatch = (match: unknown): MatchRead | { problems: string[] } => {
     if (typeof match !== 'object' || match === null || Array.isArray(match)) {
         return { problems: ['"match" is not an object'] }
     }
-    const { inScene = [], improvised, ...rest } = match as Record<string, unknown>
-    const problems = Object.keys(rest).map((key) => `"match" has "${key}", not one of inScene, improvised`)
+    const { inScene = [], improvised, assumes = [], ...rest } = match as Record<string, unknown>
+    const problems = Object.keys(rest).map((key) => `"match" has "${key}", not one of inScene, improvised, assumes`)
     if (!Array.isArray(inScene)) {
         return { problems: [...problems, '"inScene" is not a list'] }
     }
     const entries = inScene.map((entry, index) => (typeof entry === 'string' && entry.trim() !== '' ? `[${bareHandle(entry)}]` : index))
     const notStrings = entries.filter((entry): entry is number => typeof entry === 'number').map((index) => `inScene entry ${index + 1} is not a non-empty string`)
-    return problems.length + notStrings.length > 0 ? { problems: [...problems, ...notStrings] } : { inScene: entries as string[], improvised }
+    const assumed = Array.isArray(assumes) && assumes.every(nonEmptyString) ? assumes.map((each) => each.trim()) : undefined
+    const assumesProblems = assumed === undefined ? ['"assumes" is not a list of non-empty strings'] : []
+    const all = [...problems, ...notStrings, ...assumesProblems]
+    return all.length > 0 ? { problems: all } : { inScene: entries as string[], improvised, assumes: assumed ?? [] }
 }
 
 /**
@@ -184,7 +192,7 @@ const mergeRecord = (record: Record<string, unknown>, { input: { plan, target },
  * The match and the record together: the match's `improvised` merged as the record's `improvise` (refused where both are given), and then its
  * `inScene` checked against the scene and the merged plan's improvised things. With no match, the record alone, and nothing involved.
  */
-export const mergeWithMatch = (record: Record<string, unknown>, match: unknown, shown: StageShown<TriageInputs>): { plan: ActionPlan; involved?: string[] } | { problems: string[] } => {
+export const mergeWithMatch = (record: Record<string, unknown>, match: unknown, shown: StageShown<TriageInputs>): { plan: ActionPlan; involved?: string[]; assumes?: string[] } | { problems: string[] } => {
     if (match === undefined) {
         return mergeRecord(record, shown)
     }
@@ -205,7 +213,11 @@ export const mergeWithMatch = (record: Record<string, unknown>, match: unknown, 
         return { problems }
     }
     const own = Array.isArray(read.improvised) ? read.improvised.map((entry) => bareHandle((entry as { handle?: unknown } | null)?.handle)).filter((handle): handle is string => handle !== undefined) : []
-    return { plan: merged.plan, involved: [...new Set([...read.inScene, ...own.map((handle) => `[${handle}]`)])] }
+    return {
+        plan: merged.plan,
+        involved: [...new Set([...read.inScene, ...own.map((handle) => `[${handle}]`)])],
+        ...(read.assumes.length === 0 ? {} : { assumes: read.assumes }),
+    }
 }
 
 /**

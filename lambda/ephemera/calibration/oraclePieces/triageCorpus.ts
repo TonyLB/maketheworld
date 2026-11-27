@@ -47,8 +47,10 @@ export const triageCorpus: Readonly<Record<string, CorpusRow>> = {
         lookFor: 'The reason is the size, not that the cup is on the table, and not the glue' },
     'T-6': { fixture: 'teaTableCupOnFloor', command: 'put the table in the cup', grounded: [{ says: 'put [table1] in [cup1]' }], branch: same('No'), from: 'OC-11',
         lookFor: 'The reason is the size' },
-    'T-7': { fixture: 'teaTableCupOnFloor', command: 'hammer the table into the cup', grounded: [{ says: 'hammer [table1] into [cup1]' }], branch: same('No'), from: 'OC-18',
-        lookFor: 'The reason is the size, not that there is no hammer' },
+    // The hammer the verb implies, improvised since the scene has none, accepted too (the user, 2026-11-27, with grounding asked for a verb's tools).
+    'T-7': { fixture: 'teaTableCupOnFloor', command: 'hammer the table into the cup',
+        grounded: [{ says: 'hammer [table1] into [cup1]' }, { says: 'hammer [table1] into [cup1] with [hammer1]', improvise: [{ handle: 'hammer1', gloss: 'a hammer' }] }], branch: same('No'), from: 'OC-18',
+        lookFor: 'The reason is the size, not that there is no hammer. A hammer improvised, the scene having none, or none named' },
     'T-8': { fixture: 'tavern', command: 'put the table in the cup', grounded: [{ says: 'put [table1] in [cup1]' }], branch: same('No'), from: 'the one "No" outside the parlour',
         lookFor: 'The reason is the size of the long trestle' },
     'T-9': { fixture: 'teaTable', command: 'pick up the teapot', grounded: [{ says: 'pick up [teapot1]' }], branch: guardsDefer, from: 'OC-5',
