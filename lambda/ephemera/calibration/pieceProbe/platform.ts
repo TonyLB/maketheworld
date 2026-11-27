@@ -26,6 +26,8 @@ export const PLATFORM_HOLDOUTS: Readonly<Record<string, readonly PlatformPart[]>
     'trial/ruling': ['plan read', 'change language'],
     // It still writes `concern`.
     consequences: ['change language'],
+    // Triage's branch-only arm, a split's quick call: its reply is the verdict alone, and merges nothing.
+    triageBranch: ['change language'],
 }
 
 /** The pieces the list doesn't cover: `sceneReading`, a probe of the render itself, which names its render in every payload and has nothing to plan. */

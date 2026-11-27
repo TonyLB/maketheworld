@@ -229,7 +229,15 @@ describe('handlePieceProbe', () => {
         const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: false as const, errorMessage: 'timeout' }))
         const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', cells: ['A'], instructions: INSTRUCTIONS }, { invoke, pieces }))
         expect(result.cells[0]).toMatchObject({ n: 1, errors: 1, malformed: 0 })
-        expect(result.read).toEqual([{ cell: 'A', repeat: 1, error: 'timeout' }])
+        expect(result.read).toEqual([{ cell: 'A', repeat: 1, error: 'timeout', cost: { ms: expect.any(Number) } }])
+        expect(result.cost).toEqual({ ms: { n: 1, median: expect.any(Number), max: expect.any(Number) } })
+    })
+
+    it('reports what the batch cost: Bedrock\'s latency and the tokens, beside each call\'s own', async () => {
+        const invoke = jest.fn<ReturnType<ProbeInvoke>, Parameters<ProbeInvoke>>(async () => ({ success: true as const, body: 'yes', latencyMs: 300, usage: { inputTokens: 900, outputTokens: 4, totalTokens: 904 } }))
+        const result = body(await handlePieceProbe({ type: 'PieceProbe', piece: 'toy', cells: ['A'], repeats: 2, instructions: INSTRUCTIONS }, { invoke, pieces }))
+        expect(result.read.map(({ cost }: { cost: unknown }) => cost)).toEqual([0, 1].map(() => ({ ms: expect.any(Number), latencyMs: 300, inputTokens: 900, outputTokens: 4 })))
+        expect(result.cost).toMatchObject({ latencyMs: { n: 2, median: 300, max: 300 }, inputTokens: { n: 2, total: 1800 }, outputTokens: { n: 2, median: 4, max: 4, total: 8 } })
     })
 
     it('passes the parsed options to the render, and reports them', async () => {

@@ -3,6 +3,7 @@
 // a form tally per cell and the replies grouped by cell, which is what the reader reads. Nothing here grades a reply's content.
 //
 import type { NovaModel } from '../../llm/novaModel'
+import type { CallCost } from '../callCost'
 import { runProbeCalls } from '../oracleLoop/runOracleProbe'
 import { textHash } from '../textHash'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
@@ -14,7 +15,7 @@ import { promptFor, type RenderedParts } from './oraclePiece'
  */
 export type PreparedReadCell = { cell: string; lookFor: string; rendered: string; parts?: RenderedParts }
 
-export type ReadCall = { cell: string; repeat: number; reply?: string; error?: string; problems?: string[] }
+export type ReadCall = { cell: string; repeat: number; reply?: string; error?: string; problems?: string[]; cost?: CallCost }
 
 export type ReadTally = {
     cell: string
@@ -48,8 +49,8 @@ export const runReadPiece = async ({ cells, instructions, check, repeats, model,
         model,
         ...(maxTokens !== undefined ? { maxTokens } : {}),
         ...(invoke !== undefined ? { invoke } : {}),
-    })).map(({ id, repeat, answer, error }): ReadCall => (
-        answer !== undefined ? { cell: id, repeat, reply: answer, problems: check(answer, id) } : { cell: id, repeat, error }
+    })).map(({ id, repeat, answer, error, cost }): ReadCall => (
+        answer !== undefined ? { cell: id, repeat, reply: answer, problems: check(answer, id), cost } : { cell: id, repeat, error, cost }
     ))
 )
 

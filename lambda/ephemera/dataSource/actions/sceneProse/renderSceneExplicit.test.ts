@@ -174,6 +174,53 @@ describe('the explicit scene render', () => {
         })
     })
 
+    describe("with rules: 'carry'", () => {
+        it('words each securing as what it lets things do: a hosted pair as the default, a pair with neither hosting the other by its carry alone, and no handle or condition', async () => {
+            const scene = await fixture('teaTableChained')
+            const carried = renderSceneExplicit(scene, { rules: 'carry' })
+            expect(carried).toBe(CHAINED_SHOWN.replace(
+                '[table1] is chained to [wall1]. [table1] and [wall1] cannot be moved apart until they are freed. They can still be moved together.',
+                '[table1] is chained to [wall1]. When [wall1] moves, [table1] goes with it.',
+            ))
+            expect(carried).not.toMatch(/cannot|violation|\(rule /)
+        })
+
+        it('gives a securing to something other than a thing its fact alone', async () => {
+            const scene = await fixture('teaTable')
+            const boat = { ...scene, things: { ...scene.things, table1: { ...scene.things.table1, relations: [{ kind: 'SecuredTo' as const, target: { kind: 'notShown' as const } }] } } }
+            expect(renderSceneExplicit(boat, { rules: 'carry' })).not.toMatch(/cannot leave/)
+            expect(renderSceneExplicit(boat)).toMatch(/cannot leave/)
+        })
+    })
+
+    describe("with rules: 'hostTakes'", () => {
+        it('words each securing on its taker\'s line as what moving the taker does, with no fact word anywhere: the host where one end hosts the other, otherwise the target', async () => {
+            const scene = await fixture('teaTableChained')
+            const taken = renderSceneExplicit(scene, { rules: 'hostTakes' })
+            expect(taken).toBe(CHAINED_SHOWN
+                .replace('[table1] is chained to [wall1].\n', '')
+                .replace('[teapot1] is glued to [table1].\n', '')
+                .replace(
+                    "[wall1] Wall is part of the Parlour. In everything",
+                    "[wall1] Wall is part of the Parlour. [wall1] takes [table1] with it, however [wall1] is moved. In everything",
+                )
+                .replace(' [table1] is chained to [wall1]. [table1] and [wall1] cannot be moved apart until they are freed. They can still be moved together.', '')
+                .replace(
+                    'When [table1] moves, [saucer1] moves with it, unless the motion slides or tips it off.',
+                    'When [table1] moves, [saucer1] moves with it, unless the motion slides or tips it off. [table1] takes [teapot1] with it, however [table1] is moved.',
+                )
+                .replace(' [teapot1] is glued to [table1], so it goes wherever [table1] goes, even when [table1] is tipped.', ''))
+            expect(taken).not.toMatch(/glued|chained|cannot|goes wherever|\(rule /)
+        })
+
+        it('renders nothing of a securing to something other than a thing', async () => {
+            const scene = await fixture('teaTable')
+            const boat = { ...scene, things: { ...scene.things, table1: { ...scene.things.table1, relations: [{ kind: 'SecuredTo' as const, target: { kind: 'notShown' as const } }] } } }
+            const unsecured = { ...boat, things: { ...boat.things, table1: { ...boat.things.table1, relations: [] } } }
+            expect(renderSceneExplicit(boat, { rules: 'hostTakes' })).toBe(renderSceneExplicit(unsecured, { rules: 'hostTakes' }))
+        })
+    })
+
     describe('refuses the shapes step 0 does not probe', () => {
         it('Concepts', async () => {
             const scene = await fixture('teaTable')

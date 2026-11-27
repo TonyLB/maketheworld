@@ -1,3 +1,4 @@
+import { summarizeCost } from '../callCost'
 import { calibrationJsonResponse } from '../calibrationResponse'
 import { isNovaModel, type NovaModel } from '../../llm/novaModel'
 import { MAX_DRAFT_CHARS, isDraftText } from '../sceneReasoning/handlers/runJudgeProbe'
@@ -145,6 +146,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
             instructions: { hash: textHash(instructions), chars: instructions.length },
             cells: readTallies,
             summary: summarizeRead(readTallies),
+            cost: summarizeCost(readCalls.map(({ cost }) => cost)),
             read: groupRead(readCells, readCalls),
         })
     }
@@ -179,6 +181,7 @@ export async function handlePieceProbe(event: PieceProbeEvent, deps: PieceProbeD
         instructions: { hash: textHash(instructions), chars: instructions.length },
         cells: tallies,
         summary: summarizePiece(tallies),
+        cost: summarizeCost(calls.map(({ cost }) => cost)),
         read: calls,
     })
 }

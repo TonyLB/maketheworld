@@ -10,6 +10,18 @@ import { pieces } from './pieces'
 
 type Pin = { options: unknown; hashes: Record<string, string> }
 
+// Not from 2026-11-22: pinned when triage's cells became its corpus, 2026-11-25. Nine rows are commands of its expansion probe's, whose pins
+// they keep. Its branch-only arm renders the same inputs on its default wording, so it keeps the same pins.
+const TRIAGE_PINS: Pin[] = [
+    { options: undefined, hashes: {
+        'T-1': '898c77d2', 'T-2': '1770c9c5', 'T-3': 'a19e8f93', 'T-4': '5238e0e1', 'T-5': 'db253650', 'T-6': '0faae3ef',
+        'T-7': 'dadeb7f8', 'T-8': 'f959ddba', 'T-9': 'b257f0ae', 'T-10': '61a7474a', 'T-11': '52d18167', 'T-12': '640f447e',
+        'T-13': '4a81ba61', 'T-14': '85a51d9e', 'T-15': '6a6c279b', 'T-16': '29424e40', 'T-17': 'a94543b0', 'T-18': '68d87700',
+        'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
+        'T-25': '7a201487', 'T-26': 'b01739a0', 'T-27': '5a293f1c',
+    } },
+]
+
 const PINS: Record<string, Pin[]> = {
     'ruleCell': [
         { options: undefined, hashes: {
@@ -113,17 +125,22 @@ const PINS: Record<string, Pin[]> = {
             'R-8': 'cf1a21f5', 'R-9': '8589c11f',
         } },
     ],
-    // Not from 2026-11-22: pinned when triage's cells became its corpus, 2026-11-25. Nine rows are commands of its expansion probe's, whose
-    // pins they keep.
-    'triage': [
-        { options: undefined, hashes: {
-            'T-1': '898c77d2', 'T-2': '1770c9c5', 'T-3': 'a19e8f93', 'T-4': '5238e0e1', 'T-5': 'db253650', 'T-6': '0faae3ef',
-            'T-7': 'dadeb7f8', 'T-8': 'f959ddba', 'T-9': 'b257f0ae', 'T-10': '61a7474a', 'T-11': '52d18167', 'T-12': '640f447e',
-            'T-13': '4a81ba61', 'T-14': '85a51d9e', 'T-15': '6a6c279b', 'T-16': '29424e40', 'T-17': 'a94543b0', 'T-18': '68d87700',
-            'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
-            'T-25': '7a201487', 'T-26': 'b01739a0', 'T-27': '5a293f1c',
-        } },
-    ],
+    'triage': TRIAGE_PINS,
+    // Its own wording's `carry` arm, from 2026-11-26: each securing as what it lets things do. The cells with no securing keep triage's pins.
+    'triageBranch': [...TRIAGE_PINS, { options: { scene: 'carry' }, hashes: {
+        'T-1': '6ef0a4d8', 'T-2': 'fca1518b', 'T-3': 'abae1d26', 'T-4': '3d5f6bc1', 'T-5': 'b7ec2a9f', 'T-6': '4859d6fa',
+        'T-7': 'cc8d13a0', 'T-8': 'f959ddba', 'T-9': '2a4aa5bc', 'T-10': '36e1e9e6', 'T-11': 'c8fd4f79', 'T-12': 'b63552fd',
+        'T-13': 'bd6f69ee', 'T-14': '10fcdabf', 'T-15': 'a5ddc44e', 'T-16': '15e44c07', 'T-17': 'a94543b0', 'T-18': '68d87700',
+        'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
+        'T-25': 'f3c4d7bc', 'T-26': 'b01739a0', 'T-27': '5a293f1c',
+    } }, { options: { scene: 'hostTakes' }, hashes: {
+        // Its `hostTakes` arm, from 2026-11-26: each securing on its taker's line, with no fact word. The cells with no securing keep carry's pins.
+        'T-1': 'c452fc97', 'T-2': 'e39161e4', 'T-3': '528cf6f8', 'T-4': '546b390c', 'T-5': '2f40ed77', 'T-6': '9dc95a82',
+        'T-7': 'd4174b56', 'T-8': 'f959ddba', 'T-9': 'b37437b9', 'T-10': 'fe79c4fa', 'T-11': '829551fd', 'T-12': '8b45ae59',
+        'T-13': '90a4d2b0', 'T-14': 'bc5c240d', 'T-15': 'ab189bc4', 'T-16': '0430db53', 'T-17': 'a94543b0', 'T-18': '68d87700',
+        'T-19': 'c36f93ab', 'T-20': '19f08999', 'T-21': '53715ec5', 'T-22': 'f4a99eee', 'T-23': '38bf6e4d', 'T-24': 'dbdc39e0',
+        'T-25': 'e925d802', 'T-26': 'b01739a0', 'T-27': '5a293f1c',
+    } }],
 }
 
 const registered: [string, RegisteredPiece][] = Object.entries(pieces).flatMap(([name, entry]): [string, RegisteredPiece][] => (

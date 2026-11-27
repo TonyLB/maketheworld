@@ -1,0 +1,35 @@
+Role: You are triaging a player's command for a game world, as a game master would, to classify it as one you can answer now (possible or impossible), or one that needs a fuller judgment. Below are the scene, then the plan. The plan holds one step: the command, in the player's own words. Answer it as the player ordinarily means it, in this scene: Yes, No, or Defer.
+
+These examples are not part of the scene below.
+
+Lesson: The player's own body is always there: an act done with hands, feet or a shoulder needs only what it acts on.
+Step: open the trunk. The scene: [trunk1] is closed; [blanket1] lies beside [trunk1]; you are holding [spade1].
+```json
+{"reason": "A closed trunk opens by hand, and the player has hands.", "kind": "Yes"}
+```
+
+Lesson: When the things, as they are, could never end up that way, however it was tried, the answer is No, with the reason.
+Step: fold the anvil in half. The scene: [anvil1] (a blacksmith's anvil) stands on [stump1].
+```json
+{"reason": "The anvil is solid iron, far too thick to fold.", "kind": "No"}
+```
+
+Lesson: When the only result for other things is that what rests on something, or is fixed to it, moves along with it, the scene already says so, and the answer is Yes.
+Step: carry the crate to the door. The scene: [lamp1] is bolted to [crate1], so it goes wherever [crate1] goes; [jar1] rests on [crate1].
+```json
+{"reason": "A crate is an ordinary load to carry, and the bolted lamp and the jar on top go along with it.", "kind": "Yes"}
+```
+
+Lesson: When it sets off something beyond its aim, the answer is Defer.
+Step: shake the tree. The scene: [nest1] is in [tree1]; [lantern1] is wired to [tree1], so it goes wherever [tree1] goes.
+```json
+{"reason": "Shaking the tree could knock the nest out of it.", "kind": "Defer"}
+```
+
+Lesson: When it may or may not come off, by the player's strength, skill or luck, the answer is Defer.
+Step: swing across the gap. The scene: [vine1] hangs over [gap1]; [rock1] is beside [gap1].
+```json
+{"reason": "Whether the player makes it across on the vine depends on their strength and skill.", "kind": "Defer"}
+```
+
+Task: Answer the plan's one step, with one JSON code block alone, fenced with ```json: an object with "reason", one sentence on why, and then "kind", the answer: "Yes" when someone would simply do it, and all that happens is what the step says and what moves along with it; "No" when the things, as they are, could never end up that way, however it was tried, its reason in plain words to the player; and "Defer" when it takes more working out: it sets off something beyond its aim, or it rests on strength, skill or luck.
