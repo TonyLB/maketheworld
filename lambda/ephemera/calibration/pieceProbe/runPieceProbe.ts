@@ -4,6 +4,7 @@
 // A cell with no expected answer is tallied and not graded. A grade's aspects are tallied beside its answer, each apart.
 //
 import type { NovaModel } from '../../llm/novaModel'
+import type { CallCost } from '../callCost'
 import { runProbeCalls } from '../oracleLoop/runOracleProbe'
 import { textHash } from '../textHash'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
@@ -16,7 +17,8 @@ import type { PieceGrade } from './pieceAnswer'
  */
 export type PreparedCell = { cell: string; expected?: string; expectedAspects?: Readonly<Record<string, readonly string[]>>; lookFor?: string; rendered: string; parts?: RenderedParts; byCode?: string }
 
-export type PieceCall = { cell: string; repeat: number; answer?: string; error?: string; grade?: PieceGrade }
+/** One call: its reply and grade, or its error, and what it cost (`callCost.ts`). */
+export type PieceCall = { cell: string; repeat: number; answer?: string; error?: string; grade?: PieceGrade; cost?: CallCost }
 
 /** One aspect's tally: how often each value was given, and against the cell's accepted ones, where it has them (0 and 0 where it has none). */
 export type AspectTally = { expected?: readonly string[]; right: number; wrong: number; given: Record<string, number> }
@@ -59,8 +61,8 @@ export const runPieceProbe = async ({ cells, instructions, grade, repeats, model
         model,
         ...(maxTokens !== undefined ? { maxTokens } : {}),
         ...(invoke !== undefined ? { invoke } : {}),
-    })).map(async ({ id, repeat, answer, error }): Promise<PieceCall> => (
-        answer !== undefined ? { cell: id, repeat, answer, grade: await grade(answer, id) } : { cell: id, repeat, error }
+    })).map(async ({ id, repeat, answer, error, cost }): Promise<PieceCall> => (
+        answer !== undefined ? { cell: id, repeat, answer, grade: await grade(answer, id), cost } : { cell: id, repeat, error, cost }
     ))
 )
 

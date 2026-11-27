@@ -44,7 +44,7 @@ export type TriageAnswer =
     | ({ kind: 'Defer'; plan: ActionPlan } & Involved)
 
 /** An answer without its plan. */
-type TriageVerdict = { kind: 'No'; reason: string } | { kind: 'Yes' | 'Defer' }
+export type TriageVerdict = { kind: 'No'; reason: string } | { kind: 'Yes' | 'Defer' }
 
 /** The authority for no kind, so everything it writes is unchecked. The rules a consequence may name are the ones the prompt shows, added per call. */
 export const TRIAGE_MERGE: MergeOptions = { author: 'triage', adds: ['steps', 'consequence', 'improvise'], restates: true, handlesAre: 'in the scene or improvised' }
@@ -83,9 +83,17 @@ const prepareTriage = ({ inputs: { plan, target } }: Pick<PieceCell<TriageInputs
     return {}
 }
 
-const renderViewedTriage = withViewedScene(TRIAGE_VIEW.scene, ({ inputs: { plan } }: Pick<PieceCell<TriageInputs>, 'inputs'>, _options: undefined, viewed): string => {
-    return [sceneRendererOf(TRIAGE_WORDING)(shownScene(viewed)), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
-}, prepareTriage)
+/**
+ * Triage's render on a wording: the whole scene in the arm its options name (or the wording's default), then `The plan:`. Triage's branch
+ * alone (`triageBranch.ts`) takes it on a wording of its own.
+ */
+export const triageRenderOn = <Arm extends string>(wording: SceneWording<Arm>) => withViewedScene(TRIAGE_VIEW.scene, (
+    { inputs: { plan } }: Pick<PieceCell<TriageInputs>, 'inputs'>, options: { scene?: Arm } | undefined, viewed,
+): string => (
+    [sceneRendererOf(wording, options?.scene)(shownScene(viewed)), `The plan:\n${renderPlanForGenerator(viewPlan(plan, TRIAGE_VIEW.plan))}`].join('\n\n')
+), prepareTriage)
+
+const renderViewedTriage = triageRenderOn(TRIAGE_WORDING)
 
 export const renderTriage = (cell: Pick<PieceCell<TriageInputs>, 'inputs'>): Promise<string> => renderViewedTriage(cell, undefined)
 
@@ -95,7 +103,7 @@ const nonEmptyString = (value: unknown): value is string => typeof value === 'st
  * The reply's verdict: its `kind`, trimmed and in any case, and on "No" its `reason`, kept as written. A `reason` on another kind is no part
  * of that answer, so it is dropped, whatever its form.
  */
-const readVerdict = ({ kind, reason }: { kind?: unknown; reason?: unknown }): TriageVerdict | { problems: string[] } => {
+export const readVerdict = ({ kind, reason }: { kind?: unknown; reason?: unknown }): TriageVerdict | { problems: string[] } => {
     if (typeof kind !== 'string') {
         return { problems: ['has no string "kind"'] }
     }

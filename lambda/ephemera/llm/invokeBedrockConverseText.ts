@@ -15,6 +15,8 @@ export type InvokeBedrockConverseTextSuccess = {
     body: string;
     reasoningContent?: string;
     usage?: TokenUsage
+    /** Bedrock's own latency for the call (`metrics.latencyMs`), where the response gives it: the model's time, apart from the client's wait. */
+    latencyMs?: number
 }
 
 export type InvokeBedrockConverseTextFailure = {
@@ -174,6 +176,9 @@ export async function invokeBedrockConverseText(
         }
         if (reasoningContent !== undefined) {
             success.reasoningContent = reasoningContent
+        }
+        if (response.metrics?.latencyMs !== undefined) {
+            success.latencyMs = response.metrics.latencyMs
         }
         return success
     } catch (err) {

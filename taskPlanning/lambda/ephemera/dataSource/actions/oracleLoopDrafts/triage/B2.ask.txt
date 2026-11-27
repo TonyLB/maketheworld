@@ -1,0 +1,47 @@
+Role: You are triaging a player's command for a game world, as a game master would, to classify it as one you can answer now (possible or impossible), or one that needs a fuller judgment. Below are the scene, then the plan. The plan holds one step: the command, in the player's own words. Answer it as the player ordinarily means it, in this scene: Yes, No, or Defer.
+
+These examples are not part of the scene below.
+
+Lesson: The player's own body is always there: an act done with hands, feet or a shoulder needs only what it acts on.
+Step: open the trunk. The scene: [trunk1] is closed; [blanket1] lies beside [trunk1]; you are holding [spade1].
+```json
+{"kind": "Yes"}
+```
+
+Lesson: When the things, as they are, could never end up that way, however it was tried, the answer is No, with the reason.
+Step: fold the anvil in half. The scene: [anvil1] (a blacksmith's anvil) stands on [stump1].
+```json
+{"kind": "No", "reason": "The anvil is solid iron, far too thick to fold."}
+```
+
+Lesson: When the only result for other things is that what rests on something, or is fixed to it, moves along with it, the scene already says so, and the answer is Yes, even when a rule holds the thing on.
+Step: carry the crate to the door. The scene: [lamp1] is bolted to [crate1] (rule [lamp-secured-to-crate]); [jar1] rests on [crate1].
+```json
+{"kind": "Yes"}
+```
+
+Lesson: When doing it moves something farther than a rule allows, whether a way can be found is for others, so the answer is Defer.
+Step: push the cart across the room. The scene: [cart1] is tied to [post1] (rule [cart-secured-to-post]).
+```json
+{"kind": "Defer"}
+```
+
+Lesson: A rule on other things, which the act leaves as they are, has no part in the answer.
+Step: put the book on the shelf. The scene: [book1] lies on [desk1]; [clock1] is screwed to [shelf1] (rule [clock-secured-to-shelf]).
+```json
+{"kind": "Yes"}
+```
+
+Lesson: When it sets off something beyond its aim, the answer is Defer.
+Step: shake the tree. The scene: [nest1] is in [tree1]; [lantern1] is wired to [tree1] (rule [lantern-secured-to-tree]).
+```json
+{"kind": "Defer"}
+```
+
+Lesson: When it may or may not come off, by the player's strength, skill or luck, the answer is Defer.
+Step: swing across the gap. The scene: [vine1] hangs over [gap1]; [rock1] is beside [gap1].
+```json
+{"kind": "Defer"}
+```
+
+Task: Answer the plan's one step, with one JSON code block alone, fenced with ```json: an object that starts with "kind", the answer: "Yes" when someone would simply do it, and all that happens is what the step says and what moves along with it; "No" when the things, as they are, could never end up that way, however it was tried, with "reason" after it, why, in plain words to the player; and "Defer" when it takes more working out: it goes against a rule, it sets off something beyond its aim, or it rests on strength, skill or luck.

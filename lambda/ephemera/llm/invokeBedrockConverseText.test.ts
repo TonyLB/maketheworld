@@ -50,6 +50,13 @@ describe('invokeBedrockConverseText', () => {
         expect(result).toEqual({ success: true, body: '', usage: undefined })
     })
 
+    it('returns Bedrock\'s own latency where the response gives it, and leaves it out where it doesn\'t', async () => {
+        const timed = jest.fn().mockResolvedValue({ output: { message: { content: [{ text: 'ok' }] } }, metrics: { latencyMs: 412 } })
+        expect(await invokeBedrockConverseText({ ...baseParams, client: { send: timed } as unknown as BedrockRuntimeClient })).toMatchObject({ success: true, latencyMs: 412 })
+        const untimed = jest.fn().mockResolvedValue({ output: { message: { content: [{ text: 'ok' }] } } })
+        expect(await invokeBedrockConverseText({ ...baseParams, client: { send: untimed } as unknown as BedrockRuntimeClient })).not.toHaveProperty('latencyMs')
+    })
+
     it('returns success metadata when usage is present', async () => {
         const send = jest.fn().mockResolvedValue({
             output: { message: { content: [{ text: 'ok' }] } },

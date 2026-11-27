@@ -14,6 +14,7 @@
     "assemble-chain": "esbuild calibration/compositionProbe/assembleChainCli.ts --bundle --platform=node --log-level=warning | node -",
     "read-chains": "esbuild calibration/compositionProbe/readChainsCli.ts --bundle --platform=node --log-level=warning | node -",
     "read-plans": "esbuild calibration/imaginationPieces/readPlansCli.ts --bundle --platform=node --log-level=warning | node -",
+    "combine-triage": "esbuild calibration/oraclePieces/combineTriageCli.ts --bundle --platform=node --log-level=warning | node -",
     "plan-census": "esbuild calibration/imaginationPieces/planCensusCli.ts --bundle --platform=node --log-level=warning | node -"
   },
   "dependencies": {
