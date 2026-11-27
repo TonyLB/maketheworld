@@ -8,14 +8,14 @@ import type { CallCost } from '../callCost'
 import { runProbeCalls } from '../oracleLoop/runOracleProbe'
 import { textHash } from '../textHash'
 import type { ProbeInvoke } from '../sceneReasoning/runSceneReasoningProbe'
-import { promptFor, type RenderedParts } from './oraclePiece'
+import { promptFor, type CellExpected, type RenderedParts } from './oraclePiece'
 import type { PieceGrade } from './pieceAnswer'
 
 /**
  * A cell ready to run: its rendered inputs, or the answer code gave in place of a call. Under system delivery it carries the render's two
  * `parts` too, and `rendered` is their join.
  */
-export type PreparedCell = { cell: string; expected?: string; expectedAspects?: Readonly<Record<string, readonly string[]>>; lookFor?: string; rendered: string; parts?: RenderedParts; byCode?: string }
+export type PreparedCell = { cell: string; expected?: CellExpected; expectedAspects?: Readonly<Record<string, readonly string[]>>; lookFor?: string; rendered: string; parts?: RenderedParts; byCode?: string }
 
 /** One call: its reply and grade, or its error, and what it cost (`callCost.ts`). */
 export type PieceCall = { cell: string; repeat: number; answer?: string; error?: string; grade?: PieceGrade; cost?: CallCost }
@@ -25,8 +25,8 @@ export type AspectTally = { expected?: readonly string[]; right: number; wrong: 
 
 export type PieceTally = {
     cell: string
-    /** Absent for a cell whose answer is open: its `right` and `wrong` are 0. */
-    expected?: string
+    /** Absent for a cell whose answer is open: its `right` and `wrong` are 0. A list where any of several answers is right. */
+    expected?: CellExpected
     lookFor?: string
     n: number
     right: number
@@ -66,6 +66,11 @@ export const runPieceProbe = async ({ cells, instructions, grade, repeats, model
     ))
 )
 
+/** Whether a cell's expected answer, one or a list of those accepted, takes this one. */
+export const acceptsAnswer = (expected: CellExpected, answer: string): boolean => (
+    typeof expected === 'string' ? answer === expected : expected.includes(answer)
+)
+
 const countsOf = (values: readonly string[]): Record<string, number> => values.reduce<Record<string, number>>((counts, value) => ({ ...counts, [value]: (counts[value] ?? 0) + 1 }), {})
 
 /** The aspects the cell expects or its grades give, each tallied; `undefined` where there are none. */
@@ -83,7 +88,7 @@ const tallyAspects = (expected: PreparedCell['expectedAspects'] = {}, grades: re
 export const tallyPiece = (cells: readonly PreparedCell[], calls: readonly PieceCall[]): PieceTally[] => cells.map(({ cell, expected, expectedAspects, lookFor, rendered, byCode }) => {
     const graded = calls.filter((call) => call.cell === cell).map(({ grade }) => grade)
     const given = graded.flatMap((grade) => (grade !== undefined && 'answer' in grade ? [grade.answer] : []))
-    const right = expected === undefined ? 0 : given.filter((answer) => answer === expected).length
+    const right = expected === undefined ? 0 : given.filter((answer) => acceptsAnswer(expected, answer)).length
     const aspects = tallyAspects(expectedAspects, graded)
     return {
         cell,
@@ -96,7 +101,7 @@ export const tallyPiece = (cells: readonly PreparedCell[], calls: readonly Piece
         errors: graded.filter((grade) => grade === undefined).length,
         answers: countsOf(given),
         ...(aspects === undefined ? {} : { aspects }),
-        ...(byCode === undefined ? {} : { byCode: { answer: byCode, right: byCode === expected } }),
+        ...(byCode === undefined ? {} : { byCode: { answer: byCode, right: expected !== undefined && acceptsAnswer(expected, byCode) } }),
         inputs: { hash: textHash(rendered) },
     }
 })

@@ -1,0 +1,65 @@
+Role: You are reading a player's command for a game world, as a game master would, to work out what the command leaves unstated. The plan holds one step: the command, in the player's own words. The step in full is the command as the player ordinarily means it, naming by its handle in the scene each thing the act involves: what it is done to, and what it is done with, from or to. When the act needs a thing the scene doesn't have, give it a new handle, and a few words for what kind of thing it is. When the player's words fit more than one thing equally well, name them all in one pair of brackets, joined by "|", as [cup1 | cup2]. Before the block, a few lines say what the player named, and then each thing the act needs besides those: what here meets it, or that nothing here does, and what here one might reach for that doesn't. The block then gives what the act involves: each thing in the scene, and each thing improvised, and then the step.
+
+These examples are not part of the scene below.
+
+Lesson: When the act needs a tool the command leaves out, and something in the scene suits it, the step names it.
+Step: unlock the door. The scene: [door1] is locked; [key1] hangs on [hook1].
+Named: [door1].
+Needs:
+- something to unlock it with: [key1]
+```json
+{"inScene": ["[door1]", "[key1]"], "says": "unlock [door1] with [key1]"}
+```
+
+Lesson: When the act needs a tool, and everything in the scene is for other uses, what it needs is improvised, and the step names it.
+Step: unlock the chest. The scene: [chest1] is locked; you are holding [spade1].
+Named: [chest1].
+Needs:
+- something to unlock it with: nothing here; not [spade1], which is for digging
+```json
+{"inScene": ["[chest1]"], "improvised": [{"handle": "[key1]", "gloss": "a key that fits [chest1]"}], "says": "unlock [chest1] with [key1]"}
+```
+
+Lesson: The step names what the act handles. A material poured or tipped out is handled by its container, so the step names the container too.
+Step: pour the sand into the sack. The scene: [sack1] lies open in [barn1]; [bucket1] stands beside [sack1]; [sand1] is in [bucket1].
+Named: [sand1]; [sack1].
+Needs:
+- something to pour the sand from: [bucket1]
+```json
+{"inScene": ["[sand1]", "[sack1]", "[bucket1]"], "says": "pour [sand1] from [bucket1] into [sack1]"}
+```
+
+Lesson: A material the act works in where it lies is named alone: what holds it is only its place.
+Step: bury the coin in the sand. The scene: [sack1] lies open in [barn1]; [bucket1] stands beside [sack1]; [sand1] is in [bucket1]; you are holding [coin1].
+Named: [coin1]; [sand1].
+Needs: only named items.
+```json
+{"inScene": ["[coin1]", "[sand1]"], "says": "bury [coin1] in [sand1]"}
+```
+
+Lesson: The player's own body is always there and needs no handle: an act done with hands, feet or a shoulder names only what it acts on.
+Step: open the trunk. The scene: [trunk1] is closed; [blanket1] lies beside [trunk1]; you are holding [spade1].
+Named: [trunk1].
+Needs: only named items; not [spade1], which is for digging.
+```json
+{"inScene": ["[trunk1]"], "says": "open [trunk1]"}
+```
+
+Lesson: When something here meets what the act needs, and something else one might reach for doesn't, the step names the one that meets it.
+Step: swing across the gap. The scene: [vine1] hangs over [gap1]; [rock1] is beside [gap1].
+Named: [gap1].
+Needs:
+- something to hang from: [vine1]; not [rock1], which hangs from nothing
+```json
+{"inScene": ["[gap1]", "[vine1]"], "says": "swing across [gap1] on [vine1]"}
+```
+
+Lesson: When the player's words fit two things equally well, the step names both, joined, and chooses neither.
+Step: open the window. The scene: [window1] and [window2] are both shut.
+Named: [window1 | window2], which the words fit equally well.
+Needs: only named items.
+```json
+{"inScene": ["[window1 | window2]"], "says": "open [window1 | window2]"}
+```
+
+Task: Write two parts, as in the examples: a few lines, and then one JSON code block that gives the plan's one step in full. The lines: "Named:", each thing the player named, by its handle in the scene, or, where the words fit several things equally well, their handles joined by "|" in one pair of brackets, or, for one the scene doesn't have, the player's words and "not here". Then "Needs:", and under it a line for each thing the act ordinarily requires besides the things named, done the way its verb says: a material as itself; a tool, or a thing the verb says it is done from, as what it has to do. After each need, the thing here that meets it, or "nothing here"; then, when the scene holds something one might reach for that doesn't meet it, "not", that thing, and why. When the act requires nothing besides the things named, "Needs: only named items." The block, fenced with ```json: an object that starts with what the act involves: "inScene", a list of each thing the player named and each thing in the scene that meets what the act needs, by its handle in brackets; and, when the act needs a thing the scene doesn't have, whether the player named it or not, "improvised", a list giving each one its "handle", a new handle in brackets, and its "gloss", a few words for what kind of thing it is. Then "says", the step in full, each thing it uses named by its handle in brackets, as the scene writes it, or as "improvised" gives it, or, where the words fit several things, by their joined handles.

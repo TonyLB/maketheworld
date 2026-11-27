@@ -47,8 +47,10 @@ export const triageCorpus: Readonly<Record<string, CorpusRow>> = {
         lookFor: 'The reason is the size, not that the cup is on the table, and not the glue' },
     'T-6': { fixture: 'teaTableCupOnFloor', command: 'put the table in the cup', grounded: [{ says: 'put [table1] in [cup1]' }], branch: same('No'), from: 'OC-11',
         lookFor: 'The reason is the size' },
-    'T-7': { fixture: 'teaTableCupOnFloor', command: 'hammer the table into the cup', grounded: [{ says: 'hammer [table1] into [cup1]' }], branch: same('No'), from: 'OC-18',
-        lookFor: 'The reason is the size, not that there is no hammer' },
+    // The hammer the verb implies, improvised since the scene has none, accepted too (the user, 2026-11-27, with grounding asked for a verb's tools).
+    'T-7': { fixture: 'teaTableCupOnFloor', command: 'hammer the table into the cup',
+        grounded: [{ says: 'hammer [table1] into [cup1]' }, { says: 'hammer [table1] into [cup1] with [hammer1]', improvise: [{ handle: 'hammer1', gloss: 'a hammer' }] }], branch: same('No'), from: 'OC-18',
+        lookFor: 'The reason is the size, not that there is no hammer. A hammer improvised, the scene having none, or none named' },
     'T-8': { fixture: 'tavern', command: 'put the table in the cup', grounded: [{ says: 'put [table1] in [cup1]' }], branch: same('No'), from: 'the one "No" outside the parlour',
         lookFor: 'The reason is the size of the long trestle' },
     'T-9': { fixture: 'teaTable', command: 'pick up the teapot', grounded: [{ says: 'pick up [teapot1]' }], branch: guardsDefer, from: 'OC-5',
@@ -94,4 +96,9 @@ export const triageCorpus: Readonly<Record<string, CorpusRow>> = {
     'T-27': { fixture: 'tavernRope', command: 'cut the rope',
         grounded: [{ says: 'cut [rope1] with [blade1]', improvise: [{ handle: 'blade1', gloss: 'something for cutting rope' }] }], branch: guardsDefer, from: 'the expansion probe\'s, the user\'s example',
         lookFor: 'A tool the command implies, and the one held doesn\'t suit: one thing for cutting improvised, and not [hammer1]' },
+    // A material worked where it lies, and its pair, a material moved by its container: the same scene, only the verb differs (the user, 2026-11-27).
+    'T-28': { fixture: 'sideboard', command: 'stir the coffee', grounded: [{ says: 'stir [coffee1] with [spoon1]' }], branch: same('Yes'), from: 'the user\'s, the bury of G1\'s examples',
+        lookFor: 'The coffee stirred where it lies: [mug1], its place, and [box1], the spoon\'s, aren\'t part of the act. The spoon meets the need, and a fork or a knife could stir too, so the near miss is all three joined, [fork1 | knife1 | spoon1], as though the player\'s words fit them equally well' },
+    'T-29': { fixture: 'sideboard', command: 'pour the coffee into the cup', grounded: [{ says: 'pour [coffee1] from [mug1] into [cup1]' }], branch: same('Yes'), from: 'the pair of T-28',
+        lookFor: 'The coffee is poured by tipping its container, so [mug1] is named. Nothing is ambiguous, unlike the tea table\'s pours. [cup1] already holds [tea1], as T-25\'s does' },
 }

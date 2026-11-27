@@ -151,7 +151,9 @@ describe('triage', () => {
 
             it.each<[string, unknown, string[]]>([
                 ['not an object', ['[cup1]'], ['"match" is not an object']],
-                ['another key', { inScene: [], here: [] }, ['"match" has "here", not one of inScene, improvised']],
+                ['another key', { inScene: [], here: [] }, ['"match" has "here", not one of inScene, improvised, assumes']],
+                ['an assumes that is no list of strings', { inScene: ['[cup1]'], assumes: ['it has room', ' '] }, ['"assumes" is not a list of non-empty strings']],
+                ['an assumes that is no list', { inScene: ['[cup1]'], assumes: 'it has room' }, ['"assumes" is not a list of non-empty strings']],
                 ['an inScene that is no list', { inScene: '[cup1]' }, ['"inScene" is not a list']],
                 ['an entry that is no string', { inScene: ['[cup1]', 3, ' '] }, ['inScene entry 2 is not a non-empty string', 'inScene entry 3 is not a non-empty string']],
                 ['a handle not in the scene', { inScene: ['[cup3]'] }, ['inScene: [cup3] is not in the scene']],
@@ -293,7 +295,7 @@ describe('triage', () => {
 
     describe('the cells', () => {
         it('are the corpus\'s rows, all in scenes they render in, each saying what to look for', async () => {
-            expect(Object.keys(triageCells)).toEqual(Array.from({ length: 27 }, (_, index) => `T-${index + 1}`))
+            expect(Object.keys(triageCells)).toEqual(Array.from({ length: 29 }, (_, index) => `T-${index + 1}`))
             await Promise.all(Object.entries(triageCells).map(async ([id, cell]) => {
                 expect(await triage.render(cell, undefined)).toContain(`(unchecked): ${triageCorpus[id].command}\n`)
                 expect(cell.lookFor).toBeTruthy()
@@ -308,6 +310,8 @@ describe('triage', () => {
             expect(triageCells['T-25'].expectedAspects?.grounding).toEqual(['cup1, tea2, teapot1', 'tea2, teapot1', 'tea1|tea2'])
             expect(triageCells['T-26'].expectedAspects?.grounding).toEqual(['hammer1, saucer1'])
             expect(triageCells['T-27'].expectedAspects?.grounding).toEqual(['rope1, improvised'])
+            expect(triageCells['T-28'].expectedAspects?.grounding).toEqual(['coffee1, spoon1'])
+            expect(triageCells['T-29'].expectedAspects?.grounding).toEqual(['coffee1, cup1, mug1'])
             expect(triageCells['T-5']).toMatchObject({ expected: 'No', expectedAspects: { afterGuard: ['No'] } })
             expect(Object.entries(triageCells).filter(([, { expectedAspects }]) => expectedAspects?.grounding === undefined).map(([id]) => id)).toEqual(['T-5', 'T-6', 'T-7', 'T-8', 'T-15', 'T-21'])
             expect(Object.entries(triageCells).filter(([, { expected, expectedAspects }]) => expected === undefined || expectedAspects === undefined).map(([id]) => id)).toEqual(['T-15', 'T-21'])
@@ -315,7 +319,7 @@ describe('triage', () => {
 
         it('hold the branches as the corpus counts them', () => {
             const count = (kind: string) => Object.values(triageCells).filter(({ expected }) => expected === kind).length
-            expect({ Yes: count('Yes'), No: count('No'), Defer: count('Defer') }).toEqual({ Yes: 8, No: 4, Defer: 13 })
+            expect({ Yes: count('Yes'), No: count('No'), Defer: count('Defer') }).toEqual({ Yes: 10, No: 4, Defer: 13 })
         })
 
         it('grades every row right on its own grounding and branch', async () => {
@@ -344,7 +348,7 @@ describe('triage', () => {
             const halves = [ids.slice(0, 14), ids.slice(14)]
             const runs = await Promise.all(halves.map((cells) => run({ cells }, { says: 'wait', kind: 'Defer' })))
             expect(runs.map(({ statusCode }) => statusCode)).toEqual([200, 200])
-            expect(runs.map(({ result }) => result.summary.calls)).toEqual([14, 13])
+            expect(runs.map(({ result }) => result.summary.calls)).toEqual([14, 15])
             expect(ids.length).toBeGreaterThan(PIECE_PROBE_CALL_CAP)
             expect((await run({}, { says: 'wait', kind: 'Defer' })).statusCode).toBe(400)
             expect((await run({ cells: ['T-1'], options: { scene: 'judge' } }, { says: 'wait', kind: 'Defer' })).statusCode).toBe(400)
